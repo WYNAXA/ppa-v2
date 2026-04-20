@@ -599,7 +599,6 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     if (!user) return
 
     // Separate real players from guests (guests have fake IDs that fail FK checks)
-    const guestPlayers = safePlayers.filter((p) => p.isGuest)
     const realPlayers  = safePlayers.filter((p) => !p.isGuest)
     const playerIds    = realPlayers.map((p) => p.id)
 

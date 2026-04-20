@@ -10,15 +10,21 @@ import { CompetePage } from '@/pages/Compete'
 import { CommunityPage } from '@/pages/Community'
 import { YouPage } from '@/pages/You'
 import { MatchDetailPage } from '@/pages/MatchDetail'
+import { PlaceholderPage } from '@/pages/Placeholder'
 
 const queryClient = new QueryClient({
   defaultOptions: {
-    queries: {
-      staleTime: 30_000,
-      retry: 1,
-    },
+    queries: { staleTime: 30_000, retry: 1 },
   },
 })
+
+// Pages that don't show the bottom nav
+const NO_NAV_PREFIXES = ['/auth']
+
+function Guard({ children }: { children: React.ReactNode }) {
+  const { session } = useAuth()
+  return session ? <>{children}</> : <Navigate to="/auth" replace />
+}
 
 function AppShell() {
   const { session, loading } = useAuth()
@@ -32,23 +38,38 @@ function AppShell() {
     )
   }
 
-  const showNav = !!session && !location.pathname.startsWith('/auth')
+  const showNav = !!session && !NO_NAV_PREFIXES.some((p) => location.pathname.startsWith(p))
 
   return (
     <div className="flex h-full flex-col">
       <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>
         <Routes>
+          {/* Root redirect */}
           <Route path="/" element={<Navigate to={session ? '/home' : '/auth'} replace />} />
+
+          {/* Auth */}
           <Route path="/auth" element={<AuthPage />} />
 
-          <Route path="/home"        element={session ? <HomePage />        : <Navigate to="/auth" replace />} />
-          <Route path="/play"        element={session ? <PlayPage />        : <Navigate to="/auth" replace />} />
-          <Route path="/matches"     element={session ? <PlayPage />        : <Navigate to="/auth" replace />} />
-          <Route path="/matches/:id" element={session ? <MatchDetailPage /> : <Navigate to="/auth" replace />} />
-          <Route path="/compete"     element={session ? <CompetePage />     : <Navigate to="/auth" replace />} />
-          <Route path="/community"   element={session ? <CommunityPage />   : <Navigate to="/auth" replace />} />
-          <Route path="/you"         element={session ? <YouPage />         : <Navigate to="/auth" replace />} />
+          {/* Main tabs */}
+          <Route path="/home"      element={<Guard><HomePage /></Guard>} />
+          <Route path="/play"      element={<Guard><PlayPage /></Guard>} />
+          <Route path="/compete"   element={<Guard><CompetePage /></Guard>} />
+          <Route path="/community" element={<Guard><CommunityPage /></Guard>} />
+          <Route path="/you"       element={<Guard><YouPage /></Guard>} />
 
+          {/* Matches */}
+          <Route path="/matches"     element={<Guard><PlaceholderPage title="Matches" /></Guard>} />
+          <Route path="/matches/:id" element={<Guard><MatchDetailPage /></Guard>} />
+
+          {/* Play sub-routes */}
+          <Route path="/play/availability" element={<Guard><PlaceholderPage title="Find My Game" /></Guard>} />
+          <Route path="/play/join"         element={<Guard><PlaceholderPage title="Join a Match" /></Guard>} />
+          <Route path="/play/book-court"   element={<Guard><PlaceholderPage title="Book a Court" /></Guard>} />
+
+          {/* Notifications placeholder */}
+          <Route path="/notifications" element={<Guard><PlaceholderPage title="Notifications" /></Guard>} />
+
+          {/* Fallback */}
           <Route path="*" element={<Navigate to={session ? '/home' : '/auth'} replace />} />
         </Routes>
       </main>

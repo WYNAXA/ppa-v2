@@ -31,7 +31,6 @@ function initTeams(playerIds: string[]): [string[], string[]] {
   return [playerIds.slice(0, 2), playerIds.slice(2, 4)]
 }
 
-const STEP_LABELS = ['Teams', 'Scores', 'Result', 'Done']
 
 export function RecordResultSheet({ open, onClose, match, players, currentUserId }: RecordResultSheetProps) {
   const [step, setStep] = useState(1)
@@ -163,14 +162,14 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-40 bg-black/40"
+            className="fixed inset-0 z-[55] bg-black/40"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl max-h-[90vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[90vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -207,7 +206,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
               </div>
             )}
 
-            <div className="overflow-y-auto flex-1 px-5 pb-8">
+            <div className="overflow-y-auto flex-1 px-5" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
               <AnimatePresence mode="wait">
                 {/* Step 1: Teams */}
                 {step === 1 && (

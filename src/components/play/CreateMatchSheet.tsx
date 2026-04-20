@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 type MatchType = 'competitive' | 'friendly' | 'casual'
 type Duration  = 60 | 90 | 120
 
-interface Venue { id: string; venue_name: string; city?: string | null }
+interface Venue { venue_id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name?: string | null; court_number?: number | null }
 interface Profile { id: string; name: string; email: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
 
@@ -129,7 +129,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
     if (debouncedQuery.length < 2) { setVenues([]); return }
     supabase
       .from('padel_venues')
-      .select('id, venue_name, city')
+      .select('venue_id, venue_name, city')
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)
       .then(({ data, error }) => {
@@ -144,7 +144,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
     supabase
       .from('courts')
       .select('id, court_name, court_number')
-      .eq('venue_id', form.venue.id)
+      .eq('venue_id', form.venue.venue_id)
       .order('court_number')
       .then(({ data }) => { if (data) setCourts(data) })
   }, [form.venue])
@@ -165,7 +165,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
             value={form.date}
             min={todayStr()}
             onChange={(e) => setForm({ ...form, date: e.target.value })}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            style={{ fontSize: '16px' }}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
         </div>
 
@@ -177,7 +178,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
             value={form.time}
             step="1800"
             onChange={(e) => setForm({ ...form, time: e.target.value })}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            style={{ fontSize: '16px' }}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
         </div>
 
@@ -215,7 +217,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               onChange={(e) => { setVenueQuery(e.target.value); setShowVenues(true); if (!e.target.value) setForm({ ...form, venue: null, court: null }) }}
               onFocus={() => setShowVenues(true)}
               placeholder="Search venues…"
-              className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              style={{ fontSize: '16px' }}
+              className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
             {form.venue && (
               <button
@@ -235,7 +238,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 className="absolute z-50 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden"
               >
                 {venues.map((v) => (
-                  <li key={v.id}>
+                  <li key={v.venue_id}>
                     <button
                       onClick={() => { setForm({ ...form, venue: v, court: null }); setVenueQuery(v.venue_name); setShowVenues(false) }}
                       className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 flex items-center gap-2"
@@ -261,7 +264,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 const c = courts.find((c) => c.id === e.target.value) ?? null
                 setForm({ ...form, court: c })
               }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
+              style={{ fontSize: '16px' }}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
             >
               <option value="">Any court</option>
               {courts.map((c) => (
@@ -283,7 +287,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
             placeholder="Any details for the players…"
             rows={2}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
+            style={{ fontSize: '16px' }}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
           />
         </div>
       </div>
@@ -393,7 +398,8 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search players by name…"
-            className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            style={{ fontSize: '16px' }}
+            className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
         </div>
       )}
@@ -439,7 +445,8 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
                 onKeyDown={(e) => { if (e.key === 'Enter') addGuest() }}
                 placeholder="Guest name…"
                 autoFocus
-                className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                style={{ fontSize: '16px' }}
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
               />
               <button
                 onClick={addGuest}
@@ -472,7 +479,7 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
 
 // ── Step 4 — Review ───────────────────────────────────────────────────────────
 
-function Step4({ form }: { form: FormState }) {
+function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] }) {
   const rows = [
     { label: 'Type',     value: form.matchType ?? '—' },
     { label: 'Date',     value: form.date },
@@ -497,14 +504,14 @@ function Step4({ form }: { form: FormState }) {
 
       <p className="text-[13px] font-medium text-gray-700 mb-2.5">Players</p>
       <div className="flex items-center gap-2 flex-wrap">
-        {form.players.map((p) => (
+        {safePlayers.map((p) => (
           <div key={p.id} className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-full pl-1 pr-3 py-1">
             <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
             <span className="text-[12px] font-medium text-gray-800">{p.name.split(' ')[0]}</span>
             {p.isGuest && <span className="text-[9px] font-bold text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">G</span>}
           </div>
         ))}
-        {Array.from({ length: Math.max(0, 4 - form.players.length) }).map((_, i) => (
+        {Array.from({ length: Math.max(0, 4 - safePlayers.length) }).map((_, i) => (
           <div key={i} className="text-[12px] text-gray-300 border border-dashed border-gray-200 rounded-full px-3 py-1">Open</div>
         ))}
       </div>
@@ -568,6 +575,11 @@ export function CreateMatchSheet({ open, onClose }: CreateMatchSheetProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
 
+  // Defensive: creator is always in the player list even if removed
+  const safePlayers = creatorProfile && !form.players.some((p) => p.id === creatorProfile.id)
+    ? [creatorProfile, ...form.players]
+    : form.players
+
   const canNext = useCallback(() => {
     if (step === 1) return !!form.matchType
     if (step === 2) return !!form.date && !!form.time
@@ -577,10 +589,11 @@ export function CreateMatchSheet({ open, onClose }: CreateMatchSheetProps) {
 
   const handleSubmit = async () => {
     if (!user) return
+    console.log('[CreateMatch] handleSubmit', { form, safePlayers })
     setSubmitting(true)
     setError(null)
     try {
-      const playerIds = form.players.map((p) => p.id)
+      const playerIds = safePlayers.map((p) => p.id)
       const payload = {
         match_date:          form.date,
         match_time:          form.time,
@@ -667,7 +680,7 @@ export function CreateMatchSheet({ open, onClose }: CreateMatchSheetProps) {
                   {step === 1 && <Step1 form={form} setForm={setForm} />}
                   {step === 2 && <Step2 form={form} setForm={setForm} />}
                   {step === 3 && <Step3 form={form} setForm={setForm} creatorProfile={creatorProfile} />}
-                  {step === 4 && <Step4 form={form} />}
+                  {step === 4 && <Step4 form={form} safePlayers={safePlayers} />}
                 </motion.div>
               </AnimatePresence>
 

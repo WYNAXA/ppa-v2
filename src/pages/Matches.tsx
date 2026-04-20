@@ -30,12 +30,12 @@ function useMatches(tab: Tab, userId: string) {
     queryFn: async (): Promise<MatchCardData[]> => {
       const today = format(new Date(), 'yyyy-MM-dd')
 
-      let query = supabase.from('matches').select('*').neq('status', 'cancelled')
+      let query = supabase.from('matches').select('*')
 
       if (tab === 'upcoming') {
         query = query
           .contains('player_ids', [userId])
-          .neq('status', 'completed')
+          .not('status', 'in', '("completed","cancelled","suggested")')
           .gte('match_date', today)
           .order('match_date', { ascending: true })
       } else if (tab === 'past') {

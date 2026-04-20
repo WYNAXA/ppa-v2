@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import type { Match } from '@/lib/types'
 
-interface Venue { id: string; venue_name: string; city?: string | null }
+interface Venue { venue_id: string; venue_name: string; city?: string | null }
 
 function useDebounce<T>(value: T, delay: number) {
   const [dv, setDv] = useState(value)
@@ -28,7 +28,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   const [venueQuery, setVenueQuery] = useState(match.booked_venue_name ?? '')
   const [venues, setVenues]       = useState<Venue[]>([])
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(
-    match.booked_venue_name ? { id: '', venue_name: match.booked_venue_name } : null
+    match.booked_venue_name ? { venue_id: '', venue_name: match.booked_venue_name } : null
   )
   const [showVenues, setShowVenues] = useState(false)
   const [notes, setNotes]         = useState(match.notes ?? '')
@@ -41,7 +41,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       setDate(match.match_date)
       setTime(match.match_time?.slice(0, 5) ?? '')
       setVenueQuery(match.booked_venue_name ?? '')
-      setSelectedVenue(match.booked_venue_name ? { id: '', venue_name: match.booked_venue_name } : null)
+      setSelectedVenue(match.booked_venue_name ? { venue_id: '', venue_name: match.booked_venue_name } : null)
       setNotes(match.notes ?? '')
       setVenues([])
     }
@@ -51,7 +51,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
     if (debouncedQuery.length < 2) { setVenues([]); return }
     supabase
       .from('padel_venues')
-      .select('id, venue_name, city')
+      .select('venue_id, venue_name, city')
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)
       .then(({ data, error }) => {
@@ -176,7 +176,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         className="absolute z-50 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg max-h-48 overflow-y-auto"
                       >
                         {venues.map((v) => (
-                          <li key={v.id}>
+                          <li key={v.venue_id}>
                             <button
                               onClick={() => { setSelectedVenue(v); setVenueQuery(v.venue_name); setShowVenues(false) }}
                               className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 flex items-center gap-2"

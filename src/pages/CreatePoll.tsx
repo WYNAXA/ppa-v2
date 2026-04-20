@@ -125,7 +125,8 @@ export function CreatePollPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. This week's game"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            style={{ fontSize: '16px' }}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
         </div>
 
@@ -135,7 +136,20 @@ export function CreatePollPage() {
           {groupsLoading ? (
             <div className="h-10 rounded-xl bg-gray-100 animate-pulse" />
           ) : groups.length === 0 ? (
-            <p className="text-[12px] text-gray-400 italic">You're not in any groups yet.</p>
+            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
+              <p className="text-[13px] font-semibold text-gray-600 mb-1">
+                You need to be in a group to start an availability check
+              </p>
+              <p className="text-[12px] text-gray-400 mb-3">
+                Join or create a group first
+              </p>
+              <button
+                onClick={() => navigate('/community')}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
+              >
+                Go to Community
+              </button>
+            </div>
           ) : groups.length === 1 ? (
             <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
               <p className="text-[13px] font-semibold text-teal-800">{groups[0].name}</p>
@@ -144,7 +158,8 @@ export function CreatePollPage() {
             <select
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 bg-white"
+              style={{ fontSize: '16px' }}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 bg-white"
             >
               <option value="">Select a group…</option>
               {groups.map((g) => (
@@ -199,12 +214,13 @@ export function CreatePollPage() {
                       value={slot.date}
                       min={todayStr()}
                       onChange={(e) => updateSlot(slot.id, 'date', e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white outline-none focus:border-teal-500"
+                      style={{ fontSize: '16px' }}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-teal-500"
                     />
                   </div>
 
-                  {/* Start / End time */}
-                  <div className="grid grid-cols-2 gap-2">
+                  {/* Start / End time — stacked full-width */}
+                  <div className="flex flex-col gap-2">
                     <div>
                       <label className="block text-[11px] text-gray-500 mb-1 flex items-center gap-1">
                         <Clock className="h-3 w-3" /> Start
@@ -214,7 +230,8 @@ export function CreatePollPage() {
                         value={slot.start_time}
                         step="1800"
                         onChange={(e) => updateSlot(slot.id, 'start_time', e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white outline-none focus:border-teal-500"
+                        style={{ fontSize: '16px' }}
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-teal-500"
                       />
                     </div>
                     <div>
@@ -226,7 +243,8 @@ export function CreatePollPage() {
                         value={slot.end_time}
                         step="1800"
                         onChange={(e) => updateSlot(slot.id, 'end_time', e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white outline-none focus:border-teal-500"
+                        style={{ fontSize: '16px' }}
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-teal-500"
                       />
                     </div>
                   </div>
@@ -246,7 +264,8 @@ export function CreatePollPage() {
             value={closesAt}
             min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
             onChange={(e) => setClosesAt(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            style={{ fontSize: '16px' }}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
         </div>
 
@@ -260,7 +279,8 @@ export function CreatePollPage() {
             onChange={(e) => setNotes(e.target.value)}
             placeholder="Any context for your group…"
             rows={2}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
+            style={{ fontSize: '16px' }}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
           />
         </div>
       </div>

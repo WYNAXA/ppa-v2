@@ -11,6 +11,9 @@ import { CommunityPage } from '@/pages/Community'
 import { YouPage } from '@/pages/You'
 import { MatchDetailPage } from '@/pages/MatchDetail'
 import { MatchesPage } from '@/pages/Matches'
+import { AvailabilityPage } from '@/pages/Availability'
+import { AvailabilityPollPage } from '@/pages/AvailabilityPoll'
+import { CreatePollPage } from '@/pages/CreatePoll'
 import { PlaceholderPage } from '@/pages/Placeholder'
 
 const queryClient = new QueryClient({
@@ -62,8 +65,10 @@ function AppShell() {
           <Route path="/matches"     element={<Guard><MatchesPage /></Guard>} />
           <Route path="/matches/:id" element={<Guard><MatchDetailPage /></Guard>} />
 
-          {/* Play sub-routes */}
-          <Route path="/play/availability" element={<Guard><PlaceholderPage title="Find My Game" /></Guard>} />
+          {/* Play sub-routes — /create MUST come before /:pollId */}
+          <Route path="/play/availability"         element={<Guard><AvailabilityPage /></Guard>} />
+          <Route path="/play/availability/create"  element={<Guard><CreatePollPage /></Guard>} />
+          <Route path="/play/availability/:pollId" element={<Guard><AvailabilityPollPage /></Guard>} />
           <Route path="/play/join"         element={<Guard><PlaceholderPage title="Join a Match" /></Guard>} />
           <Route path="/play/book-court"   element={<Guard><PlaceholderPage title="Book a Court" /></Guard>} />
 

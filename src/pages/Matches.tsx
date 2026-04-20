@@ -33,12 +33,14 @@ function useMatches(tab: Tab, userId: string) {
       let query = supabase.from('matches').select('*')
 
       if (tab === 'upcoming') {
+        // Exclude completed/cancelled/suggested AND only future dates
         query = query
           .contains('player_ids', [userId])
-          .not('status', 'in', '("completed","cancelled","suggested")')
+          .not('status', 'in', '(completed,cancelled,suggested)')
           .gte('match_date', today)
           .order('match_date', { ascending: true })
       } else if (tab === 'past') {
+        // Past = completed status OR match date is before today
         query = query
           .contains('player_ids', [userId])
           .or(`status.eq.completed,match_date.lt.${today}`)

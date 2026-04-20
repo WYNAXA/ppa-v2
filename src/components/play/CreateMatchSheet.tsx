@@ -157,30 +157,32 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       <p className="text-sm text-gray-500 mb-6">When and where?</p>
       <div className="space-y-4">
 
-        {/* Date */}
-        <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Date</label>
-          <input
-            type="date"
-            value={form.date}
-            min={todayStr()}
-            onChange={(e) => setForm({ ...form, date: e.target.value })}
-            style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-          />
-        </div>
+        {/* Date — full width stacked */}
+        <div className="flex flex-col gap-3">
+          <div>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Date</label>
+            <input
+              type="date"
+              value={form.date}
+              min={todayStr()}
+              onChange={(e) => setForm({ ...form, date: e.target.value })}
+              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            />
+          </div>
 
-        {/* Time */}
-        <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Time</label>
-          <input
-            type="time"
-            value={form.time}
-            step="1800"
-            onChange={(e) => setForm({ ...form, time: e.target.value })}
-            style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-          />
+          {/* Time — full width, below date */}
+          <div>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Time</label>
+            <input
+              type="time"
+              value={form.time}
+              step="1800"
+              onChange={(e) => setForm({ ...form, time: e.target.value })}
+              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            />
+          </div>
         </div>
 
         {/* Duration */}
@@ -503,16 +505,21 @@ function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] 
       </div>
 
       <p className="text-[13px] font-medium text-gray-700 mb-2.5">Players</p>
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="grid grid-cols-2 gap-2">
         {safePlayers.map((p) => (
-          <div key={p.id} className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-full pl-1 pr-3 py-1">
+          <div key={p.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2.5">
             <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
-            <span className="text-[12px] font-medium text-gray-800">{p.name.split(' ')[0]}</span>
-            {p.isGuest && <span className="text-[9px] font-bold text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">G</span>}
+            <div className="flex-1 min-w-0">
+              <p className="text-[12px] font-semibold text-gray-900 truncate">{p.name.split(' ')[0]}</p>
+              {p.isGuest && <p className="text-[10px] text-gray-400">Guest</p>}
+            </div>
           </div>
         ))}
         {Array.from({ length: Math.max(0, 4 - safePlayers.length) }).map((_, i) => (
-          <div key={i} className="text-[12px] text-gray-300 border border-dashed border-gray-200 rounded-full px-3 py-1">Open</div>
+          <div key={i} className="flex items-center gap-2 border border-dashed border-gray-200 rounded-xl px-3 py-2.5">
+            <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex-shrink-0" />
+            <p className="text-[12px] text-gray-300">Open</p>
+          </div>
         ))}
       </div>
 
@@ -589,37 +596,58 @@ export function CreateMatchSheet({ open, onClose }: CreateMatchSheetProps) {
 
   const handleSubmit = async () => {
     if (!user) return
-    console.log('[CreateMatch] handleSubmit', { form, safePlayers })
+
+    // Separate real players from guests (guests have fake IDs that fail FK checks)
+    const guestPlayers = safePlayers.filter((p) => p.isGuest)
+    const realPlayers  = safePlayers.filter((p) => !p.isGuest)
+    const playerIds    = realPlayers.map((p) => p.id)
+
+    // Append guest names to notes so they're not lost
+    let finalNotes = form.notes.trim() || null
+    if (guestPlayers.length > 0) {
+      const guestNames = guestPlayers.map((p) => p.name).join(', ')
+      finalNotes = finalNotes ? `${finalNotes}\nGuests: ${guestNames}` : `Guests: ${guestNames}`
+    }
+
+    // match_time must be HH:MM:SS format for Postgres time column
+    const matchTime = form.time ? `${form.time.slice(0, 5)}:00` : null
+
+    const payload = {
+      match_date:          form.date,
+      match_time:          matchTime,
+      context_type:        'open' as const,
+      match_type:          form.matchType!,
+      status:              playerIds.length >= 4 ? 'scheduled' : 'open',
+      player_ids:          playerIds,
+      group_id:            null,
+      booked_venue_name:   form.venue?.venue_name ?? null,
+      booked_court_number: form.court?.court_number ?? null,
+      created_manually:    true,
+      created_by:          user.id,
+      notes:               finalNotes,
+    }
+
+    console.log('[CreateMatch] handleSubmit payload:', payload)
     setSubmitting(true)
     setError(null)
-    try {
-      const playerIds = safePlayers.map((p) => p.id)
-      const payload = {
-        match_date:          form.date,
-        match_time:          form.time,
-        context_type:        'open' as const,
-        match_type:          form.matchType!,
-        status:              playerIds.length === 4 ? 'scheduled' : 'open',
-        player_ids:          playerIds,
-        group_id:            null,
-        booked_venue_name:   form.venue?.venue_name ?? null,
-        booked_court_number: form.court?.court_number ?? null,
-        created_manually:    true,
-        created_by:          user.id,
-        notes:               form.notes || null,
-      }
 
+    try {
       const { data, error: insertError } = await supabase
         .from('matches')
         .insert(payload)
         .select('id')
         .single()
 
-      if (insertError) throw insertError
+      if (insertError) {
+        console.error('[CreateMatch] insert error:', insertError)
+        throw insertError
+      }
       onClose()
       navigate(`/matches/${data.id}`)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to create match')
+      const msg = err instanceof Error ? err.message : (err as { message?: string })?.message ?? 'Failed to create match'
+      console.error('[CreateMatch] caught error:', msg, err)
+      setError(msg)
       setSubmitting(false)
     }
   }

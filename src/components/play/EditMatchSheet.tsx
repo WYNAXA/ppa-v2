@@ -31,7 +31,9 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
     match.booked_venue_name ? { venue_id: '', venue_name: match.booked_venue_name } : null
   )
   const [showVenues, setShowVenues] = useState(false)
-  const [notes, setNotes]         = useState(match.notes ?? '')
+  const [notes, setNotes]         = useState(
+    match.notes?.split('\n').filter((line) => !line.startsWith('Guests:')).join('\n') ?? ''
+  )
   const debouncedQuery = useDebounce(venueQuery, 280)
   const queryClient = useQueryClient()
 
@@ -42,7 +44,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       setTime(match.match_time?.slice(0, 5) ?? '')
       setVenueQuery(match.booked_venue_name ?? '')
       setSelectedVenue(match.booked_venue_name ? { venue_id: '', venue_name: match.booked_venue_name } : null)
-      setNotes(match.notes ?? '')
+      setNotes(match.notes?.split('\n').filter((line) => !line.startsWith('Guests:')).join('\n') ?? '')
       setVenues([])
     }
   }, [open, match])
@@ -62,13 +64,15 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
+      const guestsLine = match.notes?.split('\n').find((line) => line.startsWith('Guests:')) ?? ''
+      const savedNotes = [notes.trim(), guestsLine].filter(Boolean).join('\n') || null
       const { error } = await supabase
         .from('matches')
         .update({
           match_date: date,
           match_time: time || null,
           booked_venue_name: selectedVenue?.venue_name ?? null,
-          notes: notes || null,
+          notes: savedNotes,
         })
         .eq('id', match.id)
       if (error) throw error

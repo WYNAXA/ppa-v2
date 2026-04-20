@@ -181,7 +181,7 @@ export function MatchDetailPage() {
   })()
 
   const handleShare = async () => {
-    const url = window.location.href
+    const url = `${window.location.origin}/matches/${id}`
     const venue = match.booked_venue_name ?? 'TBC'
     if (navigator.share) {
       try {
@@ -213,12 +213,21 @@ export function MatchDetailPage() {
     }
   }
 
-  // Build 4 player slots
+  // Parse guest names stored in notes as "Guests: Name1, Name2"
+  const guestNames = match.notes
+    ?.match(/Guests: (.+)/)?.[1]
+    ?.split(', ') ?? []
+
+  // Build 4 player slots — fill empty slots with guest players if available
   const SLOT_COUNT = 4
   const slots = Array.from({ length: SLOT_COUNT }, (_, i) => {
     const pid = match.player_ids[i]
-    if (!pid) return null
-    return players.find((p) => p.id === pid) ?? { id: pid, name: 'Unknown', email: '' }
+    if (pid) return players.find((p) => p.id === pid) ?? { id: pid, name: 'Unknown', email: '' }
+    const guestIndex = i - match.player_ids.length
+    if (guestIndex >= 0 && guestIndex < guestNames.length) {
+      return { id: `guest_${i}`, name: guestNames[guestIndex], email: '', isGuest: true as const }
+    }
+    return null
   })
 
   return (
@@ -305,7 +314,7 @@ export function MatchDetailPage() {
                 <>
                   <PlayerAvatar
                     name={player.name}
-                    avatarUrl={'avatar_url' in player ? player.avatar_url : undefined}
+                    avatarUrl={'isGuest' in player && player.isGuest ? null : ('avatar_url' in player ? player.avatar_url : undefined)}
                     size="sm"
                     badge={player.id === currentUserId ? '★' : undefined}
                   />
@@ -317,6 +326,9 @@ export function MatchDetailPage() {
                   </div>
                   {player.id === currentUserId && (
                     <span className="text-[9px] font-bold text-[#009688] bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">You</span>
+                  )}
+                  {'isGuest' in player && player.isGuest && (
+                    <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full flex-shrink-0">Guest</span>
                   )}
                 </>
               ) : (

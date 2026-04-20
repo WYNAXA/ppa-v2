@@ -13,7 +13,7 @@ type MatchType = 'competitive' | 'friendly' | 'casual'
 type Duration  = 60 | 90 | 120
 
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
-interface Court { id: string; court_name?: string | null; court_number?: number | null }
+interface Court { id: string; court_name?: string | null }
 interface Profile { id: string; name: string; email: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
 
 interface FormState {
@@ -143,9 +143,9 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
     if (!form.venue) { setCourts([]); return }
     supabase
       .from('courts')
-      .select('id, court_name, court_number')
+      .select('id, court_name')
       .eq('venue_id', form.venue.venue_id)
-      .order('court_number')
+      .order('court_name')
       .then(({ data }) => { if (data) setCourts(data) })
   }, [form.venue])
 
@@ -272,7 +272,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               <option value="">Any court</option>
               {courts.map((c) => (
                 <option key={c.id} value={c.id}>
-                  {c.court_name ?? `Court ${c.court_number ?? ''}`}
+                  {c.court_name ?? 'Court'}
                 </option>
               ))}
             </select>
@@ -488,7 +488,7 @@ function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] 
     { label: 'Time',     value: form.time.slice(0, 5) },
     { label: 'Duration', value: `${form.duration} min` },
     { label: 'Venue',    value: form.venue?.venue_name ?? 'TBC' },
-    { label: 'Court',    value: form.court?.court_name ?? form.court ? `Court ${form.court.court_number}` : 'Any' },
+    { label: 'Court',    value: form.court?.court_name ?? 'Any' },
   ]
   return (
     <div>
@@ -603,12 +603,12 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     const realPlayers  = safePlayers.filter((p) => !p.isGuest)
     const playerIds    = realPlayers.map((p) => p.id)
 
-    // Append guest names to notes so they're not lost
-    let finalNotes = form.notes.trim() || null
-    if (guestPlayers.length > 0) {
-      const guestNames = guestPlayers.map((p) => p.name).join(', ')
-      finalNotes = finalNotes ? `${finalNotes}\nGuests: ${guestNames}` : `Guests: ${guestNames}`
-    }
+    const userNotes = form.notes.trim()
+    const guestNames = safePlayers
+      .filter((p) => p.isGuest)
+      .map((p) => p.name)
+      .join(', ')
+    const finalNotes = [userNotes, guestNames ? `Guests: ${guestNames}` : ''].filter(Boolean).join('\n') || null
 
     // match_time must be HH:MM:SS format for Postgres time column
     const matchTime = form.time ? `${form.time.slice(0, 5)}:00` : null
@@ -622,7 +622,6 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       player_ids:          playerIds,
       group_id:            defaultGroupId ?? null,
       booked_venue_name:   form.venue?.venue_name ?? null,
-      booked_court_number: form.court?.court_number ?? null,
       created_manually:    true,
       created_by:          user.id,
       notes:               finalNotes,

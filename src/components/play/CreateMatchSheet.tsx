@@ -14,7 +14,7 @@ type Duration  = 60 | 90 | 120
 
 interface Venue { id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name?: string | null; court_number?: number | null }
-interface Profile { id: string; name: string; email: string; avatar_url?: string | null; playtomic_level?: number | null }
+interface Profile { id: string; name: string; email: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
 
 interface FormState {
   matchType: MatchType | null
@@ -132,7 +132,10 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       .select('id, venue_name, city')
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)
-      .then(({ data }) => { if (data) setVenues(data) })
+      .then(({ data, error }) => {
+        console.log('[venue search]', debouncedQuery, { data, error })
+        if (data) setVenues(data)
+      })
   }, [debouncedQuery])
 
   // Courts for selected venue
@@ -154,28 +157,28 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       <p className="text-sm text-gray-500 mb-6">When and where?</p>
       <div className="space-y-4">
 
-        {/* Date + Time */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Date</label>
-            <input
-              type="date"
-              value={form.date}
-              min={todayStr()}
-              onChange={(e) => setForm({ ...form, date: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-            />
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Time</label>
-            <input
-              type="time"
-              value={form.time}
-              step="1800"
-              onChange={(e) => setForm({ ...form, time: e.target.value })}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-            />
-          </div>
+        {/* Date */}
+        <div>
+          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Date</label>
+          <input
+            type="date"
+            value={form.date}
+            min={todayStr()}
+            onChange={(e) => setForm({ ...form, date: e.target.value })}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+          />
+        </div>
+
+        {/* Time */}
+        <div>
+          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Time</label>
+          <input
+            type="time"
+            value={form.time}
+            step="1800"
+            onChange={(e) => setForm({ ...form, time: e.target.value })}
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+          />
         </div>
 
         {/* Duration */}
@@ -291,8 +294,10 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 // ── Step 3 — Players ──────────────────────────────────────────────────────────
 
 function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f: FormState) => void; creatorProfile: Profile | null }) {
-  const [query, setQuery]       = useState('')
-  const [results, setResults]   = useState<Profile[]>([])
+  const [query, setQuery]               = useState('')
+  const [results, setResults]           = useState<Profile[]>([])
+  const [showGuestInput, setShowGuestInput] = useState(false)
+  const [guestName, setGuestName]       = useState('')
   const debouncedQ = useDebounce(query, 280)
 
   useEffect(() => {
@@ -315,39 +320,55 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
     setResults([])
   }
 
+  const addGuest = () => {
+    const name = guestName.trim()
+    if (!name || form.players.length >= 4) return
+    const guest: Profile = { id: `guest_${Date.now()}`, name, email: '', isGuest: true }
+    setForm({ ...form, players: [...form.players, guest] })
+    setGuestName('')
+    setShowGuestInput(false)
+  }
+
   const removePlayer = (id: string) => {
+    if (id === creatorProfile?.id) return
     setForm({ ...form, players: form.players.filter((p) => p.id !== id) })
   }
 
   return (
-    <div>
+    // min-h keeps the sheet stable when search results appear/disappear
+    <div className="min-h-[360px]">
       <h2 className="text-xl font-bold text-gray-900 mb-1">Select players</h2>
       <p className="text-sm text-gray-500 mb-4">
         {form.players.length}/4 players selected
       </p>
 
-      {/* Selected players */}
+      {/* Selected players — always 4 rows (selected + empty slots) */}
       <div className="space-y-2 mb-4">
         {form.players.map((p) => {
           const isCreator = p.id === creatorProfile?.id
           return (
             <div key={p.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2.5">
-              <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+              <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : p.avatar_url} size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-gray-900 truncate">{p.name}</p>
-                {p.playtomic_level != null && (
+                {!p.isGuest && p.playtomic_level != null && (
                   <p className="text-[11px] text-gray-400">Level {Number(p.playtomic_level).toFixed(1)}</p>
                 )}
               </div>
               {isCreator && (
                 <span className="text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">You</span>
               )}
-              <button
-                onClick={() => removePlayer(p.id)}
-                className="h-6 w-6 rounded-full bg-gray-200 hover:bg-red-100 flex items-center justify-center transition-colors flex-shrink-0"
-              >
-                <X className="h-3 w-3 text-gray-500 hover:text-red-500" />
-              </button>
+              {p.isGuest && (
+                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">Guest</span>
+              )}
+              {!isCreator && (
+                <button
+                  onClick={() => removePlayer(p.id)}
+                  className="h-6 w-6 rounded-full bg-gray-200 hover:bg-red-100 flex items-center justify-center transition-colors flex-shrink-0"
+                >
+                  <X className="h-3 w-3 text-gray-500 hover:text-red-500" />
+                </button>
+              )}
             </div>
           )
         })}
@@ -377,13 +398,14 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
         </div>
       )}
 
+      {/* Search results — max-height so sheet doesn't jump */}
       <AnimatePresence>
         {results.length > 0 && (
           <motion.ul
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-1 rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden"
+            className="mt-1 rounded-xl border border-gray-100 bg-white shadow-lg overflow-y-auto max-h-40"
           >
             {results.map((p) => (
               <li key={p.id}>
@@ -404,6 +426,46 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
           </motion.ul>
         )}
       </AnimatePresence>
+
+      {/* Add guest player */}
+      {form.players.length < 4 && (
+        <div className="mt-3">
+          {showGuestInput ? (
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') addGuest() }}
+                placeholder="Guest name…"
+                autoFocus
+                className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              />
+              <button
+                onClick={addGuest}
+                disabled={!guestName.trim()}
+                className="rounded-xl bg-gray-800 px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-40"
+              >
+                Add
+              </button>
+              <button
+                onClick={() => { setShowGuestInput(false); setGuestName('') }}
+                className="rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-500"
+              >
+                ✕
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowGuestInput(true)}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 py-2.5 text-[13px] text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
+            >
+              <UserPlus className="h-4 w-4" />
+              Add guest player
+            </button>
+          )}
+        </div>
+      )}
     </div>
   )
 }
@@ -437,8 +499,9 @@ function Step4({ form }: { form: FormState }) {
       <div className="flex items-center gap-2 flex-wrap">
         {form.players.map((p) => (
           <div key={p.id} className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-full pl-1 pr-3 py-1">
-            <PlayerAvatar name={p.name} size="sm" />
+            <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
             <span className="text-[12px] font-medium text-gray-800">{p.name.split(' ')[0]}</span>
+            {p.isGuest && <span className="text-[9px] font-bold text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">G</span>}
           </div>
         ))}
         {Array.from({ length: Math.max(0, 4 - form.players.length) }).map((_, i) => (

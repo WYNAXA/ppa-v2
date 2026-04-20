@@ -1,13 +1,14 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
+import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { cn } from '@/lib/utils'
 import type { Match, MatchResult, Profile } from '@/lib/types'
 
@@ -135,6 +136,8 @@ export function MatchDetailPage() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [showRecordResult, setShowRecordResult] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['match', id],
@@ -173,6 +176,20 @@ export function MatchDetailPage() {
       return format(parseISO(match.match_date), 'EEEE, d MMMM yyyy')
     } catch { return match.match_date }
   })()
+
+  const handleShare = async () => {
+    const url = window.location.href
+    const venue = match.booked_venue_name ?? 'TBC'
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Padel Match', text: `Join my padel match on ${formattedDate} at ${venue}`, url })
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
 
   // Build 4 player slots
   const SLOT_COUNT = 4
@@ -307,7 +324,10 @@ export function MatchDetailPage() {
 
         <div className="grid grid-cols-2 gap-2">
           {isCreator && match.status !== 'completed' && match.status !== 'cancelled' && (
-            <button className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700">
+            <button
+              onClick={() => setShowEdit(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+            >
               <Edit2 className="h-4 w-4" />
               Edit Match
             </button>
@@ -319,12 +339,18 @@ export function MatchDetailPage() {
             </button>
           )}
           {!match.booked_venue_name && match.status !== 'completed' && match.status !== 'cancelled' && (
-            <button className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700">
+            <button
+              onClick={() => navigate(`/play/book-court?match_id=${match.id}`)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+            >
               <BookOpen className="h-4 w-4" />
               Book Court
             </button>
           )}
-          <button className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700">
+          <button
+            onClick={handleShare}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+          >
             <Share2 className="h-4 w-4" />
             Share
           </button>
@@ -339,6 +365,27 @@ export function MatchDetailPage() {
         players={players}
         currentUserId={currentUserId}
       />
+
+      {/* Edit Match Sheet */}
+      <EditMatchSheet
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+        match={match}
+      />
+
+      {/* "Link copied" toast */}
+      <AnimatePresence>
+        {copied && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[70] bg-gray-900 text-white text-[13px] font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none"
+          >
+            Link copied!
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

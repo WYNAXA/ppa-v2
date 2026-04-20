@@ -10,6 +10,7 @@ import { CompetePage } from '@/pages/Compete'
 import { CommunityPage } from '@/pages/Community'
 import { YouPage } from '@/pages/You'
 import { MatchDetailPage } from '@/pages/MatchDetail'
+import { MatchesPage } from '@/pages/Matches'
 import { PlaceholderPage } from '@/pages/Placeholder'
 
 const queryClient = new QueryClient({
@@ -58,7 +59,7 @@ function AppShell() {
           <Route path="/you"       element={<Guard><YouPage /></Guard>} />
 
           {/* Matches */}
-          <Route path="/matches"     element={<Guard><PlaceholderPage title="Matches" /></Guard>} />
+          <Route path="/matches"     element={<Guard><MatchesPage /></Guard>} />
           <Route path="/matches/:id" element={<Guard><MatchDetailPage /></Guard>} />
 
           {/* Play sub-routes */}

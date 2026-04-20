@@ -206,7 +206,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
               </div>
             )}
 
-            <div className="overflow-y-auto flex-1 px-5" style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+            <div className="overflow-y-auto flex-1 px-5" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
               <AnimatePresence mode="wait">
                 {/* Step 1: Teams */}
                 {step === 1 && (

@@ -219,7 +219,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               onChange={(e) => { setVenueQuery(e.target.value); setShowVenues(true); if (!e.target.value) setForm({ ...form, venue: null, court: null }) }}
               onFocus={() => setShowVenues(true)}
               placeholder="Search venues…"
-              style={{ fontSize: '16px' }}
+              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
             {form.venue && (
@@ -618,7 +618,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       match_time:          matchTime,
       context_type:        'open' as const,
       match_type:          form.matchType!,
-      status:              playerIds.length >= 4 ? 'scheduled' : 'open',
+      status:              playerIds.length >= 4 ? 'scheduled' : 'pending',
       player_ids:          playerIds,
       group_id:            defaultGroupId ?? null,
       booked_venue_name:   form.venue?.venue_name ?? null,
@@ -720,7 +720,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
 
             {/* Footer */}
             <div className="px-5 pt-4 flex-shrink-0 border-t border-gray-50"
-                 style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}>
+                 style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
               {step < 4 ? (
                 <button
                   onClick={() => setStep(step + 1)}

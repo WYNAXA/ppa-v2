@@ -6,7 +6,7 @@ import { ChevronLeft, Plus, X, Clock } from 'lucide-react'
 import { format, addHours } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { cn } from '@/lib/utils'
+
 
 interface Group { id: string; name: string }
 
@@ -49,7 +49,7 @@ export function CreatePollPage() {
       .then(({ data, error }) => {
         if (error) console.error('[create-poll] group_members:', error)
         const g: Group[] = (data ?? [])
-          .map((m: { groups?: { id: string; name: string } | null }) => m.groups)
+          .map((m: { groups?: { id: string; name: string } | { id: string; name: string }[] | null }) => Array.isArray(m.groups) ? m.groups[0] : m.groups)
           .filter(Boolean) as Group[]
         setGroups(g)
         if (g.length === 1) setGroupId(g[0].id)

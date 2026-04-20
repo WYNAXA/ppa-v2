@@ -50,7 +50,7 @@ function formatMatchDate(dateStr: string, timeStr: string | null) {
   }
 }
 
-export function MatchCard({ match, currentUserId, action = 'view', onJoin, index = 0 }: MatchCardProps) {
+export function MatchCard({ match, currentUserId: _currentUserId, action = 'view', onJoin, index = 0 }: MatchCardProps) {
   const navigate = useNavigate()
   const typeStyle = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, dot: 'bg-gray-300' }

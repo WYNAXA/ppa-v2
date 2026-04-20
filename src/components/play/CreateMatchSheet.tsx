@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, Clock, UserPlus } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, UserPlus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'

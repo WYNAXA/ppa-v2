@@ -538,9 +538,10 @@ function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] 
 interface CreateMatchSheetProps {
   open: boolean
   onClose: () => void
+  defaultGroupId?: string
 }
 
-export function CreateMatchSheet({ open, onClose }: CreateMatchSheetProps) {
+export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchSheetProps) {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
 
@@ -619,7 +620,7 @@ export function CreateMatchSheet({ open, onClose }: CreateMatchSheetProps) {
       match_type:          form.matchType!,
       status:              playerIds.length >= 4 ? 'scheduled' : 'open',
       player_ids:          playerIds,
-      group_id:            null,
+      group_id:            defaultGroupId ?? null,
       booked_venue_name:   form.venue?.venue_name ?? null,
       booked_court_number: form.court?.court_number ?? null,
       created_manually:    true,

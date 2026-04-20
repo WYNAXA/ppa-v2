@@ -1,25 +1,26 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Users, Trophy, Calendar, BarChart3, Share2, Plus } from 'lucide-react'
+import { ChevronLeft, Users, Trophy, Calendar, BarChart3, Share2, Plus, Check } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateEventSheet } from '@/components/community/CreateEventSheet'
+import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type Tab = 'members' | 'matches' | 'polls' | 'events' | 'leagues'
 
-const TABS: Array<{ id: Tab; label: string; Icon: typeof Users }> = [
-  { id: 'members', label: 'Members', Icon: Users     },
-  { id: 'matches', label: 'Matches', Icon: Calendar  },
-  { id: 'polls',   label: 'Polls',   Icon: BarChart3 },
-  { id: 'events',  label: 'Events',  Icon: Calendar  },
-  { id: 'leagues', label: 'Leagues', Icon: Trophy    },
+const TABS: Array<{ id: Tab; label: string }> = [
+  { id: 'members', label: 'Members' },
+  { id: 'matches', label: 'Matches' },
+  { id: 'polls',   label: 'Polls'   },
+  { id: 'events',  label: 'Events'  },
+  { id: 'leagues', label: 'Leagues' },
 ]
 
 interface Group {
@@ -87,20 +88,39 @@ function useGroupMembers(groupId: string) {
     queryKey: ['group-members', groupId],
     enabled: !!groupId,
     queryFn: async (): Promise<Member[]> => {
-      const { data, error } = await supabase
+      // Two-step: fetch membership rows then profiles separately
+      // (avoids unreliable implicit FK join on user_id)
+      const { data: memberRows, error } = await supabase
         .from('group_members')
-        .select('role, profiles(id, name, avatar_url, ranking_points)')
+        .select('user_id, role')
         .eq('group_id', groupId)
         .eq('status', 'approved')
         .order('joined_at', { ascending: true })
 
       if (error) throw error
-      return (data ?? []).map((m) => {
-        const p = (Array.isArray(m.profiles) ? m.profiles[0] : m.profiles) as {
-          id: string; name: string; avatar_url: string | null; ranking_points: number | null
-        }
-        return { ...p, role: m.role as string }
-      })
+      if (!memberRows || memberRows.length === 0) return []
+
+      const userIds = memberRows.map((m) => m.user_id)
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, ranking_points')
+        .in('id', userIds)
+
+      const profileMap = Object.fromEntries((profileRows ?? []).map((p) => [p.id, p]))
+
+      return memberRows
+        .map((m) => {
+          const p = profileMap[m.user_id]
+          if (!p) return null
+          return {
+            id:             p.id,
+            name:           p.name,
+            avatar_url:     p.avatar_url ?? null,
+            ranking_points: p.ranking_points ?? null,
+            role:           m.role as string,
+          }
+        })
+        .filter(Boolean) as Member[]
     },
   })
 }
@@ -115,7 +135,7 @@ function useGroupMatches(groupId: string) {
         .select('*')
         .eq('group_id', groupId)
         .order('match_date', { ascending: false })
-        .limit(30)
+        .limit(50)
 
       if (error) throw error
       if (!matches || matches.length === 0) return []
@@ -193,15 +213,46 @@ function useGroupLeagues(groupId: string) {
 
 // ── Tab: Members ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, isLoading, isAdmin, inviteCode }: {
+function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode }: {
   members: Member[]
   isLoading: boolean
   isAdmin: boolean
+  groupId: string
   inviteCode: string | null
 }) {
+  const [copied, setCopied] = useState(false)
+
   function copyInvite() {
-    const link = `${window.location.origin}/join/${inviteCode}`
-    navigator.clipboard.writeText(link).catch(() => {})
+    // Use invite_code if available, otherwise use group URL
+    const url = inviteCode
+      ? `${window.location.origin}/join/${inviteCode}`
+      : `${window.location.origin}/community/groups/${groupId}`
+
+    const doWrite = () => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(url).then(doWrite).catch(() => {
+        fallbackCopy(url)
+        doWrite()
+      })
+    } else {
+      fallbackCopy(url)
+      doWrite()
+    }
+  }
+
+  function fallbackCopy(text: string) {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.style.position = 'fixed'
+    el.style.opacity = '0'
+    document.body.appendChild(el)
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
   }
 
   if (isLoading) return <TabSkeleton />
@@ -211,10 +262,13 @@ function MembersTab({ members, isLoading, isAdmin, inviteCode }: {
       {isAdmin && (
         <button
           onClick={copyInvite}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 mb-4 text-[13px] font-semibold text-teal-700"
+          className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 mb-4 text-[13px] font-semibold text-teal-700 transition-colors"
         >
-          <Share2 className="h-4 w-4" />
-          Copy invite link
+          {copied ? (
+            <><Check className="h-4 w-4" /> Copied!</>
+          ) : (
+            <><Share2 className="h-4 w-4" /> Copy invite link</>
+          )}
         </button>
       )}
       {members.length === 0 ? (
@@ -245,31 +299,54 @@ function MembersTab({ members, isLoading, isAdmin, inviteCode }: {
 
 // ── Tab: Matches ──────────────────────────────────────────────────────────────
 
-function MatchesTab({ matches, isLoading, groupId, userId }: {
+function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
   matches: MatchCardData[]
   isLoading: boolean
-  groupId: string
   userId: string
+  onCreateMatch: () => void
 }) {
-  const navigate = useNavigate()
+  const [view, setView] = useState<'upcoming' | 'past'>('upcoming')
+  const today = format(new Date(), 'yyyy-MM-dd')
+
+  const filtered = matches.filter((m) =>
+    view === 'upcoming' ? m.match_date >= today : m.match_date < today
+  )
 
   if (isLoading) return <TabSkeleton />
 
   return (
     <div>
       <button
-        onClick={() => navigate(`/play?group_id=${groupId}`)}
+        onClick={onCreateMatch}
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         Create group match
       </button>
 
-      {matches.length === 0 ? (
-        <EmptyTab message="No matches yet" sub="Create the first group match above" />
+      {/* Upcoming / Past toggle */}
+      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
+        {(['upcoming', 'past'] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors capitalize ${
+              view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            {v === 'upcoming' ? 'Upcoming' : 'Past'}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyTab
+          message={view === 'upcoming' ? 'No upcoming matches' : 'No past matches'}
+          sub={view === 'upcoming' ? 'Create one above' : undefined}
+        />
       ) : (
         <div className="space-y-2.5">
-          {matches.map((match, i) => (
+          {filtered.map((match, i) => (
             <MatchCard key={match.id} match={match} currentUserId={userId} action="view" index={i} />
           ))}
         </div>
@@ -309,9 +386,7 @@ function PollsTab({ polls, isLoading, groupId }: {
             <div className="mb-4">
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Active</p>
               <div className="space-y-2">
-                {active.map((poll) => (
-                  <PollCard key={poll.id} poll={poll} />
-                ))}
+                {active.map((poll) => <PollCard key={poll.id} poll={poll} />)}
               </div>
             </div>
           )}
@@ -319,9 +394,7 @@ function PollsTab({ polls, isLoading, groupId }: {
             <div>
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Past</p>
               <div className="space-y-2">
-                {past.map((poll) => (
-                  <PollCard key={poll.id} poll={poll} />
-                ))}
+                {past.map((poll) => <PollCard key={poll.id} poll={poll} />)}
               </div>
             </div>
           )}
@@ -367,6 +440,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
   groupId: string
   isAdmin: boolean
 }) {
+  const navigate    = useNavigate()
   const [showCreate, setShowCreate] = useState(false)
   const queryClient = useQueryClient()
 
@@ -389,7 +463,11 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
       ) : (
         <div className="space-y-2">
           {events.map((event) => (
-            <div key={event.id} className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+            <button
+              key={event.id}
+              onClick={() => navigate(`/community/events/${event.id}`)}
+              className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
+            >
               <p className="text-[13px] font-semibold text-gray-900">{event.title}</p>
               <p className="text-[12px] text-gray-500 mt-0.5">
                 {format(parseISO(event.start_time), 'EEE d MMM · HH:mm')}
@@ -398,7 +476,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
               {event.location && (
                 <p className="text-[11px] text-gray-400 mt-0.5">{event.location}</p>
               )}
-            </div>
+            </button>
           ))}
         </div>
       )}
@@ -495,12 +573,20 @@ function EmptyTab({ message, sub }: { message: string; sub?: string }) {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function GroupDetailPage() {
-  const { id: groupId = '' }  = useParams<{ id: string }>()
-  const navigate               = useNavigate()
-  const { profile }            = useAuth()
-  const userId                 = profile?.id ?? ''
+  const { id: groupId = '' } = useParams<{ id: string }>()
+  const navigate              = useNavigate()
+  const { profile }           = useAuth()
+  const userId                = profile?.id ?? ''
 
-  const [activeTab, setActiveTab] = useState<Tab>('members')
+  // BUG 7: Store active tab in URL so browser back restores correct tab
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab = (searchParams.get('tab') ?? 'members') as Tab
+  function setActiveTab(tab: Tab) {
+    setSearchParams({ tab }, { replace: true })
+  }
+
+  // BUG 4: CreateMatchSheet state — open inline instead of navigating away
+  const [createMatchOpen, setCreateMatchOpen] = useState(false)
 
   const { data: group,   isLoading: loadingGroup   } = useGroup(groupId)
   const { data: members, isLoading: loadingMembers } = useGroupMembers(groupId)
@@ -606,6 +692,7 @@ export function GroupDetailPage() {
               members={members ?? []}
               isLoading={loadingMembers}
               isAdmin={isAdmin}
+              groupId={groupId}
               inviteCode={group.invite_code}
             />
           )}
@@ -613,8 +700,8 @@ export function GroupDetailPage() {
             <MatchesTab
               matches={matches ?? []}
               isLoading={loadingMatches}
-              groupId={groupId}
               userId={userId}
+              onCreateMatch={() => setCreateMatchOpen(true)}
             />
           )}
           {activeTab === 'polls' && (
@@ -641,6 +728,13 @@ export function GroupDetailPage() {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* BUG 4: CreateMatchSheet inline with group_id pre-filled */}
+      <CreateMatchSheet
+        open={createMatchOpen}
+        onClose={() => setCreateMatchOpen(false)}
+        defaultGroupId={groupId}
+      />
     </div>
   )
 }

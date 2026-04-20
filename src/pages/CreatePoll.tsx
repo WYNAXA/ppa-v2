@@ -45,7 +45,8 @@ export function CreatePollPage() {
     supabase
       .from('group_members')
       .select('group_id, groups:group_id(id, name)')
-      .eq('profile_id', profile.id)
+      .eq('user_id', profile.id)
+      .eq('status', 'approved')
       .then(({ data, error }) => {
         if (error) console.error('[create-poll] group_members:', error)
         const g: Group[] = (data ?? [])
@@ -58,7 +59,7 @@ export function CreatePollPage() {
   }, [profile?.id])
 
   function addSlot() {
-    if (slots.length >= 5) return
+    if (slots.length >= 7) return
     setSlots((prev) => [
       ...prev,
       { id: crypto.randomUUID(), date: todayStr(), start_time: '19:00', end_time: '21:00' },
@@ -138,10 +139,10 @@ export function CreatePollPage() {
           ) : groups.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
               <p className="text-[13px] font-semibold text-gray-600 mb-1">
-                You need to be in a group to start an availability check
+                Select a group to share your availability with.
               </p>
               <p className="text-[12px] text-gray-400 mb-3">
-                Join or create a group first
+                If you're not in a group yet, go to Community to join or create one.
               </p>
               <button
                 onClick={() => navigate('/community')}
@@ -174,9 +175,9 @@ export function CreatePollPage() {
           <div className="flex items-center justify-between mb-2">
             <label className="text-[13px] font-medium text-gray-700">
               Date & Time Options
-              <span className="ml-1.5 text-[11px] text-gray-400 font-normal">up to 5</span>
+              <span className="ml-1.5 text-[11px] text-gray-400 font-normal">up to 7</span>
             </label>
-            {slots.length < 5 && (
+            {slots.length < 7 && (
               <button
                 onClick={addSlot}
                 className="flex items-center gap-1 text-[12px] font-semibold text-[#009688]"

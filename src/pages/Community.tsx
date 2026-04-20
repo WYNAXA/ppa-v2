@@ -53,18 +53,27 @@ function useMyGroups(userId: string) {
       }))
       const groupIds = groups.map((g) => g.id)
 
-      // Fetch members with profiles
-      const { data: allMembers } = await supabase
+      // Step 1: Fetch member user_ids per group (avoid unreliable implicit FK join)
+      const { data: memberRows } = await supabase
         .from('group_members')
-        .select('group_id, profiles(id, name, avatar_url)')
+        .select('group_id, user_id')
         .in('group_id', groupIds)
         .eq('status', 'approved')
 
+      // Step 2: Fetch profiles for all those user_ids
+      const allUserIds = [...new Set((memberRows ?? []).map((m) => m.user_id))]
+      const { data: profileRows } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', allUserIds)
+
+      const profileMap = Object.fromEntries((profileRows ?? []).map((p) => [p.id, p]))
+
       const membersByGroup: Record<string, Array<{ id: string; name: string; avatar_url?: string | null }>> = {}
-      for (const m of allMembers ?? []) {
+      for (const m of memberRows ?? []) {
         if (!membersByGroup[m.group_id]) membersByGroup[m.group_id] = []
-        const p = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles
-        if (p) membersByGroup[m.group_id].push(p as { id: string; name: string; avatar_url?: string | null })
+        const p = profileMap[m.user_id]
+        if (p) membersByGroup[m.group_id].push(p)
       }
 
       // Check active leagues

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -135,9 +135,12 @@ export function MatchDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const queryClient = useQueryClient()
   const [showRecordResult, setShowRecordResult] = useState(false)
   const [showEdit, setShowEdit] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [leaving, setLeaving] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['match', id],
@@ -188,6 +191,25 @@ export function MatchDetailPage() {
       await navigator.clipboard.writeText(url)
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  const handleLeave = async () => {
+    if (!data) return
+    setLeaving(true)
+    const newPlayerIds = data.match.player_ids.filter((pid) => pid !== currentUserId)
+    const { error } = await supabase
+      .from('matches')
+      .update({
+        player_ids: newPlayerIds,
+        ...(newPlayerIds.length < 4 ? { status: 'open' } : {}),
+      })
+      .eq('id', data.match.id)
+    setLeaving(false)
+    setConfirmLeave(false)
+    if (!error) {
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      navigate(-1)
     }
   }
 
@@ -302,7 +324,16 @@ export function MatchDetailPage() {
                   <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 bg-white flex items-center justify-center flex-shrink-0">
                     <span className="text-[10px] text-gray-300">+</span>
                   </div>
-                  <p className="text-[11px] text-gray-400 italic">Waiting…</p>
+                  {isCreator && match.status !== 'completed' && match.status !== 'cancelled' ? (
+                    <button
+                      onClick={() => navigate(`/matches/${match.id}/invite`)}
+                      className="text-[11px] text-teal-600 font-semibold"
+                    >
+                      Invite player
+                    </button>
+                  ) : (
+                    <p className="text-[11px] text-gray-400 italic">Waiting…</p>
+                  )}
                 </>
               )}
             </motion.div>
@@ -333,7 +364,10 @@ export function MatchDetailPage() {
             </button>
           )}
           {isParticipant && !isCreator && match.status !== 'completed' && match.status !== 'cancelled' && (
-            <button className="flex items-center justify-center gap-1.5 rounded-xl border border-red-100 py-3 text-[13px] font-semibold text-red-500">
+            <button
+              onClick={() => setConfirmLeave(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-red-100 py-3 text-[13px] font-semibold text-red-500"
+            >
               <LogOut className="h-4 w-4" />
               Leave
             </button>
@@ -372,6 +406,54 @@ export function MatchDetailPage() {
         onClose={() => setShowEdit(false)}
         match={match}
       />
+
+      {/* Leave confirm dialog */}
+      <AnimatePresence>
+        {confirmLeave && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmLeave(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+            >
+              <div className="flex justify-center mb-5">
+                <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center">
+                  <LogOut className="h-5 w-5 text-red-500" />
+                </div>
+              </div>
+              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">Leave this match?</p>
+              <p className="text-[13px] text-gray-500 text-center mb-6">
+                Your spot will become available to other players.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmLeave(false)}
+                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleLeave}
+                  disabled={leaving}
+                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                >
+                  {leaving ? 'Leaving…' : 'Leave Match'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* "Link copied" toast */}
       <AnimatePresence>

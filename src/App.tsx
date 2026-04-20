@@ -9,6 +9,7 @@ import { PlayPage } from '@/pages/Play'
 import { CompetePage } from '@/pages/Compete'
 import { CommunityPage } from '@/pages/Community'
 import { GroupDetailPage } from '@/pages/GroupDetail'
+import { EventDetailPage } from '@/pages/EventDetail'
 import { YouPage } from '@/pages/You'
 import { MatchDetailPage } from '@/pages/MatchDetail'
 import { MatchesPage } from '@/pages/Matches'
@@ -60,7 +61,8 @@ function AppShell() {
           <Route path="/play"      element={<Guard><PlayPage /></Guard>} />
           <Route path="/compete"   element={<Guard><CompetePage /></Guard>} />
           <Route path="/community"              element={<Guard><CommunityPage /></Guard>} />
-          <Route path="/community/groups/:id"  element={<Guard><GroupDetailPage /></Guard>} />
+          <Route path="/community/groups/:id"   element={<Guard><GroupDetailPage /></Guard>} />
+          <Route path="/community/events/:id"  element={<Guard><EventDetailPage /></Guard>} />
           <Route path="/you"       element={<Guard><YouPage /></Guard>} />
 
           {/* Matches */}

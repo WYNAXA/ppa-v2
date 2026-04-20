@@ -49,7 +49,10 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
           description: description.trim() || null,
           status:      'upcoming',
         })
-      if (error) throw error
+      if (error) {
+        console.error('[CreateEvent] insert error:', error)
+        throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['group-events', groupId] })
@@ -100,7 +103,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Club Tournament"
-                  style={{ fontSize: '16px' }}
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>
@@ -111,7 +114,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
                   type="datetime-local"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
-                  style={{ fontSize: '16px' }}
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>
@@ -124,7 +127,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
-                  style={{ fontSize: '16px' }}
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>

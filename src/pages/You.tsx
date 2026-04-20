@@ -1,21 +1,577 @@
+import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { motion, AnimatePresence } from 'framer-motion'
+import { X, Edit2, LogOut, ChevronRight } from 'lucide-react'
+import { format, parseISO } from 'date-fns'
+import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { cn } from '@/lib/utils'
 
-export function YouPage() {
-  const { profile, signOut } = useAuth()
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+interface FullProfile {
+  id: string
+  name: string
+  email: string
+  city: string | null
+  avatar_url: string | null
+  internal_ranking: number | null
+  ranking_points: number | null
+}
+
+interface MatchHistoryItem {
+  id: string
+  match_date: string
+  result_type: 'win' | 'loss' | 'draw' | null
+  score: string
+  opponents: string
+}
+
+interface Achievement {
+  id: string
+  badge_key: string
+  earned_at: string
+}
+
+interface MyYouStats {
+  totalMatches: number
+  wins: number
+  losses: number
+  draws: number
+  winRate: number
+  rankPosition: number
+  bestStreak: number
+  favouritePartnerName: string | null
+}
+
+// ── Data hooks ────────────────────────────────────────────────────────────────
+
+function useFullProfile(userId: string) {
+  return useQuery<FullProfile | null>({
+    queryKey: ['full-profile', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, email, city, avatar_url, internal_ranking, ranking_points')
+        .eq('id', userId)
+        .single()
+      if (error) return null
+      return data
+    },
+  })
+}
+
+function useYouStats(userId: string) {
+  return useQuery<MyYouStats>({
+    queryKey: ['you-stats', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const [resultsData, rankData] = await Promise.all([
+        supabase
+          .from('match_results')
+          .select('result_type, team1_players, team2_players')
+          .or(`team1_players.cs.{${userId}},team2_players.cs.{${userId}}`)
+          .order('created_at', { ascending: true }),
+        supabase
+          .from('profiles')
+          .select('id', { count: 'exact', head: true })
+          .gt('internal_ranking', 0),
+      ])
+
+      const results = resultsData.data ?? []
+      let wins = 0, losses = 0, draws = 0
+      let streak = 0, bestStreak = 0
+      const partnerWins: Record<string, number> = {}
+
+      for (const r of results) {
+        const inTeam1  = (r.team1_players as string[]).includes(userId)
+        const teammates = inTeam1 ? (r.team1_players as string[]) : (r.team2_players as string[])
+
+        if (r.result_type === 'draw') {
+          draws++; streak = 0
+        } else if (
+          (inTeam1 && r.result_type === 'team1_win') ||
+          (!inTeam1 && r.result_type === 'team2_win')
+        ) {
+          wins++
+          streak++
+          if (streak > bestStreak) bestStreak = streak
+          for (const pid of teammates) {
+            if (pid !== userId) {
+              partnerWins[pid] = (partnerWins[pid] ?? 0) + 1
+            }
+          }
+        } else {
+          losses++; streak = 0
+        }
+      }
+
+      const total = results.length
+      const winRate = total > 0 ? Math.round((wins / total) * 100) : 0
+
+      // Rank position
+      const topCount = rankData.count ?? 0
+
+      // Favourite partner
+      const topPartnerId = Object.entries(partnerWins).sort(([, a], [, b]) => b - a)[0]?.[0] ?? null
+      let favouritePartnerName: string | null = null
+      if (topPartnerId) {
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('id', topPartnerId)
+          .single()
+        favouritePartnerName = p?.name ?? null
+      }
+
+      return {
+        totalMatches: total,
+        wins,
+        losses,
+        draws,
+        winRate,
+        rankPosition: topCount + 1,
+        bestStreak,
+        favouritePartnerName,
+      }
+    },
+  })
+}
+
+function useMatchHistory(userId: string, limit: number) {
+  return useQuery<MatchHistoryItem[]>({
+    queryKey: ['match-history', userId, limit],
+    enabled: !!userId,
+    queryFn: async () => {
+      // Fetch matches where user is a player
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('id, match_date, player_ids')
+        .contains('player_ids', [userId])
+        .eq('status', 'completed')
+        .order('match_date', { ascending: false })
+        .limit(limit)
+
+      if (!matches || matches.length === 0) return []
+
+      const matchIds = matches.map((m) => m.id)
+      const allPlayerIds = [...new Set(matches.flatMap((m) => m.player_ids ?? []))]
+
+      const [{ data: resultRows }, { data: profiles }] = await Promise.all([
+        supabase
+          .from('match_results')
+          .select('match_id, result_type, team1_players, team2_players, team1_score, team2_score')
+          .in('match_id', matchIds),
+        supabase
+          .from('profiles')
+          .select('id, name')
+          .in('id', allPlayerIds),
+      ])
+
+      const resultMap = Object.fromEntries((resultRows ?? []).map((r) => [r.match_id, r]))
+      const nameMap   = Object.fromEntries((profiles ?? []).map((p) => [p.id, p.name]))
+
+      return matches.map((m): MatchHistoryItem => {
+        const r = resultMap[m.id]
+        if (!r) {
+          return { id: m.id, match_date: m.match_date, result_type: null, score: '—', opponents: '—' }
+        }
+
+        const inTeam1    = (r.team1_players as string[]).includes(userId)
+        const opponents  = (inTeam1 ? (r.team2_players as string[]) : (r.team1_players as string[]))
+          .map((pid: string) => nameMap[pid]?.split(' ')[0] ?? '?')
+          .join(' & ')
+        const score      = inTeam1
+          ? `${r.team1_score} – ${r.team2_score}`
+          : `${r.team2_score} – ${r.team1_score}`
+
+        let resultType: 'win' | 'loss' | 'draw'
+        if (r.result_type === 'draw') {
+          resultType = 'draw'
+        } else if (
+          (inTeam1 && r.result_type === 'team1_win') ||
+          (!inTeam1 && r.result_type === 'team2_win')
+        ) {
+          resultType = 'win'
+        } else {
+          resultType = 'loss'
+        }
+
+        return { id: m.id, match_date: m.match_date, result_type: resultType, score, opponents }
+      })
+    },
+  })
+}
+
+function useAchievements(userId: string) {
+  return useQuery<Achievement[]>({
+    queryKey: ['achievements', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('player_achievements')
+        .select('id, badge_key, earned_at')
+        .eq('user_id', userId)
+        .order('earned_at', { ascending: false })
+      if (error) return []
+      return data ?? []
+    },
+  })
+}
+
+// ── Edit Profile Sheet ────────────────────────────────────────────────────────
+
+function EditProfileSheet({
+  open,
+  onClose,
+  profile,
+}: {
+  open: boolean
+  onClose: () => void
+  profile: FullProfile | null
+}) {
+  const { user } = useAuth()
+  const queryClient = useQueryClient()
+  const [name, setName] = useState(profile?.name ?? '')
+  const [city, setCity] = useState(profile?.city ?? '')
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      if (!user) throw new Error('Not authenticated')
+      const { error } = await supabase
+        .from('profiles')
+        .update({ name: name.trim(), city: city.trim() || null })
+        .eq('id', user.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['full-profile', user?.id] })
+      onClose()
+    },
+  })
 
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 px-6">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-teal-50 text-2xl font-bold text-teal-600">
-        {profile?.name?.[0]?.toUpperCase() ?? '?'}
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-[55] bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="h-1 w-10 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3">
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+              <h2 className="text-[15px] font-bold text-gray-900">Edit Profile</h2>
+              <div className="w-9" />
+            </div>
+
+            <div className="px-5 pb-6 space-y-4" style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                  City <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. London"
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                />
+              </div>
+
+              {saveMutation.isError && (
+                <p className="text-[12px] text-red-500 text-center">Failed to save. Try again.</p>
+              )}
+
+              <button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || !name.trim()}
+                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+              >
+                {saveMutation.isPending ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ── Achievement badge labels ──────────────────────────────────────────────────
+
+const BADGE_META: Record<string, { label: string; emoji: string }> = {
+  first_win:     { label: 'First Win',       emoji: '🏆' },
+  five_wins:     { label: '5 Wins',          emoji: '⭐' },
+  ten_wins:      { label: '10 Wins',         emoji: '🔥' },
+  first_match:   { label: 'First Match',     emoji: '🎾' },
+  streak_3:      { label: '3-Win Streak',    emoji: '💪' },
+  streak_5:      { label: '5-Win Streak',    emoji: '🚀' },
+  team_player:   { label: 'Team Player',     emoji: '🤝' },
+  early_adopter: { label: 'Early Adopter',   emoji: '🌟' },
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export function YouPage() {
+  const { profile: authProfile, signOut } = useAuth()
+  const userId = authProfile?.id ?? ''
+
+  const [historyFilter, setHistoryFilter] = useState<'all' | 'wins' | 'losses'>('all')
+  const [historyLimit, setHistoryLimit]   = useState(10)
+  const [showEdit, setShowEdit]           = useState(false)
+
+  const { data: fullProfile }           = useFullProfile(userId)
+  const { data: stats, isLoading: loadingStats } = useYouStats(userId)
+  const { data: history = [], isLoading: loadingHistory } = useMatchHistory(userId, historyLimit)
+  const { data: achievements = [] }     = useAchievements(userId)
+
+  const profile = fullProfile ?? authProfile
+
+  const filteredHistory = history.filter((m) => {
+    if (historyFilter === 'wins')   return m.result_type === 'win'
+    if (historyFilter === 'losses') return m.result_type === 'loss'
+    return true
+  })
+
+  return (
+    <div className="min-h-full bg-white pb-32">
+      {/* Header */}
+      <div className="px-5 pt-14 pb-4">
+        <h1 className="text-[22px] font-bold text-gray-900">You</h1>
       </div>
-      <p className="text-base font-semibold text-gray-900">{profile?.name ?? 'Loading…'}</p>
-      <p className="text-sm text-gray-400">{profile?.email}</p>
-      <button
-        onClick={signOut}
-        className="mt-4 rounded-xl border border-gray-200 px-6 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
-      >
-        Sign out
-      </button>
+
+      <div className="px-5 space-y-6">
+
+        {/* ── Profile Card ── */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+        >
+          <div className="flex items-center gap-4">
+            <PlayerAvatar
+              name={profile?.name}
+              avatarUrl={fullProfile?.avatar_url ?? authProfile?.avatar_url}
+              size="lg"
+            />
+            <div className="flex-1 min-w-0">
+              <h2 className="text-[18px] font-bold text-gray-900 truncate">{profile?.name ?? '—'}</h2>
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                {fullProfile?.city && (
+                  <span className="text-[12px] text-gray-400">{fullProfile.city}</span>
+                )}
+                {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
+                  <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">
+                    {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-0.5 truncate">{profile?.email}</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowEdit(true)}
+            className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <Edit2 className="h-3.5 w-3.5" />
+            Edit profile
+          </button>
+        </motion.div>
+
+        {/* ── Stats Summary ── */}
+        <section>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Stats</h2>
+          {loadingStats ? (
+            <div className="grid grid-cols-2 gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : stats ? (
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Matches played', value: stats.totalMatches },
+                { label: 'Win rate',       value: `${stats.winRate}%` },
+                { label: 'Ranking',        value: `#${stats.rankPosition}` },
+                { label: 'Best streak',    value: `${stats.bestStreak}W` },
+              ].map(({ label, value }) => (
+                <div key={label} className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
+                  <p className="text-[20px] font-black text-gray-900">{value}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{label}</p>
+                </div>
+              ))}
+              {stats.favouritePartnerName && (
+                <div className="col-span-2 rounded-xl bg-teal-50 border border-teal-100 px-4 py-3">
+                  <p className="text-[13px] font-bold text-teal-800 truncate">{stats.favouritePartnerName}</p>
+                  <p className="text-[11px] text-teal-600 mt-0.5">Favourite partner</p>
+                </div>
+              )}
+            </div>
+          ) : null}
+        </section>
+
+        {/* ── Match History ── */}
+        <section>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Match history</h2>
+
+          {/* Filter tabs */}
+          <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
+            {(['all', 'wins', 'losses'] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setHistoryFilter(f)}
+                className={cn(
+                  'flex-1 rounded-lg py-2 text-[12px] font-semibold capitalize transition-colors',
+                  historyFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                )}
+              >
+                {f}
+              </button>
+            ))}
+          </div>
+
+          {loadingHistory ? (
+            <div className="space-y-2">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
+              ))}
+            </div>
+          ) : filteredHistory.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
+              <p className="text-[13px] font-semibold text-gray-500">No matches found</p>
+            </div>
+          ) : (
+            <>
+              <div className="space-y-2">
+                {filteredHistory.map((m) => {
+                  const dateStr = (() => {
+                    try { return format(parseISO(m.match_date), 'd MMM yyyy') } catch { return m.match_date }
+                  })()
+                  return (
+                    <div key={m.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                      <span className={cn(
+                        'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold capitalize',
+                        m.result_type === 'win'  ? 'bg-green-50 text-green-700 border border-green-100' :
+                        m.result_type === 'loss' ? 'bg-red-50 text-red-500 border border-red-100'       :
+                                                   'bg-gray-100 text-gray-500 border border-gray-200'
+                      )}>
+                        {m.result_type ?? '—'}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-semibold text-gray-800 truncate">vs {m.opponents}</p>
+                        <p className="text-[11px] text-gray-400">{dateStr}</p>
+                      </div>
+                      <span className="text-[13px] font-bold text-gray-700 flex-shrink-0">{m.score}</span>
+                    </div>
+                  )
+                })}
+              </div>
+              {history.length >= historyLimit && (
+                <button
+                  onClick={() => setHistoryLimit((l) => l + 10)}
+                  className="mt-3 w-full rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Load more
+                </button>
+              )}
+            </>
+          )}
+        </section>
+
+        {/* ── Achievements ── */}
+        {achievements.length > 0 && (
+          <section>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Achievements</h2>
+            <div className="grid grid-cols-3 gap-2">
+              {achievements.map((a) => {
+                const meta = BADGE_META[a.badge_key] ?? { label: a.badge_key, emoji: '🏅' }
+                return (
+                  <div key={a.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center">
+                    <p className="text-[24px] leading-none mb-1">{meta.emoji}</p>
+                    <p className="text-[11px] font-semibold text-gray-700 leading-tight">{meta.label}</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {(() => { try { return format(parseISO(a.earned_at), 'd MMM') } catch { return '' } })()}
+                    </p>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ── Settings ── */}
+        <section>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Settings</h2>
+          <div className="rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+
+            {/* Push notifications toggle (UI only) */}
+            <div className="flex items-center justify-between px-4 py-3.5">
+              <span className="text-[13px] font-medium text-gray-700">Push notifications</span>
+              <button
+                className="relative inline-flex h-6 w-11 items-center rounded-full bg-[#009688] transition-colors"
+                aria-label="Toggle notifications"
+              >
+                <span className="inline-block h-4 w-4 translate-x-6 rounded-full bg-white shadow transition-transform" />
+              </button>
+            </div>
+
+            {/* Language */}
+            <button className="w-full flex items-center justify-between px-4 py-3.5">
+              <span className="text-[13px] font-medium text-gray-700">Language</span>
+              <div className="flex items-center gap-1 text-gray-400">
+                <span className="text-[13px]">English</span>
+                <ChevronRight className="h-4 w-4" />
+              </div>
+            </button>
+          </div>
+
+          {/* App version */}
+          <p className="text-[11px] text-gray-300 text-center mt-3">PPA v2.0.0</p>
+
+          {/* Sign out */}
+          <button
+            onClick={signOut}
+            className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl border border-red-100 py-3.5 text-[14px] font-semibold text-red-500 hover:bg-red-50 transition-colors"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
+        </section>
+      </div>
+
+      <EditProfileSheet
+        open={showEdit}
+        onClose={() => setShowEdit(false)}
+        profile={fullProfile ?? null}
+      />
     </div>
   )
 }

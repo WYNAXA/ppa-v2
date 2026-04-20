@@ -12,6 +12,7 @@ import { GroupDetailPage } from '@/pages/GroupDetail'
 import { EventDetailPage } from '@/pages/EventDetail'
 import { YouPage } from '@/pages/You'
 import { MatchDetailPage } from '@/pages/MatchDetail'
+import { LeagueDetailPage } from '@/pages/LeagueDetail'
 import { MatchesPage } from '@/pages/Matches'
 import { AvailabilityPage } from '@/pages/Availability'
 import { AvailabilityPollPage } from '@/pages/AvailabilityPoll'
@@ -75,6 +76,10 @@ function AppShell() {
           <Route path="/play/availability/:pollId" element={<Guard><AvailabilityPollPage /></Guard>} />
           <Route path="/play/join"         element={<Guard><PlaceholderPage title="Join a Match" /></Guard>} />
           <Route path="/play/book-court"   element={<Guard><PlaceholderPage title="Book a Court" /></Guard>} />
+
+          {/* Compete sub-routes — /create MUST come before /:id */}
+          <Route path="/compete/leagues/create" element={<Guard><CompetePage /></Guard>} />
+          <Route path="/compete/leagues/:id"    element={<Guard><LeagueDetailPage /></Guard>} />
 
           {/* Notifications placeholder */}
           <Route path="/notifications" element={<Guard><PlaceholderPage title="Notifications" /></Guard>} />

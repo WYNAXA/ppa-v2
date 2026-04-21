@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -59,6 +59,35 @@ async function fetchMatchDetail(id: string): Promise<{
     .maybeSingle()
 
   return { match, players, result: result ?? null }
+}
+
+// ── ELO helpers ───────────────────────────────────────────────────────────────
+
+function calcWinProb(avgA: number, avgB: number): number {
+  return 1 / (1 + Math.pow(10, (avgB - avgA) / 400))
+}
+
+interface EloPrediction {
+  probA: number
+  probB: number
+  pointsIfAWins: number
+  pointsIfBWins: number
+}
+
+function getEloPrediction(players: Profile[], team1Ids: string[], team2Ids: string[]): EloPrediction | null {
+  const getElo = (id: string) => (players.find((p) => p.id === id) as Profile & { internal_ranking?: number })?.internal_ranking ?? 1000
+  if (team1Ids.length < 2 || team2Ids.length < 2) return null
+  const avgA = (getElo(team1Ids[0]) + getElo(team1Ids[1])) / 2
+  const avgB = (getElo(team2Ids[0]) + getElo(team2Ids[1])) / 2
+  const probA = calcWinProb(avgA, avgB)
+  const probB = 1 - probA
+  const K = 32
+  return {
+    probA,
+    probB,
+    pointsIfAWins: Math.round(K * probB),
+    pointsIfBWins: Math.round(K * probA),
+  }
 }
 
 function ResultBanner({ result, players }: { result: MatchResult; players: Profile[] }) {
@@ -141,11 +170,41 @@ export function MatchDetailPage() {
   const [copied, setCopied] = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [voteSubmitted, setVoteSubmitted] = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['match', id],
     queryFn: () => fetchMatchDetail(id!),
     enabled: !!id,
+  })
+
+  const voteMutation = useMutation({
+    mutationFn: async (vote: 'confirm' | 'dispute') => {
+      const result = data?.result
+      if (!result || !profile?.id) return
+      await supabase.from('match_result_votes').insert({
+        match_result_id: result.id,
+        voter_id: profile.id,
+        vote,
+      })
+      if (vote === 'confirm') {
+        const { count } = await supabase
+          .from('match_result_votes')
+          .select('id', { count: 'exact', head: true })
+          .eq('match_result_id', result.id)
+          .eq('vote', 'confirm')
+        if ((count ?? 0) >= 3) {
+          await supabase
+            .from('match_results')
+            .update({ verification_status: 'verified' })
+            .eq('id', result.id)
+        }
+      }
+    },
+    onSuccess: () => {
+      setVoteSubmitted(true)
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+    },
   })
 
   if (isLoading) {
@@ -355,6 +414,82 @@ export function MatchDetailPage() {
           ))}
         </div>
       </div>
+
+      {/* ELO Prediction — only before result is recorded, with 4 real players */}
+      {!result && match.player_ids.length === 4 && (() => {
+        const team1Ids = match.player_ids.slice(0, 2)
+        const team2Ids = match.player_ids.slice(2, 4)
+        const pred = getEloPrediction(players, team1Ids, team2Ids)
+        if (!pred) return null
+        return (
+          <div className="px-5 mb-4">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <BarChart2 className="h-4 w-4 text-[#009688]" />
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Match Prediction</p>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 text-center">
+                  <p className="text-[24px] font-black text-teal-600">{Math.round(pred.probA * 100)}%</p>
+                  <p className="text-[10px] text-gray-400 mb-0.5">Team 1 win</p>
+                  <p className="text-[11px] text-teal-600 font-semibold">+{pred.pointsIfAWins} pts</p>
+                </div>
+                <div className="text-center px-1">
+                  <p className="text-[12px] text-gray-300 font-bold">vs</p>
+                </div>
+                <div className="flex-1 text-center">
+                  <p className="text-[24px] font-black text-orange-500">{Math.round(pred.probB * 100)}%</p>
+                  <p className="text-[10px] text-gray-400 mb-0.5">Team 2 win</p>
+                  <p className="text-[11px] text-orange-500 font-semibold">+{pred.pointsIfBWins} pts</p>
+                </div>
+              </div>
+              <div className="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-teal-500 to-orange-400 transition-all"
+                  style={{ width: `${Math.round(pred.probA * 100)}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Peer voting card */}
+      {result && result.verification_status === 'pending' && isParticipant && (
+        <div className="px-5 mb-4">
+          {voteSubmitted ? (
+            <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
+              <p className="text-[13px] font-semibold text-green-700">Vote submitted · thank you</p>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
+              <p className="text-[13px] font-bold text-gray-800 mb-1">Verify this result?</p>
+              <p className="text-[12px] text-gray-500 mb-3">
+                {result.team1_score}–{result.team2_score} ·{' '}
+                {result.result_type === 'team1_win' ? 'Team 1 wins' : 'Team 2 wins'}
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => voteMutation.mutate('confirm')}
+                  disabled={voteMutation.isPending}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700 disabled:opacity-50"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Confirm
+                </button>
+                <button
+                  onClick={() => voteMutation.mutate('dispute')}
+                  disabled={voteMutation.isPending}
+                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
+                >
+                  <XCircle className="h-4 w-4" />
+                  Dispute
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="px-5 flex flex-col gap-2">

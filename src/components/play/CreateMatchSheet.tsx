@@ -552,6 +552,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
   const [step, setStep]       = useState(1)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]     = useState<string | null>(null)
+  const [conflictWarning, setConflictWarning] = useState<{ match_time: string | null; venue: string | null } | null>(null)
   const [form, setForm]       = useState<FormState>({
     matchType: null,
     date: todayStr(),
@@ -569,6 +570,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       setStep(1)
       setError(null)
       setSubmitting(false)
+      setConflictWarning(null)
       setForm({
         matchType: null,
         date: todayStr(),
@@ -631,6 +633,24 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     setError(null)
 
     try {
+      // Conflict check — warn if creator has another match on the same date
+      if (!conflictWarning) {
+        const { data: conflicts } = await supabase
+          .from('matches')
+          .select('id, match_time, booked_venue_name')
+          .contains('player_ids', [user.id])
+          .eq('match_date', form.date)
+          .not('status', 'in', '("cancelled","completed")')
+        if (conflicts && conflicts.length > 0) {
+          setConflictWarning({
+            match_time: conflicts[0].match_time ?? null,
+            venue: conflicts[0].booked_venue_name ?? null,
+          })
+          setSubmitting(false)
+          return
+        }
+      }
+
       const { data, error: insertError } = await supabase
         .from('matches')
         .insert(payload)
@@ -750,6 +770,58 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
               )}
             </div>
           </motion.div>
+
+          {/* Conflict warning dialog */}
+          <AnimatePresence>
+            {conflictWarning && (
+              <>
+                <motion.div
+                  className="fixed inset-0 z-[65] bg-black/40"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                />
+                <motion.div
+                  className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl px-5 pt-6"
+                  initial={{ y: '100%' }}
+                  animate={{ y: 0 }}
+                  exit={{ y: '100%' }}
+                  transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+                  style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+                >
+                  <div className="flex justify-center mb-5">
+                    <div className="h-10 w-10 rounded-full bg-yellow-50 flex items-center justify-center">
+                      <span className="text-[20px]">⚠️</span>
+                    </div>
+                  </div>
+                  <p className="text-[16px] font-bold text-gray-900 text-center mb-2">You already have a match on this day</p>
+                  <p className="text-[13px] text-gray-500 text-center mb-6">
+                    {conflictWarning.match_time
+                      ? `There's a match at ${conflictWarning.match_time.slice(0, 5)}`
+                      : "There's already a match scheduled for this date"}
+                    {conflictWarning.venue ? ` at ${conflictWarning.venue}` : ''}.
+                    {' '}Create another anyway?
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setConflictWarning(null)}
+                      className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => handleSubmit()}
+                      disabled={submitting}
+                      className="flex-1 rounded-2xl py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                      style={{ background: '#009688' }}
+                    >
+                      {submitting ? 'Creating…' : 'Create Anyway'}
+                    </button>
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </>
       )}
     </AnimatePresence>

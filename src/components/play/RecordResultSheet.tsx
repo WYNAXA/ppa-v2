@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { checkAndAwardBadges, type BadgeAward } from '@/lib/badges'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import type { Match, RankingChange } from '@/lib/types'
@@ -39,6 +40,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [sets, setSets] = useState<SetScore[]>([{ team1: '', team2: '' }])
   const [resultType, setResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
   const [rankingChanges, setRankingChanges] = useState<RankingChange[]>([])
+  const [newBadges, setNewBadges] = useState<BadgeAward[]>([])
 
   // Guard: initialise teams ONCE on open, never re-derived
   const initialisedRef = useRef(false)
@@ -103,10 +105,13 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
 
       return changes ?? []
     },
-    onSuccess: (changes) => {
+    onSuccess: async (changes) => {
       setRankingChanges(changes)
       queryClient.invalidateQueries({ queryKey: ['match', match.id] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
+      queryClient.invalidateQueries({ queryKey: ['achievements', currentUserId] })
+      const earned = await checkAndAwardBadges(currentUserId)
+      setNewBadges(earned)
       setStep(4)
     },
   })
@@ -458,6 +463,33 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           )
                         })}
                       </div>
+                    )}
+
+                    {newBadges.length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="w-full bg-amber-50 rounded-2xl p-4 mb-5 border border-amber-100"
+                      >
+                        <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide mb-2">
+                          🎉 New Badge{newBadges.length > 1 ? 's' : ''} Earned!
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {newBadges.map((b) => (
+                            <motion.div
+                              key={b.badge_key}
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
+                              className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 border border-amber-100"
+                            >
+                              <span className="text-lg">{b.emoji}</span>
+                              <span className="text-[12px] font-bold text-gray-800">{b.label}</span>
+                            </motion.div>
+                          ))}
+                        </div>
+                      </motion.div>
                     )}
 
                     <button

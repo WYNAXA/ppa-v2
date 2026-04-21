@@ -10,6 +10,7 @@ interface Profile {
   playtomic_level?: number
   ranking_points?: number
   internal_ranking?: number
+  city?: string | null
 }
 
 interface AuthContextValue {

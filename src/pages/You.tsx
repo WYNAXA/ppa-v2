@@ -694,7 +694,10 @@ export function YouPage() {
                   <button
                     onClick={async () => {
                       setShowDeleteConfirm(false)
-                      await supabase.rpc('delete_user').catch(() => null)
+                      try {
+                        const { error } = await supabase.rpc('delete_user')
+                        if (error) throw error
+                      } catch { /* proceed to sign out regardless */ }
                       await signOut()
                     }}
                     className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white"

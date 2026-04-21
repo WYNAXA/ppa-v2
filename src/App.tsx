@@ -18,6 +18,7 @@ import { AvailabilityPage } from '@/pages/Availability'
 import { AvailabilityPollPage } from '@/pages/AvailabilityPoll'
 import { CreatePollPage } from '@/pages/CreatePoll'
 import { PlaceholderPage } from '@/pages/Placeholder'
+import { NotificationsPage } from '@/pages/Notifications'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -81,8 +82,8 @@ function AppShell() {
           <Route path="/compete/leagues/create" element={<Guard><CompetePage /></Guard>} />
           <Route path="/compete/leagues/:id"    element={<Guard><LeagueDetailPage /></Guard>} />
 
-          {/* Notifications placeholder */}
-          <Route path="/notifications" element={<Guard><PlaceholderPage title="Notifications" /></Guard>} />
+          {/* Notifications */}
+          <Route path="/notifications" element={<Guard><NotificationsPage /></Guard>} />
 
           {/* Fallback */}
           <Route path="*" element={<Navigate to={session ? '/home' : '/auth'} replace />} />

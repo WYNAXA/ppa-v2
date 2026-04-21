@@ -47,7 +47,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
           end_time:    endTime ? new Date(endTime).toISOString() : null,
           location:    location.trim() || null,
           description: description.trim() || null,
-          status:      'upcoming',
+          status:      'published',
         })
       if (error) {
         console.error('[CreateEvent] insert error:', error)
@@ -94,7 +94,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
 
             <div
               className="px-5 overflow-y-auto space-y-4"
-              style={{ maxHeight: '80vh', paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+              style={{ maxHeight: '80vh', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
             >
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Title <span className="text-red-400">*</span></label>
@@ -143,7 +143,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="Venue or address"
-                    style={{ fontSize: '16px' }}
+                    style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                     className="w-full rounded-xl border border-gray-200 pl-9 pr-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                   />
                 </div>
@@ -158,7 +158,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Details for members…"
                   rows={2}
-                  style={{ fontSize: '16px' }}
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
                 />
               </div>

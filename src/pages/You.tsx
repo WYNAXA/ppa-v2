@@ -15,6 +15,8 @@ interface FullProfile {
   name: string
   email: string
   city: string | null
+  postal_code: string | null
+  country: string | null
   avatar_url: string | null
   internal_ranking: number | null
   ranking_points: number | null
@@ -54,7 +56,7 @@ function useFullProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, city, avatar_url, internal_ranking, ranking_points')
+        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points')
         .eq('id', userId)
         .single()
       if (error) return null
@@ -234,15 +236,24 @@ function EditProfileSheet({
 }) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
-  const [name, setName] = useState(profile?.name ?? '')
-  const [city, setCity] = useState(profile?.city ?? '')
+  const [name, setName]             = useState(profile?.name ?? '')
+  const [city, setCity]             = useState(profile?.city ?? '')
+  const [postalCode, setPostalCode] = useState(profile?.postal_code ?? '')
+  const [country, setCountry]       = useState(profile?.country ?? '')
+
+  const COUNTRIES = ['UK', 'Ireland', 'Spain', 'Portugal', 'Italy', 'France', 'Germany', 'Netherlands', 'Belgium', 'Other']
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated')
       const { error } = await supabase
         .from('profiles')
-        .update({ name: name.trim(), city: city.trim() || null })
+        .update({
+          name:        name.trim(),
+          city:        city.trim() || null,
+          postal_code: postalCode.trim() || null,
+          country:     country || null,
+        })
         .eq('id', user.id)
       if (error) throw error
     },
@@ -305,6 +316,33 @@ function EditProfileSheet({
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                  Postcode <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <input
+                  type="text"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                  placeholder="e.g. SW1A 1AA"
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                  Country <span className="text-gray-400 font-normal">(optional)</span>
+                </label>
+                <select
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
+                >
+                  <option value="">Select country…</option>
+                  {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
 
               {saveMutation.isError && (
                 <p className="text-[12px] text-red-500 text-center">Failed to save. Try again.</p>
@@ -344,9 +382,12 @@ export function YouPage() {
   const { profile: authProfile, signOut } = useAuth()
   const userId = authProfile?.id ?? ''
 
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'wins' | 'losses'>('all')
-  const [historyLimit, setHistoryLimit]   = useState(10)
-  const [showEdit, setShowEdit]           = useState(false)
+  const [historyFilter, setHistoryFilter]   = useState<'all' | 'wins' | 'losses'>('all')
+  const [historyLimit, setHistoryLimit]     = useState(10)
+  const [showEdit, setShowEdit]             = useState(false)
+  const [notifEnabled, setNotifEnabled]     = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [resetSent, setResetSent]           = useState(false)
 
   const { data: fullProfile }           = useFullProfile(userId)
   const { data: stats, isLoading: loadingStats } = useYouStats(userId)
@@ -532,14 +573,30 @@ export function YouPage() {
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">Settings</h2>
           <div className="rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
 
-            {/* Push notifications toggle (UI only) */}
+            {/* Push notifications toggle */}
             <div className="flex items-center justify-between px-4 py-3.5">
               <span className="text-[13px] font-medium text-gray-700">Push notifications</span>
               <button
-                className="relative inline-flex h-6 w-11 items-center rounded-full bg-[#009688] transition-colors"
+                onClick={async () => {
+                  if (!notifEnabled) {
+                    if (typeof Notification !== 'undefined') {
+                      const perm = await Notification.requestPermission()
+                      if (perm === 'granted') setNotifEnabled(true)
+                    }
+                  } else {
+                    setNotifEnabled(false)
+                  }
+                }}
+                className={cn(
+                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                  notifEnabled ? 'bg-[#009688]' : 'bg-gray-200'
+                )}
                 aria-label="Toggle notifications"
               >
-                <span className="inline-block h-4 w-4 translate-x-6 rounded-full bg-white shadow transition-transform" />
+                <span className={cn(
+                  'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+                  notifEnabled ? 'translate-x-6' : 'translate-x-1'
+                )} />
               </button>
             </div>
 
@@ -550,6 +607,50 @@ export function YouPage() {
                 <span className="text-[13px]">English</span>
                 <ChevronRight className="h-4 w-4" />
               </div>
+            </button>
+
+            {/* Password reset */}
+            <button
+              onClick={async () => {
+                const email = authProfile?.email
+                if (!email) return
+                await supabase.auth.resetPasswordForEmail(email)
+                setResetSent(true)
+                setTimeout(() => setResetSent(false), 4000)
+              }}
+              className="w-full flex items-center justify-between px-4 py-3.5"
+            >
+              <span className="text-[13px] font-medium text-gray-700">
+                {resetSent ? 'Reset email sent ✓' : 'Reset password'}
+              </span>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </button>
+
+            {/* Privacy Policy */}
+            <button
+              onClick={() => window.open('https://padelplayersapp.com/privacy', '_blank')}
+              className="w-full flex items-center justify-between px-4 py-3.5"
+            >
+              <span className="text-[13px] font-medium text-gray-700">Privacy Policy</span>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </button>
+
+            {/* Terms of Service */}
+            <button
+              onClick={() => window.open('https://padelplayersapp.com/terms', '_blank')}
+              className="w-full flex items-center justify-between px-4 py-3.5"
+            >
+              <span className="text-[13px] font-medium text-gray-700">Terms of Service</span>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </button>
+
+            {/* Delete account */}
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full flex items-center justify-between px-4 py-3.5"
+            >
+              <span className="text-[13px] font-medium text-red-500">Delete Account</span>
+              <ChevronRight className="h-4 w-4 text-red-300" />
             </button>
           </div>
 
@@ -565,6 +666,46 @@ export function YouPage() {
             Sign out
           </button>
         </section>
+
+        {/* Delete account confirmation dialog */}
+        <AnimatePresence>
+          {showDeleteConfirm && (
+            <>
+              <motion.div
+                className="fixed inset-0 z-[55] bg-black/50"
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                onClick={() => setShowDeleteConfirm(false)}
+              />
+              <motion.div
+                className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
+                initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+              >
+                <h3 className="text-[17px] font-bold text-gray-900 text-center mb-2">Delete Account</h3>
+                <p className="text-[13px] text-gray-500 text-center mb-5">
+                  This will permanently delete your account and all your data. This cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeleteConfirm(false)}
+                    className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      setShowDeleteConfirm(false)
+                      await supabase.rpc('delete_user').catch(() => null)
+                      await signOut()
+                    }}
+                    className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       <EditProfileSheet

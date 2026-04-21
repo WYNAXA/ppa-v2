@@ -641,6 +641,16 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
         console.error('[CreateMatch] insert error:', insertError)
         throw insertError
       }
+
+      // Insert notification for match creator
+      await supabase.from('notifications').insert({
+        user_id:    user.id,
+        type:       'match_created',
+        title:      'Match created',
+        message:    `Your match on ${payload.match_date} has been created`,
+        related_id: data.id,
+      })
+
       onClose()
       navigate(`/matches/${data.id}`)
     } catch (err: unknown) {

@@ -1,9 +1,13 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
+import { cn } from '@/lib/utils'
+
+type RsvpStatus = 'going' | 'interested' | 'not_going'
 
 interface EventDetail {
   id: string
@@ -34,11 +38,65 @@ function useEvent(id: string) {
   })
 }
 
+function useMyRsvp(eventId: string, userId: string) {
+  return useQuery({
+    queryKey: ['event-rsvp', eventId, userId],
+    enabled: !!eventId && !!userId,
+    queryFn: async (): Promise<RsvpStatus | null> => {
+      const { data } = await supabase
+        .from('event_attendees')
+        .select('status')
+        .eq('event_id', eventId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      return (data?.status as RsvpStatus) ?? null
+    },
+  })
+}
+
+const RSVP_OPTIONS: { label: string; value: RsvpStatus; activeClass: string; inactiveClass: string }[] = [
+  {
+    label: 'Going',
+    value: 'going',
+    activeClass: 'bg-[#009688] text-white border-[#009688]',
+    inactiveClass: 'bg-white text-gray-600 border border-gray-200',
+  },
+  {
+    label: 'Interested',
+    value: 'interested',
+    activeClass: 'bg-blue-500 text-white border-blue-500',
+    inactiveClass: 'bg-white text-gray-600 border border-gray-200',
+  },
+  {
+    label: "Can't make it",
+    value: 'not_going',
+    activeClass: 'bg-gray-500 text-white border-gray-500',
+    inactiveClass: 'bg-white text-gray-600 border border-gray-200',
+  },
+]
+
 export function EventDetailPage() {
   const { id = '' }  = useParams<{ id: string }>()
   const navigate      = useNavigate()
+  const { user }      = useAuth()
+  const userId        = user?.id ?? ''
+  const queryClient   = useQueryClient()
 
-  const { data: event, isLoading } = useEvent(id)
+  const { data: event, isLoading }     = useEvent(id)
+  const { data: myRsvp }               = useMyRsvp(id, userId)
+
+  const rsvpMutation = useMutation({
+    mutationFn: async (status: RsvpStatus) => {
+      if (!userId || !id) return
+      const { error } = await supabase
+        .from('event_attendees')
+        .upsert({ event_id: id, user_id: userId, status }, { onConflict: 'event_id,user_id' })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['event-rsvp', id, userId] })
+    },
+  })
 
   if (isLoading) {
     return (
@@ -124,20 +182,29 @@ export function EventDetailPage() {
       {/* RSVP */}
       <div className="mx-5">
         <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">Your response</p>
+        {myRsvp && (
+          <p className="text-[12px] text-teal-600 font-medium mb-2">
+            You responded · tap to change
+          </p>
+        )}
         <div className="grid grid-cols-3 gap-2">
-          {[
-            { label: 'Going',        color: 'bg-[#009688] text-white' },
-            { label: 'Interested',   color: 'bg-blue-50 text-blue-600 border border-blue-100' },
-            { label: "Can't make it", color: 'bg-gray-100 text-gray-600' },
-          ].map(({ label, color }) => (
+          {RSVP_OPTIONS.map(({ label, value, activeClass, inactiveClass }) => (
             <button
-              key={label}
-              className={`rounded-xl py-3 text-[12px] font-bold transition-all active:scale-95 ${color}`}
+              key={value}
+              onClick={() => rsvpMutation.mutate(value)}
+              disabled={rsvpMutation.isPending}
+              className={cn(
+                'rounded-xl py-3 text-[12px] font-bold transition-all active:scale-95',
+                myRsvp === value ? activeClass : inactiveClass,
+              )}
             >
               {label}
             </button>
           ))}
         </div>
+        {rsvpMutation.isError && (
+          <p className="text-[12px] text-red-500 text-center mt-2">Failed to save. Try again.</p>
+        )}
       </div>
     </div>
   )

@@ -101,20 +101,28 @@ function useMyGroups(userId: string) {
 
 // ── Discover Groups query ─────────────────────────────────────────────────────
 
-function useDiscoverGroups(userId: string, search: string, myGroupIds: string[]) {
+function useDiscoverGroups(userId: string, search: string, myGroupIds: string[], activeFilter: string | null, userCity: string | null) {
   return useQuery({
-    queryKey: ['discover-groups', userId, search],
+    queryKey: ['discover-groups', userId, search, activeFilter],
     enabled: !!userId,
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let query = supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id')
-        .eq('visibility', 'public')
+        .select('id, name, description, city, visibility, join_mode, admin_id')
+        .eq('visibility', 'open')
         .order('name')
-        .limit(20)
+        .limit(40)
 
       if (search.trim()) {
         query = query.or(`name.ilike.%${search.trim()}%,city.ilike.%${search.trim()}%`)
+      }
+
+      if (activeFilter === 'near_me' && userCity) {
+        query = query.ilike('city', `%${userCity}%`)
+      }
+
+      if (activeFilter === 'open_to_join') {
+        query = query.neq('join_mode', 'closed')
       }
 
       const { data: groups, error } = await query
@@ -271,6 +279,7 @@ export function CommunityPage() {
   const { profile } = useAuth()
   const queryClient  = useQueryClient()
   const [search, setSearch]                   = useState('')
+  const [activeFilter, setActiveFilter]       = useState<string | null>(null)
   const [showCreateSheet, setShowCreateSheet] = useState(false)
 
   const userId = profile?.id ?? ''
@@ -281,12 +290,14 @@ export function CommunityPage() {
     userId,
     search,
     myGroupIds,
+    activeFilter,
+    profile?.city ?? null,
   )
 
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const group    = discoverGroups.find((g) => g.id === groupId)
-      const isPublic = group?.visibility === 'public'
+      const isPublic = group?.visibility === 'open'
 
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId,
@@ -354,16 +365,36 @@ export function CommunityPage() {
         <section>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">Discover Groups</h2>
 
-          <div className="relative mb-3">
+          <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Search by name or city…"
-              style={{ fontSize: '16px' }}
+              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
+          </div>
+
+          {/* Filter chips */}
+          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+            {[
+              { key: 'near_me',      label: 'Near me'       },
+              { key: 'open_to_join', label: 'Open to join'  },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveFilter(activeFilter === key ? null : key)}
+                className={`flex-shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${
+                  activeFilter === key
+                    ? 'bg-[#009688] text-white border-[#009688]'
+                    : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {loadingDiscover ? (

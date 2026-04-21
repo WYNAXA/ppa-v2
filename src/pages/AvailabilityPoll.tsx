@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Users, CheckCircle, Clock, Trophy } from 'lucide-react'
-import { format, parseISO, formatDistanceToNow, isPast } from 'date-fns'
+import { formatDistanceToNow, isPast, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 
 interface PollSlot {
   id: string
-  date: string
+  day: string
   start_time: string
   end_time: string
 }
@@ -23,14 +23,14 @@ interface Poll {
   created_by: string | null
   status: string
   closes_at: string
-  options: { slots: PollSlot[] }
+  time_slots: PollSlot[]
   notes?: string | null
   groups?: { id: string; name: string } | null
 }
 
 interface PollResponseRow {
   user_id: string
-  available_slots: string[]
+  selected_slots: string[]
 }
 
 interface Profile {
@@ -52,7 +52,7 @@ async function fetchPollDetail(pollId: string, userId: string) {
 
   const { data: responses } = await supabase
     .from('poll_responses')
-    .select('user_id, available_slots')
+    .select('user_id, selected_slots')
     .eq('poll_id', pollId)
 
   const responderIds = [...new Set((responses ?? []).map((r) => r.user_id as string))]
@@ -98,9 +98,9 @@ export function AvailabilityPollPage() {
   // Initialise from user's existing response once data loads
   if (pollData && !initialised) {
     const states: Record<string, SlotAvailability> = {}
-    const slots = pollData.poll.options?.slots ?? []
+    const slots = pollData.poll.time_slots ?? []
     for (const s of slots) {
-      states[s.id] = pollData.myResponse?.available_slots?.includes(s.id) ? 'available' : 'unavailable'
+      states[s.id] = pollData.myResponse?.selected_slots?.includes(s.id) ? 'available' : 'unavailable'
     }
     setSlotStates(states)
     setInitialised(true)
@@ -129,8 +129,8 @@ export function AvailabilityPollPage() {
         .insert({
           poll_id: pollId!,
           user_id: userId,
-          available_slots: availableSlotIds,
-          responded_at: new Date().toISOString(),
+          selected_slots: availableSlotIds,
+          submitted_at: new Date().toISOString(),
         })
 
       if (error) throw error
@@ -138,18 +138,18 @@ export function AvailabilityPollPage() {
       // Fetch all responses to check auto-match
       const { data: allResponses } = await supabase
         .from('poll_responses')
-        .select('user_id, available_slots')
+        .select('user_id, selected_slots')
         .eq('poll_id', pollId!)
 
       const responseList = (allResponses ?? []) as PollResponseRow[]
-      const slots = poll.options?.slots ?? []
+      const slots = poll.time_slots ?? []
 
       let newMatchId: string | null = null
       let isReady = false
 
       for (const slot of slots) {
         const ready = responseList.filter((r) =>
-          (r.available_slots ?? []).includes(slot.id)
+          (r.selected_slots ?? []).includes(slot.id)
         )
         if (ready.length >= 4) {
           isReady = true
@@ -159,7 +159,6 @@ export function AvailabilityPollPage() {
             .from('matches')
             .select('id')
             .eq('group_id', poll.group_id)
-            .eq('match_date', slot.date)
             .eq('context_type', 'poll')
             .eq('status', 'suggested')
             .maybeSingle()
@@ -169,7 +168,6 @@ export function AvailabilityPollPage() {
             const { data: newMatch } = await supabase
               .from('matches')
               .insert({
-                match_date: slot.date,
                 match_time: slot.start_time,
                 context_type: 'poll',
                 match_type: 'casual',
@@ -219,7 +217,7 @@ export function AvailabilityPollPage() {
   }
 
   const { poll, responses, profiles } = pollData
-  const slots = poll.options?.slots ?? []
+  const slots = poll.time_slots ?? []
   const isClosed = isPast(parseISO(poll.closes_at)) || poll.status !== 'open'
   const closesLabel = (() => {
     try {
@@ -322,7 +320,7 @@ export function AvailabilityPollPage() {
       {/* Slots */}
       <div className="px-5 space-y-3">
         {slots.map((slot, i) => {
-          const available = responses.filter((r) => (r.available_slots ?? []).includes(slot.id))
+          const available = responses.filter((r) => (r.selected_slots ?? []).includes(slot.id))
           const count = available.length
           const myState = slotStates[slot.id] ?? 'unavailable'
 
@@ -338,7 +336,7 @@ export function AvailabilityPollPage() {
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
                   <p className="text-[14px] font-bold text-gray-900">
-                    {(() => { try { return format(parseISO(slot.date), 'EEEE, d MMMM') } catch { return slot.date } })()}
+                    {slot.day}
                   </p>
                   <p className="text-[12px] text-gray-500 flex items-center gap-1 mt-0.5">
                     <Clock className="h-3 w-3" />
@@ -411,7 +409,7 @@ export function AvailabilityPollPage() {
       {!isClosed && (
         <div
           className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 pt-4"
-          style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
+          style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
         >
           {submitMutation.isError && (
             <p className="text-[12px] text-red-500 text-center mb-2">Failed to save. Try again.</p>

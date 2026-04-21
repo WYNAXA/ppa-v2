@@ -9,10 +9,11 @@ interface Notification {
   id: string
   user_id: string
   type: string
+  title: string
   message: string
   read: boolean
   created_at: string
-  data?: Record<string, unknown>
+  related_id: string | null
 }
 
 function timeAgo(dateStr: string): string {
@@ -27,12 +28,11 @@ function timeAgo(dateStr: string): string {
 }
 
 function getNavTarget(n: Notification): string | null {
-  if (!n.data) return null
-  const d = n.data
-  if (d.match_id) return `/matches/${d.match_id}`
-  if (d.league_id) return `/compete/leagues/${d.league_id}`
-  if (d.group_id) return `/community/groups/${d.group_id}`
-  if (d.poll_id) return `/play/availability/${d.poll_id}`
+  if (!n.related_id) return null
+  if (n.type.includes('match'))  return `/matches/${n.related_id}`
+  if (n.type.includes('league')) return `/compete/leagues/${n.related_id}`
+  if (n.type.includes('group'))  return `/community/groups/${n.related_id}`
+  if (n.type.includes('poll'))   return `/play/availability/${n.related_id}`
   return null
 }
 
@@ -64,7 +64,7 @@ export function NotificationsPage() {
       if (!userId) return []
       const { data, error } = await supabase
         .from('notifications')
-        .select('*')
+        .select('id, user_id, type, title, message, read, created_at, related_id')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(100)

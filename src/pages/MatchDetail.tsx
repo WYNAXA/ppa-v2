@@ -202,14 +202,17 @@ export function MatchDetailPage() {
       .from('matches')
       .update({
         player_ids: newPlayerIds,
-        ...(newPlayerIds.length < 4 ? { status: 'open' } : {}),
+        ...(newPlayerIds.length < 4 ? { status: 'pending' } : {}),
       })
       .eq('id', data.match.id)
     setLeaving(false)
     setConfirmLeave(false)
     if (!error) {
       queryClient.invalidateQueries({ queryKey: ['match', id] })
-      navigate(-1)
+      queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+      queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+      navigate('/home')
     }
   }
 

@@ -67,6 +67,7 @@ interface ActivePoll {
   group_id: string
   responseCount: number
   memberCount: number
+  userHasResponded: boolean
 }
 
 interface QuickStats {
@@ -81,7 +82,7 @@ interface ActivityItem {
   message: string
   read: boolean
   created_at: string
-  data: Record<string, unknown> | null
+  related_id: string | null
 }
 
 interface HomeRanking {
@@ -172,7 +173,7 @@ function useActivePoll(userId: string) {
       const poll = polls?.[0]
       if (!poll) return null
 
-      const [{ count: responseCount }, { count: memberCount }] = await Promise.all([
+      const [{ count: responseCount }, { count: memberCount }, { data: myResponse }] = await Promise.all([
         supabase
           .from('poll_responses')
           .select('id', { count: 'exact', head: true })
@@ -182,14 +183,21 @@ function useActivePoll(userId: string) {
           .select('id', { count: 'exact', head: true })
           .eq('group_id', poll.group_id)
           .eq('status', 'approved'),
+        supabase
+          .from('poll_responses')
+          .select('id')
+          .eq('poll_id', poll.id)
+          .eq('user_id', userId)
+          .maybeSingle(),
       ])
 
       return {
-        id:            poll.id,
-        title:         poll.title,
-        group_id:      poll.group_id,
-        responseCount: responseCount ?? 0,
-        memberCount:   memberCount ?? 0,
+        id:               poll.id,
+        title:            poll.title,
+        group_id:         poll.group_id,
+        responseCount:    responseCount ?? 0,
+        memberCount:      memberCount ?? 0,
+        userHasResponded: !!myResponse,
       }
     },
   })
@@ -257,15 +265,12 @@ function useRecentActivity(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, type, message, read, created_at, data')
+        .select('id, type, message, read, created_at, related_id')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5)
       if (error) return []
-      return (data ?? []).map((n) => ({
-        ...n,
-        data: (n.data as Record<string, unknown> | null) ?? null,
-      }))
+      return (data ?? []) as ActivityItem[]
     },
   })
 }
@@ -483,9 +488,15 @@ function PollCard({ poll }: { poll: ActivePoll | null }) {
               /{poll.memberCount} responded
             </p>
           </div>
-          <span className="inline-flex items-center rounded-xl bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white">
-            Add yours
-          </span>
+          {poll.userHasResponded ? (
+            <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11px] font-bold text-[#009688]">
+              You responded · Edit
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-xl bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white">
+              Add yours
+            </span>
+          )}
         </>
       ) : (
         <>
@@ -511,12 +522,11 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
   const navigate = useNavigate()
 
   function handleTap(item: ActivityItem) {
-    if (!item.data) return
-    const d = item.data
-    if (d.match_id)  navigate(`/matches/${d.match_id}`)
-    else if (d.league_id) navigate(`/compete/leagues/${d.league_id}`)
-    else if (d.group_id)  navigate(`/community/groups/${d.group_id}`)
-    else if (d.poll_id)   navigate(`/play/availability/${d.poll_id}`)
+    if (!item.related_id) return
+    if (item.type.includes('match')) navigate(`/matches/${item.related_id}`)
+    else if (item.type.includes('league')) navigate(`/compete/leagues/${item.related_id}`)
+    else if (item.type.includes('group')) navigate(`/community/groups/${item.related_id}`)
+    else if (item.type.includes('poll')) navigate(`/play/availability/${item.related_id}`)
   }
 
   return (
@@ -556,13 +566,25 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
 
 function QuickStatsRow({ stats }: { stats: QuickStats | undefined }) {
   const items = [
-    { label: 'This week',      value: stats ? `${stats.weekMatches} matches` : '—' },
-    { label: 'Win rate',       value: stats ? `${stats.winRate}%` : '—'            },
-    { label: 'Current streak', value: stats ? `${stats.streak}W` : '—'            },
+    {
+      value:    stats ? `${stats.weekMatches}` : '—',
+      label:    'matches',
+      subtitle: 'this week',
+    },
+    {
+      value:    stats ? `${stats.winRate}%` : '—',
+      label:    'win rate',
+      subtitle: 'all time',
+    },
+    {
+      value:    stats ? `${stats.streak}` : '—',
+      label:    'win streak',
+      subtitle: 'last 5 games',
+    },
   ]
   return (
     <div className="flex gap-2">
-      {items.map(({ label, value }, i) => (
+      {items.map(({ value, label, subtitle }, i) => (
         <motion.div
           key={label}
           initial={{ opacity: 0, y: 6 }}
@@ -570,8 +592,9 @@ function QuickStatsRow({ stats }: { stats: QuickStats | undefined }) {
           transition={{ delay: 0.1 + i * 0.04 }}
           className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5 text-center"
         >
-          <p className="text-[13px] font-bold text-gray-800">{value}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{label}</p>
+          <p className="text-[15px] font-bold text-gray-800 leading-none">{value}</p>
+          <p className="text-[11px] font-semibold text-gray-600 mt-0.5">{label}</p>
+          <p className="text-[9px] text-gray-400 leading-tight">{subtitle}</p>
         </motion.div>
       ))}
     </div>

@@ -297,11 +297,9 @@ const TYPE_BADGE: Record<string, { label: string; className: string }> = {
 
 function NextMatchCard({
   match,
-  userId,
   onRecordResult,
 }: {
   match: NextMatch
-  userId: string
   onRecordResult: () => void
 }) {
   const navigate   = useNavigate()
@@ -643,7 +641,6 @@ export function HomePage() {
           ) : nextMatch ? (
             <NextMatchCard
               match={nextMatch}
-              userId={userId}
               onRecordResult={() => navigate(`/matches/${nextMatch.id}`)}
             />
           ) : (

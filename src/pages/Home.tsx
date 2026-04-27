@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import {
-  Bell, TrendingUp, TrendingDown, Minus,
+  TrendingUp, TrendingDown, Minus,
   Calendar, MapPin, ChevronRight, Plus,
-  Clock, Users, Trophy, BarChart3,
+  Clock, Users, Trophy, BarChart3, Search, Bell,
 } from 'lucide-react'
+import { NotificationBell } from '@/components/shared/NotificationBell'
 import { format, parseISO, differenceInCalendarDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -275,21 +276,6 @@ function useRecentActivity(userId: string) {
   })
 }
 
-function useUnreadCount(userId: string) {
-  return useQuery<number>({
-    queryKey: ['unread-count', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('read', false)
-      if (error) return 0
-      return count ?? 0
-    },
-  })
-}
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
@@ -615,7 +601,6 @@ export function HomePage() {
   const { data: activePoll, isLoading: loadingPoll     } = useActivePoll(userId)
   const { data: quickStats                             } = useQuickStats(userId)
   const { data: activity = []                          } = useRecentActivity(userId)
-  const { data: unreadCount = 0                        } = useUnreadCount(userId)
 
   const today = new Date()
   const dateLabel = (() => {
@@ -632,17 +617,15 @@ export function HomePage() {
           </h1>
           <p className="text-[13px] text-gray-400 mt-0.5">{dateLabel}</p>
         </div>
-        <button
-          onClick={() => navigate('/notifications')}
-          className="relative h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 mt-1"
-        >
-          <Bell className="h-5 w-5 text-gray-600" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-[#009688] text-[9px] font-bold text-white flex items-center justify-center">
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
-        </button>
+        <div className="flex items-center gap-2 mt-1">
+          <button
+            onClick={() => navigate('/search')}
+            className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          >
+            <Search className="h-5 w-5 text-gray-600" />
+          </button>
+          <NotificationBell />
+        </div>
       </div>
 
       <div className="px-5 space-y-5">

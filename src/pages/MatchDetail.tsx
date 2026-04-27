@@ -2,30 +2,32 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2 } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
+import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
+import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
 import type { Match, MatchResult, Profile } from '@/lib/types'
 
 const TYPE_STYLES: Record<string, { label: string; className: string }> = {
   competitive: { label: 'Competitive', className: 'bg-orange-50 text-orange-600 border-orange-100' },
-  friendly:    { label: 'Friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100' },
-  casual:      { label: 'Casual',      className: 'bg-gray-50 text-gray-500 border-gray-100' },
-  group:       { label: 'Group',       className: 'bg-teal-50 text-teal-600 border-teal-100' },
+  friendly:    { label: 'Friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100'     },
+  casual:      { label: 'Casual',      className: 'bg-gray-50 text-gray-500 border-gray-100'     },
+  group:       { label: 'Group',       className: 'bg-teal-50 text-teal-600 border-teal-100'     },
 }
 
 const STATUS_STYLES: Record<string, { label: string; className: string; dot: string }> = {
-  confirmed:  { label: 'Confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400' },
-  scheduled:  { label: 'Confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400' },
+  confirmed:  { label: 'Confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
+  scheduled:  { label: 'Confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
   open:       { label: 'Open',       className: 'bg-orange-50 text-orange-600 border-orange-100', dot: 'bg-orange-400' },
   pending:    { label: 'Pending',    className: 'bg-yellow-50 text-yellow-700 border-yellow-100', dot: 'bg-yellow-400' },
-  completed:  { label: 'Completed',  className: 'bg-gray-50 text-gray-500 border-gray-100',      dot: 'bg-gray-400' },
-  cancelled:  { label: 'Cancelled',  className: 'bg-red-50 text-red-500 border-red-100',         dot: 'bg-red-400' },
+  completed:  { label: 'Completed',  className: 'bg-gray-50 text-gray-500 border-gray-100',      dot: 'bg-gray-400'   },
+  cancelled:  { label: 'Cancelled',  className: 'bg-red-50 text-red-500 border-red-100',         dot: 'bg-red-400'    },
 }
 
 async function fetchMatchDetail(id: string): Promise<{
@@ -110,9 +112,7 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
         </span>
       </div>
 
-      {/* Teams row */}
       <div className="flex items-center justify-between gap-3">
-        {/* Team 1 */}
         <div className="flex-1 text-center">
           <div className="flex justify-center gap-1 mb-1">
             {result.team1_players.map((pid) => {
@@ -125,7 +125,6 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
           </p>
         </div>
 
-        {/* Scores */}
         <div className="text-center">
           <div className="flex items-center gap-1.5">
             <span className={cn('text-[22px] font-black', result.result_type === 'team1_win' ? 'text-teal-700' : 'text-gray-400')}>
@@ -143,7 +142,6 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
           )}
         </div>
 
-        {/* Team 2 */}
         <div className="flex-1 text-center">
           <div className="flex justify-center gap-1 mb-1">
             {result.team2_players.map((pid) => {
@@ -166,11 +164,13 @@ export function MatchDetailPage() {
   const { profile } = useAuth()
   const queryClient = useQueryClient()
   const [showRecordResult, setShowRecordResult] = useState(false)
-  const [showEdit, setShowEdit] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [confirmLeave, setConfirmLeave] = useState(false)
-  const [leaving, setLeaving] = useState(false)
-  const [voteSubmitted, setVoteSubmitted] = useState(false)
+  const [showEdit, setShowEdit]               = useState(false)
+  const [showInvite, setShowInvite]           = useState(false)
+  const [showCalendar, setShowCalendar]       = useState(false)
+  const [copied, setCopied]                   = useState(false)
+  const [confirmLeave, setConfirmLeave]       = useState(false)
+  const [leaving, setLeaving]                 = useState(false)
+  const [voteSubmitted, setVoteSubmitted]     = useState(false)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['match', id],
@@ -227,20 +227,33 @@ export function MatchDetailPage() {
   const { match, players, result } = data
   const currentUserId = profile?.id ?? ''
   const isParticipant = match.player_ids.includes(currentUserId)
-  const isCreator = match.created_by === currentUserId
+  const isCreator     = match.created_by === currentUserId
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && match.player_ids.length === 4 && !result
 
-  const typeStyle = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
+  const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }
 
   const formattedDate = (() => {
-    try {
-      return format(parseISO(match.match_date), 'EEEE, d MMMM yyyy')
-    } catch { return match.match_date }
+    try { return format(parseISO(match.match_date), 'EEEE, d MMMM yyyy') } catch { return match.match_date }
   })()
 
+  // Calendar event
+  const calendarEvent = match.match_date && match.match_time ? (() => {
+    const opponentNames = players
+      .filter((p) => p.id !== currentUserId)
+      .map((p) => p.name.split(' ')[0])
+      .join(' & ')
+    const start = new Date(`${match.match_date}T${match.match_time}`)
+    return {
+      title:    `Padel Match${opponentNames ? ` vs ${opponentNames}` : ''}`,
+      start,
+      end:      new Date(start.getTime() + 90 * 60 * 1000),
+      location: match.booked_venue_name ?? '',
+    }
+  })() : null
+
   const handleShare = async () => {
-    const url = `${window.location.origin}/matches/${id}`
+    const url   = `${window.location.origin}/matches/${id}`
     const venue = match.booked_venue_name ?? 'TBC'
     if (navigator.share) {
       try {
@@ -280,7 +293,6 @@ export function MatchDetailPage() {
     ?.match(/Guests: (.+)/)?.[1]
     ?.split(', ') ?? []
 
-  // Build 4 player slots — fill empty slots with guest players if available
   const SLOT_COUNT = 4
   const slots = Array.from({ length: SLOT_COUNT }, (_, i) => {
     const pid = match.player_ids[i]
@@ -291,6 +303,13 @@ export function MatchDetailPage() {
     }
     return null
   })
+
+  // Notes excluding Guests line
+  const displayNotes = match.notes
+    ?.split('\n')
+    .filter((line) => !line.startsWith('Guests:'))
+    .join('\n')
+    .trim()
 
   return (
     <div className="min-h-full bg-white pb-6">
@@ -314,7 +333,6 @@ export function MatchDetailPage() {
         animate={{ opacity: 1, y: 0 }}
         className="mx-5 mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4"
       >
-        {/* Badges */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', typeStyle.className)}>
             {typeStyle.label}
@@ -325,7 +343,6 @@ export function MatchDetailPage() {
           </span>
         </div>
 
-        {/* Date + time */}
         <div className="flex items-center gap-2 mb-2">
           <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
           <p className="text-[13px] text-gray-700 font-medium">{formattedDate}</p>
@@ -336,8 +353,6 @@ export function MatchDetailPage() {
             <p className="text-[13px] text-gray-700">{match.match_time.slice(0, 5)}</p>
           </div>
         )}
-
-        {/* Venue */}
         {match.booked_venue_name && (
           <div className="flex items-center gap-2 mb-2">
             <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -347,10 +362,8 @@ export function MatchDetailPage() {
             </p>
           </div>
         )}
-
-        {/* Notes */}
-        {match.notes && (
-          <p className="mt-2 text-[12px] text-gray-500 italic">{match.notes}</p>
+        {displayNotes && (
+          <p className="mt-2 text-[12px] text-gray-500 italic">{displayNotes}</p>
         )}
       </motion.div>
 
@@ -400,7 +413,7 @@ export function MatchDetailPage() {
                   </div>
                   {isCreator && match.status !== 'completed' && match.status !== 'cancelled' ? (
                     <button
-                      onClick={() => navigate(`/matches/${match.id}/invite`)}
+                      onClick={() => setShowInvite(true)}
                       className="text-[11px] text-teal-600 font-semibold"
                     >
                       Invite player
@@ -415,7 +428,7 @@ export function MatchDetailPage() {
         </div>
       </div>
 
-      {/* ELO Prediction — only before result is recorded, with 4 real players */}
+      {/* ELO Prediction */}
       {!result && match.player_ids.length === 4 && (() => {
         const team1Ids = match.player_ids.slice(0, 2)
         const team2Ids = match.player_ids.slice(2, 4)
@@ -524,11 +537,20 @@ export function MatchDetailPage() {
           )}
           {!match.booked_venue_name && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
-              onClick={() => navigate(`/play/book-court?match_id=${match.id}`)}
+              onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
             >
               <BookOpen className="h-4 w-4" />
               Book Court
+            </button>
+          )}
+          {calendarEvent && (
+            <button
+              onClick={() => setShowCalendar(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+            >
+              <CalendarPlus className="h-4 w-4" />
+              Add to Calendar
             </button>
           )}
           <button
@@ -541,7 +563,7 @@ export function MatchDetailPage() {
         </div>
       </div>
 
-      {/* Record Result Sheet */}
+      {/* Sheets */}
       <RecordResultSheet
         open={showRecordResult}
         onClose={() => setShowRecordResult(false)}
@@ -550,12 +572,26 @@ export function MatchDetailPage() {
         currentUserId={currentUserId}
       />
 
-      {/* Edit Match Sheet */}
       <EditMatchSheet
         open={showEdit}
         onClose={() => setShowEdit(false)}
         match={match}
       />
+
+      <InvitePlayerSheet
+        open={showInvite}
+        onClose={() => setShowInvite(false)}
+        matchId={match.id}
+        currentPlayerIds={match.player_ids}
+      />
+
+      {calendarEvent && (
+        <AddToCalendarSheet
+          open={showCalendar}
+          onClose={() => setShowCalendar(false)}
+          event={calendarEvent}
+        />
+      )}
 
       {/* Leave confirm dialog */}
       <AnimatePresence>

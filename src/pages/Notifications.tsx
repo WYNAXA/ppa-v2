@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { ChevronLeft, Bell, Trophy, Users, Calendar, MessageSquare, Star, CheckCheck } from 'lucide-react'
+import { ChevronLeft, Bell, Trophy, Users, Calendar, Star, CheckCheck, Activity, BookOpen } from 'lucide-react'
 
 interface Notification {
   id: string
@@ -12,6 +12,7 @@ interface Notification {
   title: string
   message: string
   read: boolean
+  read_at?: string | null
   created_at: string
   related_id: string | null
 }
@@ -19,7 +20,7 @@ interface Notification {
 function timeAgo(dateStr: string): string {
   const diff = Date.now() - new Date(dateStr).getTime()
   const mins = Math.floor(diff / 60_000)
-  if (mins < 1) return 'Just now'
+  if (mins < 1)  return 'Just now'
   if (mins < 60) return `${mins}m ago`
   const hours = Math.floor(mins / 60)
   if (hours < 24) return `${hours}h ago`
@@ -29,6 +30,21 @@ function timeAgo(dateStr: string): string {
 
 function getNavTarget(n: Notification): string | null {
   if (!n.related_id) return null
+  switch (n.type) {
+    case 'match_created':
+    case 'match_result':
+    case 'match_suggested':
+    case 'result_verify':
+      return `/matches/${n.related_id}`
+    case 'poll_created':
+      return `/play/availability/${n.related_id}`
+    case 'league_invite':
+      return `/compete/leagues/${n.related_id}`
+    case 'achievement':
+      return '/you'
+    default:
+      break
+  }
   if (n.type.includes('match'))  return `/matches/${n.related_id}`
   if (n.type.includes('league')) return `/compete/leagues/${n.related_id}`
   if (n.type.includes('group'))  return `/community/groups/${n.related_id}`
@@ -38,17 +54,29 @@ function getNavTarget(n: Notification): string | null {
 
 function NotifIcon({ type }: { type: string }) {
   const base = 'w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0'
-  if (type === 'match_result' || type === 'match_scheduled')
-    return <div className={`${base} bg-teal-50`}><Calendar className="w-4 h-4 text-[#009688]" /></div>
-  if (type === 'league_update' || type === 'league_invite')
-    return <div className={`${base} bg-amber-50`}><Trophy className="w-4 h-4 text-amber-500" /></div>
-  if (type === 'group_invite' || type === 'group_update')
-    return <div className={`${base} bg-blue-50`}><Users className="w-4 h-4 text-blue-500" /></div>
-  if (type === 'achievement')
-    return <div className={`${base} bg-purple-50`}><Star className="w-4 h-4 text-purple-500" /></div>
-  if (type === 'message')
-    return <div className={`${base} bg-green-50`}><MessageSquare className="w-4 h-4 text-green-500" /></div>
-  return <div className={`${base} bg-gray-100`}><Bell className="w-4 h-4 text-gray-500" /></div>
+  switch (type) {
+    case 'match_created':
+    case 'match_scheduled':
+    case 'match_suggested':
+      return <div className={`${base} bg-teal-50`}><Calendar className="w-4 h-4 text-[#009688]" /></div>
+    case 'match_result':
+    case 'result_verify':
+      return <div className={`${base} bg-teal-50`}><Trophy className="w-4 h-4 text-[#009688]" /></div>
+    case 'poll_created':
+      return <div className={`${base} bg-teal-50`}><Activity className="w-4 h-4 text-[#009688]" /></div>
+    case 'league_update':
+    case 'league_invite':
+      return <div className={`${base} bg-amber-50`}><Trophy className="w-4 h-4 text-amber-500" /></div>
+    case 'group_invite':
+    case 'group_update':
+      return <div className={`${base} bg-blue-50`}><Users className="w-4 h-4 text-blue-500" /></div>
+    case 'achievement':
+      return <div className={`${base} bg-purple-50`}><Star className="w-4 h-4 text-purple-500" /></div>
+    case 'court_booked':
+      return <div className={`${base} bg-green-50`}><BookOpen className="w-4 h-4 text-green-500" /></div>
+    default:
+      return <div className={`${base} bg-gray-100`}><Bell className="w-4 h-4 text-gray-500" /></div>
+  }
 }
 
 export function NotificationsPage() {
@@ -64,7 +92,7 @@ export function NotificationsPage() {
       if (!userId) return []
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, user_id, type, title, message, read, created_at, related_id')
+        .select('id, user_id, type, title, message, read, read_at, created_at, related_id')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(100)
@@ -76,18 +104,29 @@ export function NotificationsPage() {
 
   const markReadMutation = useMutation({
     mutationFn: async (id: string) => {
-      await supabase.from('notifications').update({ read: true }).eq('id', id)
+      await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('id', id)
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['notifications', userId] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['notifications', userId] })
+      qc.invalidateQueries({ queryKey: ['unread-count', userId] })
+    },
   })
 
   const markAllReadMutation = useMutation({
     mutationFn: async () => {
       if (!userId) return
-      await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false)
+      await supabase
+        .from('notifications')
+        .update({ read: true, read_at: new Date().toISOString() })
+        .eq('user_id', userId)
+        .eq('read', false)
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['notifications', userId] })
+      qc.invalidateQueries({ queryKey: ['unread-count', userId] })
       setMarkingAll(false)
     },
   })
@@ -159,6 +198,9 @@ export function NotificationsPage() {
               >
                 <NotifIcon type={n.type} />
                 <div className="flex-1 min-w-0">
+                  {n.title && (
+                    <p className="text-[12px] font-bold text-gray-500 mb-0.5">{n.title}</p>
+                  )}
                   <p className={`text-sm leading-snug ${n.read ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
                     {n.message}
                   </p>

@@ -6,10 +6,11 @@ import { format, parseISO, formatDistanceToNow, isPast } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { getSlotDate } from '@/lib/pollUtils'
 
 interface PollSlot {
   id: string
-  date: string
+  day: string
   start_time: string
   end_time: string
 }
@@ -21,7 +22,8 @@ interface Poll {
   created_by: string | null
   status: string
   closes_at: string
-  options: { slots: PollSlot[] }
+  week_start_date: string
+  time_slots: PollSlot[]
   created_at: string
   groups?: { id: string; name: string } | null
 }
@@ -30,7 +32,8 @@ async function fetchAvailabilityHome(userId: string) {
   const { data: memberships, error: membErr } = await supabase
     .from('group_members')
     .select('group_id')
-    .eq('profile_id', userId)
+    .eq('user_id', userId)
+    .eq('status', 'approved')
 
   if (membErr) console.error('[availability] group_members:', membErr)
 
@@ -53,16 +56,16 @@ async function fetchAvailabilityHome(userId: string) {
 
   const { data: allResponses } = await supabase
     .from('poll_responses')
-    .select('poll_id, user_id, available_slots')
+    .select('poll_id, user_id, selected_slots')
     .in('poll_id', pollIds)
 
   const responseCounts: Record<string, number> = {}
-  const myResponses: Array<{ poll_id: string; available_slots: string[] }> = []
+  const myResponses: Array<{ poll_id: string; selected_slots: string[] }> = []
 
   for (const r of (allResponses ?? [])) {
     responseCounts[r.poll_id] = (responseCounts[r.poll_id] ?? 0) + 1
     if (r.user_id === userId) {
-      myResponses.push({ poll_id: r.poll_id, available_slots: r.available_slots ?? [] })
+      myResponses.push({ poll_id: r.poll_id, selected_slots: r.selected_slots ?? [] })
     }
   }
 
@@ -76,10 +79,11 @@ function closesText(closesAt: string) {
   } catch { return '' }
 }
 
-function formatSlotLabel(slot: PollSlot) {
+function formatSlotLabel(poll: Poll, slot: PollSlot) {
   try {
-    return `${format(parseISO(slot.date), 'EEE d MMM')} · ${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)}`
-  } catch { return slot.date }
+    const d = getSlotDate(poll.week_start_date, slot.day)
+    return `${format(d, 'EEE d MMM')} · ${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)}`
+  } catch { return slot.day }
 }
 
 function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
@@ -112,7 +116,6 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
         )}
       </div>
 
-      {/* Progress toward 4-player match */}
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[12px] text-gray-600 flex items-center gap-1.5">
@@ -186,8 +189,8 @@ export function AvailabilityPage() {
   const myAvailableSlots = polls.flatMap((poll) => {
     const myResp = myResponses.find((r) => r.poll_id === poll.id)
     if (!myResp) return []
-    return (poll.options?.slots ?? [])
-      .filter((s) => myResp.available_slots.includes(s.id))
+    return (poll.time_slots ?? [])
+      .filter((s) => myResp.selected_slots.includes(s.id))
       .map((slot) => ({ poll, slot }))
   })
 
@@ -276,7 +279,7 @@ export function AvailabilityPage() {
                       <Clock className="h-4 w-4 text-[#009688]" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-gray-900">{formatSlotLabel(slot)}</p>
+                      <p className="text-[13px] font-semibold text-gray-900">{formatSlotLabel(poll, slot)}</p>
                       <p className="text-[11px] text-gray-400">{poll.title}</p>
                     </div>
                     <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
@@ -286,7 +289,6 @@ export function AvailabilityPage() {
             </section>
           )}
 
-          {/* Empty state when no groups */}
           {polls.length === 0 && (
             <div className="py-10 text-center">
               <p className="text-[14px] text-gray-500 font-semibold mb-1">No open polls</p>

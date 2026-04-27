@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Zap } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -20,6 +20,7 @@ interface LeagueInfo {
   start_date: string | null
   end_date: string | null
   linked_group_ids: string[] | null
+  created_by: string | null
 }
 
 interface Standing {
@@ -40,6 +41,8 @@ interface FixtureMatch {
   match_time: string | null
   status: string
   booked_venue_name: string | null
+  player_ids: string[]
+  players?: Array<{ id: string; name: string; avatar_url: string | null }>
 }
 
 interface ResultMatch {
@@ -51,17 +54,12 @@ interface ResultMatch {
     team1_score: number
     team2_score: number
     result_type: string
+    verification_status: string
   } | null
   profiles: Record<string, { name: string; avatar_url: string | null }>
 }
 
-type Tab = 'standings' | 'fixtures' | 'results'
-
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'standings', label: 'Standings' },
-  { id: 'fixtures',  label: 'Fixtures'  },
-  { id: 'results',   label: 'Results'   },
-]
+type Tab = 'standings' | 'fixtures' | 'results' | 'mexicano'
 
 // ── Data hooks ────────────────────────────────────────────────────────────────
 
@@ -72,7 +70,7 @@ function useLeague(id: string) {
     queryFn: async (): Promise<LeagueInfo | null> => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, league_type, format, start_date, end_date, linked_group_ids')
+        .select('id, name, status, league_type, format, start_date, end_date, linked_group_ids, created_by')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -86,9 +84,10 @@ function useStandings(leagueId: string) {
     queryKey: ['league-standings', leagueId],
     enabled: !!leagueId,
     queryFn: async (): Promise<Standing[]> => {
+      // Select defensively — rank/won/lost/drawn may not exist
       const { data: rows, error } = await supabase
         .from('league_standings')
-        .select('id, user_id, rank, played, won, lost, drawn, points')
+        .select('*')
         .eq('league_id', leagueId)
         .order('points', { ascending: false })
 
@@ -102,15 +101,18 @@ function useStandings(leagueId: string) {
 
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
 
-      return rows.map((r, i) => ({
+      // Sort by points desc then calculate rank client-side
+      const sorted = [...rows].sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+
+      return sorted.map((r, i) => ({
         id:      r.id,
         user_id: r.user_id,
-        rank:    r.rank ?? i + 1,
-        played:  r.played ?? 0,
-        won:     r.won ?? 0,
-        lost:    r.lost ?? 0,
-        drawn:   r.drawn ?? 0,
-        points:  r.points ?? 0,
+        rank:    i + 1,
+        played:  r.played ?? r.matches_played ?? 0,
+        won:     r.wins ?? r.won ?? 0,
+        lost:    r.losses ?? r.lost ?? 0,
+        drawn:   r.draws ?? r.drawn ?? 0,
+        points:  r.points ?? r.ranking_points ?? 0,
         profile: profileMap[r.user_id],
       }))
     },
@@ -122,16 +124,42 @@ function useFixtures(leagueId: string, groupIds: string[]) {
     queryKey: ['league-fixtures', leagueId],
     enabled: !!leagueId,
     queryFn: async (): Promise<FixtureMatch[]> => {
-      if (groupIds.length === 0) return []
-      const { data, error } = await supabase
+      let matches: FixtureMatch[] | null = null
+
+      // Try league_id column first
+      const { data: byLeague } = await supabase
         .from('matches')
-        .select('id, match_date, match_time, status, booked_venue_name')
-        .in('group_id', groupIds)
+        .select('id, match_date, match_time, status, booked_venue_name, player_ids')
+        .eq('league_id', leagueId)
         .not('status', 'in', '("completed","cancelled")')
         .order('match_date', { ascending: true })
         .limit(20)
-      if (error) return []
-      return data ?? []
+
+      if (byLeague && byLeague.length > 0) {
+        matches = byLeague
+      } else if (groupIds.length > 0) {
+        // Fallback: matches in linked groups
+        const { data: byGroup } = await supabase
+          .from('matches')
+          .select('id, match_date, match_time, status, booked_venue_name, player_ids')
+          .in('group_id', groupIds)
+          .not('status', 'in', '("completed","cancelled")')
+          .order('match_date', { ascending: true })
+          .limit(20)
+        matches = byGroup
+      }
+
+      if (!matches || matches.length === 0) return []
+
+      const allIds = [...new Set(matches.flatMap((m) => m.player_ids ?? []))]
+      const { data: profiles } = allIds.length > 0
+        ? await supabase.from('profiles').select('id, name, avatar_url').in('id', allIds)
+        : { data: [] }
+
+      return matches.map((m) => ({
+        ...m,
+        players: (profiles ?? []).filter((p) => (m.player_ids ?? []).includes(p.id)),
+      }))
     },
   })
 }
@@ -141,34 +169,47 @@ function useResults(leagueId: string, groupIds: string[]) {
     queryKey: ['league-results', leagueId],
     enabled: !!leagueId,
     queryFn: async (): Promise<ResultMatch[]> => {
-      if (groupIds.length === 0) return []
+      let matchData: Array<{ id: string; match_date: string; player_ids: string[] }> | null = null
 
-      const { data: matches } = await supabase
+      const { data: byLeague } = await supabase
         .from('matches')
         .select('id, match_date, player_ids')
-        .in('group_id', groupIds)
+        .eq('league_id', leagueId)
         .eq('status', 'completed')
         .order('match_date', { ascending: false })
         .limit(20)
 
-      if (!matches || matches.length === 0) return []
+      if (byLeague && byLeague.length > 0) {
+        matchData = byLeague
+      } else if (groupIds.length > 0) {
+        const { data: byGroup } = await supabase
+          .from('matches')
+          .select('id, match_date, player_ids')
+          .in('group_id', groupIds)
+          .eq('status', 'completed')
+          .order('match_date', { ascending: false })
+          .limit(20)
+        matchData = byGroup
+      }
 
-      const matchIds = matches.map((m) => m.id)
+      if (!matchData || matchData.length === 0) return []
+
+      const matchIds = matchData.map((m) => m.id)
       const [{ data: resultRows }, { data: profiles }] = await Promise.all([
         supabase
           .from('match_results')
-          .select('id, match_id, team1_players, team2_players, team1_score, team2_score, result_type')
+          .select('id, match_id, team1_players, team2_players, team1_score, team2_score, result_type, verification_status')
           .in('match_id', matchIds),
         supabase
           .from('profiles')
           .select('id, name, avatar_url')
-          .in('id', [...new Set(matches.flatMap((m) => m.player_ids ?? []))]),
+          .in('id', [...new Set(matchData.flatMap((m) => m.player_ids ?? []))]),
       ])
 
       const resultMap = Object.fromEntries((resultRows ?? []).map((r) => [r.match_id, r]))
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
 
-      return matches.map((m) => ({
+      return matchData.map((m) => ({
         id:         m.id,
         match_date: m.match_date,
         result:     resultMap[m.id] ?? null,
@@ -176,6 +217,110 @@ function useResults(leagueId: string, groupIds: string[]) {
       }))
     },
   })
+}
+
+// ── Mexicano tab ──────────────────────────────────────────────────────────────
+
+function MexicanoTab({
+  standings,
+  leagueId,
+  isAdmin,
+}: {
+  standings: Standing[]
+  leagueId: string
+  isAdmin: boolean
+}) {
+  const queryClient = useQueryClient()
+  const sorted      = [...standings].sort((a, b) => b.points - a.points)
+
+  // Pair top 2 vs next 2, etc.
+  const rounds: Array<{ pair1: Standing[]; pair2: Standing[] }> = []
+  for (let i = 0; i + 3 < sorted.length; i += 4) {
+    rounds.push({
+      pair1: [sorted[i], sorted[i + 1]],
+      pair2: [sorted[i + 2], sorted[i + 3]],
+    })
+  }
+
+  const generateMutation = useMutation({
+    mutationFn: async () => {
+      const today = new Date().toISOString().split('T')[0]
+      const insertions = rounds.map((r) => ({
+        match_date:  today,
+        match_type:  'competitive',
+        status:      'scheduled',
+        player_ids:  [...r.pair1.map((p) => p.user_id), ...r.pair2.map((p) => p.user_id)],
+        league_id:   leagueId,
+        notes:       'Mexicano round — auto-generated',
+      }))
+      const { error } = await supabase.from('matches').insert(insertions)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
+    },
+  })
+
+  if (standings.length < 4) {
+    return <EmptyTab message="Need at least 4 players to generate Mexicano pairings" />
+  }
+
+  return (
+    <div>
+      <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4 mb-4">
+        <div className="flex items-center gap-2 mb-1">
+          <Zap className="h-4 w-4 text-teal-600" />
+          <p className="text-[13px] font-bold text-teal-800">Next Round Pairings</p>
+        </div>
+        <p className="text-[12px] text-teal-600">Based on current standings — top players face each other</p>
+      </div>
+
+      <div className="space-y-3 mb-5">
+        {rounds.map((round, i) => (
+          <div key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Court {i + 1}</p>
+            <div className="flex items-center gap-3">
+              <div className="flex-1">
+                {round.pair1.map((p) => (
+                  <div key={p.user_id} className="flex items-center gap-1.5 mb-1">
+                    <PlayerAvatar name={p.profile?.name} avatarUrl={p.profile?.avatar_url} size="sm" />
+                    <span className="text-[12px] font-semibold text-gray-800 truncate">{p.profile?.name ?? 'Unknown'}</span>
+                    <span className="text-[10px] text-gray-400">{p.points}pts</span>
+                  </div>
+                ))}
+              </div>
+              <span className="text-[11px] font-bold text-gray-400">vs</span>
+              <div className="flex-1">
+                {round.pair2.map((p) => (
+                  <div key={p.user_id} className="flex items-center gap-1.5 mb-1">
+                    <PlayerAvatar name={p.profile?.name} avatarUrl={p.profile?.avatar_url} size="sm" />
+                    <span className="text-[12px] font-semibold text-gray-800 truncate">{p.profile?.name ?? 'Unknown'}</span>
+                    <span className="text-[10px] text-gray-400">{p.points}pts</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {isAdmin && (
+        <button
+          onClick={() => generateMutation.mutate()}
+          disabled={generateMutation.isPending}
+          className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+        >
+          {generateMutation.isPending ? 'Generating…' : 'Generate Next Round Matches'}
+        </button>
+      )}
+      {generateMutation.isError && (
+        <p className="mt-2 text-[12px] text-red-500 text-center">Failed to generate matches. Try again.</p>
+      )}
+      {generateMutation.isSuccess && (
+        <p className="mt-2 text-[12px] text-green-600 text-center font-semibold">Matches created!</p>
+      )}
+    </div>
+  )
 }
 
 // ── UI helpers ────────────────────────────────────────────────────────────────
@@ -203,6 +348,7 @@ const STATUS_BADGE: Record<string, string> = {
   pending:   'bg-yellow-50 text-yellow-700 border-yellow-100',
   completed: 'bg-gray-50 text-gray-500 border-gray-100',
   cancelled: 'bg-red-50 text-red-500 border-red-100',
+  open:      'bg-orange-50 text-orange-600 border-orange-100',
 }
 
 const LEAGUE_STATUS_STYLE: Record<string, string> = {
@@ -214,14 +360,23 @@ const LEAGUE_STATUS_STYLE: Record<string, string> = {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function LeagueDetailPage() {
-  const { id = '' } = useParams<{ id: string }>()
-  const navigate    = useNavigate()
-  const { profile } = useAuth()
-  const currentUserId = profile?.id ?? ''
+  const { id = '' }       = useParams<{ id: string }>()
+  const navigate          = useNavigate()
+  const { profile }       = useAuth()
+  const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
 
   const { data: league, isLoading: loadingLeague } = useLeague(id)
   const groupIds = league?.linked_group_ids ?? []
+  const isMexicano = league?.format === 'mexicano'
+  const isAdmin    = league?.created_by === currentUserId
+
+  const TABS: Array<{ id: Tab; label: string }> = [
+    { id: 'standings', label: 'Standings' },
+    { id: 'fixtures',  label: 'Fixtures'  },
+    { id: 'results',   label: 'Results'   },
+    ...(isMexicano ? [{ id: 'mexicano' as Tab, label: 'Mexicano' }] : []),
+  ]
 
   const { data: standings = [], isLoading: loadingStandings } = useStandings(id)
   const { data: fixtures  = [], isLoading: loadingFixtures  } = useFixtures(id, groupIds)
@@ -278,20 +433,16 @@ export function LeagueDetailPage() {
         </div>
         {(league.start_date || league.end_date) && (
           <p className="text-[12px] text-gray-400 ml-12">
-            {league.start_date
-              ? (() => { try { return format(parseISO(league.start_date), 'd MMM yyyy') } catch { return league.start_date } })()
-              : ''}
+            {league.start_date ? (() => { try { return format(parseISO(league.start_date), 'd MMM yyyy') } catch { return league.start_date } })() : ''}
             {league.start_date && league.end_date ? ' – ' : ''}
-            {league.end_date
-              ? (() => { try { return format(parseISO(league.end_date), 'd MMM yyyy') } catch { return league.end_date } })()
-              : ''}
+            {league.end_date ? (() => { try { return format(parseISO(league.end_date), 'd MMM yyyy') } catch { return league.end_date } })() : ''}
           </p>
         )}
       </div>
 
       {/* Tabs */}
-      <div className="px-5 border-b border-gray-100">
-        <div className="flex gap-5">
+      <div className="px-5 border-b border-gray-100 overflow-x-auto">
+        <div className="flex gap-5 min-w-max">
           {TABS.map((tab) => {
             const active = activeTab === tab.id
             return (
@@ -350,12 +501,12 @@ export function LeagueDetailPage() {
                       )}
                     >
                       <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
-                        {row.rank}
+                        {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
                       </span>
                       <div className="flex items-center gap-2 min-w-0">
                         <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                         <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                          {row.profile?.name ?? 'Unknown'}{isMe ? ' (you)' : ''}
+                          {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
                         </span>
                       </div>
                       <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
@@ -382,16 +533,11 @@ export function LeagueDetailPage() {
                     onClick={() => navigate(`/matches/${match.id}`)}
                     className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <p className="text-[13px] font-semibold text-gray-900">
-                          {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()}
-                          {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
-                        </p>
-                        {match.booked_venue_name && (
-                          <p className="text-[11px] text-gray-400 mt-0.5">{match.booked_venue_name}</p>
-                        )}
-                      </div>
+                    <div className="flex items-center justify-between gap-2 mb-1.5">
+                      <p className="text-[13px] font-semibold text-gray-900">
+                        {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()}
+                        {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
+                      </p>
                       <span className={cn(
                         'rounded-full border px-2 py-0.5 text-[10px] font-semibold flex-shrink-0 capitalize',
                         STATUS_BADGE[match.status] ?? 'bg-gray-50 text-gray-500 border-gray-100'
@@ -399,6 +545,16 @@ export function LeagueDetailPage() {
                         {match.status}
                       </span>
                     </div>
+                    {match.booked_venue_name && (
+                      <p className="text-[11px] text-gray-400">{match.booked_venue_name}</p>
+                    )}
+                    {match.players && match.players.length > 0 && (
+                      <div className="flex -space-x-1 mt-2">
+                        {match.players.slice(0, 4).map((p) => (
+                          <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                        ))}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>
@@ -418,9 +574,21 @@ export function LeagueDetailPage() {
                       onClick={() => navigate(`/matches/${match.id}`)}
                       className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
                     >
-                      <p className="text-[11px] text-gray-400 mb-1.5">
-                        {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM yyyy') } catch { return match.match_date } })()}
-                      </p>
+                      <div className="flex items-center justify-between gap-1 mb-1">
+                        <p className="text-[11px] text-gray-400">
+                          {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM yyyy') } catch { return match.match_date } })()}
+                        </p>
+                        {r && (
+                          <span className={cn(
+                            'text-[10px] font-semibold rounded-full px-2 py-0.5 border',
+                            r.verification_status === 'verified'
+                              ? 'bg-green-50 text-green-700 border-green-100'
+                              : 'bg-yellow-50 text-yellow-700 border-yellow-100'
+                          )}>
+                            {r.verification_status === 'verified' ? 'Verified' : 'Pending'}
+                          </span>
+                        )}
+                      </div>
                       {r ? (
                         <div className="flex items-center justify-between gap-2">
                           <p className="flex-1 text-right text-[12px] font-semibold text-gray-700 truncate">
@@ -446,6 +614,13 @@ export function LeagueDetailPage() {
                   )
                 })}
               </div>
+            )
+          )}
+
+          {/* ── Mexicano ── */}
+          {activeTab === 'mexicano' && (
+            loadingStandings ? <TabSkeleton /> : (
+              <MexicanoTab standings={standings} leagueId={id} isAdmin={isAdmin} />
             )
           )}
 

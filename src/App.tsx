@@ -1,27 +1,38 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
 import { BottomNav } from '@/components/shared/BottomNav'
 import { AuthPage } from '@/pages/Auth'
-import { HomePage } from '@/pages/Home'
-import { PlayPage } from '@/pages/Play'
-import { CompetePage } from '@/pages/Compete'
-import { CommunityPage } from '@/pages/Community'
-import { GroupDetailPage } from '@/pages/GroupDetail'
-import { EventDetailPage } from '@/pages/EventDetail'
-import { YouPage } from '@/pages/You'
-import { MatchDetailPage } from '@/pages/MatchDetail'
-import { LeagueDetailPage } from '@/pages/LeagueDetail'
-import { MatchesPage } from '@/pages/Matches'
-import { AvailabilityPage } from '@/pages/Availability'
-import { AvailabilityPollPage } from '@/pages/AvailabilityPoll'
-import { CreatePollPage } from '@/pages/CreatePoll'
-import { BookCourtPage } from '@/pages/BookCourt'
-import { NotificationsPage } from '@/pages/Notifications'
-import { SearchPage } from '@/pages/Search'
 import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
+import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
+import { TermsOfServicePage } from '@/pages/TermsOfService'
+
+const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
+const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
+const CompetePage = lazy(() => import('@/pages/Compete').then(m => ({ default: m.CompetePage })))
+const CommunityPage = lazy(() => import('@/pages/Community').then(m => ({ default: m.CommunityPage })))
+const GroupDetailPage = lazy(() => import('@/pages/GroupDetail').then(m => ({ default: m.GroupDetailPage })))
+const EventDetailPage = lazy(() => import('@/pages/EventDetail').then(m => ({ default: m.EventDetailPage })))
+const YouPage = lazy(() => import('@/pages/You').then(m => ({ default: m.YouPage })))
+const MatchDetailPage = lazy(() => import('@/pages/MatchDetail').then(m => ({ default: m.MatchDetailPage })))
+const LeagueDetailPage = lazy(() => import('@/pages/LeagueDetail').then(m => ({ default: m.LeagueDetailPage })))
+const MatchesPage = lazy(() => import('@/pages/Matches').then(m => ({ default: m.MatchesPage })))
+const AvailabilityPage = lazy(() => import('@/pages/Availability').then(m => ({ default: m.AvailabilityPage })))
+const AvailabilityPollPage = lazy(() => import('@/pages/AvailabilityPoll').then(m => ({ default: m.AvailabilityPollPage })))
+const CreatePollPage = lazy(() => import('@/pages/CreatePoll').then(m => ({ default: m.CreatePollPage })))
+const BookCourtPage = lazy(() => import('@/pages/BookCourt').then(m => ({ default: m.BookCourtPage })))
+const NotificationsPage = lazy(() => import('@/pages/Notifications').then(m => ({ default: m.NotificationsPage })))
+const SearchPage = lazy(() => import('@/pages/Search').then(m => ({ default: m.SearchPage })))
+
+function PageLoader() {
+  return (
+    <div className="flex h-full items-center justify-center">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+    </div>
+  )
+}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -77,12 +88,17 @@ function AppShell() {
     <OnboardingGuard>
       <div className="flex h-full flex-col">
         <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>
+          <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Root redirect */}
             <Route path="/" element={<Navigate to={session ? '/home' : '/auth'} replace />} />
 
             {/* Auth */}
             <Route path="/auth" element={<AuthPage />} />
+
+            {/* Public pages (no auth required) */}
+            <Route path="/privacy" element={<PrivacyPolicyPage />} />
+            <Route path="/terms" element={<TermsOfServicePage />} />
 
             {/* Onboarding */}
             <Route path="/onboarding" element={<Guard><OnboardingPage /></Guard>} />
@@ -119,6 +135,7 @@ function AppShell() {
             {/* Fallback */}
             <Route path="*" element={<Navigate to={session ? '/home' : '/auth'} replace />} />
           </Routes>
+          </Suspense>
         </main>
 
         {showNav && <BottomNav />}

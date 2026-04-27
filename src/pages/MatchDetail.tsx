@@ -34,6 +34,8 @@ async function fetchMatchDetail(id: string): Promise<{
   match: Match
   players: Profile[]
   result: MatchResult | null
+  confirmVoteCount: number
+  myVote: string | null
 }> {
   const { data: match, error } = await supabase
     .from('matches')
@@ -60,7 +62,30 @@ async function fetchMatchDetail(id: string): Promise<{
     .eq('match_id', id)
     .maybeSingle()
 
-  return { match, players, result: result ?? null }
+  let confirmVoteCount = 0
+  let myVote: string | null = null
+
+  if (result) {
+    const { count } = await supabase
+      .from('match_result_votes')
+      .select('id', { count: 'exact', head: true })
+      .eq('match_result_id', result.id)
+      .eq('vote', 'confirm')
+    confirmVoteCount = count ?? 0
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      const { data: myVoteRow } = await supabase
+        .from('match_result_votes')
+        .select('vote')
+        .eq('match_result_id', result.id)
+        .eq('voter_id', user.id)
+        .maybeSingle()
+      myVote = myVoteRow?.vote ?? null
+    }
+  }
+
+  return { match, players, result: result ?? null, confirmVoteCount, myVote }
 }
 
 // ── ELO helpers ───────────────────────────────────────────────────────────────
@@ -171,6 +196,8 @@ export function MatchDetailPage() {
   const [confirmLeave, setConfirmLeave]       = useState(false)
   const [leaving, setLeaving]                 = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
+  const [showDisputeInput, setShowDisputeInput] = useState(false)
+  const [disputeReason, setDisputeReason]     = useState('')
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['match', id],
@@ -179,13 +206,14 @@ export function MatchDetailPage() {
   })
 
   const voteMutation = useMutation({
-    mutationFn: async (vote: 'confirm' | 'dispute') => {
+    mutationFn: async ({ vote, reason }: { vote: 'confirm' | 'dispute'; reason?: string }) => {
       const result = data?.result
       if (!result || !profile?.id) return
       await supabase.from('match_result_votes').insert({
         match_result_id: result.id,
         voter_id: profile.id,
         vote,
+        ...(reason ? { dispute_reason: reason } : {}),
       })
       if (vote === 'confirm') {
         const { count } = await supabase
@@ -199,10 +227,17 @@ export function MatchDetailPage() {
             .update({ verification_status: 'verified' })
             .eq('id', result.id)
         }
+      } else {
+        await supabase
+          .from('match_results')
+          .update({ verification_status: 'disputed' })
+          .eq('id', result.id)
       }
     },
     onSuccess: () => {
+      if (navigator.vibrate) navigator.vibrate(10)
       setVoteSubmitted(true)
+      setShowDisputeInput(false)
       queryClient.invalidateQueries({ queryKey: ['match', id] })
     },
   })
@@ -224,7 +259,7 @@ export function MatchDetailPage() {
     )
   }
 
-  const { match, players, result } = data
+  const { match, players, result, confirmVoteCount, myVote } = data
   const currentUserId = profile?.id ?? ''
   const isParticipant = match.player_ids.includes(currentUserId)
   // Creator: created_by field, or fallback to first player when created_by is null
@@ -285,6 +320,7 @@ export function MatchDetailPage() {
     setLeaving(false)
     setConfirmLeave(false)
     if (!error) {
+      if (navigator.vibrate) navigator.vibrate(10)
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
@@ -473,37 +509,87 @@ export function MatchDetailPage() {
       })()}
 
       {/* Peer voting card */}
-      {result && result.verification_status === 'pending' && isParticipant && (
+      {result && (result.verification_status === 'pending' || result.verification_status === 'disputed') && isParticipant && (
         <div className="px-5 mb-4">
-          {voteSubmitted ? (
-            <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
-              <p className="text-[13px] font-semibold text-green-700">Vote submitted · thank you</p>
+          {voteSubmitted || myVote ? (
+            <div className={cn(
+              'rounded-2xl border p-3 text-center',
+              myVote === 'dispute' || voteSubmitted && showDisputeInput
+                ? 'bg-red-50 border-red-100'
+                : 'bg-green-50 border-green-100'
+            )}>
+              <p className={cn(
+                'text-[13px] font-semibold',
+                myVote === 'dispute' ? 'text-red-700' : 'text-green-700'
+              )}>
+                {myVote === 'dispute' ? 'You disputed this result' : 'Vote submitted · thank you'}
+              </p>
+              <p className="text-[11px] text-gray-400 mt-1">
+                {confirmVoteCount} of {match.player_ids.length} verified
+              </p>
             </div>
           ) : (
             <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
-              <p className="text-[13px] font-bold text-gray-800 mb-1">Verify this result?</p>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-[13px] font-bold text-gray-800">Verify this result?</p>
+                <span className="text-[11px] text-gray-500">{confirmVoteCount}/{match.player_ids.length} verified</span>
+              </div>
+              {/* Progress bar */}
+              <div className="h-1.5 rounded-full bg-yellow-200 mb-3 overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[#009688] transition-all"
+                  style={{ width: `${(confirmVoteCount / Math.max(match.player_ids.length, 1)) * 100}%` }}
+                />
+              </div>
               <p className="text-[12px] text-gray-500 mb-3">
                 {result.team1_score}–{result.team2_score} ·{' '}
                 {result.result_type === 'team1_win' ? 'Team 1 wins' : 'Team 2 wins'}
               </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => voteMutation.mutate('confirm')}
-                  disabled={voteMutation.isPending}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700 disabled:opacity-50"
-                >
-                  <CheckCircle className="h-4 w-4" />
-                  Confirm
-                </button>
-                <button
-                  onClick={() => voteMutation.mutate('dispute')}
-                  disabled={voteMutation.isPending}
-                  className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
-                >
-                  <XCircle className="h-4 w-4" />
-                  Dispute
-                </button>
-              </div>
+              {showDisputeInput ? (
+                <div>
+                  <textarea
+                    value={disputeReason}
+                    onChange={(e) => setDisputeReason(e.target.value)}
+                    placeholder="Describe the issue (optional)"
+                    className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-red-300 mb-2 resize-none"
+                    rows={3}
+                  />
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowDisputeInput(false)}
+                      className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => voteMutation.mutate({ vote: 'dispute', reason: disputeReason })}
+                      disabled={voteMutation.isPending}
+                      className="flex-1 rounded-xl bg-red-500 py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                    >
+                      Submit Dispute
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => voteMutation.mutate({ vote: 'confirm' })}
+                    disabled={voteMutation.isPending}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700 disabled:opacity-50"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Confirm
+                  </button>
+                  <button
+                    onClick={() => setShowDisputeInput(true)}
+                    disabled={voteMutation.isPending}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Dispute
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

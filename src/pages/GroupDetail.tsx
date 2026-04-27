@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Share2, Plus, Check } from 'lucide-react'
+import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,15 +13,7 @@ import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type Tab = 'members' | 'matches' | 'polls' | 'events' | 'leagues'
-
-const TABS: Array<{ id: Tab; label: string }> = [
-  { id: 'members', label: 'Members' },
-  { id: 'matches', label: 'Matches' },
-  { id: 'polls',   label: 'Polls'   },
-  { id: 'events',  label: 'Events'  },
-  { id: 'leagues', label: 'Leagues' },
-]
+type Tab = 'members' | 'matches' | 'polls' | 'events' | 'leagues' | 'settings'
 
 interface Group {
   id: string
@@ -39,6 +31,7 @@ interface Member {
   avatar_url: string | null
   ranking_points: number | null
   role: string
+  memberStatus: string
 }
 
 interface Poll {
@@ -92,9 +85,9 @@ function useGroupMembers(groupId: string) {
       // (avoids unreliable implicit FK join on user_id)
       const { data: memberRows, error } = await supabase
         .from('group_members')
-        .select('user_id, role')
+        .select('user_id, role, status')
         .eq('group_id', groupId)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'ringer'])
         .order('joined_at', { ascending: true })
 
       if (error) throw error
@@ -118,6 +111,7 @@ function useGroupMembers(groupId: string) {
             avatar_url:     p.avatar_url ?? null,
             ranking_points: p.ranking_points ?? null,
             role:           m.role as string,
+            memberStatus:   m.status as string,
           }
         })
         .filter(Boolean) as Member[]
@@ -213,49 +207,61 @@ function useGroupLeagues(groupId: string) {
 
 // ── Tab: Members ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode }: {
+function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentUserId }: {
   members: Member[]
   isLoading: boolean
   isAdmin: boolean
   groupId: string
   inviteCode: string | null
+  currentUserId: string
 }) {
+  const queryClient = useQueryClient()
   const [copied, setCopied] = useState(false)
+  const [memberFilter, setMemberFilter] = useState<'members' | 'ringers'>('members')
+  const [menuMemberId, setMenuMemberId] = useState<string | null>(null)
+
+  const memberAction = useMutation({
+    mutationFn: async ({ action, memberId }: { action: 'make_admin' | 'make_ringer' | 'remove_ringer' | 'remove'; memberId: string }) => {
+      if (action === 'make_admin') {
+        await supabase.from('group_members').update({ role: 'admin' }).eq('group_id', groupId).eq('user_id', memberId)
+        await supabase.from('groups').update({ admin_id: memberId }).eq('id', groupId)
+      } else if (action === 'make_ringer') {
+        await supabase.from('group_members').update({ status: 'ringer' }).eq('group_id', groupId).eq('user_id', memberId)
+      } else if (action === 'remove_ringer') {
+        await supabase.from('group_members').update({ status: 'approved' }).eq('group_id', groupId).eq('user_id', memberId)
+      } else if (action === 'remove') {
+        await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', memberId)
+      }
+    },
+    onSuccess: () => {
+      if (navigator.vibrate) navigator.vibrate(10)
+      setMenuMemberId(null)
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
+    },
+  })
 
   function copyInvite() {
-    // Use invite_code if available, otherwise use group URL
     const url = inviteCode
       ? `${window.location.origin}/join/${inviteCode}`
       : `${window.location.origin}/community/groups/${groupId}`
-
-    const doWrite = () => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-
+    const doWrite = () => { setCopied(true); setTimeout(() => setCopied(false), 2000) }
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(url).then(doWrite).catch(() => {
-        fallbackCopy(url)
-        doWrite()
-      })
-    } else {
-      fallbackCopy(url)
-      doWrite()
-    }
+      navigator.clipboard.writeText(url).then(doWrite).catch(() => { fallbackCopy(url); doWrite() })
+    } else { fallbackCopy(url); doWrite() }
   }
 
   function fallbackCopy(text: string) {
     const el = document.createElement('textarea')
-    el.value = text
-    el.style.position = 'fixed'
-    el.style.opacity = '0'
-    document.body.appendChild(el)
-    el.select()
-    document.execCommand('copy')
-    document.body.removeChild(el)
+    el.value = text; el.style.position = 'fixed'; el.style.opacity = '0'
+    document.body.appendChild(el); el.select(); document.execCommand('copy'); document.body.removeChild(el)
   }
 
   if (isLoading) return <TabSkeleton />
+
+  const filtered = members.filter((m) =>
+    memberFilter === 'ringers' ? m.memberStatus === 'ringer' : m.memberStatus !== 'ringer'
+  )
+  const menuMember = members.find((m) => m.id === menuMemberId)
 
   return (
     <div>
@@ -264,35 +270,120 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode }: {
           onClick={copyInvite}
           className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 mb-4 text-[13px] font-semibold text-teal-700 transition-colors"
         >
-          {copied ? (
-            <><Check className="h-4 w-4" /> Copied!</>
-          ) : (
-            <><Share2 className="h-4 w-4" /> Copy invite link</>
-          )}
+          {copied ? <><Check className="h-4 w-4" /> Copied!</> : <><Share2 className="h-4 w-4" /> Copy invite link</>}
         </button>
       )}
-      {members.length === 0 ? (
-        <EmptyTab message="No members yet" />
+
+      {/* Member/Ringer filter */}
+      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
+        {(['members', 'ringers'] as const).map((f) => (
+          <button
+            key={f}
+            onClick={() => setMemberFilter(f)}
+            className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors capitalize ${
+              memberFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            {f === 'members' ? `Members (${members.filter(m => m.memberStatus !== 'ringer').length})` : `Ringers (${members.filter(m => m.memberStatus === 'ringer').length})`}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <EmptyTab message={memberFilter === 'ringers' ? 'No ringers yet' : 'No members yet'} />
       ) : (
         <div className="space-y-2">
-          {members.map((m) => (
+          {filtered.map((m) => (
             <div key={m.id} className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
               <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold text-gray-900 truncate">{m.name}</p>
-                {m.ranking_points != null && (
-                  <p className="text-[11px] text-gray-400">{m.ranking_points} pts</p>
-                )}
+                {m.ranking_points != null && <p className="text-[11px] text-gray-400">{m.ranking_points} pts</p>}
               </div>
               {m.role === 'admin' && (
-                <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">
-                  Admin
-                </span>
+                <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Admin</span>
+              )}
+              {m.memberStatus === 'ringer' && (
+                <span className="rounded-full bg-orange-50 border border-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-500">Ringer</span>
+              )}
+              {isAdmin && m.id !== currentUserId && (
+                <button
+                  onClick={() => setMenuMemberId(m.id)}
+                  className="h-7 w-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 flex-shrink-0"
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </button>
               )}
             </div>
           ))}
         </div>
       )}
+
+      {/* Member action sheet */}
+      <AnimatePresence>
+        {menuMemberId && menuMember && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setMenuMemberId(null)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-5"
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}
+            >
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+                <PlayerAvatar name={menuMember.name} avatarUrl={menuMember.avatar_url} size="md" />
+                <div>
+                  <p className="text-[15px] font-bold text-gray-900">{menuMember.name}</p>
+                  <p className="text-[12px] text-gray-400 capitalize">{menuMember.memberStatus}</p>
+                </div>
+              </div>
+              <div className="space-y-1">
+                {menuMember.role !== 'admin' && (
+                  <button
+                    onClick={() => memberAction.mutate({ action: 'make_admin', memberId: menuMemberId })}
+                    disabled={memberAction.isPending}
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    <Shield className="h-4 w-4 text-teal-500" />
+                    Make Admin
+                  </button>
+                )}
+                {menuMember.memberStatus === 'approved' ? (
+                  <button
+                    onClick={() => memberAction.mutate({ action: 'make_ringer', memberId: menuMemberId })}
+                    disabled={memberAction.isPending}
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    <Star className="h-4 w-4 text-orange-400" />
+                    Mark as Ringer
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => memberAction.mutate({ action: 'remove_ringer', memberId: menuMemberId })}
+                    disabled={memberAction.isPending}
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
+                  >
+                    <Star className="h-4 w-4 text-gray-400" />
+                    Remove Ringer Status
+                  </button>
+                )}
+                <button
+                  onClick={() => memberAction.mutate({ action: 'remove', memberId: menuMemberId })}
+                  disabled={memberAction.isPending}
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-red-500 hover:bg-red-50"
+                >
+                  <UserX className="h-4 w-4" />
+                  Remove from Group
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -549,6 +640,116 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
   )
 }
 
+// ── Tab: Settings ────────────────────────────────────────────────────────────
+
+function SettingsTab({ group, isAdmin, currentUserId }: {
+  group: Group
+  isAdmin: boolean
+  currentUserId: string
+}) {
+  const navigate    = useNavigate()
+  const queryClient = useQueryClient()
+  const [name, setName]             = useState(group.name)
+  const [visibility, setVisibility] = useState(group.visibility ?? 'public')
+  const [saving, setSaving]         = useState(false)
+  const [saved, setSaved]           = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+
+  async function saveSettings() {
+    setSaving(true)
+    await supabase.from('groups').update({ name, visibility }).eq('id', group.id)
+    setSaving(false)
+    setSaved(true)
+    if (navigator.vibrate) navigator.vibrate(10)
+    setTimeout(() => setSaved(false), 2000)
+    queryClient.invalidateQueries({ queryKey: ['group', group.id] })
+  }
+
+  async function leaveGroup() {
+    await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', currentUserId)
+    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+    navigate('/community')
+  }
+
+  return (
+    <div className="space-y-4">
+      {isAdmin && (
+        <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Group Settings</p>
+          <div>
+            <label className="text-[12px] text-gray-500 font-medium mb-1 block">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+            />
+          </div>
+          <div>
+            <label className="text-[12px] text-gray-500 font-medium mb-1 block">Visibility</label>
+            <div className="flex gap-2">
+              {(['public', 'open', 'private'] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setVisibility(v)}
+                  className={`flex-1 rounded-xl border py-2 text-[12px] font-semibold capitalize transition-colors ${
+                    visibility === v
+                      ? 'border-teal-300 bg-teal-50 text-teal-700'
+                      : 'border-gray-200 text-gray-500'
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={saveSettings}
+            disabled={saving}
+            className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
+          >
+            {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      )}
+
+      <div className="rounded-2xl border border-red-100 p-4">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">Danger Zone</p>
+        <button
+          onClick={() => setConfirmLeave(true)}
+          className="w-full rounded-xl border border-red-200 py-3 text-[14px] font-semibold text-red-500"
+        >
+          Leave Group
+        </button>
+      </div>
+
+      <AnimatePresence>
+        {confirmLeave && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setConfirmLeave(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+            >
+              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">Leave group?</p>
+              <p className="text-[13px] text-gray-500 text-center mb-6">You can rejoin later if the group is public.</p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">Cancel</button>
+                <button onClick={leaveGroup} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white">Leave</button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 function TabSkeleton() {
@@ -578,12 +779,13 @@ export function GroupDetailPage() {
   const { profile }           = useAuth()
   const userId                = profile?.id ?? ''
 
-  // BUG 7: Store active tab in URL so browser back restores correct tab
+  // Store active tab in URL so browser back restores correct tab
   const [searchParams, setSearchParams] = useSearchParams()
   const activeTab = (searchParams.get('tab') ?? 'members') as Tab
   function setActiveTab(tab: Tab) {
     setSearchParams({ tab }, { replace: true })
   }
+
 
   // BUG 4: CreateMatchSheet state — open inline instead of navigating away
   const [createMatchOpen, setCreateMatchOpen] = useState(false)
@@ -596,7 +798,16 @@ export function GroupDetailPage() {
   const { data: leagues, isLoading: loadingLeagues } = useGroupLeagues(groupId)
 
   const isAdmin     = group?.admin_id === userId
-  const memberCount = members?.length ?? 0
+  const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
+
+  const TABS: Array<{ id: Tab; label: string }> = [
+    { id: 'members',  label: 'Members'  },
+    { id: 'matches',  label: 'Matches'  },
+    { id: 'polls',    label: 'Polls'    },
+    { id: 'events',   label: 'Events'   },
+    { id: 'leagues',  label: 'Leagues'  },
+    ...(isAdmin ? [{ id: 'settings' as Tab, label: 'Settings' }] : []),
+  ]
 
   if (loadingGroup) {
     return (
@@ -694,6 +905,7 @@ export function GroupDetailPage() {
               isAdmin={isAdmin}
               groupId={groupId}
               inviteCode={group.invite_code}
+              currentUserId={userId}
             />
           )}
           {activeTab === 'matches' && (
@@ -724,6 +936,13 @@ export function GroupDetailPage() {
               leagues={leagues ?? []}
               isLoading={loadingLeagues}
               groupId={groupId}
+            />
+          )}
+          {activeTab === 'settings' && isAdmin && (
+            <SettingsTab
+              group={group}
+              isAdmin={isAdmin}
+              currentUserId={userId}
             />
           )}
         </motion.div>

@@ -181,22 +181,41 @@ function useMyLeagues(userId: string) {
       if (!memberships || memberships.length === 0) return []
       const leagueIds = memberships.map((m) => m.league_id)
 
-      const [{ data: leagues }, { data: standings }] = await Promise.all([
+      const [{ data: leagues }, { data: allStandings }] = await Promise.all([
         supabase
           .from('leagues')
           .select('id, name, status, league_type, format')
           .in('id', leagueIds)
           .order('created_at', { ascending: false }),
+        // Fetch all standings for these leagues so we can calculate rank client-side
+        // (avoids relying on a 'rank' column that may not exist)
         supabase
           .from('league_standings')
-          .select('league_id, rank, played, points')
+          .select('league_id, user_id, played, points, wins, losses')
           .in('league_id', leagueIds)
-          .eq('user_id', userId),
+          .order('points', { ascending: false }),
       ])
 
-      const standingMap = Object.fromEntries(
-        (standings ?? []).map((s) => [s.league_id, { rank: s.rank, played: s.played, points: s.points }])
-      )
+      // Calculate position for current user per league
+      const standingMap: Record<string, { rank: number | null; played: number; points: number }> = {}
+      type StandingRow = NonNullable<typeof allStandings>[number]
+      const byLeague: Record<string, StandingRow[]> = {}
+      for (const s of allStandings ?? []) {
+        if (!byLeague[s.league_id]) byLeague[s.league_id] = []
+        byLeague[s.league_id].push(s)
+      }
+      for (const [leagueId, rows] of Object.entries(byLeague)) {
+        const sorted = (rows ?? []).slice().sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+        const idx    = sorted.findIndex((r) => r.user_id === userId)
+        const mine   = sorted[idx]
+        if (mine) {
+          standingMap[leagueId] = {
+            rank:   idx + 1,
+            played: mine.played ?? 0,
+            points: mine.points ?? 0,
+          }
+        }
+      }
       const roleMap = Object.fromEntries(memberships.map((m) => [m.league_id, m.role]))
 
       return (leagues ?? []).map((l) => ({

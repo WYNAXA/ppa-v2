@@ -3,8 +3,8 @@ import { Home, Trophy, Users, User } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
-// Custom padel racket SVG — no suitable lucide icon
-function PadelRacketIcon({ className, strokeWidth = 1.8 }: { className?: string; strokeWidth?: number }) {
+// Padel ball icon — circle with curved seam lines
+function PadelBallIcon({ className, strokeWidth = 1.8 }: { className?: string; strokeWidth?: number }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -15,11 +15,9 @@ function PadelRacketIcon({ className, strokeWidth = 1.8 }: { className?: string;
       strokeLinejoin="round"
       className={className}
     >
-      <rect x="5" y="2" width="14" height="13" rx="7" />
-      <line x1="12" y1="2.5" x2="12" y2="14.5" strokeWidth="1.2" />
-      <line x1="5.5" y1="8" x2="18.5" y2="8" strokeWidth="1.2" />
-      <line x1="12" y1="15" x2="12" y2="22" strokeWidth="2.5" />
-      <line x1="10.5" y1="19.5" x2="13.5" y2="19.5" strokeWidth="1.2" />
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 2a10 10 0 0 1 0 20" />
+      <path d="M12 2a10 10 0 0 0 0 20" />
     </svg>
   )
 }
@@ -35,7 +33,7 @@ const navItems = [
     activePaths: ['/home'],
   },
   {
-    icon: PadelRacketIcon,
+    icon: PadelBallIcon,
     label: 'Play',
     path: '/play',
     activePaths: ['/play', '/matches'],

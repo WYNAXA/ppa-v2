@@ -109,12 +109,13 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       let query = supabase
         .from('groups')
         .select('id, name, description, city, visibility, join_mode, admin_id')
-        .eq('visibility', 'open')
+        // Accept both 'public' and 'open' visibility values
+        .in('visibility', ['public', 'open'])
         .order('name')
         .limit(40)
 
       if (search.trim()) {
-        query = query.or(`name.ilike.%${search.trim()}%,city.ilike.%${search.trim()}%`)
+        query = query.or(`name.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%,city.ilike.%${search.trim()}%`)
       }
 
       if (activeFilter === 'near_me' && userCity) {
@@ -297,7 +298,7 @@ export function CommunityPage() {
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const group    = discoverGroups.find((g) => g.id === groupId)
-      const isPublic = group?.visibility === 'open'
+      const isPublic = group?.visibility === 'open' || group?.visibility === 'public'
 
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId,

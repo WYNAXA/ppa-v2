@@ -227,7 +227,12 @@ export function MatchDetailPage() {
   const { match, players, result } = data
   const currentUserId = profile?.id ?? ''
   const isParticipant = match.player_ids.includes(currentUserId)
-  const isCreator     = match.created_by === currentUserId
+  // Creator: created_by field, or fallback to first player when created_by is null
+  const isCreator     = match.created_by
+    ? match.created_by === currentUserId
+    : match.player_ids[0] === currentUserId
+  // Any participant can edit (suggest changes)
+  const canEdit       = isParticipant && match.status !== 'completed' && match.status !== 'cancelled'
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && match.player_ids.length === 4 && !result
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
@@ -517,7 +522,7 @@ export function MatchDetailPage() {
         )}
 
         <div className="grid grid-cols-2 gap-2">
-          {isCreator && match.status !== 'completed' && match.status !== 'cancelled' && (
+          {canEdit && (
             <button
               onClick={() => setShowEdit(true)}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"

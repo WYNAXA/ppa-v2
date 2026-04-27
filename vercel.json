@@ -17,5 +17,13 @@
         { "key": "Content-Type", "value": "application/manifest+json" }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.v2.padelplayersapp.com" }],
+      "destination": "https://v2.padelplayersapp.com/:path*",
+      "permanent": true
+    }
   ]
 }

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { ChevronLeft, Bell, Trophy, Users, Calendar, Star, CheckCheck, Activity, BookOpen } from 'lucide-react'
 
 interface Notification {
@@ -179,13 +180,11 @@ export function NotificationsPage() {
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
           </div>
         ) : notifications.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center">
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-              <Bell className="w-7 h-7 text-gray-300" />
-            </div>
-            <p className="text-gray-500 font-medium">No notifications yet</p>
-            <p className="text-gray-400 text-sm mt-1">We'll let you know when something happens</p>
-          </div>
+          <EmptyState
+            icon={<Bell className="h-8 w-8" />}
+            title="You're all caught up!"
+            subtitle="We'll notify you when something happens"
+          />
         ) : (
           <div className="space-y-1">
             {notifications.map((n) => (

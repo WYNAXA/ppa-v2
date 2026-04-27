@@ -4,6 +4,7 @@ import { useEffect, lazy, Suspense } from 'react'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
 import { BottomNav } from '@/components/shared/BottomNav'
+import { SplashScreen } from '@/components/shared/SplashScreen'
 import { AuthPage } from '@/pages/Auth'
 import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
@@ -26,13 +27,6 @@ const BookCourtPage = lazy(() => import('@/pages/BookCourt').then(m => ({ defaul
 const NotificationsPage = lazy(() => import('@/pages/Notifications').then(m => ({ default: m.NotificationsPage })))
 const SearchPage = lazy(() => import('@/pages/Search').then(m => ({ default: m.SearchPage })))
 
-function PageLoader() {
-  return (
-    <div className="flex h-full items-center justify-center">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
-    </div>
-  )
-}
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -74,13 +68,7 @@ function AppShell() {
   const { session, loading } = useAuth()
   const location = useLocation()
 
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
-      </div>
-    )
-  }
+  if (loading) return <SplashScreen />
 
   const showNav = !!session && !NO_NAV_PREFIXES.some((p) => location.pathname.startsWith(p))
 
@@ -88,7 +76,7 @@ function AppShell() {
     <OnboardingGuard>
       <div className="flex h-full flex-col">
         <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>
-          <Suspense fallback={<PageLoader />}>
+          <Suspense fallback={<SplashScreen />}>
           <Routes>
             {/* Root redirect */}
             <Route path="/" element={<Navigate to={session ? '/home' : '/auth'} replace />} />

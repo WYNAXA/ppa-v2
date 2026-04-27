@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { Search, X, User, Users, MapPin, Calendar, Trophy } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { EmptyState } from '@/components/shared/EmptyState'
 import { cn } from '@/lib/utils'
 
 interface SearchResult {
@@ -205,13 +206,11 @@ export function SearchPage() {
         )}
 
         {!searching && query.length >= 2 && !hasResults && (
-          <div className="py-16 text-center px-8">
-            <div className="h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-              <Search className="h-6 w-6 text-gray-300" />
-            </div>
-            <p className="text-[14px] font-semibold text-gray-500">No results for "{query}"</p>
-            <p className="text-[12px] text-gray-400 mt-1">Try a different name or keyword</p>
-          </div>
+          <EmptyState
+            icon={<Search className="h-8 w-8" />}
+            title={`No results for "${query}"`}
+            subtitle="Try a different name or keyword"
+          />
         )}
 
         {!searching && query.length < 2 && (

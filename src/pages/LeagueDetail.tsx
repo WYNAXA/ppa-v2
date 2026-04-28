@@ -86,12 +86,14 @@ function useStandings(leagueId: string) {
     enabled: !!leagueId,
     queryFn: async (): Promise<Standing[]> => {
       // Select defensively — rank/won/lost/drawn may not exist
+      console.log('[League] fetching standings for league_id:', leagueId)
       const { data: rows, error } = await supabase
         .from('league_standings')
         .select('*')
         .eq('league_id', leagueId)
         .order('points', { ascending: false })
 
+      console.log('[League] standings rows:', rows?.length, 'error:', error)
       if (error || !rows || rows.length === 0) return []
 
       const userIds = rows.map((r) => r.user_id)

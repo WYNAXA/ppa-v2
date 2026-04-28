@@ -69,15 +69,34 @@ export function BookCourtPage() {
     enabled: !!matchId,
   })
 
-  // Venue search
+  // Venue search — check both venues (bookable) and padel_venues (directory)
   useEffect(() => {
     if (debouncedQuery.length < 2) { setVenueResults([]); return }
-    supabase
-      .from('padel_venues')
-      .select('venue_id, venue_name, city, address')
-      .ilike('venue_name', `%${debouncedQuery}%`)
-      .limit(8)
-      .then(({ data }) => setVenueResults(data ?? []))
+    Promise.all([
+      supabase
+        .from('venues')
+        .select('id, name, city, address')
+        .ilike('name', `%${debouncedQuery}%`)
+        .limit(5),
+      supabase
+        .from('padel_venues')
+        .select('venue_id, venue_name, city, address')
+        .ilike('venue_name', `%${debouncedQuery}%`)
+        .limit(8),
+    ]).then(([venuesRes, padRes]) => {
+      const bookable: Venue[] = (venuesRes.data ?? []).map((v) => ({
+        venue_id:   v.id,
+        venue_name: v.name,
+        city:       v.city ?? null,
+        address:    v.address ?? null,
+        bookable:   true,
+      } as Venue & { bookable?: boolean }))
+      const directory: Venue[] = (padRes.data ?? []).map((v) => ({ ...v, bookable: false } as Venue & { bookable?: boolean }))
+      // Deduplicate by name
+      const seen = new Set(bookable.map((v) => v.venue_name.toLowerCase()))
+      const combined = [...bookable, ...directory.filter((v) => !seen.has(v.venue_name.toLowerCase()))]
+      setVenueResults(combined)
+    })
   }, [debouncedQuery])
 
   // Courts for venue

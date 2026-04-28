@@ -23,8 +23,8 @@ interface MyLeague {
   id: string
   name: string
   status: string
-  league_type: string | null
-  format: string | null
+  match_type: string | null
+  city: string | null
   role: string
   standing: { rank: number | null; played: number; points: number } | null
 }
@@ -184,7 +184,7 @@ function useMyLeagues(userId: string) {
       const [{ data: leagues }, { data: allStandings }] = await Promise.all([
         supabase
           .from('leagues')
-          .select('id, name, status, league_type, format')
+          .select('id, name, status, match_type, city')
           .in('id', leagueIds)
           .order('created_at', { ascending: false }),
         // Fetch all standings for these leagues so we can calculate rank client-side
@@ -405,13 +405,13 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-bold text-gray-900 truncate">{league.name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {league.league_type && (
-              <span className="text-[11px] text-gray-400 capitalize">{league.league_type}</span>
+            {league.match_type && (
+              <span className="text-[11px] text-gray-400 capitalize">{league.match_type.replace('_', ' ')}</span>
             )}
-            {league.format && (
+            {league.city && (
               <>
                 <span className="text-gray-300">·</span>
-                <span className="text-[11px] text-gray-400 capitalize">{league.format.replace('_', ' ')}</span>
+                <span className="text-[11px] text-gray-400">{league.city}</span>
               </>
             )}
           </div>

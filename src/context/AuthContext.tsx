@@ -26,7 +26,7 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 async function ensureProfile(user: User): Promise<Profile> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking')
+    .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city')
     .eq('id', user.id)
     .single()
 
@@ -37,7 +37,7 @@ async function ensureProfile(user: User): Promise<Profile> {
   const { data: created, error: createError } = await supabase
     .from('profiles')
     .insert({ id: user.id, name, email: user.email ?? '' })
-    .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking')
+    .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city')
     .single()
 
   if (createError) throw createError
@@ -49,12 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
+  // Track the user ID we've already fetched a profile for to avoid double-load
+  const profileLoadedForRef = { current: '' }
 
   useEffect(() => {
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
+        profileLoadedForRef.current = session.user.id
         try {
           const p = await ensureProfile(session.user)
           setProfile(p)
@@ -69,6 +72,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
+        // Skip re-fetch if we already loaded this user's profile (avoids double render on initial load)
+        if (profileLoadedForRef.current === session.user.id) return
+        profileLoadedForRef.current = session.user.id
         try {
           const p = await ensureProfile(session.user)
           setProfile(p)
@@ -76,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // profile fetch failure is non-fatal
         }
       } else {
+        profileLoadedForRef.current = ''
         setProfile(null)
       }
     })

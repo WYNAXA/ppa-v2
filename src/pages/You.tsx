@@ -578,9 +578,9 @@ export function YouPage() {
                 {fullProfile?.city && (
                   <span className="text-[12px] text-gray-400">{fullProfile.city}</span>
                 )}
-                {(fullProfile?.ranking_points ?? authProfile?.ranking_points) != null && (
+                {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
                   <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">
-                    {(fullProfile?.ranking_points ?? authProfile?.ranking_points)?.toLocaleString()} ELO
+                    {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
                   </span>
                 )}
               </div>

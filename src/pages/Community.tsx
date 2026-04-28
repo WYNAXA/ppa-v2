@@ -126,7 +126,9 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
         query = query.neq('join_mode', 'closed')
       }
 
+      console.log('[Discover] search:', search)
       const { data: groups, error } = await query
+      console.log('[Discover] results:', groups?.length, 'error:', error)
       if (error) throw error
       if (!groups || groups.length === 0) return []
 
@@ -274,6 +276,25 @@ function DiscoverCard({
   )
 }
 
+// ── Find Players query ────────────────────────────────────────────────────────
+
+function useFindPlayers(query: string, city: string | null) {
+  return useQuery({
+    queryKey: ['find-players', query, city],
+    enabled: query.trim().length >= 2,
+    queryFn: async () => {
+      let q = supabase
+        .from('profiles')
+        .select('id, name, avatar_url, city, internal_ranking')
+        .ilike('name', `%${query.trim()}%`)
+        .limit(20)
+      if (city) q = q.ilike('city', `%${city}%`)
+      const { data } = await q
+      return data ?? []
+    },
+  })
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function CommunityPage() {
@@ -282,6 +303,8 @@ export function CommunityPage() {
   const [search, setSearch]                   = useState('')
   const [activeFilter, setActiveFilter]       = useState<string | null>(null)
   const [showCreateSheet, setShowCreateSheet] = useState(false)
+  const [playerSearch, setPlayerSearch]       = useState('')
+  const [playerCityFilter, setPlayerCityFilter] = useState(false)
 
   const userId = profile?.id ?? ''
   const { data: myGroups = [], isLoading: loadingMine } = useMyGroups(userId)
@@ -293,6 +316,11 @@ export function CommunityPage() {
     myGroupIds,
     activeFilter,
     profile?.city ?? null,
+  )
+
+  const { data: foundPlayers = [] } = useFindPlayers(
+    playerSearch,
+    playerCityFilter ? (profile?.city ?? null) : null,
   )
 
   const joinMutation = useMutation({
@@ -422,6 +450,63 @@ export function CommunityPage() {
                 />
               ))}
             </div>
+          )}
+        </section>
+
+        {/* Find Players */}
+        <section>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Players</h2>
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <input
+              type="text"
+              value={playerSearch}
+              onChange={(e) => setPlayerSearch(e.target.value)}
+              placeholder="Search players by name…"
+              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+              className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            />
+          </div>
+          {profile?.city && (
+            <button
+              onClick={() => setPlayerCityFilter((v) => !v)}
+              className={`mb-3 rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${
+                playerCityFilter
+                  ? 'bg-[#009688] text-white border-[#009688]'
+                  : 'bg-white text-gray-600 border-gray-200'
+              }`}
+            >
+              Near me ({profile.city})
+            </button>
+          )}
+          {playerSearch.trim().length >= 2 && (
+            foundPlayers.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
+                <p className="text-[13px] font-semibold text-gray-500">No players found</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {foundPlayers.map((p) => (
+                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50">
+                    <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
+                      {p.city && <p className="text-[11px] text-gray-400">{p.city}</p>}
+                    </div>
+                    {p.internal_ranking != null && (
+                      <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">
+                        {p.internal_ranking} ELO
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          )}
+          {playerSearch.trim().length < 2 && (
+            <p className="text-[13px] text-gray-400 text-center py-4">
+              Search for players to find and connect
+            </p>
           )}
         </section>
       </div>

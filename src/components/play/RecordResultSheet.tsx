@@ -68,26 +68,27 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       const t1Total = completedSets.reduce((acc, s) => acc + (Number(s.team1) > Number(s.team2) ? 1 : 0), 0)
       const t2Total = completedSets.reduce((acc, s) => acc + (Number(s.team2) > Number(s.team1) ? 1 : 0), 0)
 
-      const votingClosesAt = new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString()
+      const payload = {
+        match_id:            match.id,
+        team1_players:       team1,
+        team2_players:       team2,
+        team1_score:         t1Total,
+        team2_score:         t2Total,
+        result_type:         resultType!,
+        verification_status: 'pending',
+        submitted_by:        currentUserId,
+        is_friendly:         match.match_type === 'casual',
+      }
+
+      console.log('[RecordResult] inserting payload:', payload)
 
       const { data: result, error: resultError } = await supabase
         .from('match_results')
-        .insert({
-          match_id: match.id,
-          team1_players: team1,
-          team2_players: team2,
-          team1_score: t1Total,
-          team2_score: t2Total,
-          sets_data: completedSets,
-          result_type: resultType!,
-          verification_status: 'pending',
-          submitted_by: currentUserId,
-          is_friendly: match.match_type === 'casual',
-          voting_closes_at: votingClosesAt,
-        })
+        .insert(payload)
         .select()
         .single()
 
+      console.log('[RecordResult] insert result:', result, resultError)
       if (resultError) throw resultError
 
       const { error: matchError } = await supabase
@@ -95,6 +96,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
         .update({ status: 'completed' })
         .eq('id', match.id)
 
+      console.log('[RecordResult] match update error:', matchError)
       if (matchError) throw matchError
 
       // Fetch ranking changes after insert
@@ -103,6 +105,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
         .select('*')
         .eq('match_result_id', result.id)
 
+      console.log('[RecordResult] ranking changes:', changes)
       return changes ?? []
     },
     onSuccess: async (changes) => {
@@ -146,9 +149,24 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     }
   }
 
+  // Refs for auto-focus/auto-advance in score entry
+  const firstInputRef = useRef<HTMLInputElement>(null)
+  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+
+  useEffect(() => {
+    if (step === 2) {
+      setTimeout(() => firstInputRef.current?.focus(), 50)
+    }
+  }, [step])
+
   function updateSet(index: number, side: 'team1' | 'team2', raw: string) {
     const val = raw === '' ? '' : Math.min(9, Math.max(0, parseInt(raw, 10)))
     setSets((prev) => prev.map((s, i) => i === index ? { ...s, [side]: val } : s))
+    // Auto-advance: if a digit was entered, move to the next input
+    if (raw !== '') {
+      const nextKey = side === 'team1' ? `${index}-team2` : `${index + 1}-team1`
+      setTimeout(() => inputRefs.current[nextKey]?.focus(), 0)
+    }
   }
 
   function addSet() {
@@ -291,7 +309,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           )}
                         </div>
                         <input
+                          ref={i === 0 ? firstInputRef : (el) => { inputRefs.current[`${i}-team1`] = el }}
                           type="number"
+                          inputMode="numeric"
                           min={0}
                           max={9}
                           value={s.team1}
@@ -300,7 +320,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         />
                         <span className="text-gray-300 text-sm">—</span>
                         <input
+                          ref={(el) => { inputRefs.current[`${i}-team2`] = el }}
                           type="number"
+                          inputMode="numeric"
                           min={0}
                           max={9}
                           value={s.team2}
@@ -379,26 +401,6 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           </div>
                         </div>
                       ) : null}
-                    </div>
-
-                    {/* Override result type */}
-                    <div className="flex gap-2 mb-5">
-                      {(['team1_win', 'draw', 'team2_win'] as const).map((rt) => (
-                        <button
-                          key={rt}
-                          onClick={() => setResultType(rt)}
-                          className={cn(
-                            'flex-1 rounded-xl py-2 text-[11px] font-semibold border transition-colors',
-                            resultType === rt
-                              ? rt === 'team1_win' ? 'bg-teal-600 text-white border-teal-600'
-                                : rt === 'team2_win' ? 'bg-orange-500 text-white border-orange-500'
-                                : 'bg-gray-700 text-white border-gray-700'
-                              : 'bg-white text-gray-500 border-gray-200'
-                          )}
-                        >
-                          {rt === 'team1_win' ? 'T1 Win' : rt === 'team2_win' ? 'T2 Win' : 'Draw'}
-                        </button>
-                      ))}
                     </div>
 
                     {submitMutation.isError && (

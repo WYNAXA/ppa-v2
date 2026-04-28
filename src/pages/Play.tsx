@@ -192,7 +192,7 @@ export function PlayPage() {
 
               {/* Join Match */}
               <button
-                onClick={() => navigate('/play/join')}
+                onClick={() => navigate('/matches?tab=open')}
                 className="flex flex-col items-center gap-2 rounded-2xl border-2 border-[#009688] bg-white py-4 px-2 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
                 <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
@@ -276,7 +276,7 @@ export function PlayPage() {
                   Open matches near you
                 </h2>
                 <button
-                  onClick={() => navigate('/play/join')}
+                  onClick={() => navigate('/matches?tab=open')}
                   className="flex items-center gap-0.5 text-[13px] font-medium text-teal-600"
                 >
                   All <ChevronRight className="h-3.5 w-3.5" />

@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MapPin } from 'lucide-react'
+import { X, MapPin, Search, Users } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import type { Match } from '@/lib/types'
 
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name: string | null; court_number: number | null }
+interface PlayerProfile { id: string; name: string; avatar_url: string | null }
 
 function useDebounce<T>(value: T, delay: number) {
   const [dv, setDv] = useState(value)
@@ -44,6 +46,11 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   const [notes, setNotes]             = useState(
     match.notes?.split('\n').filter((line) => !line.startsWith('Guests:')).join('\n') ?? ''
   )
+  const [playerIds, setPlayerIds]     = useState<string[]>(match.player_ids ?? [])
+  const [replacingIdx, setReplacingIdx] = useState<number | null>(null)
+  const [playerSearch, setPlayerSearch] = useState('')
+  const [playerResults, setPlayerResults] = useState<PlayerProfile[]>([])
+  const debouncedPlayerSearch = useDebounce(playerSearch, 280)
   const debouncedQuery = useDebounce(venueQuery, 280)
   const queryClient    = useQueryClient()
 
@@ -58,8 +65,37 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       setVenues([])
       setSelectedCourtId('')
       setCourtNumber(match.booked_court_number?.toString() ?? '')
+      setPlayerIds(match.player_ids ?? [])
+      setReplacingIdx(null)
+      setPlayerSearch('')
+      setPlayerResults([])
     }
   }, [open, match])
+
+  // Player profiles for current match players
+  const { data: matchPlayers = [] } = useQuery<PlayerProfile[]>({
+    queryKey: ['match-players', playerIds.join(',')],
+    queryFn: async () => {
+      if (playerIds.length === 0) return []
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', playerIds)
+      return data ?? []
+    },
+    enabled: playerIds.length > 0,
+  })
+
+  // Player search for replace
+  useEffect(() => {
+    if (debouncedPlayerSearch.length < 2) { setPlayerResults([]); return }
+    supabase
+      .from('profiles')
+      .select('id, name, avatar_url')
+      .ilike('name', `%${debouncedPlayerSearch}%`)
+      .limit(8)
+      .then(({ data }) => setPlayerResults(data ?? []))
+  }, [debouncedPlayerSearch])
 
   // Venue search
   useEffect(() => {
@@ -109,6 +145,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
           booked_venue_name:   selectedVenue?.venue_name ?? null,
           booked_court_number: resolvedCourtNumber,
           notes:               savedNotes,
+          player_ids:          playerIds,
         })
         .eq('id', match.id)
       if (error) throw error
@@ -283,6 +320,76 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                       min="1"
                       className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                     />
+                  )}
+                </div>
+
+                {/* Players */}
+                <div>
+                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                    <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Players</span>
+                  </label>
+                  <div className="space-y-2 mb-2">
+                    {playerIds.map((pid, idx) => {
+                      const p = matchPlayers.find((m) => m.id === pid)
+                      return (
+                        <div key={pid} className="flex items-center gap-2">
+                          <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url ?? null} size="sm" />
+                          <span className="flex-1 text-[13px] text-gray-800 truncate">{p?.name ?? pid}</span>
+                          <button
+                            type="button"
+                            onClick={() => { setReplacingIdx(idx); setPlayerSearch(''); setPlayerResults([]) }}
+                            className="text-[11px] font-semibold text-teal-600 border border-teal-200 rounded-lg px-2 py-1"
+                          >
+                            Replace
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {replacingIdx !== null && (
+                    <div className="border border-gray-200 rounded-xl p-3">
+                      <p className="text-[12px] text-gray-500 mb-2">
+                        Replacing player {replacingIdx + 1} — search for new player:
+                      </p>
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                        <input
+                          type="text"
+                          value={playerSearch}
+                          onChange={(e) => setPlayerSearch(e.target.value)}
+                          placeholder="Search by name…"
+                          className="w-full rounded-lg border border-gray-200 pl-8 pr-3 py-2 text-sm outline-none focus:border-teal-400"
+                          autoFocus
+                        />
+                      </div>
+                      {playerResults.length > 0 && (
+                        <div className="mt-2 space-y-1 max-h-40 overflow-y-auto">
+                          {playerResults.map((pr) => (
+                            <button
+                              key={pr.id}
+                              type="button"
+                              onClick={() => {
+                                setPlayerIds((prev) => prev.map((id, i) => i === replacingIdx ? pr.id : id))
+                                setReplacingIdx(null)
+                                setPlayerSearch('')
+                                setPlayerResults([])
+                              }}
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-teal-50 text-left"
+                            >
+                              <PlayerAvatar name={pr.name} avatarUrl={pr.avatar_url} size="sm" />
+                              <span className="text-[13px] text-gray-800">{pr.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setReplacingIdx(null)}
+                        className="mt-2 text-[11px] text-gray-400 w-full text-center"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   )}
                 </div>
 

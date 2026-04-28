@@ -66,6 +66,33 @@ export function PlayPage() {
     },
   })
 
+  // ── Past matches query ─────────────────────────────────────────────────────
+  const { data: recentMatches = [] } = useQuery<MatchCardData[]>({
+    queryKey: ['play-recent', user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('matches')
+        .select('id, match_date, match_time, booked_venue_name, player_ids, match_type, status')
+        .contains('player_ids', [user!.id])
+        .lt('match_date', today)
+        .order('match_date', { ascending: false })
+        .limit(5)
+      if (error) throw error
+
+      const allIds = [...new Set((data ?? []).flatMap((m) => m.player_ids as string[]))].slice(0, 20)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', allIds)
+
+      return (data ?? []).map((m) => ({
+        ...m,
+        players: (profiles ?? []).filter((p) => (m.player_ids as string[]).includes(p.id)),
+      }))
+    },
+  })
+
   // ── Open matches query ─────────────────────────────────────────────────────
   const { data: openMatches = [] } = useQuery<MatchCardData[]>({
     queryKey: ['play-open'],
@@ -278,6 +305,34 @@ export function PlayPage() {
               <div className="rounded-2xl bg-gray-50 border border-gray-100 px-5 py-6 text-center">
                 <p className="text-[14px] font-medium text-gray-500">No open matches right now</p>
                 <p className="text-[12px] text-gray-400 mt-1">Check back later or create one</p>
+              </div>
+            </motion.section>
+          )}
+
+          {/* ── Recent matches ───────────────────────────────────────────── */}
+          {recentMatches.length > 0 && (
+            <motion.section variants={item}>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide">
+                  Recent matches
+                </h2>
+                <button
+                  onClick={() => navigate('/matches')}
+                  className="flex items-center gap-0.5 text-[13px] font-medium text-teal-600"
+                >
+                  All <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="space-y-2.5">
+                {recentMatches.map((match, i) => (
+                  <MatchCard
+                    key={match.id}
+                    match={match}
+                    currentUserId={user?.id}
+                    action="view"
+                    index={i}
+                  />
+                ))}
               </div>
             </motion.section>
           )}

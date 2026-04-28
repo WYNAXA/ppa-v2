@@ -15,12 +15,13 @@ interface LeagueInfo {
   id: string
   name: string
   status: string
-  league_type: string | null
-  format: string | null
-  start_date: string | null
-  end_date: string | null
+  match_type: string | null
+  visibility: string | null
+  season_start: string | null
+  season_end: string | null
   linked_group_ids: string[] | null
   created_by: string | null
+  city: string | null
 }
 
 interface Standing {
@@ -70,7 +71,7 @@ function useLeague(id: string) {
     queryFn: async (): Promise<LeagueInfo | null> => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, league_type, format, start_date, end_date, linked_group_ids, created_by')
+        .select('id, name, status, match_type, visibility, season_start, season_end, linked_group_ids, created_by, city')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -368,7 +369,7 @@ export function LeagueDetailPage() {
 
   const { data: league, isLoading: loadingLeague } = useLeague(id)
   const groupIds = league?.linked_group_ids ?? []
-  const isMexicano = league?.format === 'mexicano'
+  const isMexicano = league?.match_type === 'mexicano'
   const isAdmin    = league?.created_by === currentUserId
 
   const TABS: Array<{ id: Tab; label: string }> = [
@@ -413,13 +414,13 @@ export function LeagueDetailPage() {
           <div className="flex-1 min-w-0">
             <h1 className="text-[20px] font-bold text-gray-900 truncate">{league.name}</h1>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              {league.league_type && (
-                <span className="text-[11px] text-gray-400 capitalize">{league.league_type}</span>
+              {league.match_type && (
+                <span className="text-[11px] text-gray-400 capitalize">{league.match_type.replace('_', ' ')}</span>
               )}
-              {league.format && (
+              {league.city && (
                 <>
                   <span className="text-gray-300">·</span>
-                  <span className="text-[11px] text-gray-400 capitalize">{league.format.replace('_', ' ')}</span>
+                  <span className="text-[11px] text-gray-400">{league.city}</span>
                 </>
               )}
               <span className={cn(
@@ -431,11 +432,11 @@ export function LeagueDetailPage() {
             </div>
           </div>
         </div>
-        {(league.start_date || league.end_date) && (
+        {(league.season_start || league.season_end) && (
           <p className="text-[12px] text-gray-400 ml-12">
-            {league.start_date ? (() => { try { return format(parseISO(league.start_date), 'd MMM yyyy') } catch { return league.start_date } })() : ''}
-            {league.start_date && league.end_date ? ' – ' : ''}
-            {league.end_date ? (() => { try { return format(parseISO(league.end_date), 'd MMM yyyy') } catch { return league.end_date } })() : ''}
+            {league.season_start ? (() => { try { return format(parseISO(league.season_start), 'd MMM yyyy') } catch { return league.season_start } })() : ''}
+            {league.season_start && league.season_end ? ' – ' : ''}
+            {league.season_end ? (() => { try { return format(parseISO(league.season_end), 'd MMM yyyy') } catch { return league.season_end } })() : ''}
           </p>
         )}
       </div>

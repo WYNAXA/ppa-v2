@@ -13,7 +13,6 @@ interface Notification {
   title: string
   message: string
   read: boolean
-  read_at?: string | null
   created_at: string
   related_id: string | null
 }
@@ -93,7 +92,7 @@ export function NotificationsPage() {
       if (!userId) return []
       const { data, error } = await supabase
         .from('notifications')
-        .select('id, user_id, type, title, message, read, read_at, created_at, related_id')
+        .select('id, user_id, type, title, message, read, created_at, related_id')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(100)
@@ -107,7 +106,7 @@ export function NotificationsPage() {
     mutationFn: async (id: string) => {
       await supabase
         .from('notifications')
-        .update({ read: true, read_at: new Date().toISOString() })
+        .update({ read: true })
         .eq('id', id)
     },
     onSuccess: () => {
@@ -121,7 +120,7 @@ export function NotificationsPage() {
       if (!userId) return
       await supabase
         .from('notifications')
-        .update({ read: true, read_at: new Date().toISOString() })
+        .update({ read: true })
         .eq('user_id', userId)
         .eq('read', false)
     },

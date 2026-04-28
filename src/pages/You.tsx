@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink } from 'lucide-react'
@@ -522,6 +523,7 @@ function EditProfileSheet({
 
 export function YouPage() {
   const { profile: authProfile, signOut } = useAuth()
+  const navigate = useNavigate()
   const userId = authProfile?.id ?? ''
 
   const [historyFilter, setHistoryFilter]   = useState<'all' | 'wins' | 'losses'>('all')
@@ -576,9 +578,9 @@ export function YouPage() {
                 {fullProfile?.city && (
                   <span className="text-[12px] text-gray-400">{fullProfile.city}</span>
                 )}
-                {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
+                {(fullProfile?.ranking_points ?? authProfile?.ranking_points) != null && (
                   <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">
-                    {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
+                    {(fullProfile?.ranking_points ?? authProfile?.ranking_points)?.toLocaleString()} ELO
                   </span>
                 )}
               </div>
@@ -821,6 +823,7 @@ export function YouPage() {
               onClick={async () => {
                 const email = authProfile?.email
                 if (!email) return
+                if (!window.confirm(`Send a password reset email to ${email}?`)) return
                 await supabase.auth.resetPasswordForEmail(email)
                 setResetSent(true)
                 setTimeout(() => setResetSent(false), 4000)
@@ -835,7 +838,7 @@ export function YouPage() {
 
             {/* Privacy Policy */}
             <button
-              onClick={() => window.open('https://padelplayersapp.com/privacy', '_blank')}
+              onClick={() => navigate('/privacy')}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
               <span className="text-[13px] font-medium text-gray-700">Privacy Policy</span>
@@ -844,7 +847,7 @@ export function YouPage() {
 
             {/* Terms of Service */}
             <button
-              onClick={() => window.open('https://padelplayersapp.com/terms', '_blank')}
+              onClick={() => navigate('/terms')}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
               <span className="text-[13px] font-medium text-gray-700">Terms of Service</span>

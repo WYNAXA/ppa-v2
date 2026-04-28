@@ -38,6 +38,36 @@ function useEvent(id: string) {
   })
 }
 
+interface Attendee {
+  user_id: string
+  status: RsvpStatus
+  profile: { name: string; avatar_url: string | null } | null
+}
+
+function useAttendees(eventId: string) {
+  return useQuery({
+    queryKey: ['event-attendees', eventId],
+    enabled: !!eventId,
+    queryFn: async (): Promise<Attendee[]> => {
+      const { data } = await supabase
+        .from('event_attendees')
+        .select('user_id, status')
+        .eq('event_id', eventId)
+      if (!data || data.length === 0) return []
+      const ids = data.map((r) => r.user_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', ids)
+      return data.map((r) => ({
+        ...r,
+        status: r.status as RsvpStatus,
+        profile: profiles?.find((p) => p.id === r.user_id) ?? null,
+      }))
+    },
+  })
+}
+
 function useMyRsvp(eventId: string, userId: string) {
   return useQuery({
     queryKey: ['event-rsvp', eventId, userId],
@@ -84,6 +114,7 @@ export function EventDetailPage() {
 
   const { data: event, isLoading }     = useEvent(id)
   const { data: myRsvp }               = useMyRsvp(id, userId)
+  const { data: attendees = [] }       = useAttendees(id)
 
   const rsvpMutation = useMutation({
     mutationFn: async (status: RsvpStatus) => {
@@ -95,6 +126,7 @@ export function EventDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event-rsvp', id, userId] })
+      queryClient.invalidateQueries({ queryKey: ['event-attendees', id] })
     },
   })
 
@@ -113,6 +145,20 @@ export function EventDetailPage() {
         <button onClick={() => navigate(-1)} className="mt-4 text-[13px] text-teal-600 font-semibold">Go back</button>
       </div>
     )
+  }
+
+  const goingCount      = attendees.filter((a) => a.status === 'going').length
+  const interestedCount = attendees.filter((a) => a.status === 'interested').length
+
+  const ev = event
+  function addToCalendar() {
+    try {
+      const start = new Date(ev.start_time)
+      const end   = ev.end_time ? new Date(ev.end_time) : new Date(start.getTime() + 3600_000)
+      const fmt   = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
+      const url   = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${fmt(start)}/${fmt(end)}${ev.location ? `&location=${encodeURIComponent(ev.location)}` : ''}${ev.description ? `&details=${encodeURIComponent(ev.description)}` : ''}`
+      window.open(url, '_blank')
+    } catch { /* ignore */ }
   }
 
   const formattedStart = (() => {
@@ -138,6 +184,13 @@ export function EventDetailPage() {
         <div className="flex-1 min-w-0">
           <h1 className="text-[18px] font-bold text-gray-900 leading-tight truncate">{event.title}</h1>
         </div>
+        <button
+          onClick={addToCalendar}
+          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          title="Add to calendar"
+        >
+          <Calendar className="h-4 w-4 text-gray-600" />
+        </button>
       </div>
 
       {/* Meta card */}
@@ -206,6 +259,38 @@ export function EventDetailPage() {
           <p className="text-[12px] text-red-500 text-center mt-2">Failed to save. Try again.</p>
         )}
       </div>
+
+      {/* Attendees */}
+      {attendees.length > 0 && (
+        <div className="mx-5 mt-5">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">
+            Who's coming
+          </p>
+          <div className="flex gap-4 mb-3">
+            <span className="text-[13px] text-gray-700">
+              <span className="font-bold text-[#009688]">{goingCount}</span> going
+            </span>
+            {interestedCount > 0 && (
+              <span className="text-[13px] text-gray-700">
+                <span className="font-bold text-blue-500">{interestedCount}</span> interested
+              </span>
+            )}
+          </div>
+          <div className="space-y-2">
+            {attendees.filter((a) => a.status !== 'not_going').map((a) => (
+              <div key={a.user_id} className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[12px] font-bold text-gray-500 flex-shrink-0">
+                  {(a.profile?.name ?? '?').charAt(0).toUpperCase()}
+                </div>
+                <span className="text-[13px] text-gray-700 flex-1">{a.profile?.name ?? 'Unknown'}</span>
+                <span className={`text-[11px] font-semibold ${a.status === 'going' ? 'text-[#009688]' : 'text-blue-500'}`}>
+                  {a.status === 'going' ? 'Going' : 'Interested'}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

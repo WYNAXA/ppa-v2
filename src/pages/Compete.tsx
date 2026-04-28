@@ -17,6 +17,8 @@ interface RankedProfile {
   avatar_url: string | null
   internal_ranking: number | null
   ranking_points: number | null
+  is_provisional?: boolean | null
+  matches_played?: number | null
 }
 
 interface MyLeague {
@@ -137,7 +139,7 @@ function useGlobalLeaderboard() {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url, internal_ranking, ranking_points')
+        .select('id, name, avatar_url, internal_ranking, ranking_points, is_provisional, matches_played')
         .not('internal_ranking', 'is', null)
         .order('internal_ranking', { ascending: false })
         .limit(20)
@@ -171,7 +173,7 @@ function useGroupLeaderboard(userId: string) {
 
       const { data } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url, internal_ranking, ranking_points')
+        .select('id, name, avatar_url, internal_ranking, ranking_points, is_provisional, matches_played')
         .in('id', userIds)
         .not('internal_ranking', 'is', null)
         .order('internal_ranking', { ascending: false })
@@ -395,7 +397,9 @@ function LeaderboardRow({
         <p className={cn('text-[13px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-700')}>
           {(profile.internal_ranking ?? 0).toLocaleString()}
         </p>
-        <p className="text-[10px] text-gray-400">ELO</p>
+        <p className="text-[10px] text-gray-400">
+          {profile.is_provisional ? 'ELO (prov.)' : 'ELO'}
+        </p>
       </div>
     </motion.div>
   )

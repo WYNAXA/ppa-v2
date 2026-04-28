@@ -8,6 +8,12 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import type { Match, RankingChange } from '@/lib/types'
 
+interface EloChange {
+  ratingBefore: number
+  ratingAfter: number
+  ratingChange: number
+}
+
 interface Player {
   id: string
   name: string
@@ -40,6 +46,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [sets, setSets] = useState<SetScore[]>([{ team1: '', team2: '' }])
   const [resultType, setResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
   const [rankingChanges, setRankingChanges] = useState<RankingChange[]>([])
+  const [eloChanges, setEloChanges] = useState<Record<string, EloChange>>({})
   const [newBadges, setNewBadges] = useState<BadgeAward[]>([])
 
   // Guard: initialise teams ONCE on open, never re-derived
@@ -108,17 +115,31 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       console.log('[RecordResult] match update error:', matchError)
       if (matchError) throw matchError
 
-      // Fetch ranking changes after insert
+      // Fetch legacy ranking changes after insert
       const { data: changes } = await supabase
         .from('ranking_changes')
         .select('*')
         .eq('match_result_id', result.id)
 
+      // Call process-elo edge function (non-blocking — best effort)
+      let eloResult: Record<string, EloChange> = {}
+      try {
+        const { data: eloData } = await supabase.functions.invoke('process-elo', {
+          body: { match_result_id: result.id },
+        })
+        if (eloData?.changes) {
+          eloResult = eloData.changes
+        }
+      } catch (e) {
+        console.warn('[RecordResult] process-elo non-fatal error:', e)
+      }
+
       console.log('[RecordResult] ranking changes:', changes)
-      return changes ?? []
+      return { changes: changes ?? [], eloResult }
     },
-    onSuccess: async (changes) => {
+    onSuccess: async ({ changes, eloResult }) => {
       setRankingChanges(changes)
+      if (Object.keys(eloResult).length > 0) setEloChanges(eloResult)
       queryClient.invalidateQueries({ queryKey: ['match', match.id] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['achievements', currentUserId] })
@@ -444,10 +465,48 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     </div>
                     <h3 className="text-[18px] font-bold text-gray-900 mb-1">Result Submitted</h3>
                     <p className="text-[13px] text-gray-500 mb-6 text-center">
-                      Waiting for other players to verify. ELO will update once confirmed.
+                      {Object.keys(eloChanges).length > 0
+                        ? 'ELO updated!'
+                        : 'Waiting for other players to verify. ELO will update once confirmed.'}
                     </p>
 
-                    {rankingChanges.length > 0 && (
+                    {/* ELO changes from process-elo function (preferred) */}
+                    {Object.keys(eloChanges).length > 0 && (
+                      <div className="w-full bg-gray-50 rounded-2xl p-4 mb-5">
+                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">ELO Changes</p>
+                        {Object.entries(eloChanges).map(([playerId, data]) => {
+                          const p = getPlayer(playerId)
+                          const delta = data.ratingChange
+                          return (
+                            <div key={playerId} className="flex items-center justify-between mb-2 last:mb-0">
+                              <div className="flex items-center gap-2">
+                                <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
+                                <span className="text-[13px] font-medium text-gray-800">{p?.name ?? 'Player'}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                {delta > 0 ? (
+                                  <TrendingUp className="h-3.5 w-3.5 text-green-500" />
+                                ) : delta < 0 ? (
+                                  <TrendingDown className="h-3.5 w-3.5 text-red-400" />
+                                ) : (
+                                  <Minus className="h-3.5 w-3.5 text-gray-400" />
+                                )}
+                                <span className={cn(
+                                  'text-[13px] font-bold',
+                                  delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400'
+                                )}>
+                                  {delta > 0 ? '+' : ''}{delta} ELO
+                                </span>
+                                <span className="text-[11px] text-gray-400">→ {data.ratingAfter.toLocaleString()}</span>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+
+                    {/* Fallback: legacy ranking_changes */}
+                    {Object.keys(eloChanges).length === 0 && rankingChanges.length > 0 && (
                       <div className="w-full bg-gray-50 rounded-2xl p-4 mb-5">
                         <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">ELO Changes</p>
                         {rankingChanges.map((rc) => {

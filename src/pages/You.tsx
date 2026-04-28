@@ -61,7 +61,7 @@ function useFullProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id')
+        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played')
         .eq('id', userId)
         .single()
       if (error) return null
@@ -581,6 +581,9 @@ export function YouPage() {
                 {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
                   <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">
                     {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
+                    {(fullProfile as any)?.is_provisional && (
+                      <span className="ml-1 text-teal-500 font-normal">(provisional)</span>
+                    )}
                   </span>
                 )}
               </div>

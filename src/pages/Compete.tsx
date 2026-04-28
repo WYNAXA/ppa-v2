@@ -116,6 +116,21 @@ function useMyStats(userId: string, currentRanking: number | undefined) {
   })
 }
 
+function useAchievementCount(userId: string) {
+  return useQuery<number>({
+    queryKey: ['achievement-count', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('user_badges')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+      return count ?? 0
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 function useGlobalLeaderboard() {
   return useQuery<RankedProfile[]>({
     queryKey: ['global-leaderboard'],
@@ -243,10 +258,12 @@ function RankingCard({
   profile,
   stats,
   isLoading,
+  achievementCount,
 }: {
   profile: { name: string; avatar_url?: string | null; internal_ranking?: number } | null
   stats:   MyStats | undefined
   isLoading: boolean
+  achievementCount: number
 }) {
   const elo = profile?.internal_ranking ?? 0
 
@@ -283,11 +300,12 @@ function RankingCard({
         ) : stats ? (
           <>
             {/* Win/loss row */}
-            <div className="grid grid-cols-3 gap-2 mb-4">
+            <div className="grid grid-cols-4 gap-2 mb-4">
               {[
                 { label: 'Wins',   value: stats.wins,   color: 'text-green-300' },
                 { label: 'Losses', value: stats.losses, color: 'text-red-300'   },
                 { label: 'Draws',  value: stats.draws,  color: 'text-gray-300'  },
+                { label: 'Badges', value: achievementCount, color: 'text-yellow-300' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-white/10 rounded-xl py-2.5 text-center">
                   <p className={cn('text-[18px] font-black', color)}>{value}</p>
@@ -468,6 +486,7 @@ export function CompetePage() {
   }, [location.pathname])
 
   const { data: stats,            isLoading: loadingStats    } = useMyStats(userId, profile?.internal_ranking)
+  const { data: achievementCount = 0 }                        = useAchievementCount(userId)
   const { data: globalBoard = [], isLoading: loadingGlobal   } = useGlobalLeaderboard()
   const { data: groupBoard  = [], isLoading: loadingGroup    } = useGroupLeaderboard(userId)
   const { data: myLeagues   = [], isLoading: loadingLeagues  } = useMyLeagues(userId)
@@ -485,7 +504,7 @@ export function CompetePage() {
       <div className="px-5 space-y-6">
 
         {/* ── My Ranking Card ── */}
-        <RankingCard profile={profile} stats={stats} isLoading={loadingStats} />
+        <RankingCard profile={profile} stats={stats} isLoading={loadingStats} achievementCount={achievementCount} />
 
         {/* ── Leaderboard ── */}
         <section>

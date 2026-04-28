@@ -407,9 +407,26 @@ export function AvailabilityPollPage() {
       <div className="px-5 space-y-5">
 
         {/* ── Banners ── */}
-        <AnimatePresence>
-          {matchCreated && (
+        <AnimatePresence mode="wait">
+          {submitMutation.isPending && (
             <motion.div
+              key="finding"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-4 flex items-center gap-3"
+            >
+              <div className="h-5 w-5 rounded-full border-2 border-[#009688] border-t-transparent animate-spin flex-shrink-0" />
+              <div>
+                <p className="text-[13px] font-bold text-teal-800">Finding your game…</p>
+                <p className="text-[11px] text-teal-600">Checking who else is available</p>
+              </div>
+            </motion.div>
+          )}
+
+          {!submitMutation.isPending && matchCreated && (
+            <motion.div
+              key="match-found"
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -431,15 +448,21 @@ export function AvailabilityPollPage() {
             </motion.div>
           )}
 
-          {submitted && !matchCreated && (
+          {!submitMutation.isPending && submitted && !matchCreated && (
             <motion.div
+              key="waiting"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3 flex items-center gap-2"
+              className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3 space-y-1"
             >
-              <CheckCircle className="h-4 w-4 text-[#009688]" />
-              <p className="text-[13px] font-semibold text-teal-800">Availability saved!</p>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-[#009688] flex-shrink-0" />
+                <p className="text-[13px] font-semibold text-teal-800">Availability saved!</p>
+              </div>
+              <p className="text-[12px] text-teal-600 pl-6">
+                We need 1 more player. We'll notify you when your game is confirmed.
+              </p>
             </motion.div>
           )}
         </AnimatePresence>

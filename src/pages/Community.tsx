@@ -28,7 +28,7 @@ interface MyGroup extends GroupRow {
 
 interface DiscoverGroup extends GroupRow {
   memberCount: number
-  pendingJoin: boolean
+  membershipStatus: 'none' | 'pending' | 'approved'
 }
 
 // ── My Groups query ───────────────────────────────────────────────────────────
@@ -149,19 +149,27 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
         countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
       }
 
-      // Check user's pending/existing membership
-      const { data: pendingRows } = await supabase
+      // Check user's membership status for each group
+      const { data: membershipRows } = await supabase
         .from('group_members')
-        .select('group_id')
+        .select('group_id, status')
         .in('group_id', filteredIds)
         .eq('user_id', userId)
 
-      const pendingIds = new Set((pendingRows ?? []).map((r) => r.group_id))
+      const membershipStatusMap: Record<string, 'pending' | 'approved'> = {}
+      for (const r of membershipRows ?? []) {
+        membershipStatusMap[r.group_id] = r.status as 'pending' | 'approved'
+      }
 
-      return filtered.map((g) => ({
+      // Exclude groups where user is already an approved member
+      const visibleGroups = filtered.filter(
+        (g) => membershipStatusMap[g.id] !== 'approved'
+      )
+
+      return visibleGroups.map((g) => ({
         ...g,
         memberCount: countMap[g.id] ?? 0,
-        pendingJoin: pendingIds.has(g.id),
+        membershipStatus: membershipStatusMap[g.id] ?? 'none',
       }))
     },
   })
@@ -231,6 +239,7 @@ function DiscoverCard({
   index: number
   onJoin: (id: string) => void
 }) {
+  const navigate = useNavigate()
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -259,10 +268,17 @@ function DiscoverCard({
           )}
         </div>
 
-        {group.pendingJoin ? (
+        {group.membershipStatus === 'pending' ? (
           <span className="inline-flex items-center rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0 self-start mt-0.5">
             Requested
           </span>
+        ) : group.membershipStatus === 'approved' ? (
+          <button
+            onClick={() => navigate(`/community/groups/${group.id}`)}
+            className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-3 py-1.5 text-[12px] font-bold text-teal-700 flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform"
+          >
+            Member
+          </button>
         ) : (
           <button
             onClick={() => onJoin(group.id)}
@@ -299,6 +315,7 @@ function useFindPlayers(query: string, city: string | null) {
 
 export function CommunityPage() {
   const { profile } = useAuth()
+  const navigate     = useNavigate()
   const queryClient  = useQueryClient()
   const [search, setSearch]                   = useState('')
   const [activeFilter, setActiveFilter]       = useState<string | null>(null)
@@ -487,7 +504,11 @@ export function CommunityPage() {
             ) : (
               <div className="space-y-2">
                 {foundPlayers.map((p) => (
-                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50">
+                  <button
+                    key={p.id}
+                    onClick={() => navigate(`/players/${p.id}`)}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 hover:bg-teal-50/40 hover:border-teal-200 border border-transparent transition-colors text-left active:scale-[0.98]"
+                  >
                     <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
@@ -498,7 +519,7 @@ export function CommunityPage() {
                         {p.internal_ranking} ELO
                       </span>
                     )}
-                  </div>
+                  </button>
                 ))}
               </div>
             )

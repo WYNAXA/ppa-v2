@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -151,6 +151,16 @@ export function EventDetailPage() {
   const interestedCount = attendees.filter((a) => a.status === 'interested').length
 
   const ev = event
+
+  async function handleShare() {
+    const url = `${window.location.origin}/community/events/${id}`
+    if (navigator.share) {
+      try { await navigator.share({ title: ev.title, url }) } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url)
+    }
+  }
+
   function addToCalendar() {
     try {
       const start = new Date(ev.start_time)
@@ -190,6 +200,13 @@ export function EventDetailPage() {
           title="Add to calendar"
         >
           <Calendar className="h-4 w-4 text-gray-600" />
+        </button>
+        <button
+          onClick={handleShare}
+          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          title="Share event"
+        >
+          <Share2 className="h-4 w-4 text-gray-600" />
         </button>
       </div>
 

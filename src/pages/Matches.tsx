@@ -8,11 +8,19 @@ import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { cn } from '@/lib/utils'
 
 type Tab = 'upcoming' | 'past' | 'open'
+type MatchTypeFilter = 'all' | 'competitive' | 'friendly' | 'casual'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'upcoming', label: 'Upcoming' },
   { id: 'past',     label: 'Past' },
   { id: 'open',     label: 'Open' },
+]
+
+const TYPE_FILTERS: { id: MatchTypeFilter; label: string }[] = [
+  { id: 'all',         label: 'All' },
+  { id: 'competitive', label: 'Competitive' },
+  { id: 'friendly',    label: 'Friendly' },
+  { id: 'casual',      label: 'Casual' },
 ]
 
 async function fetchPlayerProfiles(playerIds: string[]) {
@@ -24,27 +32,28 @@ async function fetchPlayerProfiles(playerIds: string[]) {
   return data ?? []
 }
 
-function useMatches(tab: Tab, userId: string) {
+function useMatches(tab: Tab, userId: string, typeFilter: MatchTypeFilter) {
   return useQuery({
-    queryKey: ['matches', tab, userId],
+    queryKey: ['matches', tab, userId, typeFilter],
     queryFn: async (): Promise<MatchCardData[]> => {
       const today = format(new Date(), 'yyyy-MM-dd')
 
       let query = supabase.from('matches').select('*')
 
       if (tab === 'upcoming') {
-        // Exclude completed/cancelled/suggested AND only future dates
         query = query
           .contains('player_ids', [userId])
           .not('status', 'in', '(completed,cancelled,suggested)')
           .gte('match_date', today)
           .order('match_date', { ascending: true })
       } else if (tab === 'past') {
-        // Past = completed status OR match date is before today
         query = query
           .contains('player_ids', [userId])
           .or(`status.eq.completed,match_date.lt.${today}`)
           .order('match_date', { ascending: false })
+        if (typeFilter !== 'all') {
+          query = query.eq('match_type', typeFilter)
+        }
       } else {
         query = query
           .eq('status', 'open')
@@ -65,18 +74,47 @@ function useMatches(tab: Tab, userId: string) {
       const allPlayerIds = [...new Set(filteredMatches.flatMap((m) => m.player_ids ?? []))]
       const profiles = await fetchPlayerProfiles(allPlayerIds)
 
-      return filteredMatches.map((m) => ({
-        id: m.id,
-        match_date: m.match_date,
-        match_time: m.match_time,
-        booked_venue_name: m.booked_venue_name,
-        player_ids: m.player_ids ?? [],
-        match_type: m.match_type,
-        status: m.status,
-        players: profiles.filter((p) => m.player_ids?.includes(p.id)),
-      }))
+      // For past matches, fetch results to show scores
+      let resultsMap: Record<string, { team1_score: number; team2_score: number; result_type: string; team1_players: string[] }> = {}
+      if (tab === 'past' && filteredMatches.length > 0) {
+        const matchIds = filteredMatches.map((m) => m.id)
+        const { data: results } = await supabase
+          .from('match_results')
+          .select('match_id, team1_score, team2_score, result_type, team1_players')
+          .in('match_id', matchIds)
+        if (results) {
+          for (const r of results) {
+            resultsMap[r.match_id] = r
+          }
+        }
+      }
+
+      return filteredMatches.map((m) => {
+        const result = resultsMap[m.id]
+        let score: string | undefined
+        let didWin: boolean | undefined
+        if (result) {
+          score = `${result.team1_score}–${result.team2_score}`
+          const onTeam1 = result.team1_players?.includes(userId)
+          didWin = (onTeam1 && result.result_type === 'team1_win') ||
+                   (!onTeam1 && result.result_type === 'team2_win')
+        }
+        return {
+          id: m.id,
+          match_date: m.match_date,
+          match_time: m.match_time,
+          booked_venue_name: m.booked_venue_name,
+          player_ids: m.player_ids ?? [],
+          match_type: m.match_type,
+          status: m.status,
+          players: profiles.filter((p) => m.player_ids?.includes(p.id)),
+          score,
+          didWin,
+        }
+      })
     },
     enabled: !!userId,
+    staleTime: 2 * 60 * 1000,
   })
 }
 
@@ -98,24 +136,25 @@ function EmptyState({ tab }: { tab: Tab }) {
 export function MatchesPage() {
   const { profile } = useAuth()
   const [activeTab, setActiveTab] = useState<Tab>('upcoming')
+  const [typeFilter, setTypeFilter] = useState<MatchTypeFilter>('all')
 
   const userId = profile?.id ?? ''
-  const { data: matches = [], isLoading } = useMatches(activeTab, userId)
+  const { data: matches = [], isLoading } = useMatches(activeTab, userId, typeFilter)
 
   return (
-    <div className="min-h-full bg-white">
+    <div className="min-h-full bg-white pb-6">
       {/* Header */}
       <div className="px-5 pt-14 pb-3">
         <h1 className="text-[22px] font-bold text-gray-900">Matches</h1>
       </div>
 
       {/* Tab switcher */}
-      <div className="px-5 mb-4">
+      <div className="px-5 mb-3">
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           {TABS.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
+              onClick={() => { setActiveTab(tab.id); setTypeFilter('all') }}
               className={cn(
                 'flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors',
                 activeTab === tab.id
@@ -129,10 +168,30 @@ export function MatchesPage() {
         </div>
       </div>
 
+      {/* Filter pills — past tab only */}
+      {activeTab === 'past' && (
+        <div className="px-5 mb-3 flex gap-2 overflow-x-auto no-scrollbar">
+          {TYPE_FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setTypeFilter(f.id)}
+              className={cn(
+                'flex-shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors',
+                typeFilter === f.id
+                  ? 'bg-[#009688] border-[#009688] text-white'
+                  : 'border-gray-200 text-gray-600 bg-white'
+              )}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={activeTab}
+          key={`${activeTab}-${typeFilter}`}
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0 }}

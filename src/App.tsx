@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
 import { BottomNav } from '@/components/shared/BottomNav'
@@ -9,6 +9,8 @@ import { AuthPage } from '@/pages/Auth'
 import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
+
+// v1.0.6 — bump this comment to force service worker cache invalidation
 
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
@@ -26,6 +28,7 @@ const CreatePollPage = lazy(() => import('@/pages/CreatePoll').then(m => ({ defa
 const BookCourtPage = lazy(() => import('@/pages/BookCourt').then(m => ({ default: m.BookCourtPage })))
 const NotificationsPage = lazy(() => import('@/pages/Notifications').then(m => ({ default: m.NotificationsPage })))
 const SearchPage = lazy(() => import('@/pages/Search').then(m => ({ default: m.SearchPage })))
+const PlayerProfilePage = lazy(() => import('@/pages/PlayerProfile').then(m => ({ default: m.PlayerProfilePage })))
 
 
 const queryClient = new QueryClient({
@@ -64,6 +67,48 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function UpdateBanner() {
+  const [showUpdate, setShowUpdate] = useState(false)
+
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready.then(reg => {
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing
+          newWorker?.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              setShowUpdate(true)
+            }
+          })
+        })
+      })
+    }
+  }, [])
+
+  if (!showUpdate) return null
+
+  return (
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0,
+      background: '#009688', color: 'white',
+      padding: '12px 16px', zIndex: 9999,
+      display: 'flex', justifyContent: 'space-between',
+      alignItems: 'center',
+    }}>
+      <span style={{ fontSize: 14, fontWeight: 600 }}>New version available</span>
+      <button
+        onClick={() => window.location.reload()}
+        style={{
+          background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
+          padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+        }}
+      >
+        Update now
+      </button>
+    </div>
+  )
+}
+
 function AppShell() {
   const { session, loading } = useAuth()
   const location = useLocation()
@@ -74,6 +119,7 @@ function AppShell() {
 
   return (
     <OnboardingGuard>
+      <UpdateBanner />
       <div className="flex h-full flex-col">
         <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>
           <Suspense fallback={<SplashScreen />}>
@@ -116,6 +162,9 @@ function AppShell() {
             {/* Compete sub-routes */}
             <Route path="/compete/leagues/create" element={<Guard><CompetePage /></Guard>} />
             <Route path="/compete/leagues/:id"    element={<Guard><LeagueDetailPage /></Guard>} />
+
+            {/* Player profiles */}
+            <Route path="/players/:playerId" element={<Guard><PlayerProfilePage /></Guard>} />
 
             {/* Notifications */}
             <Route path="/notifications" element={<Guard><NotificationsPage /></Guard>} />

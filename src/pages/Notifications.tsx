@@ -100,6 +100,7 @@ export function NotificationsPage() {
       return (data ?? []) as Notification[]
     },
     enabled: !!userId,
+    staleTime: 60_000,
   })
 
   const markReadMutation = useMutation({
@@ -144,6 +145,31 @@ export function NotificationsPage() {
     markAllReadMutation.mutate()
   }
 
+  // Group notifications by recency
+  const now = new Date()
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+  const yesterdayStart = todayStart - 86_400_000
+  const weekStart = todayStart - 6 * 86_400_000
+
+  const groups: { label: string; items: Notification[] }[] = []
+  const today: Notification[] = []
+  const yesterday: Notification[] = []
+  const thisWeek: Notification[] = []
+  const earlier: Notification[] = []
+
+  for (const n of notifications) {
+    const t = new Date(n.created_at).getTime()
+    if (t >= todayStart) today.push(n)
+    else if (t >= yesterdayStart) yesterday.push(n)
+    else if (t >= weekStart) thisWeek.push(n)
+    else earlier.push(n)
+  }
+
+  if (today.length)     groups.push({ label: 'Today',      items: today })
+  if (yesterday.length) groups.push({ label: 'Yesterday',  items: yesterday })
+  if (thisWeek.length)  groups.push({ label: 'This week',  items: thisWeek })
+  if (earlier.length)   groups.push({ label: 'Earlier',    items: earlier })
+
   return (
     <div className="flex flex-col min-h-full bg-gray-50">
       {/* Header */}
@@ -185,29 +211,38 @@ export function NotificationsPage() {
             subtitle="We'll notify you when something happens"
           />
         ) : (
-          <div className="space-y-1">
-            {notifications.map((n) => (
-              <button
-                key={n.id}
-                onClick={() => handleTap(n)}
-                className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors ${
-                  n.read ? 'bg-white' : 'bg-teal-50/60'
-                }`}
-              >
-                <NotifIcon type={n.type} />
-                <div className="flex-1 min-w-0">
-                  {n.title && (
-                    <p className="text-[12px] font-bold text-gray-500 mb-0.5">{n.title}</p>
-                  )}
-                  <p className={`text-sm leading-snug ${n.read ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
-                    {n.message}
-                  </p>
-                  <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+          <div className="space-y-4">
+            {groups.map((group) => (
+              <div key={group.label}>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2 px-1">
+                  {group.label}
+                </p>
+                <div className="space-y-1">
+                  {group.items.map((n) => (
+                    <button
+                      key={n.id}
+                      onClick={() => handleTap(n)}
+                      className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors ${
+                        n.read ? 'bg-white' : 'bg-teal-50/60'
+                      }`}
+                    >
+                      <NotifIcon type={n.type} />
+                      <div className="flex-1 min-w-0">
+                        {n.title && (
+                          <p className="text-[12px] font-bold text-gray-500 mb-0.5">{n.title}</p>
+                        )}
+                        <p className={`text-sm leading-snug ${n.read ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
+                          {n.message}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                      </div>
+                      {!n.read && (
+                        <div className="w-2 h-2 rounded-full bg-[#009688] flex-shrink-0 mt-1.5" />
+                      )}
+                    </button>
+                  ))}
                 </div>
-                {!n.read && (
-                  <div className="w-2 h-2 rounded-full bg-[#009688] flex-shrink-0 mt-1.5" />
-                )}
-              </button>
+              </div>
             ))}
           </div>
         )}

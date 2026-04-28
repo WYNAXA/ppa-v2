@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Zap } from 'lucide-react'
+import { ChevronLeft, Zap, Share2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -369,6 +369,15 @@ export function LeagueDetailPage() {
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
 
+  async function handleShare(leagueName: string) {
+    const url = `${window.location.origin}/compete/leagues/${id}`
+    if (navigator.share) {
+      try { await navigator.share({ title: leagueName, url }) } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url)
+    }
+  }
+
   const { data: league, isLoading: loadingLeague } = useLeague(id)
   const groupIds = league?.linked_group_ids ?? []
   const isMexicano = league?.match_type === 'mexicano'
@@ -433,6 +442,12 @@ export function LeagueDetailPage() {
               </span>
             </div>
           </div>
+          <button
+            onClick={() => handleShare(league.name)}
+            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          >
+            <Share2 className="h-4 w-4 text-gray-600" />
+          </button>
         </div>
         {(league.season_start || league.season_end) && (
           <p className="text-[12px] text-gray-400 ml-12">

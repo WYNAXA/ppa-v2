@@ -411,19 +411,76 @@ export function MatchDetailPage() {
       {/* Result banner */}
       {result && <ResultBanner result={result} players={players} />}
 
+      {/* 4-players-ready banner (creator, not yet booked, no result) */}
+      {isCreator && match.player_ids.length === 4 && !result && match.status !== 'completed' && match.status !== 'cancelled' && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-5 mb-4 rounded-2xl bg-green-50 border border-green-200 px-4 py-3"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
+            <p className="text-[13px] font-bold text-green-800">All 4 players confirmed!</p>
+          </div>
+          <div className="flex gap-2">
+            {!match.booked_venue_name && (
+              <button
+                onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
+                className="flex-1 rounded-xl bg-green-600 py-2 text-[12px] font-bold text-white"
+              >
+                Book a Court
+              </button>
+            )}
+            <button
+              onClick={() => setShowRecordResult(true)}
+              className="flex-1 rounded-xl border border-green-200 py-2 text-[12px] font-semibold text-green-700"
+            >
+              Play without booking
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Open match progress bar */}
+      {match.player_ids.length < 4 && match.status !== 'completed' && match.status !== 'cancelled' && (
+        <div className="mx-5 mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="text-[11px] font-semibold text-gray-500">{match.player_ids.length} of 4 players joined</p>
+            {isCreator && (
+              <button
+                onClick={() => setShowInvite(true)}
+                className="text-[11px] font-semibold text-[#009688]"
+              >
+                + Invite players
+              </button>
+            )}
+          </div>
+          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-[#009688] transition-all"
+              style={{ width: `${(match.player_ids.length / 4) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Players */}
       <div className="px-5 mb-4">
         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Players</p>
         <div className="grid grid-cols-2 gap-2">
-          {slots.map((player, i) => (
+          {slots.map((player, i) => {
+            const isClickable = player && player.id !== currentUserId && !('isGuest' in player && player.isGuest) && !player.id.startsWith('guest_')
+            return (
             <motion.div
               key={i}
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.06 }}
+              onClick={isClickable ? () => navigate(`/players/${player.id}`) : undefined}
               className={cn(
                 'flex items-center gap-2.5 rounded-xl border px-3 py-2.5',
-                player ? 'border-gray-100 bg-white' : 'border-dashed border-gray-200 bg-gray-50'
+                player ? 'border-gray-100 bg-white' : 'border-dashed border-gray-200 bg-gray-50',
+                isClickable ? 'cursor-pointer hover:border-teal-200 hover:bg-teal-50/20 active:scale-[0.98] transition-all' : ''
               )}
             >
               {player ? (
@@ -465,7 +522,8 @@ export function MatchDetailPage() {
                 </>
               )}
             </motion.div>
-          ))}
+          )
+          })}
         </div>
       </div>
 

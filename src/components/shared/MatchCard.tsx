@@ -15,6 +15,9 @@ export interface MatchCardData {
   status: string
   // Joined player profiles (optional — shown as initials if absent)
   players?: Array<{ id: string; name: string; avatar_url?: string | null }>
+  // Past match result data
+  score?: string
+  didWin?: boolean
 }
 
 interface MatchCardProps {
@@ -37,6 +40,7 @@ const STATUS_STYLES: Record<string, { label: string; dot: string }> = {
   scheduled: { label: 'Confirmed', dot: 'bg-green-400' },
   open:      { label: 'Open',      dot: 'bg-orange-400' },
   pending:   { label: 'Pending',   dot: 'bg-yellow-400' },
+  completed: { label: 'Played',    dot: 'bg-gray-400' },
 }
 
 function formatMatchDate(dateStr: string, timeStr: string | null) {
@@ -57,6 +61,7 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
 
   // Show up to 4 avatars
   const avatarSlots = match.player_ids.slice(0, 4)
+  const hasResult = match.score !== undefined
 
   return (
     <motion.button
@@ -113,16 +118,36 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
             <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold', typeStyle.className)}>
               {typeStyle.label}
             </span>
-            <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
-              <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
-              {statusStyle.label}
-            </span>
+            {!hasResult && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
+                <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
+                {statusStyle.label}
+              </span>
+            )}
           </div>
         </div>
 
         {/* Right */}
         <div className="flex flex-col items-end justify-between self-stretch gap-2 flex-shrink-0">
-          {action === 'join' && onJoin ? (
+          {/* Score badge for past matches */}
+          {hasResult ? (
+            <div className={cn(
+              'flex flex-col items-end gap-0.5'
+            )}>
+              <span className={cn(
+                'text-[15px] font-black',
+                match.didWin === true ? 'text-teal-600' : match.didWin === false ? 'text-red-500' : 'text-gray-700'
+              )}>
+                {match.score}
+              </span>
+              <span className={cn(
+                'text-[10px] font-bold uppercase tracking-wide',
+                match.didWin === true ? 'text-teal-500' : match.didWin === false ? 'text-red-400' : 'text-gray-400'
+              )}>
+                {match.didWin === true ? 'Win' : match.didWin === false ? 'Loss' : 'Draw'}
+              </span>
+            </div>
+          ) : action === 'join' && onJoin ? (
             <button
               onClick={(e) => { e.stopPropagation(); onJoin(match.id) }}
               className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-teal-700 active:scale-95"
@@ -132,7 +157,7 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
           ) : (
             <ChevronRight className="h-4 w-4 text-gray-300 mt-1" />
           )}
-          {match.match_time && (
+          {match.match_time && !hasResult && (
             <div className="flex items-center gap-0.5 text-[11px] text-gray-400">
               <Clock className="h-3 w-3" />
               {match.match_time.slice(0, 5)}

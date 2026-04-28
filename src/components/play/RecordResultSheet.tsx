@@ -62,16 +62,25 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
 
   const queryClient = useQueryClient()
 
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
   const submitMutation = useMutation({
     mutationFn: async () => {
       const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
       const t1Total = completedSets.reduce((acc, s) => acc + (Number(s.team1) > Number(s.team2) ? 1 : 0), 0)
       const t2Total = completedSets.reduce((acc, s) => acc + (Number(s.team2) > Number(s.team1) ? 1 : 0), 0)
 
+      // Filter out guest/non-UUID player IDs — they fail FK constraints
+      const cleanTeam1 = team1.filter((id) => UUID_RE.test(id))
+      const cleanTeam2 = team2.filter((id) => UUID_RE.test(id))
+
+      console.log('[RecordResult] teams after guest filter:', cleanTeam1, cleanTeam2)
+      console.log('[RecordResult] result_type:', resultType, 'match_id:', match.id)
+
       const payload = {
         match_id:            match.id,
-        team1_players:       team1,
-        team2_players:       team2,
+        team1_players:       cleanTeam1,
+        team2_players:       cleanTeam2,
         team1_score:         t1Total,
         team2_score:         t2Total,
         result_type:         resultType!,
@@ -113,6 +122,11 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       queryClient.invalidateQueries({ queryKey: ['match', match.id] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['achievements', currentUserId] })
+      // Invalidate profile + leaderboard so ELO updates everywhere
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
+      queryClient.invalidateQueries({ queryKey: ['compete-leaderboard'] })
+      queryClient.invalidateQueries({ queryKey: ['home-ranking'] })
+      queryClient.invalidateQueries({ queryKey: ['compete-stats'] })
       const earned = await checkAndAwardBadges(currentUserId)
       setNewBadges(earned)
       setStep(4)

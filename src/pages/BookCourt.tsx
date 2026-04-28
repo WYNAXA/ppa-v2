@@ -10,7 +10,15 @@ import { cn } from '@/lib/utils'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
-interface Venue { venue_id: string; venue_name: string; city?: string | null; address?: string | null }
+interface Venue {
+  venue_id: string
+  venue_name: string
+  city?: string | null
+  full_address?: string | null
+  booking_url?: string | null
+  booking_platform?: string | null
+  number_of_courts?: number | null
+}
 interface Court { id: string; court_name: string | null; court_number: number | null }
 interface TimeSlot { start_time: string; end_time: string; available: boolean; price?: number | null }
 
@@ -69,34 +77,15 @@ export function BookCourtPage() {
     enabled: !!matchId,
   })
 
-  // Venue search — check both venues (bookable) and padel_venues (directory)
+  // Venue search — padel_venues directory with full booking metadata
   useEffect(() => {
     if (debouncedQuery.length < 2) { setVenueResults([]); return }
-    Promise.all([
-      supabase
-        .from('venues')
-        .select('id, name, city, address')
-        .ilike('name', `%${debouncedQuery}%`)
-        .limit(5),
-      supabase
-        .from('padel_venues')
-        .select('venue_id, venue_name, city, address')
-        .ilike('venue_name', `%${debouncedQuery}%`)
-        .limit(8),
-    ]).then(([venuesRes, padRes]) => {
-      const bookable: Venue[] = (venuesRes.data ?? []).map((v) => ({
-        venue_id:   v.id,
-        venue_name: v.name,
-        city:       v.city ?? null,
-        address:    v.address ?? null,
-        bookable:   true,
-      } as Venue & { bookable?: boolean }))
-      const directory: Venue[] = (padRes.data ?? []).map((v) => ({ ...v, bookable: false } as Venue & { bookable?: boolean }))
-      // Deduplicate by name
-      const seen = new Set(bookable.map((v) => v.venue_name.toLowerCase()))
-      const combined = [...bookable, ...directory.filter((v) => !seen.has(v.venue_name.toLowerCase()))]
-      setVenueResults(combined)
-    })
+    supabase
+      .from('padel_venues')
+      .select('venue_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts')
+      .or(`venue_name.ilike.%${debouncedQuery}%,city.ilike.%${debouncedQuery}%`)
+      .limit(10)
+      .then(({ data }) => setVenueResults(data ?? []))
   }, [debouncedQuery])
 
   // Courts for venue
@@ -332,9 +321,24 @@ export function BookCourtPage() {
                       className="w-full text-left px-4 py-2.5 hover:bg-teal-50 flex items-start gap-2"
                     >
                       <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-gray-800">{v.venue_name}</p>
-                        {v.city && <p className="text-[11px] text-gray-400">{v.city}</p>}
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {v.city && <p className="text-[11px] text-gray-400">{v.city}</p>}
+                          {v.number_of_courts != null && (
+                            <p className="text-[11px] text-gray-400">{v.number_of_courts} courts</p>
+                          )}
+                          {v.booking_platform && v.booking_platform !== 'Custom' && (
+                            <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">
+                              {v.booking_platform}
+                            </span>
+                          )}
+                          {(!v.booking_platform || v.booking_platform === 'Custom') && (
+                            <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">
+                              Book via PPA
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   </li>
@@ -363,15 +367,43 @@ export function BookCourtPage() {
           </div>
         )}
 
-        {/* Check availability button */}
+        {/* Selected venue info + booking action */}
         {selectedVenue && (
-          <button
-            onClick={fetchSlots}
-            disabled={loadingSlots}
-            className="w-full rounded-2xl border-2 border-[#009688] py-3 text-[14px] font-bold text-[#009688] disabled:opacity-50"
-          >
-            {loadingSlots ? 'Checking…' : 'Check Availability'}
-          </button>
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="flex items-start gap-3 mb-3">
+              <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[14px] font-bold text-gray-900">{selectedVenue.venue_name}</p>
+                {selectedVenue.city && <p className="text-[12px] text-gray-500">{selectedVenue.city}</p>}
+                {selectedVenue.full_address && <p className="text-[11px] text-gray-400 mt-0.5">{selectedVenue.full_address}</p>}
+                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                  {selectedVenue.number_of_courts != null && (
+                    <span className="text-[11px] text-gray-500">{selectedVenue.number_of_courts} courts</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Booking action */}
+            {selectedVenue.booking_platform && selectedVenue.booking_platform !== 'Custom' && selectedVenue.booking_url ? (
+              <a
+                href={selectedVenue.booking_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full rounded-xl bg-blue-600 py-3 text-[14px] font-bold text-white text-center"
+              >
+                Book via {selectedVenue.booking_platform}
+              </a>
+            ) : (
+              <button
+                onClick={fetchSlots}
+                disabled={loadingSlots}
+                className="w-full rounded-xl border-2 border-[#009688] py-3 text-[14px] font-bold text-[#009688] disabled:opacity-50"
+              >
+                {loadingSlots ? 'Checking availability…' : 'Check Availability via PPA'}
+              </button>
+            )}
+          </div>
         )}
 
         {slotsError && (

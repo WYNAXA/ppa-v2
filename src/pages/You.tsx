@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -25,6 +25,9 @@ interface FullProfile {
   internal_ranking: number | null
   ranking_points: number | null
   household_partner_id: string | null
+  show_email: boolean | null
+  show_location: boolean | null
+  public_history: boolean | null
 }
 
 interface MatchHistoryItem {
@@ -61,7 +64,7 @@ function useFullProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played')
+        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history')
         .eq('id', userId)
         .single()
       if (error) return null
@@ -392,8 +395,34 @@ function EditProfileSheet({
   const [city, setCity]             = useState(profile?.city ?? '')
   const [postalCode, setPostalCode] = useState(profile?.postal_code ?? '')
   const [country, setCountry]       = useState(profile?.country ?? '')
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const [uploading, setUploading]   = useState(false)
+  const fileInputRef                = useRef<HTMLInputElement>(null)
 
   const COUNTRIES = ['UK', 'Ireland', 'Spain', 'Portugal', 'Italy', 'France', 'Germany', 'Netherlands', 'Belgium', 'Other']
+
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+    const preview = URL.createObjectURL(file)
+    setAvatarPreview(preview)
+    setUploading(true)
+    try {
+      const ext = file.name.split('.').pop() ?? 'jpg'
+      const path = `${user.id}/avatar.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (uploadError) throw uploadError
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+      queryClient.invalidateQueries({ queryKey: ['full-profile', user.id] })
+    } catch {
+      setAvatarPreview(null)
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -445,6 +474,39 @@ function EditProfileSheet({
             </div>
 
             <div className="px-5 pb-6 space-y-4" style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+              {/* Avatar picker */}
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative"
+                  disabled={uploading}
+                >
+                  {avatarPreview || profile?.avatar_url ? (
+                    <img
+                      src={avatarPreview ?? profile!.avatar_url!}
+                      alt="avatar"
+                      className="h-20 w-20 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center text-[28px] font-bold text-gray-500">
+                      {(profile?.name ?? '?')[0].toUpperCase()}
+                    </div>
+                  )}
+                  <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-[#009688] border-2 border-white flex items-center justify-center">
+                    <Edit2 className="h-3 w-3 text-white" />
+                  </span>
+                </button>
+                <p className="text-[11px] text-gray-400">{uploading ? 'Uploading…' : 'Tap to change photo'}</p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+              </div>
+
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Name</label>
                 <input
@@ -840,6 +902,36 @@ export function YouPage() {
                 ))}
               </div>
             </div>
+
+            {/* Privacy settings */}
+            {[
+              { key: 'show_email',      label: 'Show email to other players' },
+              { key: 'show_location',   label: 'Show location publicly' },
+              { key: 'public_history',  label: 'Public match history' },
+            ].map(({ key, label }) => {
+              const currentVal = !!(fullProfile as any)?.[key]
+              return (
+                <div key={key} className="flex items-center justify-between px-4 py-3.5">
+                  <span className="text-[13px] font-medium text-gray-700">{label}</span>
+                  <button
+                    onClick={async () => {
+                      await supabase.from('profiles').update({ [key]: !currentVal }).eq('id', userId)
+                      queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
+                    }}
+                    className={cn(
+                      'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                      currentVal ? 'bg-[#009688]' : 'bg-gray-200'
+                    )}
+                    aria-label={label}
+                  >
+                    <span className={cn(
+                      'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+                      currentVal ? 'translate-x-6' : 'translate-x-1'
+                    )} />
+                  </button>
+                </div>
+              )
+            })}
 
             {/* Password reset */}
             <button

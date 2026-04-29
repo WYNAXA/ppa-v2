@@ -151,16 +151,19 @@ function useMyBadges(userId: string) {
   })
 }
 
-function useGlobalLeaderboard() {
+function useGlobalLeaderboard(limit: number, search: string) {
   return useQuery<RankedProfile[]>({
-    queryKey: ['global-leaderboard'],
+    queryKey: ['global-leaderboard', limit, search],
     queryFn: async () => {
-      const { data } = await supabase
+      let query = supabase
         .from('profiles')
         .select('id, name, avatar_url, internal_ranking, ranking_points, is_provisional, matches_played')
         .not('internal_ranking', 'is', null)
         .order('internal_ranking', { ascending: false })
-        .limit(20)
+      if (search.trim().length >= 2) {
+        query = query.ilike('name', `%${search.trim()}%`)
+      }
+      const { data } = await query.limit(limit)
       return data ?? []
     },
   })
@@ -195,7 +198,7 @@ function useGroupLeaderboard(userId: string) {
         .in('id', userIds)
         .not('internal_ranking', 'is', null)
         .order('internal_ranking', { ascending: false })
-        .limit(20)
+        .limit(50)
 
       return data ?? []
     },
@@ -511,18 +514,20 @@ export function CompetePage() {
   }, [location.pathname])
 
   const [leaderboardSearch, setLeaderboardSearch] = useState('')
+  const [leaderboardLimit, setLeaderboardLimit]   = useState(50)
   const myRowRef = useRef<HTMLDivElement>(null)
 
   const { data: stats,            isLoading: loadingStats    } = useMyStats(userId, profile?.internal_ranking)
   const { data: achievementCount = 0 }                        = useAchievementCount(userId)
   const { data: myBadges = [] }                               = useMyBadges(userId)
-  const { data: globalBoard = [], isLoading: loadingGlobal   } = useGlobalLeaderboard()
+  const { data: globalBoard = [], isLoading: loadingGlobal   } = useGlobalLeaderboard(leaderboardLimit, leaderboardSearch)
   const { data: groupBoard  = [], isLoading: loadingGroup    } = useGroupLeaderboard(userId)
   const { data: myLeagues   = [], isLoading: loadingLeagues  } = useMyLeagues(userId)
 
   const rawLeaderboard     = leaderboardTab === 'global' ? globalBoard : groupBoard
   const loadingLeaderboard = leaderboardTab === 'global' ? loadingGlobal : loadingGroup
-  const leaderboard        = leaderboardSearch.trim()
+  // For group leaderboard filter client-side; global already filtered server-side
+  const leaderboard        = leaderboardTab === 'my_groups' && leaderboardSearch.trim()
     ? rawLeaderboard.filter((p) => p.name.toLowerCase().includes(leaderboardSearch.toLowerCase()))
     : rawLeaderboard
 
@@ -572,7 +577,7 @@ export function CompetePage() {
             {(['global', 'my_groups'] as const).map((tab) => (
               <button
                 key={tab}
-                onClick={() => { setLeaderboardTab(tab); setLeaderboardSearch('') }}
+                onClick={() => { setLeaderboardTab(tab); setLeaderboardSearch(''); setLeaderboardLimit(50) }}
                 className={cn(
                   'flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors',
                   leaderboardTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
@@ -608,18 +613,28 @@ export function CompetePage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-1.5">
-              {leaderboard.map((p, i) => (
-                <LeaderboardRow
-                  key={p.id}
-                  profile={p}
-                  rank={i + 1}
-                  currentUserId={userId}
-                  index={i}
-                  rowRef={p.id === userId ? myRowRef : undefined}
-                />
-              ))}
-            </div>
+            <>
+              <div className="space-y-1.5">
+                {leaderboard.map((p, i) => (
+                  <LeaderboardRow
+                    key={p.id}
+                    profile={p}
+                    rank={i + 1}
+                    currentUserId={userId}
+                    index={i}
+                    rowRef={p.id === userId ? myRowRef : undefined}
+                  />
+                ))}
+              </div>
+              {leaderboardTab === 'global' && leaderboard.length >= leaderboardLimit && !leaderboardSearch && (
+                <button
+                  onClick={() => setLeaderboardLimit((l) => l + 50)}
+                  className="mt-3 w-full rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Load more
+                </button>
+              )}
+            </>
           )}
 
           {/* Find me sticky banner */}

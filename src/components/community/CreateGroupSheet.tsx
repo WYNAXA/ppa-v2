@@ -1,18 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Globe, Lock, Link } from 'lucide-react'
+import { X, Globe, Lock } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
-type Visibility = 'public' | 'private' | 'invite_only'
+type Visibility = 'open' | 'private'
 
 const VISIBILITY_OPTIONS: Array<{ value: Visibility; label: string; desc: string; Icon: typeof Globe }> = [
-  { value: 'public',      label: 'Public',       desc: 'Anyone can find and join',       Icon: Globe },
-  { value: 'private',     label: 'Private',       desc: 'Admin approves join requests',   Icon: Lock  },
-  { value: 'invite_only', label: 'Invite only',   desc: 'Members join via invite link',   Icon: Link  },
+  { value: 'open',    label: 'Open',    desc: 'Anyone can find and join',     Icon: Globe },
+  { value: 'private', label: 'Private', desc: 'Admin approves join requests', Icon: Lock  },
 ]
 
 interface CreateGroupSheetProps {
@@ -21,19 +20,19 @@ interface CreateGroupSheetProps {
 }
 
 export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const navigate  = useNavigate()
 
   const [name, setName]               = useState('')
   const [description, setDescription] = useState('')
-  const [city, setCity]               = useState('')
-  const [visibility, setVisibility]   = useState<Visibility>('public')
+  const [city, setCity]               = useState(profile?.city ?? '')
+  const [visibility, setVisibility]   = useState<Visibility>('open')
 
   function reset() {
     setName('')
     setDescription('')
-    setCity('')
-    setVisibility('public')
+    setCity(profile?.city ?? '')
+    setVisibility('open')
   }
 
   const createMutation = useMutation({

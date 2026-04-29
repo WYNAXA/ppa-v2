@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, Search, Users, MapPin, ChevronRight } from 'lucide-react'
+import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -294,6 +294,21 @@ function DiscoverCard({
 
 // ── Find Players query ────────────────────────────────────────────────────────
 
+function useMyConnections(userId: string) {
+  return useQuery<Set<string>>({
+    queryKey: ['my-connections', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('player_connections')
+        .select('connected_user_id, status')
+        .eq('user_id', userId)
+      const connected = new Set((data ?? []).map((c: any) => c.connected_user_id))
+      return connected
+    },
+  })
+}
+
 function useFindPlayers(query: string, city: string | null) {
   return useQuery({
     queryKey: ['find-players', query, city],
@@ -322,8 +337,13 @@ export function CommunityPage() {
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [playerSearch, setPlayerSearch]       = useState('')
   const [playerCityFilter, setPlayerCityFilter] = useState(false)
+  // Auto-enable city filter once profile city is known
+  useEffect(() => {
+    if (profile?.city) setPlayerCityFilter(true)
+  }, [profile?.city])
 
   const userId = profile?.id ?? ''
+  const { data: myConnections = new Set<string>() } = useMyConnections(userId)
   const { data: myGroups = [], isLoading: loadingMine } = useMyGroups(userId)
   const myGroupIds = myGroups.map((g) => g.id)
 
@@ -355,6 +375,20 @@ export function CommunityPage() {
 
       if (isPublic) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
       queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })
+    },
+  })
+
+  const connectMutation = useMutation({
+    mutationFn: async (targetId: string) => {
+      const { error } = await supabase.from('player_connections').insert({
+        user_id:           userId,
+        connected_user_id: targetId,
+        status:            'pending',
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
     },
   })
 
@@ -503,24 +537,45 @@ export function CommunityPage() {
               </div>
             ) : (
               <div className="space-y-2">
-                {foundPlayers.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => navigate(`/players/${p.id}`)}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 hover:bg-teal-50/40 hover:border-teal-200 border border-transparent transition-colors text-left active:scale-[0.98]"
-                  >
-                    <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
-                      {p.city && <p className="text-[11px] text-gray-400">{p.city}</p>}
+                {foundPlayers.map((p) => {
+                  const isConnected = myConnections.has(p.id) || p.id === userId
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-transparent"
+                    >
+                      <button
+                        onClick={() => navigate(`/players/${p.id}`)}
+                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                      >
+                        <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
+                          {p.city && <p className="text-[11px] text-gray-400">{p.city}</p>}
+                        </div>
+                      </button>
+                      {p.internal_ranking != null && (
+                        <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
+                          {p.internal_ranking} ELO
+                        </span>
+                      )}
+                      {p.id !== userId && (
+                        <button
+                          onClick={() => !isConnected && connectMutation.mutate(p.id)}
+                          disabled={isConnected || connectMutation.isPending}
+                          className={`flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${
+                            isConnected
+                              ? 'bg-gray-100 text-gray-400'
+                              : 'bg-[#009688] text-white hover:bg-teal-700'
+                          }`}
+                        >
+                          {isConnected ? <Check className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                          {isConnected ? 'Added' : 'Connect'}
+                        </button>
+                      )}
                     </div>
-                    {p.internal_ranking != null && (
-                      <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">
-                        {p.internal_ranking} ELO
-                      </span>
-                    )}
-                  </button>
-                ))}
+                  )
+                })}
               </div>
             )
           )}

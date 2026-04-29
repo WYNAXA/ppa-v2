@@ -95,9 +95,13 @@ function useMatches(tab: Tab, userId: string, typeFilter: MatchTypeFilter) {
         let didWin: boolean | undefined
         if (result) {
           score = `${result.team1_score}–${result.team2_score}`
-          const onTeam1 = result.team1_players?.includes(userId)
-          didWin = (onTeam1 && result.result_type === 'team1_win') ||
-                   (!onTeam1 && result.result_type === 'team2_win')
+          if (result.result_type === 'draw') {
+            didWin = undefined // renders as "Draw"
+          } else {
+            const onTeam1 = result.team1_players?.includes(userId)
+            didWin = (onTeam1 && result.result_type === 'team1_win') ||
+                     (!onTeam1 && result.result_type === 'team2_win')
+          }
         }
         return {
           id: m.id,

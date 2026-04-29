@@ -887,8 +887,9 @@ export function YouPage() {
                   <button
                     key={lang.code}
                     onClick={async () => {
-                      setLanguage(lang.code)
                       await supabase.from('profiles').update({ preferred_language: lang.code }).eq('id', userId)
+                      setLanguage(lang.code)
+                      window.location.reload()
                     }}
                     className={cn(
                       'flex-shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold border transition-colors',

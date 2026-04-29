@@ -19,6 +19,21 @@ interface CreateGroupSheetProps {
   onClose: () => void
 }
 
+function Toggle({ enabled, onChange, label }: { enabled: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <div className="flex items-center justify-between">
+      <span className="text-[13px] text-gray-700">{label}</span>
+      <button
+        type="button"
+        onClick={() => onChange(!enabled)}
+        className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', enabled ? 'bg-[#009688]' : 'bg-gray-200')}
+      >
+        <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition-transform', enabled ? 'translate-x-6' : 'translate-x-1')} />
+      </button>
+    </div>
+  )
+}
+
 export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
   const { user, profile } = useAuth()
   const navigate  = useNavigate()
@@ -28,11 +43,21 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
   const [city, setCity]               = useState(profile?.city ?? '')
   const [visibility, setVisibility]   = useState<Visibility>('open')
 
+  // Privacy options (shown when private)
+  const [allowJoinRequests, setAllowJoinRequests]   = useState(true)
+  const [autoApprove, setAutoApprove]               = useState(false)
+  const [allowRingers, setAllowRingers]             = useState(true)
+  const [ringerApproval, setRingerApproval]         = useState<'admin' | 'any_member'>('admin')
+
   function reset() {
     setName('')
     setDescription('')
     setCity(profile?.city ?? '')
     setVisibility('open')
+    setAllowJoinRequests(true)
+    setAutoApprove(false)
+    setAllowRingers(true)
+    setRingerApproval('admin')
   }
 
   const createMutation = useMutation({
@@ -43,11 +68,15 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
       const { data: group, error: groupError } = await supabase
         .from('groups')
         .insert({
-          name:        name.trim(),
-          description: description.trim() || null,
-          city:        city.trim() || null,
+          name:                  name.trim(),
+          description:           description.trim() || null,
+          city:                  city.trim() || null,
           visibility,
-          admin_id:    user.id,
+          admin_id:              user.id,
+          allow_join_requests:   visibility === 'private' ? allowJoinRequests : true,
+          auto_approve_requests: visibility === 'private' ? autoApprove : true,
+          allow_ringers:         allowRingers,
+          ringer_approval:       ringerApproval,
         })
         .select('id')
         .single()
@@ -171,6 +200,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
                     return (
                       <button
                         key={value}
+                        type="button"
                         onClick={() => setVisibility(value)}
                         className={cn(
                           'w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-all',
@@ -190,6 +220,67 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
                   })}
                 </div>
               </div>
+
+              {/* Private group options */}
+              <AnimatePresence>
+                {visibility === 'private' && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    {/* Join requests */}
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3 mb-3">
+                      <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Join Requests</p>
+                      <Toggle
+                        label="Allow join requests"
+                        enabled={allowJoinRequests}
+                        onChange={setAllowJoinRequests}
+                      />
+                      {allowJoinRequests && (
+                        <Toggle
+                          label="Auto-approve requests"
+                          enabled={autoApprove}
+                          onChange={setAutoApprove}
+                        />
+                      )}
+                    </div>
+
+                    {/* Ringer policy */}
+                    <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
+                      <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Ringer / Guest Policy</p>
+                      <Toggle
+                        label="Allow ringers"
+                        enabled={allowRingers}
+                        onChange={setAllowRingers}
+                      />
+                      {allowRingers && (
+                        <div>
+                          <p className="text-[12px] text-gray-500 mb-2">Who can add ringers?</p>
+                          <div className="flex gap-2">
+                            {(['admin', 'any_member'] as const).map((opt) => (
+                              <button
+                                key={opt}
+                                type="button"
+                                onClick={() => setRingerApproval(opt)}
+                                className={cn(
+                                  'flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors',
+                                  ringerApproval === opt
+                                    ? 'bg-[#009688] text-white border-[#009688]'
+                                    : 'bg-white text-gray-600 border-gray-200'
+                                )}
+                              >
+                                {opt === 'admin' ? 'Admin only' : 'Any member'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {createMutation.isError && (
                 <p className="text-[12px] text-red-500 text-center">Failed to create group. Try again.</p>

@@ -6,6 +6,7 @@ import { ChevronLeft, MapPin, X, Clock, Calendar, CheckCircle } from 'lucide-rea
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { calculateDistance, formatDistance, driveMinutes } from '@/lib/travelUtils'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -18,6 +19,8 @@ interface Venue {
   booking_url?: string | null
   booking_platform?: string | null
   number_of_courts?: number | null
+  latitude?: number | null
+  longitude?: number | null
 }
 interface Court { id: string; court_name: string | null; court_number: number | null }
 interface TimeSlot { start_time: string; end_time: string; available: boolean; price?: number | null }
@@ -62,6 +65,20 @@ export function BookCourtPage() {
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const debouncedQuery = useDebounce(venueQuery, 300)
 
+  // User location for distance calculations
+  const { data: userLocation } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
+    queryKey: ['my-location-bookcourt', session?.user?.id],
+    enabled: !!session?.user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('latitude, longitude')
+        .eq('id', session!.user.id)
+        .single()
+      return data ?? null
+    },
+  })
+
   // Fetch match summary if navigated from match detail
   const { data: matchSummary } = useQuery({
     queryKey: ['match-summary', matchId],
@@ -82,11 +99,27 @@ export function BookCourtPage() {
     if (debouncedQuery.length < 2) { setVenueResults([]); return }
     supabase
       .from('padel_venues')
-      .select('venue_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts')
+      .select('venue_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude')
       .or(`venue_name.ilike.%${debouncedQuery}%,city.ilike.%${debouncedQuery}%`)
-      .limit(10)
-      .then(({ data }) => setVenueResults(data ?? []))
-  }, [debouncedQuery])
+      .limit(15)
+      .then(({ data }) => {
+        const venues: Venue[] = data ?? []
+        const uLat = userLocation?.latitude
+        const uLng = userLocation?.longitude
+        if (uLat && uLng) {
+          venues.sort((a, b) => {
+            const dA = a.latitude && a.longitude
+              ? calculateDistance(uLat, uLng, a.latitude, a.longitude)
+              : Infinity
+            const dB = b.latitude && b.longitude
+              ? calculateDistance(uLat, uLng, b.latitude, b.longitude)
+              : Infinity
+            return dA - dB
+          })
+        }
+        setVenueResults(venues)
+      })
+  }, [debouncedQuery, userLocation])
 
   // Courts for venue
   const { data: courts = [] } = useQuery<Court[]>({
@@ -307,7 +340,13 @@ export function BookCourtPage() {
                 exit={{ opacity: 0 }}
                 className="mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg max-h-52 overflow-y-auto"
               >
-                {venueResults.map((v) => (
+                {venueResults.map((v) => {
+                  const uLat = userLocation?.latitude
+                  const uLng = userLocation?.longitude
+                  const distMiles = (uLat && uLng && v.latitude && v.longitude)
+                    ? calculateDistance(uLat, uLng, v.latitude, v.longitude)
+                    : null
+                  return (
                   <li key={v.venue_id}>
                     <button
                       onClick={() => {
@@ -325,6 +364,11 @@ export function BookCourtPage() {
                         <p className="text-[13px] font-semibold text-gray-800">{v.venue_name}</p>
                         <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           {v.city && <p className="text-[11px] text-gray-400">{v.city}</p>}
+                          {distMiles != null && (
+                            <p className="text-[11px] font-semibold text-teal-600">
+                              {formatDistance(distMiles)} · ~{driveMinutes(distMiles)} min drive
+                            </p>
+                          )}
                           {v.number_of_courts != null && (
                             <p className="text-[11px] text-gray-400">{v.number_of_courts} courts</p>
                           )}
@@ -342,7 +386,7 @@ export function BookCourtPage() {
                       </div>
                     </button>
                   </li>
-                ))}
+                )})}
               </motion.ul>
             )}
           </AnimatePresence>

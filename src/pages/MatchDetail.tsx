@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,6 +13,14 @@ import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
 import type { Match, MatchResult, Profile } from '@/lib/types'
+import {
+  getMatchTravelInfo,
+  calculateDistance,
+  driveMinutes,
+  walkMinutes,
+  formatDistance,
+  type MatchTravelInfo,
+} from '@/lib/travelUtils'
 
 const TYPE_STYLES: Record<string, { label: string; className: string }> = {
   competitive: { label: 'Competitive', className: 'bg-orange-50 text-orange-600 border-orange-100' },
@@ -205,6 +213,114 @@ export function MatchDetailPage() {
     enabled: !!id,
   })
 
+  // Travel coordination
+  const { data: travelInfo } = useQuery<MatchTravelInfo | null>({
+    queryKey: ['match-travel', id, data?.match?.poll_id],
+    enabled: !!data?.match && (data.match.player_ids?.length ?? 0) > 0,
+    queryFn: () => getMatchTravelInfo(
+      data!.match.id,
+      data!.match.player_ids ?? [],
+      data!.match.poll_id,
+    ),
+  })
+
+  // Venue location (fetch lat/lng from padel_venues)
+  const { data: venueLatLng } = useQuery<{ latitude: number; longitude: number } | null>({
+    queryKey: ['venue-latlng', data?.match?.booked_venue_name],
+    enabled: !!data?.match?.booked_venue_name,
+    queryFn: async () => {
+      const { data: venue } = await supabase
+        .from('padel_venues')
+        .select('latitude, longitude')
+        .ilike('venue_name', `%${data!.match.booked_venue_name!}%`)
+        .limit(1)
+        .maybeSingle()
+      if (!venue?.latitude || !venue?.longitude) return null
+      return { latitude: venue.latitude, longitude: venue.longitude }
+    },
+  })
+
+  // User's own profile location for distance calculations
+  const { data: myLocation } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
+    queryKey: ['my-location', profile?.id],
+    enabled: !!profile?.id,
+    queryFn: async () => {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('latitude, longitude')
+        .eq('id', profile!.id)
+        .single()
+      return p ?? null
+    },
+  })
+
+  // Travel request mutation
+  const requestLiftMutation = useMutation({
+    mutationFn: async ({ driverId }: { driverId: string }) => {
+      const { error } = await supabase.from('travel_requests').insert({
+        match_id:     id,
+        requester_id: profile?.id,
+        driver_id:    driverId,
+        status:       'pending',
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
+      queryClient.invalidateQueries({ queryKey: ['travel-requests', id] })
+    },
+  })
+
+  // Existing travel requests for this match
+  const { data: myTravelRequests = [] } = useQuery<Array<{ driver_id: string; status: string }>>({
+    queryKey: ['travel-requests', id, profile?.id],
+    enabled: !!id && !!profile?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('travel_requests')
+        .select('driver_id, status')
+        .eq('match_id', id)
+        .eq('requester_id', profile!.id)
+      return data ?? []
+    },
+  })
+
+  const updateTravelRequestMutation = useMutation({
+    mutationFn: async ({ requesterId, status }: { requesterId: string; status: 'accepted' | 'declined' }) => {
+      const { error } = await supabase
+        .from('travel_requests')
+        .update({ status, updated_at: new Date().toISOString() })
+        .eq('match_id', id)
+        .eq('requester_id', requesterId)
+        .eq('driver_id', profile?.id)
+      if (error) throw error
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['match-travel', id] }),
+  })
+
+  // Incoming lift requests (driver's view)
+  const { data: incomingRequests = [] } = useQuery<Array<{ id: string; requester_id: string; status: string; requesterName?: string }>>({
+    queryKey: ['incoming-travel-requests', id, profile?.id],
+    enabled: !!id && !!profile?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('travel_requests')
+        .select('id, requester_id, status')
+        .eq('match_id', id)
+        .eq('driver_id', profile!.id)
+        .eq('status', 'pending')
+      if (!data || data.length === 0) return []
+      const requesterIds = data.map((r) => r.requester_id)
+      const { data: names } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .in('id', requesterIds)
+      const nameMap: Record<string, string> = {}
+      for (const p of names ?? []) nameMap[p.id] = p.name
+      return data.map((r) => ({ ...r, requesterName: nameMap[r.requester_id] ?? 'Player' }))
+    },
+  })
+
   const voteMutation = useMutation({
     mutationFn: async ({ vote, reason }: { vote: 'confirm' | 'dispute'; reason?: string }) => {
       const result = data?.result
@@ -260,6 +376,20 @@ export function MatchDetailPage() {
   }
 
   const { match, players, result, confirmVoteCount, myVote } = data
+
+  // Venue distance from user's location
+  const venueDistance = (() => {
+    if (!myLocation?.latitude || !myLocation?.longitude) return null
+    if (!venueLatLng?.latitude || !venueLatLng?.longitude) return null
+    return calculateDistance(
+      myLocation.latitude, myLocation.longitude,
+      venueLatLng.latitude, venueLatLng.longitude,
+    )
+  })()
+
+  const googleMapsUrl = match.booked_venue_name
+    ? `https://maps.google.com/?q=${encodeURIComponent(match.booked_venue_name)}`
+    : null
   const currentUserId = profile?.id ?? ''
   const playerIds     = match.player_ids ?? []
   const isParticipant = playerIds.includes(currentUserId)
@@ -397,12 +527,30 @@ export function MatchDetailPage() {
           </div>
         )}
         {match.booked_venue_name && (
-          <div className="flex items-center gap-2 mb-2">
-            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700 truncate">
-              {match.booked_venue_name}
-              {match.booked_court_number != null && ` · Court ${match.booked_court_number}`}
-            </p>
+          <div className="flex items-start gap-2 mb-2">
+            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] text-gray-700 truncate">
+                {match.booked_venue_name}
+                {match.booked_court_number != null && ` · Court ${match.booked_court_number}`}
+              </p>
+              {venueDistance != null && (
+                <p className="text-[11px] text-gray-400 mt-0.5">
+                  {formatDistance(venueDistance)} away · ~{driveMinutes(venueDistance)} min drive · ~{walkMinutes(venueDistance)} min walk
+                </p>
+              )}
+            </div>
+            {googleMapsUrl && (
+              <a
+                href={googleMapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-100 px-2 py-1 text-[11px] font-semibold text-blue-600"
+              >
+                <Navigation className="h-3 w-3" />
+                Directions
+              </a>
+            )}
           </div>
         )}
         {displayNotes && (
@@ -652,6 +800,128 @@ export function MatchDetailPage() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Getting there */}
+      {match.booked_venue_name && match.status !== 'completed' && match.status !== 'cancelled' && (
+        <div className="px-5 mb-4">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Car className="h-4 w-4 text-[#009688]" />
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Getting there</p>
+            </div>
+
+            {!travelInfo?.hasLocationData ? (
+              <div className="text-center py-2">
+                <p className="text-[12px] text-gray-500 mb-1">Add your location to see travel coordination</p>
+                <p className="text-[11px] text-gray-400">Update in your profile settings</p>
+              </div>
+            ) : (
+              <>
+                {/* Incoming lift requests (driver sees) */}
+                {incomingRequests.length > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[11px] font-semibold text-gray-500 mb-2">Lift requests</p>
+                    <div className="space-y-2">
+                      {incomingRequests.map((req) => (
+                        <div key={req.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
+                          <p className="text-[12px] font-semibold text-orange-800">{req.requesterName} wants a lift</p>
+                          <div className="flex gap-1.5">
+                            <button
+                              onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
+                              className="rounded-lg bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white"
+                            >
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
+                              className="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600"
+                            >
+                              Decline
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Drivers */}
+                {(travelInfo?.drivers.length ?? 0) > 0 && (
+                  <div className="mb-3">
+                    <p className="text-[11px] font-semibold text-gray-500 mb-2">Drivers</p>
+                    <div className="space-y-1.5">
+                      {travelInfo!.drivers.map((driver) => (
+                        <div key={driver.id} className="flex items-center gap-2.5">
+                          <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name}</p>
+                            <p className="text-[11px] text-gray-400">Can take {driver.max_passengers} passengers</p>
+                          </div>
+                          <span className="flex-shrink-0 rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Driver</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Needs a lift */}
+                {(travelInfo?.needsLift.length ?? 0) > 0 && (
+                  <div>
+                    <p className="text-[11px] font-semibold text-gray-500 mb-2">Need a lift</p>
+                    <div className="space-y-1.5">
+                      {travelInfo!.needsLift.map((passenger) => {
+                        const suggestion = travelInfo!.suggestions.find((s) => s.passenger.id === passenger.id)
+                        const existingRequest = myTravelRequests.find((r) => r.driver_id === suggestion?.driver.id)
+                        const isMe = passenger.id === profile?.id
+
+                        return (
+                          <div key={passenger.id} className="flex items-center gap-2.5">
+                            <PlayerAvatar name={passenger.name} avatarUrl={passenger.avatar_url} size="sm" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
+                              {suggestion && (
+                                <p className="text-[11px] text-gray-400">
+                                  {formatDistance(suggestion.distanceMiles)} from {suggestion.driver.name.split(' ')[0]}
+                                </p>
+                              )}
+                            </div>
+                            {isMe && suggestion && (
+                              <button
+                                onClick={() => {
+                                  if (!existingRequest) {
+                                    requestLiftMutation.mutate({ driverId: suggestion.driver.id })
+                                  }
+                                }}
+                                disabled={!!existingRequest || requestLiftMutation.isPending}
+                                className={cn(
+                                  'flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors',
+                                  existingRequest?.status === 'accepted'
+                                    ? 'bg-green-50 border border-green-100 text-green-600'
+                                    : existingRequest?.status === 'pending'
+                                    ? 'bg-gray-100 text-gray-400'
+                                    : 'bg-[#009688] text-white hover:bg-teal-700',
+                                )}
+                              >
+                                {existingRequest?.status === 'accepted' ? 'Lift confirmed' :
+                                 existingRequest?.status === 'pending' ? 'Requested' :
+                                 `Ask ${suggestion.driver.name.split(' ')[0]}`}
+                              </button>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {(travelInfo?.drivers.length ?? 0) === 0 && (travelInfo?.needsLift.length ?? 0) === 0 && (
+                  <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
+                )}
+              </>
+            )}
+          </div>
         </div>
       )}
 

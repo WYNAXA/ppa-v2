@@ -395,6 +395,10 @@ function EditProfileSheet({
   const [city, setCity]             = useState(profile?.city ?? '')
   const [postalCode, setPostalCode] = useState(profile?.postal_code ?? '')
   const [country, setCountry]       = useState(profile?.country ?? '')
+  const [canDrive, setCanDrive]     = useState<boolean>(!!(profile as any)?.can_drive)
+  const [maxPassengers, setMaxPassengers] = useState<number>((profile as any)?.max_passengers ?? 3)
+  const [travelRadius, setTravelRadius]   = useState<number>((profile as any)?.travel_radius_miles ?? 5)
+  const [locating, setLocating]     = useState(false)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [uploading, setUploading]   = useState(false)
   const fileInputRef                = useRef<HTMLInputElement>(null)
@@ -430,10 +434,13 @@ function EditProfileSheet({
       const { error } = await supabase
         .from('profiles')
         .update({
-          name:        name.trim(),
-          city:        city.trim() || null,
-          postal_code: postalCode.trim() || null,
-          country:     country || null,
+          name:                name.trim(),
+          city:                city.trim() || null,
+          postal_code:         postalCode.trim() || null,
+          country:             country || null,
+          can_drive:           canDrive,
+          max_passengers:      maxPassengers,
+          travel_radius_miles: travelRadius,
         })
         .eq('id', user.id)
       if (error) throw error
@@ -556,6 +563,79 @@ function EditProfileSheet({
                   <option value="">Select country…</option>
                   {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
+              </div>
+
+              {/* Travel preferences */}
+              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
+                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Travel preferences</p>
+
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-gray-700">I have a car</span>
+                  <button
+                    type="button"
+                    onClick={() => setCanDrive((v) => !v)}
+                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', canDrive ? 'bg-[#009688]' : 'bg-gray-200')}
+                  >
+                    <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition-transform', canDrive ? 'translate-x-6' : 'translate-x-1')} />
+                  </button>
+                </div>
+
+                {canDrive && (
+                  <>
+                    <div>
+                      <label className="text-[12px] text-gray-500 block mb-1.5">Max passengers: {maxPassengers}</label>
+                      <input
+                        type="range"
+                        min={1}
+                        max={4}
+                        value={maxPassengers}
+                        onChange={(e) => setMaxPassengers(Number(e.target.value))}
+                        className="w-full accent-[#009688]"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-300">
+                        <span>1</span><span>2</span><span>3</span><span>4</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-[12px] text-gray-500 block mb-1.5">Pick-up radius: {travelRadius} miles</label>
+                      <input
+                        type="range"
+                        min={1}
+                        max={20}
+                        value={travelRadius}
+                        onChange={(e) => setTravelRadius(Number(e.target.value))}
+                        className="w-full accent-[#009688]"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-300">
+                        <span>1 mi</span><span>20 mi</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  disabled={locating}
+                  onClick={() => {
+                    if (!navigator.geolocation || !user) return
+                    setLocating(true)
+                    navigator.geolocation.getCurrentPosition(
+                      async (pos) => {
+                        await supabase.from('profiles').update({
+                          latitude:  pos.coords.latitude,
+                          longitude: pos.coords.longitude,
+                        }).eq('id', user.id)
+                        setLocating(false)
+                        queryClient.invalidateQueries({ queryKey: ['full-profile', user.id] })
+                      },
+                      () => setLocating(false),
+                    )
+                  }}
+                  className="w-full rounded-xl border border-gray-200 bg-white py-2 text-[12px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                >
+                  {locating ? 'Getting location…' : 'Use my current location'}
+                </button>
               </div>
 
               {saveMutation.isError && (

@@ -57,7 +57,7 @@ export interface MatchTravelInfo {
 }
 
 export async function getMatchTravelInfo(
-  matchId: string,
+  _matchId: string,
   playerIds: string[],
   pollId?: string | null,
 ): Promise<MatchTravelInfo | null> {

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, ChevronRight, Users, User, Trophy, Check } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Users, User, Trophy, Check, Info } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type LeagueType  = 'pairs' | 'individual' | 'tournament'
-type Format      = 'round_robin' | 'mexicano' | 'knockout'
-type Visibility  = 'group_only' | 'open' | 'invite_only'
+type LeagueType    = 'pairs' | 'individual' | 'tournament'
+type Format        = 'round_robin' | 'mexicano' | 'knockout' | 'americano' | 'king_of_hill' | 'compass_draw' | 'box_league' | 'flex_league'
+type ScoringFormat = 'standard' | 'short_sets' | 'one_set' | 'custom'
+type Visibility    = 'group_only' | 'open' | 'invite_only'
 
 interface MyGroup { id: string; name: string }
 
@@ -21,6 +22,7 @@ interface FormState {
   description:     string
   groupId:         string | null
   format:          Format | null
+  scoringFormat:   ScoringFormat
   startDate:       string
   endDate:         string
   maxParticipants: string
@@ -36,6 +38,7 @@ function emptyForm(defaultGroupId?: string): FormState {
     description:     '',
     groupId:         defaultGroupId ?? null,
     format:          null,
+    scoringFormat:   'standard',
     startDate:       '',
     endDate:         '',
     maxParticipants: '',
@@ -43,6 +46,62 @@ function emptyForm(defaultGroupId?: string): FormState {
     minElo:          '',
     maxElo:          '',
   }
+}
+
+// ── Format info modal ─────────────────────────────────────────────────────────
+
+const FORMAT_INFO: Record<Format, { title: string; description: string; bestFor: string; winner: string }> = {
+  round_robin:   { title: 'Round Robin', description: 'Every player/team plays against every other.', bestFor: '4–16 players', winner: 'Most points after all matches', },
+  mexicano:      { title: 'Mexicano', description: 'Partners rotate and are paired by current standings each round.', bestFor: '8–16 players', winner: 'Player with most total points', },
+  knockout:      { title: 'Knockout (Single Elimination)', description: 'Lose once and you\'re out. Winner of each match advances.', bestFor: '8–64 players', winner: 'Last player standing', },
+  americano:     { title: 'Americano', description: 'Players rotate partners every round. Each round played to 16–24 points. Great social format.', bestFor: '8–16 players', winner: 'Player with most total points across all rounds', },
+  king_of_hill:  { title: 'King of the Hill (Beat the Box)', description: 'Winners move up a court, losers move down. Top court players fight to stay on top.', bestFor: '8–20 players', winner: 'Player with most time on top court', },
+  compass_draw:  { title: 'Compass Draw', description: 'After first loss players continue in a separate bracket. Guarantees multiple matches for all.', bestFor: '8–32 players', winner: 'Final of each direction bracket', },
+  box_league:    { title: 'Box League (Promotion/Relegation)', description: 'Players in boxes of 4. Top finishers promote, bottom relegate each round.', bestFor: '8–40 players', winner: 'Top of the highest box', },
+  flex_league:   { title: 'Flex League (Self-Scheduled)', description: 'Players arrange their own matches within a time window. No fixed schedule.', bestFor: '4–32 players', winner: 'Player with most points at deadline', },
+}
+
+function FormatInfoModal({ format, onClose }: { format: Format; onClose: () => void }) {
+  const info = FORMAT_INFO[format]
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[70] bg-black/40"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[75] bg-white rounded-2xl p-6 shadow-2xl"
+      >
+        <div className="flex items-start justify-between mb-4">
+          <h3 className="text-[17px] font-bold text-gray-900 flex-1 pr-2">{info.title}</h3>
+          <button onClick={onClose} className="h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+            <X className="h-3.5 w-3.5 text-gray-500" />
+          </button>
+        </div>
+        <p className="text-[13px] text-gray-600 mb-4">{info.description}</p>
+        <div className="space-y-2">
+          <div className="flex items-start gap-2">
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wide w-20 flex-shrink-0 pt-0.5">Best for</span>
+            <span className="text-[13px] text-gray-700">{info.bestFor}</span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wide w-20 flex-shrink-0 pt-0.5">Winner</span>
+            <span className="text-[13px] text-gray-700">{info.winner}</span>
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="mt-5 w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white"
+        >
+          Got it
+        </button>
+      </motion.div>
+    </>
+  )
 }
 
 // ── Step dots ─────────────────────────────────────────────────────────────────
@@ -113,9 +172,21 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 // ── Step 2 — Setup ────────────────────────────────────────────────────────────
 
 const FORMATS: Array<{ id: Format; label: string }> = [
-  { id: 'round_robin', label: 'Round Robin' },
-  { id: 'mexicano',    label: 'Mexicano'    },
-  { id: 'knockout',    label: 'Knockout'    },
+  { id: 'round_robin',  label: 'Round Robin'        },
+  { id: 'mexicano',     label: 'Mexicano'            },
+  { id: 'knockout',     label: 'Knockout'            },
+  { id: 'americano',    label: 'Americano'           },
+  { id: 'king_of_hill', label: 'King of the Hill'   },
+  { id: 'compass_draw', label: 'Compass Draw'        },
+  { id: 'box_league',   label: 'Box League'          },
+  { id: 'flex_league',  label: 'Flex League'         },
+]
+
+const SCORING_FORMATS: Array<{ id: ScoringFormat; label: string; desc: string }> = [
+  { id: 'standard',   label: 'Standard',    desc: 'Best of 3 sets, championship tiebreak' },
+  { id: 'short_sets', label: 'Short sets',  desc: 'First to 4 games per set'              },
+  { id: 'one_set',    label: 'One set',     desc: '9 games or super tiebreak'             },
+  { id: 'custom',     label: 'Custom',      desc: 'Admin defines the scoring'             },
 ]
 
 function Step2({
@@ -127,6 +198,8 @@ function Step2({
   setForm: (f: FormState) => void
   userId: string
 }) {
+  const [infoFormat, setInfoFormat] = useState<Format | null>(null)
+
   const { data: groups = [] } = useQuery<MyGroup[]>({
     queryKey: ['my-groups-for-league', userId],
     enabled: !!userId,
@@ -197,22 +270,59 @@ function Step2({
           </div>
         )}
 
-        {/* Format */}
+        {/* Tournament format */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Format</label>
-          <div className="flex gap-2">
+          <label className="block text-[13px] font-medium text-gray-700 mb-2">Tournament format <span className="text-red-400">*</span></label>
+          <div className="grid grid-cols-2 gap-2">
             {FORMATS.map(({ id, label }) => (
+              <div key={id} className="relative">
+                <button
+                  onClick={() => setForm({ ...form, format: id })}
+                  className={cn(
+                    'w-full rounded-xl border py-2.5 pl-3 pr-8 text-left text-[12px] font-medium transition-all',
+                    form.format === id
+                      ? 'border-teal-500 bg-teal-50 text-teal-700'
+                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  )}
+                >
+                  {form.format === id && <Check className="inline h-3 w-3 mr-1 flex-shrink-0" />}
+                  {label}
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setInfoFormat(id) }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  aria-label={`Info about ${label}`}
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Scoring format */}
+        <div>
+          <label className="block text-[13px] font-medium text-gray-700 mb-2">Match scoring</label>
+          <div className="space-y-1.5">
+            {SCORING_FORMATS.map(({ id, label, desc }) => (
               <button
                 key={id}
-                onClick={() => setForm({ ...form, format: id })}
+                onClick={() => setForm({ ...form, scoringFormat: id })}
                 className={cn(
-                  'flex-1 rounded-xl border py-2.5 text-[12px] font-medium transition-all',
-                  form.format === id
-                    ? 'border-teal-500 bg-teal-50 text-teal-700'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                  'w-full flex items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-all',
+                  form.scoringFormat === id ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 bg-white'
                 )}
               >
-                {label}
+                <div className={cn(
+                  'h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
+                  form.scoringFormat === id ? 'border-[#009688]' : 'border-gray-300'
+                )}>
+                  {form.scoringFormat === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-gray-900">{label}</p>
+                  <p className="text-[11px] text-gray-400">{desc}</p>
+                </div>
               </button>
             ))}
           </div>
@@ -259,6 +369,13 @@ function Step2({
           />
         </div>
       </div>
+
+      {/* Format info modal */}
+      <AnimatePresence>
+        {infoFormat && (
+          <FormatInfoModal format={infoFormat} onClose={() => setInfoFormat(null)} />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -336,7 +453,8 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           {[
             { label: 'Type',    value: form.leagueType ?? '—' },
             { label: 'Name',    value: form.name || '—' },
-            { label: 'Format',  value: form.format?.replace('_', ' ') ?? '—' },
+            { label: 'Format',  value: form.format?.replace(/_/g, ' ') ?? '—' },
+            { label: 'Scoring', value: form.scoringFormat.replace(/_/g, ' ') },
             { label: 'Starts',  value: form.startDate || '—' },
             { label: 'Ends',    value: form.endDate || '—' },
           ].map(({ label, value }) => (
@@ -389,6 +507,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
         description:      form.description.trim() || null,
         league_type:      form.leagueType,
         format:           form.format,
+        scoring_format:   form.scoringFormat,
         start_date:       form.startDate || null,
         end_date:         form.endDate || null,
         max_participants: form.maxParticipants ? parseInt(form.maxParticipants, 10) : null,

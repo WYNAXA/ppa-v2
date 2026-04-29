@@ -775,13 +775,33 @@ export function YouPage() {
               <span className="text-[13px] font-medium text-gray-700">Push notifications</span>
               <button
                 onClick={async () => {
-                  if (!notifEnabled) {
-                    if (typeof Notification !== 'undefined') {
-                      const perm = await Notification.requestPermission()
-                      if (perm === 'granted') setNotifEnabled(true)
-                    }
-                  } else {
+                  if (notifEnabled) {
                     setNotifEnabled(false)
+                    return
+                  }
+                  if (typeof Notification === 'undefined') return
+                  const permission = await Notification.requestPermission()
+                  if (permission !== 'granted') return
+                  try {
+                    const reg = await navigator.serviceWorker.ready
+                    const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
+                    if (!vapidKey) {
+                      // No VAPID key configured — still mark as enabled for local UI state
+                      setNotifEnabled(true)
+                      return
+                    }
+                    const sub = await reg.pushManager.subscribe({
+                      userVisibleOnly: true,
+                      applicationServerKey: vapidKey,
+                    })
+                    await supabase
+                      .from('profiles')
+                      .update({ push_token: JSON.stringify(sub) })
+                      .eq('id', userId)
+                    setNotifEnabled(true)
+                  } catch {
+                    // Permission granted but subscription failed — still reflect UI state
+                    setNotifEnabled(true)
                   }
                 }}
                 className={cn(
@@ -800,7 +820,7 @@ export function YouPage() {
             {/* Language */}
             <div className="px-4 py-3.5">
               <span className="text-[13px] font-medium text-gray-700 block mb-2">{t('you.language')}</span>
-              <div className="flex gap-2">
+              <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {SUPPORTED_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
@@ -809,7 +829,7 @@ export function YouPage() {
                       await supabase.from('profiles').update({ preferred_language: lang.code }).eq('id', userId)
                     }}
                     className={cn(
-                      'flex-1 rounded-lg py-1.5 text-[12px] font-semibold border transition-colors',
+                      'flex-shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold border transition-colors',
                       i18n.language === lang.code
                         ? 'bg-[#009688] text-white border-[#009688]'
                         : 'bg-white text-gray-600 border-gray-200'

@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { TrendingUp, TrendingDown, Minus, Trophy, Plus, ChevronRight } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Trophy, Plus, ChevronRight, Search, Target } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { BADGE_DEFINITIONS } from '@/lib/badges'
 import { cn } from '@/lib/utils'
 import { CreateLeagueSheet } from '@/components/compete/CreateLeagueSheet'
 
@@ -128,6 +129,23 @@ function useAchievementCount(userId: string) {
         .select('id', { count: 'exact', head: true })
         .eq('user_id', userId)
       return count ?? 0
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
+function useMyBadges(userId: string) {
+  return useQuery<Array<{ id: string; badge_key: string; earned_at: string }>>({
+    queryKey: ['my-badges-compete', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('user_badges')
+        .select('id, badge_key, earned_at')
+        .eq('user_id', userId)
+        .order('earned_at', { ascending: false })
+        .limit(6)
+      return data ?? []
     },
     staleTime: 5 * 60 * 1000,
   })
@@ -364,21 +382,24 @@ function LeaderboardRow({
   rank,
   currentUserId,
   index,
+  rowRef,
 }: {
   profile: RankedProfile
   rank: number
   currentUserId: string
   index: number
+  rowRef?: React.RefObject<HTMLDivElement | null>
 }) {
   const isMe = profile.id === currentUserId
   return (
     <motion.div
+      ref={rowRef}
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-xl',
-        isMe ? 'bg-teal-50 border border-teal-100' : 'bg-gray-50/60 border border-gray-100'
+        isMe ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50/60 border border-gray-100'
       )}
     >
       <span className={cn(
@@ -489,14 +510,23 @@ export function CompetePage() {
     }
   }, [location.pathname])
 
+  const [leaderboardSearch, setLeaderboardSearch] = useState('')
+  const myRowRef = useRef<HTMLDivElement>(null)
+
   const { data: stats,            isLoading: loadingStats    } = useMyStats(userId, profile?.internal_ranking)
   const { data: achievementCount = 0 }                        = useAchievementCount(userId)
+  const { data: myBadges = [] }                               = useMyBadges(userId)
   const { data: globalBoard = [], isLoading: loadingGlobal   } = useGlobalLeaderboard()
   const { data: groupBoard  = [], isLoading: loadingGroup    } = useGroupLeaderboard(userId)
   const { data: myLeagues   = [], isLoading: loadingLeagues  } = useMyLeagues(userId)
 
-  const leaderboard        = leaderboardTab === 'global' ? globalBoard : groupBoard
+  const rawLeaderboard     = leaderboardTab === 'global' ? globalBoard : groupBoard
   const loadingLeaderboard = leaderboardTab === 'global' ? loadingGlobal : loadingGroup
+  const leaderboard        = leaderboardSearch.trim()
+    ? rawLeaderboard.filter((p) => p.name.toLowerCase().includes(leaderboardSearch.toLowerCase()))
+    : rawLeaderboard
+
+  const myGlobalRank = rawLeaderboard.findIndex((p) => p.id === userId) + 1
 
   return (
     <div className="min-h-full bg-white pb-32">
@@ -510,6 +540,29 @@ export function CompetePage() {
         {/* ── My Ranking Card ── */}
         <RankingCard profile={profile} stats={stats} isLoading={loadingStats} achievementCount={achievementCount} />
 
+        {/* ── My Badges ── */}
+        {myBadges.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[16px] font-bold text-gray-900">My Badges</h2>
+              <span className="rounded-full bg-yellow-50 border border-yellow-100 px-2 py-0.5 text-[11px] font-bold text-yellow-600">
+                {achievementCount} earned
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {myBadges.map((b) => {
+                const meta = BADGE_DEFINITIONS[b.badge_key] ?? { label: b.badge_key, emoji: '🏅' }
+                return (
+                  <div key={b.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center">
+                    <p className="text-[22px] leading-none mb-1">{meta.emoji}</p>
+                    <p className="text-[11px] font-semibold text-gray-700 leading-tight">{meta.label}</p>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
         {/* ── Leaderboard ── */}
         <section>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">Leaderboard</h2>
@@ -519,7 +572,7 @@ export function CompetePage() {
             {(['global', 'my_groups'] as const).map((tab) => (
               <button
                 key={tab}
-                onClick={() => setLeaderboardTab(tab)}
+                onClick={() => { setLeaderboardTab(tab); setLeaderboardSearch('') }}
                 className={cn(
                   'flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors',
                   leaderboardTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
@@ -528,6 +581,18 @@ export function CompetePage() {
                 {tab === 'global' ? 'Global' : 'My Groups'}
               </button>
             ))}
+          </div>
+
+          {/* Search bar */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <input
+              type="text"
+              value={leaderboardSearch}
+              onChange={(e) => setLeaderboardSearch(e.target.value)}
+              placeholder="Search players…"
+              className="w-full rounded-xl border border-gray-200 pl-8 pr-3 py-2 text-[13px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            />
           </div>
 
           {loadingLeaderboard ? (
@@ -539,7 +604,7 @@ export function CompetePage() {
           ) : leaderboard.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
               <p className="text-[13px] font-semibold text-gray-500">
-                {leaderboardTab === 'global' ? 'No ranked players yet' : 'No group members found'}
+                {leaderboardSearch ? 'No players match your search' : leaderboardTab === 'global' ? 'No ranked players yet' : 'No group members found'}
               </p>
             </div>
           ) : (
@@ -551,8 +616,28 @@ export function CompetePage() {
                   rank={i + 1}
                   currentUserId={userId}
                   index={i}
+                  rowRef={p.id === userId ? myRowRef : undefined}
                 />
               ))}
+            </div>
+          )}
+
+          {/* Find me sticky banner */}
+          {myGlobalRank > 0 && !loadingLeaderboard && !leaderboardSearch && (
+            <div className="mt-3 flex items-center justify-between rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Target className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                <div>
+                  <p className="text-[13px] font-bold text-teal-800">You are ranked #{myGlobalRank}</p>
+                  <p className="text-[11px] text-teal-600">{(profile?.internal_ranking ?? 0).toLocaleString()} ELO</p>
+                </div>
+              </div>
+              <button
+                onClick={() => myRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white"
+              >
+                Jump to me
+              </button>
             </div>
           )}
         </section>

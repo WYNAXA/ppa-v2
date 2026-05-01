@@ -59,7 +59,7 @@ async function fetchMatchDetail(id: string): Promise<{
   if (playerIds.length > 0) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, playtomic_level, ranking_points')
+      .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking')
       .in('id', playerIds)
     players = data ?? []
   }
@@ -127,8 +127,13 @@ function getEloPrediction(players: Profile[], team1Ids: string[], team2Ids: stri
 
 function ResultBanner({ result, players }: { result: MatchResult; players: Profile[] }) {
   const getPlayer = (id: string) => players.find((p) => p.id === id)
+  // sets_data may be stored as a JSON string in the DB
+  const rawSets = typeof result.sets_data === 'string'
+    ? (() => { try { return JSON.parse(result.sets_data as unknown as string) } catch { return [] } })()
+    : (result.sets_data ?? [])
   const completedSets: Array<{ team1: number; team2: number }> =
-    (result.sets_data ?? []).filter((s) => s.team1 !== '' && s.team2 !== '') as Array<{ team1: number; team2: number }>
+    (rawSets as Array<{ team1: number | ''; team2: number | '' }>)
+      .filter((s) => s.team1 !== '' && s.team2 !== '') as Array<{ team1: number; team2: number }>
 
   return (
     <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-100 p-4">
@@ -643,9 +648,11 @@ export function MatchDetailPage() {
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-[12px] font-semibold text-gray-800 truncate">{player.name}</p>
-                    {'ranking_points' in player && player.ranking_points != null && (
+                    {'internal_ranking' in player && player.internal_ranking != null ? (
+                      <p className="text-[10px] text-gray-400">{(player.internal_ranking as number).toLocaleString()} ELO</p>
+                    ) : 'ranking_points' in player && player.ranking_points != null ? (
                       <p className="text-[10px] text-gray-400">{player.ranking_points} pts</p>
-                    )}
+                    ) : null}
                   </div>
                   {player.id === currentUserId && (
                     <span className="text-[9px] font-bold text-[#009688] bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">You</span>
@@ -678,11 +685,17 @@ export function MatchDetailPage() {
       </div>
 
       {/* ELO Prediction */}
-      {!result && match.player_ids.length === 4 && (() => {
-        const team1Ids = match.player_ids.slice(0, 2)
-        const team2Ids = match.player_ids.slice(2, 4)
+      {!result && playerIds.length === 4 && (() => {
+        const team1Ids = playerIds.slice(0, 2)
+        const team2Ids = playerIds.slice(2, 4)
         const pred = getEloPrediction(players, team1Ids, team2Ids)
         if (!pred) return null
+        const getEloFor = (id: string) => (players.find((p) => p.id === id) as any)?.internal_ranking ?? 1500
+        const avgA = Math.round((getEloFor(team1Ids[0]) + getEloFor(team1Ids[1])) / 2)
+        const avgB = Math.round((getEloFor(team2Ids[0]) + getEloFor(team2Ids[1])) / 2)
+        const meOnTeam1 = team1Ids.includes(currentUserId)
+        const pointsIfWin  = meOnTeam1 ? pred.pointsIfAWins  : pred.pointsIfBWins
+        const pointsIfLose = meOnTeam1 ? pred.pointsIfBWins  : pred.pointsIfAWins
         return (
           <div className="px-5 mb-4">
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
@@ -694,7 +707,8 @@ export function MatchDetailPage() {
                 <div className="flex-1 text-center">
                   <p className="text-[24px] font-black text-teal-600">{Math.round(pred.probA * 100)}%</p>
                   <p className="text-[10px] text-gray-400 mb-0.5">Team 1 win</p>
-                  <p className="text-[11px] text-teal-600 font-semibold">+{pred.pointsIfAWins} pts</p>
+                  <p className="text-[11px] text-teal-700 font-semibold">avg {avgA.toLocaleString()} ELO</p>
+                  <p className="text-[10px] text-teal-500">+{pred.pointsIfAWins} if win</p>
                 </div>
                 <div className="text-center px-1">
                   <p className="text-[12px] text-gray-300 font-bold">vs</p>
@@ -702,7 +716,8 @@ export function MatchDetailPage() {
                 <div className="flex-1 text-center">
                   <p className="text-[24px] font-black text-orange-500">{Math.round(pred.probB * 100)}%</p>
                   <p className="text-[10px] text-gray-400 mb-0.5">Team 2 win</p>
-                  <p className="text-[11px] text-orange-500 font-semibold">+{pred.pointsIfBWins} pts</p>
+                  <p className="text-[11px] text-orange-600 font-semibold">avg {avgB.toLocaleString()} ELO</p>
+                  <p className="text-[10px] text-orange-400">+{pred.pointsIfBWins} if win</p>
                 </div>
               </div>
               <div className="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden">
@@ -711,6 +726,16 @@ export function MatchDetailPage() {
                   style={{ width: `${Math.round(pred.probA * 100)}%` }}
                 />
               </div>
+              {(meOnTeam1 || team2Ids.includes(currentUserId)) && (
+                <div className="mt-2 flex gap-2 justify-center">
+                  <span className="text-[10px] font-semibold text-green-600 bg-green-50 rounded-full px-2 py-0.5">
+                    Win: +{pointsIfWin} ELO
+                  </span>
+                  <span className="text-[10px] font-semibold text-red-500 bg-red-50 rounded-full px-2 py-0.5">
+                    Lose: −{pointsIfLose} ELO
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         )
@@ -804,7 +829,7 @@ export function MatchDetailPage() {
       )}
 
       {/* Getting there */}
-      {match.booked_venue_name && match.status !== 'completed' && match.status !== 'cancelled' && (
+      {match.status !== 'completed' && match.status !== 'cancelled' && (playerIds.length > 0 || match.booked_venue_name) && (
         <div className="px-5 mb-4">
           <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
             <div className="flex items-center gap-2 mb-3">
@@ -812,114 +837,127 @@ export function MatchDetailPage() {
               <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Getting there</p>
             </div>
 
-            {!travelInfo?.hasLocationData ? (
-              <div className="text-center py-2">
-                <p className="text-[12px] text-gray-500 mb-1">Add your location to see travel coordination</p>
-                <p className="text-[11px] text-gray-400">Update in your profile settings</p>
+            {/* Incoming lift requests (driver sees) — always shown */}
+            {incomingRequests.length > 0 && (
+              <div className="mb-3">
+                <p className="text-[11px] font-semibold text-gray-500 mb-2">Lift requests</p>
+                <div className="space-y-2">
+                  {incomingRequests.map((req) => (
+                    <div key={req.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
+                      <p className="text-[12px] font-semibold text-orange-800">{req.requesterName} wants a lift</p>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
+                          className="rounded-lg bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
+                          className="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600"
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            ) : (
-              <>
-                {/* Incoming lift requests (driver sees) */}
-                {incomingRequests.length > 0 && (
-                  <div className="mb-3">
-                    <p className="text-[11px] font-semibold text-gray-500 mb-2">Lift requests</p>
-                    <div className="space-y-2">
-                      {incomingRequests.map((req) => (
-                        <div key={req.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
-                          <p className="text-[12px] font-semibold text-orange-800">{req.requesterName} wants a lift</p>
-                          <div className="flex gap-1.5">
-                            <button
-                              onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
-                              className="rounded-lg bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white"
-                            >
-                              Accept
-                            </button>
-                            <button
-                              onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
-                              className="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600"
-                            >
-                              Decline
-                            </button>
-                          </div>
-                        </div>
-                      ))}
+            )}
+
+            {/* Drivers — shown whenever poll travel data is available */}
+            {(travelInfo?.drivers.length ?? 0) > 0 && (
+              <div className="mb-3">
+                <p className="text-[11px] font-semibold text-gray-500 mb-2">Drivers</p>
+                <div className="space-y-1.5">
+                  {travelInfo!.drivers.map((driver) => (
+                    <div key={driver.id} className="flex items-center gap-2.5">
+                      <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name} is driving</p>
+                        <p className="text-[11px] text-gray-400">Can take {driver.max_passengers} passengers</p>
+                      </div>
+                      <span className="flex-shrink-0 rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Driver</span>
                     </div>
-                  </div>
-                )}
+                  ))}
+                </div>
+              </div>
+            )}
 
-                {/* Drivers */}
-                {(travelInfo?.drivers.length ?? 0) > 0 && (
-                  <div className="mb-3">
-                    <p className="text-[11px] font-semibold text-gray-500 mb-2">Drivers</p>
-                    <div className="space-y-1.5">
-                      {travelInfo!.drivers.map((driver) => (
-                        <div key={driver.id} className="flex items-center gap-2.5">
-                          <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name}</p>
-                            <p className="text-[11px] text-gray-400">Can take {driver.max_passengers} passengers</p>
-                          </div>
-                          <span className="flex-shrink-0 rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Driver</span>
+            {/* Needs a lift */}
+            {(travelInfo?.needsLift.length ?? 0) > 0 && (
+              <div className={(travelInfo?.drivers.length ?? 0) > 0 ? '' : 'mb-2'}>
+                <p className="text-[11px] font-semibold text-gray-500 mb-2">Need a lift</p>
+                <div className="space-y-1.5">
+                  {travelInfo!.needsLift.map((passenger) => {
+                    const suggestion = travelInfo!.suggestions.find((s) => s.passenger.id === passenger.id)
+                    const existingRequest = myTravelRequests.find((r) => r.driver_id === suggestion?.driver.id)
+                    const isMe = passenger.id === profile?.id
+
+                    return (
+                      <div key={passenger.id} className="flex items-center gap-2.5">
+                        <PlayerAvatar name={passenger.name} avatarUrl={passenger.avatar_url} size="sm" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
+                          {suggestion && travelInfo?.hasLocationData && (
+                            <p className="text-[11px] text-gray-400">
+                              {formatDistance(suggestion.distanceMiles)} from {suggestion.driver.name.split(' ')[0]}
+                            </p>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Needs a lift */}
-                {(travelInfo?.needsLift.length ?? 0) > 0 && (
-                  <div>
-                    <p className="text-[11px] font-semibold text-gray-500 mb-2">Need a lift</p>
-                    <div className="space-y-1.5">
-                      {travelInfo!.needsLift.map((passenger) => {
-                        const suggestion = travelInfo!.suggestions.find((s) => s.passenger.id === passenger.id)
-                        const existingRequest = myTravelRequests.find((r) => r.driver_id === suggestion?.driver.id)
-                        const isMe = passenger.id === profile?.id
-
-                        return (
-                          <div key={passenger.id} className="flex items-center gap-2.5">
-                            <PlayerAvatar name={passenger.name} avatarUrl={passenger.avatar_url} size="sm" />
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
-                              {suggestion && (
-                                <p className="text-[11px] text-gray-400">
-                                  {formatDistance(suggestion.distanceMiles)} from {suggestion.driver.name.split(' ')[0]}
-                                </p>
-                              )}
-                            </div>
-                            {isMe && suggestion && (
-                              <button
-                                onClick={() => {
-                                  if (!existingRequest) {
-                                    requestLiftMutation.mutate({ driverId: suggestion.driver.id })
-                                  }
-                                }}
-                                disabled={!!existingRequest || requestLiftMutation.isPending}
-                                className={cn(
-                                  'flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors',
-                                  existingRequest?.status === 'accepted'
-                                    ? 'bg-green-50 border border-green-100 text-green-600'
-                                    : existingRequest?.status === 'pending'
-                                    ? 'bg-gray-100 text-gray-400'
-                                    : 'bg-[#009688] text-white hover:bg-teal-700',
-                                )}
-                              >
-                                {existingRequest?.status === 'accepted' ? 'Lift confirmed' :
-                                 existingRequest?.status === 'pending' ? 'Requested' :
-                                 `Ask ${suggestion.driver.name.split(' ')[0]}`}
-                              </button>
+                        {isMe && suggestion && (
+                          <button
+                            onClick={() => { if (!existingRequest) requestLiftMutation.mutate({ driverId: suggestion.driver.id }) }}
+                            disabled={!!existingRequest || requestLiftMutation.isPending}
+                            className={cn(
+                              'flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors',
+                              existingRequest?.status === 'accepted'
+                                ? 'bg-green-50 border border-green-100 text-green-600'
+                                : existingRequest?.status === 'pending'
+                                ? 'bg-gray-100 text-gray-400'
+                                : 'bg-[#009688] text-white hover:bg-teal-700',
                             )}
-                          </div>
-                        )
-                      })}
-                    </div>
-                  </div>
-                )}
+                          >
+                            {existingRequest?.status === 'accepted' ? 'Lift confirmed' :
+                             existingRequest?.status === 'pending' ? 'Requested' :
+                             `Ask ${suggestion.driver.name.split(' ')[0]}`}
+                          </button>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
-                {(travelInfo?.drivers.length ?? 0) === 0 && (travelInfo?.needsLift.length ?? 0) === 0 && (
-                  <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
-                )}
-              </>
+            {/* No location data — prompt to enable */}
+            {!travelInfo?.hasLocationData && (travelInfo?.drivers.length ?? 0) === 0 && (
+              <div className="text-center py-1">
+                <p className="text-[12px] text-gray-500 mb-2">Enable location to coordinate lifts</p>
+                <button
+                  onClick={() => {
+                    if (!navigator.geolocation || !profile?.id) return
+                    navigator.geolocation.getCurrentPosition(async (pos) => {
+                      await supabase.from('profiles').update({
+                        latitude:  pos.coords.latitude,
+                        longitude: pos.coords.longitude,
+                      }).eq('id', profile.id)
+                      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
+                      queryClient.invalidateQueries({ queryKey: ['my-location', profile.id] })
+                    })
+                  }}
+                  className="rounded-xl bg-[#009688] px-4 py-2 text-[12px] font-bold text-white"
+                >
+                  Enable location
+                </button>
+              </div>
+            )}
+
+            {/* Nothing to show at all */}
+            {(travelInfo?.drivers.length ?? 0) === 0 &&
+             (travelInfo?.needsLift.length ?? 0) === 0 &&
+             travelInfo?.hasLocationData && (
+              <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
             )}
           </div>
         </div>

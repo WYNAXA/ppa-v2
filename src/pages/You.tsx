@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink } from 'lucide-react'
+import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
@@ -231,6 +231,24 @@ function useAchievements(userId: string) {
   })
 }
 
+// ── Admin groups hook ─────────────────────────────────────────────────────────
+
+function useAdminGroups(userId: string) {
+  return useQuery({
+    queryKey: ['admin-groups', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('group_id, groups:group_id(id, name)')
+        .eq('user_id', userId)
+        .eq('role', 'admin')
+        .eq('status', 'approved')
+      return (data ?? []) as unknown as Array<{ group_id: string; groups: { id: string; name: string } | null }>
+    },
+  })
+}
+
 // ── Household hooks ───────────────────────────────────────────────────────────
 
 function useHouseholdPartner(partnerId: string | null | undefined) {
@@ -443,6 +461,7 @@ function EditProfileSheet({
           travel_radius_miles: travelRadius,
         })
         .eq('id', user.id)
+      console.log('[Profile save] user.id:', user.id, 'error:', error)
       if (error) throw error
     },
     onSuccess: () => {
@@ -473,11 +492,12 @@ function EditProfileSheet({
               <div className="h-1 w-10 rounded-full bg-gray-200" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-600">
+                <ChevronLeft className="h-4 w-4" />
+                Back
               </button>
               <h2 className="text-[15px] font-bold text-gray-900">Edit Profile</h2>
-              <div className="w-9" />
+              <div className="w-14" />
             </div>
 
             <div className="px-5 pb-6 space-y-4" style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
@@ -683,6 +703,7 @@ export function YouPage() {
   const { data: history = [], isLoading: loadingHistory } = useMatchHistory(userId, historyLimit)
   const { data: achievements = [] }     = useAchievements(userId)
   const { data: householdPartner }      = useHouseholdPartner(fullProfile?.household_partner_id)
+  const { data: adminGroups = [] }      = useAdminGroups(userId)
   const { t, i18n }                     = useTranslation()
 
   const profile = fullProfile ?? authProfile
@@ -697,7 +718,7 @@ export function YouPage() {
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
       <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-        <h1 className="text-[22px] font-bold text-gray-900">You</h1>
+        <h1 className="text-[22px] font-bold text-gray-900">{t('you.title')}</h1>
       </div>
 
       <div className="px-5 space-y-6">
@@ -737,13 +758,13 @@ export function YouPage() {
             className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
           >
             <Edit2 className="h-3.5 w-3.5" />
-            Edit profile
+            {t('you.edit_profile')}
           </button>
         </motion.div>
 
         {/* ── Stats Summary ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Stats</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.stats')}</h2>
           {loadingStats ? (
             <div className="grid grid-cols-2 gap-2">
               {[0, 1, 2, 3].map((i) => (
@@ -753,10 +774,10 @@ export function YouPage() {
           ) : stats ? (
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: 'Matches played', value: stats.totalMatches },
-                { label: 'Win rate',       value: `${stats.winRate}%` },
-                { label: 'Ranking',        value: `#${stats.rankPosition}` },
-                { label: 'Best streak',    value: `${stats.bestStreak}W` },
+                { label: t('you.matches_played'), value: stats.totalMatches },
+                { label: t('you.win_rate'),        value: `${stats.winRate}%` },
+                { label: t('you.ranking'),         value: `#${stats.rankPosition}` },
+                { label: t('you.best_streak'),     value: `${stats.bestStreak}W` },
               ].map(({ label, value }) => (
                 <div key={label} className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
                   <p className="text-[20px] font-black text-gray-900">{value}</p>
@@ -766,7 +787,7 @@ export function YouPage() {
               {stats.favouritePartnerName && (
                 <div className="col-span-2 rounded-xl bg-teal-50 border border-teal-100 px-4 py-3">
                   <p className="text-[13px] font-bold text-teal-800 truncate">{stats.favouritePartnerName}</p>
-                  <p className="text-[11px] text-teal-600 mt-0.5">Favourite partner</p>
+                  <p className="text-[11px] text-teal-600 mt-0.5">{t('you.favourite_partner')}</p>
                 </div>
               )}
             </div>
@@ -806,7 +827,7 @@ export function YouPage() {
               <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
                 <Link className="h-5 w-5 text-gray-400" />
               </div>
-              <p className="text-[14px] font-semibold text-gray-700 mb-1">Link your household partner</p>
+              <p className="text-[14px] font-semibold text-gray-700 mb-1">{t('you.link_partner')}</p>
               <p className="text-[12px] text-gray-400 mb-4">{t('you.link_partner_sub')}</p>
               <button
                 onClick={() => setShowLinkPartner(true)}
@@ -820,11 +841,15 @@ export function YouPage() {
 
         {/* ── Match History ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Match history</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.match_history')}</h2>
 
           {/* Filter tabs */}
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
-            {(['all', 'wins', 'losses'] as const).map((f) => (
+            {([
+              ['all',    t('you.history_all')],
+              ['wins',   t('you.wins')],
+              ['losses', t('you.history_losses')],
+            ] as const).map(([f, label]) => (
               <button
                 key={f}
                 onClick={() => setHistoryFilter(f)}
@@ -833,7 +858,7 @@ export function YouPage() {
                   historyFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                 )}
               >
-                {f}
+                {label}
               </button>
             ))}
           </div>
@@ -846,7 +871,7 @@ export function YouPage() {
             </div>
           ) : filteredHistory.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
-              <p className="text-[13px] font-semibold text-gray-500">No matches found</p>
+              <p className="text-[13px] font-semibold text-gray-500">{t('you.no_matches_found')}</p>
             </div>
           ) : (
             <>
@@ -879,7 +904,7 @@ export function YouPage() {
                   onClick={() => setHistoryLimit((l) => l + 10)}
                   className="mt-3 w-full rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                  Load more
+                  {t('you.load_more')}
                 </button>
               )}
             </>
@@ -889,7 +914,7 @@ export function YouPage() {
         {/* ── Achievements ── */}
         {achievements.length > 0 && (
           <section>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Achievements</h2>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.achievements')}</h2>
             <div className="grid grid-cols-3 gap-2">
               {achievements.map((a) => {
                 const meta = BADGE_DEFINITIONS[a.badge_key] ?? { label: a.badge_key, emoji: '🏅' }
@@ -909,12 +934,12 @@ export function YouPage() {
 
         {/* ── Settings ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Settings</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.settings')}</h2>
           <div className="rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
 
             {/* Push notifications toggle */}
             <div className="flex items-center justify-between px-4 py-3.5">
-              <span className="text-[13px] font-medium text-gray-700">Push notifications</span>
+              <span className="text-[13px] font-medium text-gray-700">{t('you.push_notifications')}</span>
               <button
                 onClick={async () => {
                   if (notifEnabled) {
@@ -986,10 +1011,11 @@ export function YouPage() {
 
             {/* Privacy settings */}
             {[
-              { key: 'show_email',      label: 'Show email to other players' },
-              { key: 'show_location',   label: 'Show location publicly' },
-              { key: 'public_history',  label: 'Public match history' },
-            ].map(({ key, label }) => {
+              { key: 'show_email',     tKey: 'you.show_email' },
+              { key: 'show_location',  tKey: 'you.show_location' },
+              { key: 'public_history', tKey: 'you.public_history' },
+            ].map(({ key, tKey }) => {
+              const label = t(tKey)
               const currentVal = !!(fullProfile as any)?.[key]
               return (
                 <div key={key} className="flex items-center justify-between px-4 py-3.5">
@@ -1027,7 +1053,7 @@ export function YouPage() {
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
               <span className="text-[13px] font-medium text-gray-700">
-                {resetSent ? 'Reset email sent ✓' : 'Reset password'}
+                {resetSent ? t('you.reset_sent') : t('you.reset_password')}
               </span>
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </button>
@@ -1037,7 +1063,7 @@ export function YouPage() {
               onClick={() => navigate('/privacy')}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
-              <span className="text-[13px] font-medium text-gray-700">Privacy Policy</span>
+              <span className="text-[13px] font-medium text-gray-700">{t('you.privacy_policy')}</span>
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </button>
 
@@ -1046,7 +1072,7 @@ export function YouPage() {
               onClick={() => navigate('/terms')}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
-              <span className="text-[13px] font-medium text-gray-700">Terms of Service</span>
+              <span className="text-[13px] font-medium text-gray-700">{t('you.terms')}</span>
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </button>
 
@@ -1055,7 +1081,7 @@ export function YouPage() {
               onClick={() => setShowDeleteConfirm(true)}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
-              <span className="text-[13px] font-medium text-red-500">Delete Account</span>
+              <span className="text-[13px] font-medium text-red-500">{t('you.delete_account')}</span>
               <ChevronRight className="h-4 w-4 text-red-300" />
             </button>
           </div>
@@ -1069,7 +1095,7 @@ export function YouPage() {
             className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl border border-red-100 py-3.5 text-[14px] font-semibold text-red-500 hover:bg-red-50 transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            Sign out
+            {t('you.sign_out')}
           </button>
         </section>
 
@@ -1086,16 +1112,16 @@ export function YouPage() {
                 className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               >
-                <h3 className="text-[17px] font-bold text-gray-900 text-center mb-2">Delete Account</h3>
+                <h3 className="text-[17px] font-bold text-gray-900 text-center mb-2">{t('you.delete_account_confirm')}</h3>
                 <p className="text-[13px] text-gray-500 text-center mb-5">
-                  This will permanently delete your account and all your data. This cannot be undone.
+                  {t('you.delete_account_sub')}
                 </p>
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
                     className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
                   >
-                    Cancel
+                    {t('common.cancel')}
                   </button>
                   <button
                     onClick={async () => {
@@ -1108,7 +1134,7 @@ export function YouPage() {
                     }}
                     className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white"
                   >
-                    Delete
+                    {t('common.delete')}
                   </button>
                 </div>
               </motion.div>
@@ -1116,6 +1142,25 @@ export function YouPage() {
           )}
         </AnimatePresence>
       </div>
+
+      {/* ── Admin Section ── */}
+      {adminGroups.length > 0 && (
+        <section className="px-5 pb-4">
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.admin_section')}</h2>
+          <div className="rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+            {adminGroups.map(({ group_id, groups }) => groups && (
+              <button
+                key={group_id}
+                onClick={() => navigate(`/community/groups/${group_id}`)}
+                className="w-full flex items-center justify-between px-4 py-3.5"
+              >
+                <span className="text-[13px] font-medium text-gray-700">{groups.name}</span>
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <EditProfileSheet
         open={showEdit}

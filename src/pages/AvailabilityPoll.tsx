@@ -53,6 +53,16 @@ async function fetchPollDetail(pollId: string, userId: string) {
 
   if (error || !poll) throw error ?? new Error('Poll not found')
 
+  // DB stores time_slots and additional_options as text (JSON string) — parse if needed
+  if (typeof poll.time_slots === 'string') {
+    try { poll.time_slots = JSON.parse(poll.time_slots) } catch { poll.time_slots = [] }
+  }
+  if (!Array.isArray(poll.time_slots)) poll.time_slots = []
+  if (typeof poll.additional_options === 'string') {
+    try { poll.additional_options = JSON.parse(poll.additional_options) } catch { poll.additional_options = [] }
+  }
+  if (!Array.isArray(poll.additional_options)) poll.additional_options = []
+
   const { data: myResponse } = await supabase
     .from('poll_responses')
     .select('id, selected_slots, flexible_times, additional_responses, can_play_twice, preferred_date, submitted_at')
@@ -80,6 +90,12 @@ async function fetchPollDetail(pollId: string, userId: string) {
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+function parseJSON<T>(val: unknown, fallback: T): T {
+  if (Array.isArray(val)) return val as unknown as T
+  if (typeof val === 'string') { try { return JSON.parse(val) } catch { return fallback } }
+  return fallback
+}
 
 function getDayLabel(weekStartDate: string, dayName: string): string {
   try {
@@ -164,8 +180,8 @@ export function AvailabilityPollPage() {
   const isClosed = poll ? (isPast(parseISO(poll.closes_at)) || poll.status !== 'open') : false
   const isFormActive = !isClosed && (!myResponse || isEditMode)
 
-  const timeSlots = poll?.time_slots ?? []
-  const additionalOptions = poll?.additional_options ?? []
+  const timeSlots = parseJSON<PollSlot[]>(poll?.time_slots, [])
+  const additionalOptions = parseJSON<string[]>(poll?.additional_options, [])
 
   // Slots grouped by day (order: Mon-Sun)
   const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']

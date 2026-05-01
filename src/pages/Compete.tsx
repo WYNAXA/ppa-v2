@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { TrendingUp, TrendingDown, Minus, Trophy, Plus, ChevronRight, Search, Target } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Trophy, Plus, ChevronRight, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -608,6 +608,25 @@ export function CompetePage() {
             />
           </div>
 
+          {/* Your rank card — shown at top when ranked */}
+          {myGlobalRank > 0 && !loadingLeaderboard && !leaderboardSearch && (
+            <div className="rounded-2xl bg-[#009688] px-4 py-3.5 mb-2 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] text-white/70 font-medium mb-0.5">Your ranking</p>
+                <p className="text-[20px] font-black text-white">#{myGlobalRank} of {rawLeaderboard.length}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-[20px] font-black text-white">{(profile?.internal_ranking ?? 0).toLocaleString()} ELO</p>
+                <button
+                  onClick={() => myRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                  className="text-[11px] text-white/70 underline underline-offset-2"
+                >
+                  Jump to my position
+                </button>
+              </div>
+            </div>
+          )}
+
           {loadingLeaderboard ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
@@ -643,25 +662,6 @@ export function CompetePage() {
                 </button>
               )}
             </>
-          )}
-
-          {/* Find me sticky banner */}
-          {myGlobalRank > 0 && !loadingLeaderboard && !leaderboardSearch && (
-            <div className="mt-3 flex items-center justify-between rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3">
-              <div className="flex items-center gap-2">
-                <Target className="h-4 w-4 text-teal-600 flex-shrink-0" />
-                <div>
-                  <p className="text-[13px] font-bold text-teal-800">You are ranked #{myGlobalRank}</p>
-                  <p className="text-[11px] text-teal-600">{(profile?.internal_ranking ?? 0).toLocaleString()} ELO</p>
-                </div>
-              </div>
-              <button
-                onClick={() => myRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
-                className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white"
-              >
-                Jump to me
-              </button>
-            </div>
           )}
         </section>
 

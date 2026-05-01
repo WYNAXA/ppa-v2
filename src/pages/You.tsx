@@ -644,7 +644,7 @@ function EditProfileSheet({
 
               <button
                 onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending || !name.trim()}
+                disabled={saveMutation.isPending}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {saveMutation.isPending ? 'Saving…' : 'Save Changes'}
@@ -696,7 +696,7 @@ export function YouPage() {
   return (
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
-      <div className="px-5 pt-14 pb-4">
+      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
         <h1 className="text-[22px] font-bold text-gray-900">You</h1>
       </div>
 

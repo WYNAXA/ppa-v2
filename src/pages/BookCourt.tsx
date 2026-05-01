@@ -11,6 +11,23 @@ import { calculateDistance, formatDistance, driveMinutes } from '@/lib/travelUti
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
+const PLATFORM_LABELS: Record<string, { label: string; appScheme?: string }> = {
+  Playtomic:  { label: 'Playtomic',  appScheme: 'playtomic://' },
+  PadelMates: { label: 'PadelMates', appScheme: 'padelmates://' },
+}
+
+function openVenueLink(url: string, appScheme?: string) {
+  if (appScheme) {
+    const t = Date.now()
+    window.location.href = appScheme
+    setTimeout(() => {
+      if (Date.now() - t < 1500) window.open(url, '_blank')
+    }, 500)
+  } else {
+    window.open(url, '_blank')
+  }
+}
+
 interface Venue {
   venue_id: string
   venue_name: string
@@ -372,12 +389,11 @@ export function BookCourtPage() {
                           {v.number_of_courts != null && (
                             <p className="text-[11px] text-gray-400">{v.number_of_courts} courts</p>
                           )}
-                          {v.booking_platform && v.booking_platform !== 'Custom' && (
+                          {v.booking_platform && v.booking_platform !== 'Custom' ? (
                             <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">
-                              {v.booking_platform}
+                              {PLATFORM_LABELS[v.booking_platform]?.label ?? v.booking_platform}
                             </span>
-                          )}
-                          {(!v.booking_platform || v.booking_platform === 'Custom') && (
+                          ) : (
                             <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">
                               Book via PPA
                             </span>
@@ -430,14 +446,15 @@ export function BookCourtPage() {
 
             {/* Booking action */}
             {selectedVenue.booking_platform && selectedVenue.booking_platform !== 'Custom' && selectedVenue.booking_url ? (
-              <a
-                href={selectedVenue.booking_url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => openVenueLink(
+                  selectedVenue.booking_url!,
+                  PLATFORM_LABELS[selectedVenue.booking_platform!]?.appScheme
+                )}
                 className="block w-full rounded-xl bg-blue-600 py-3 text-[14px] font-bold text-white text-center"
               >
-                Book via {selectedVenue.booking_platform}
-              </a>
+                Book via {PLATFORM_LABELS[selectedVenue.booking_platform]?.label ?? selectedVenue.booking_platform}
+              </button>
             ) : (
               <button
                 onClick={fetchSlots}

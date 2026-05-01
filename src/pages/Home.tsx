@@ -610,7 +610,7 @@ export function HomePage() {
   return (
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
-      <div className="flex items-start justify-between px-5 pt-14 pb-5">
+      <div className="flex items-start justify-between px-5 pt-14 pb-5 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
         <div>
           <h1 className="text-[22px] font-bold text-gray-900 leading-tight">
             {profile?.name ? getGreeting(profile.name) : 'Good day'}

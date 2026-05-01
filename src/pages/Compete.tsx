@@ -9,6 +9,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { BADGE_DEFINITIONS } from '@/lib/badges'
 import { cn } from '@/lib/utils'
 import { CreateLeagueSheet } from '@/components/compete/CreateLeagueSheet'
+import BadgeInfoModal from '@/components/shared/BadgeInfoModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -501,6 +502,7 @@ export function CompetePage() {
   const userId       = profile?.id ?? ''
   const defaultGroupId = searchParams.get('group_id') ?? undefined
 
+  const [selectedBadge, setSelectedBadge] = useState<string | null>(null)
   const [leaderboardTab, setLeaderboardTab]   = useState<'global' | 'my_groups'>('global')
   const [showCreateLeague, setShowCreateLeague] = useState(
     location.pathname === '/compete/leagues/create'
@@ -536,7 +538,7 @@ export function CompetePage() {
   return (
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
-      <div className="px-5 pt-14 pb-4">
+      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
         <h1 className="text-[22px] font-bold text-gray-900">Compete</h1>
       </div>
 
@@ -558,15 +560,21 @@ export function CompetePage() {
               {myBadges.map((b) => {
                 const meta = BADGE_DEFINITIONS[b.badge_key] ?? { label: b.badge_key, emoji: '🏅' }
                 return (
-                  <div key={b.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center">
+                  <button
+                    key={b.id}
+                    onClick={() => setSelectedBadge(b.badge_key)}
+                    className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center active:scale-95 transition-transform"
+                  >
                     <p className="text-[22px] leading-none mb-1">{meta.emoji}</p>
                     <p className="text-[11px] font-semibold text-gray-700 leading-tight">{meta.label}</p>
-                  </div>
+                  </button>
                 )
               })}
             </div>
           </section>
         )}
+
+        <BadgeInfoModal badgeKey={selectedBadge} onClose={() => setSelectedBadge(null)} />
 
         {/* ── Leaderboard ── */}
         <section>

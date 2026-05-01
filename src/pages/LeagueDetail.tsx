@@ -22,6 +22,7 @@ interface LeagueInfo {
   linked_group_ids: string[] | null
   created_by: string | null
   city: string | null
+  prizes: string | null
 }
 
 interface Standing {
@@ -71,7 +72,7 @@ function useLeague(id: string) {
     queryFn: async (): Promise<LeagueInfo | null> => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, match_type, visibility, season_start, season_end, linked_group_ids, created_by, city')
+        .select('id, name, status, match_type, visibility, season_start, season_end, linked_group_ids, created_by, city, prizes')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -501,6 +502,50 @@ export function LeagueDetailPage() {
           {activeTab === 'standings' && (
             loadingStandings ? <TabSkeleton /> :
             standings.length === 0 ? <EmptyTab message="No standings yet" /> : (
+              <div className="space-y-3">
+
+              {/* Current leader card */}
+              {standings[0] && (
+                <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 px-4 py-3 flex items-center gap-3">
+                  <p className="text-[28px] leading-none">🥇</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Current Leader</p>
+                    <p className="text-[15px] font-bold text-gray-900 truncate">{standings[0].profile?.name ?? 'Unknown'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[20px] font-black text-amber-700">{standings[0].points}</p>
+                    <p className="text-[10px] text-amber-500 font-semibold">pts</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Progress bar */}
+              {(() => {
+                const n = standings.length
+                const totalRounds = n > 1 ? n * (n - 1) / 2 : 0
+                const maxPlayed = standings.length > 0 ? Math.max(...standings.map((s) => s.played)) : 0
+                const pct = totalRounds > 0 ? Math.min(100, Math.round((maxPlayed / totalRounds) * 100)) : 0
+                return totalRounds > 0 ? (
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-[11px] font-semibold text-gray-500">Season progress</p>
+                      <p className="text-[11px] text-gray-400">{maxPlayed} / {totalRounds} rounds</p>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                      <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                ) : null
+              })()}
+
+              {/* Prizes */}
+              {league?.prizes && (
+                <div className="rounded-2xl bg-purple-50 border border-purple-100 px-4 py-3">
+                  <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wide mb-1">Prizes</p>
+                  <p className="text-[13px] text-gray-800">{league.prizes}</p>
+                </div>
+              )}
+
               <div className="rounded-2xl border border-gray-100 overflow-hidden">
                 <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
                   {['#', 'Player', 'P', 'W', 'L', 'Pts'].map((h) => (
@@ -536,6 +581,7 @@ export function LeagueDetailPage() {
                     </div>
                   )
                 })}
+              </div>
               </div>
             )
           )}

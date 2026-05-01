@@ -395,7 +395,7 @@ export function CommunityPage() {
   return (
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
-      <div className="px-5 pt-14 pb-4">
+      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
         <h1 className="text-[22px] font-bold text-gray-900">Community</h1>
       </div>
 

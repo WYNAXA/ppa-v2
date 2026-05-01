@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState, lazy, Suspense } from 'react'
+import { useTranslation } from 'react-i18next'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
 import { BottomNav } from '@/components/shared/BottomNav'
@@ -109,6 +110,25 @@ function UpdateBanner() {
   )
 }
 
+function TranslationBanner() {
+  const { i18n } = useTranslation()
+  const [dismissed, setDismissed] = useState(false)
+  if (i18n.language === 'en' || dismissed) return null
+  return (
+    <div style={{
+      position: 'fixed', bottom: 'calc(80px + env(safe-area-inset-bottom))', left: 12, right: 12,
+      background: 'rgba(0,0,0,0.75)', color: 'white', borderRadius: 12,
+      padding: '10px 14px', zIndex: 9990,
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+    }}>
+      <span style={{ fontSize: 12 }}>Some text may still appear in English while translation is in progress.</span>
+      <button onClick={() => setDismissed(true)} style={{
+        background: 'none', border: 'none', color: 'white', fontSize: 16, cursor: 'pointer', flexShrink: 0,
+      }}>×</button>
+    </div>
+  )
+}
+
 function AppShell() {
   const { session, loading } = useAuth()
   const location = useLocation()
@@ -120,6 +140,7 @@ function AppShell() {
   return (
     <OnboardingGuard>
       <UpdateBanner />
+      <TranslationBanner />
       <div className="flex h-full flex-col">
         <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>
           <Suspense fallback={<SplashScreen />}>

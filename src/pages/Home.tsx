@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
   TrendingUp, TrendingDown, Minus,
@@ -17,11 +18,6 @@ import { cn } from '@/lib/utils'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getGreeting(name: string): string {
-  const h = new Date().getHours()
-  const part = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening'
-  return `Good ${part}, ${name.split(' ')[0]}`
-}
 
 function todayStr() {
   return new Date().toISOString().split('T')[0]
@@ -593,6 +589,7 @@ export function HomePage() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
   const userId      = profile?.id ?? ''
+  const { t } = useTranslation()
 
   const [createMatchOpen, setCreateMatchOpen] = useState(false)
 
@@ -613,7 +610,13 @@ export function HomePage() {
       <div className="flex items-start justify-between px-5 pt-14 pb-5 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
         <div>
           <h1 className="text-[22px] font-bold text-gray-900 leading-tight">
-            {profile?.name ? getGreeting(profile.name) : 'Good day'}
+            {profile?.name
+              ? (() => {
+                  const h = new Date().getHours()
+                  const key = h < 12 ? 'home.greeting_morning' : h < 17 ? 'home.greeting_afternoon' : 'home.greeting_evening'
+                  return `${t(key)}, ${profile.name.split(' ')[0]}`
+                })()
+              : t('home.greeting_morning')}
           </h1>
           <p className="text-[13px] text-gray-400 mt-0.5">{dateLabel}</p>
         </div>
@@ -633,12 +636,12 @@ export function HomePage() {
         {/* ── Next Match ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">Next match</h2>
+            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.next_match')}</h2>
             <button
               onClick={() => navigate('/matches')}
               className="text-[12px] text-[#009688] font-semibold"
             >
-              All matches
+              {t('home.all_matches')}
             </button>
           </div>
 
@@ -674,7 +677,7 @@ export function HomePage() {
         {/* ── Recent Activity ── */}
         <section>
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">Recent activity</h2>
+            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.recent_activity')}</h2>
             <button
               onClick={() => navigate('/notifications')}
               className="text-[12px] text-[#009688] font-semibold"

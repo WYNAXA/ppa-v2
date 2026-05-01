@@ -119,6 +119,44 @@ function useGroupMembers(groupId: string) {
   })
 }
 
+interface PendingMember {
+  id: string
+  user_id: string
+  name: string
+  avatar_url: string | null
+  internal_ranking: number | null
+}
+
+function usePendingMembers(groupId: string, isAdmin: boolean) {
+  return useQuery({
+    queryKey: ['pending-members', groupId],
+    enabled: !!groupId && isAdmin,
+    queryFn: async (): Promise<PendingMember[]> => {
+      const { data: rows } = await supabase
+        .from('group_members')
+        .select('id, user_id')
+        .eq('group_id', groupId)
+        .eq('status', 'pending')
+
+      if (!rows || rows.length === 0) return []
+      const userIds = rows.map((r) => r.user_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, internal_ranking')
+        .in('id', userIds)
+
+      const pm = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
+      return rows
+        .map((r) => {
+          const p = pm[r.user_id]
+          if (!p) return null
+          return { id: r.id, user_id: r.user_id, name: p.name, avatar_url: p.avatar_url ?? null, internal_ranking: p.internal_ranking ?? null }
+        })
+        .filter(Boolean) as PendingMember[]
+    },
+  })
+}
+
 function useGroupMatches(groupId: string) {
   return useQuery({
     queryKey: ['group-matches', groupId],
@@ -654,6 +692,11 @@ function SettingsTab({ group, isAdmin, currentUserId }: {
   const [saving, setSaving]         = useState(false)
   const [saved, setSaved]           = useState(false)
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [announcement, setAnnouncement] = useState('')
+  const [sending, setSending]       = useState(false)
+  const [sent, setSent]             = useState(false)
+
+  const { data: pendingMembers = [], isLoading: loadingPending } = usePendingMembers(group.id, isAdmin)
 
   async function saveSettings() {
     setSaving(true)
@@ -671,45 +714,149 @@ function SettingsTab({ group, isAdmin, currentUserId }: {
     navigate('/community')
   }
 
+  async function approveMember(_memberId: string, userId: string) {
+    await supabase.from('group_members').update({ status: 'approved' }).eq('group_id', group.id).eq('user_id', userId)
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      type: 'group_join',
+      title: group.name,
+      message: `Your request to join ${group.name} was approved.`,
+      read: false,
+    })
+    queryClient.invalidateQueries({ queryKey: ['pending-members', group.id] })
+    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+  }
+
+  async function declineMember(userId: string) {
+    await supabase.from('group_members').update({ status: 'rejected' }).eq('group_id', group.id).eq('user_id', userId)
+    queryClient.invalidateQueries({ queryKey: ['pending-members', group.id] })
+  }
+
+  async function sendAnnouncement() {
+    if (!announcement.trim()) return
+    setSending(true)
+    const { data: members } = await supabase
+      .from('group_members')
+      .select('user_id')
+      .eq('group_id', group.id)
+      .eq('status', 'approved')
+    const notifications = (members ?? [])
+      .filter((m) => m.user_id !== currentUserId)
+      .map((m) => ({
+        user_id: m.user_id,
+        type: 'announcement',
+        title: group.name,
+        message: announcement.trim(),
+        read: false,
+      }))
+    if (notifications.length > 0) {
+      await supabase.from('notifications').insert(notifications)
+    }
+    setSending(false)
+    setSent(true)
+    setAnnouncement('')
+    setTimeout(() => setSent(false), 3000)
+  }
+
   return (
     <div className="space-y-4">
       {isAdmin && (
-        <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Group Settings</p>
-          <div>
-            <label className="text-[12px] text-gray-500 font-medium mb-1 block">Name</label>
-            <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
-            />
-          </div>
-          <div>
-            <label className="text-[12px] text-gray-500 font-medium mb-1 block">Visibility</label>
-            <div className="flex gap-2">
-              {(['public', 'open', 'private'] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setVisibility(v)}
-                  className={`flex-1 rounded-xl border py-2 text-[12px] font-semibold capitalize transition-colors ${
-                    visibility === v
-                      ? 'border-teal-300 bg-teal-50 text-teal-700'
-                      : 'border-gray-200 text-gray-500'
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
+        <>
+          {/* Pending join requests */}
+          {(loadingPending || pendingMembers.length > 0) && (
+            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+              <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wide mb-3">
+                Pending requests {pendingMembers.length > 0 ? `(${pendingMembers.length})` : ''}
+              </p>
+              {loadingPending ? (
+                <div className="h-10 bg-amber-100 rounded-xl animate-pulse" />
+              ) : (
+                <div className="space-y-2">
+                  {pendingMembers.map((pm) => (
+                    <div key={pm.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5">
+                      <PlayerAvatar name={pm.name} avatarUrl={pm.avatar_url} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-gray-800 truncate">{pm.name}</p>
+                        {pm.internal_ranking != null && (
+                          <p className="text-[11px] text-gray-400">{pm.internal_ranking} ELO</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => approveMember(pm.id, pm.user_id)}
+                        className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => declineMember(pm.user_id)}
+                        className="rounded-lg border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
+          )}
+
+          {/* Send announcement */}
+          <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Send Announcement</p>
+            <textarea
+              value={announcement}
+              onChange={(e) => setAnnouncement(e.target.value)}
+              placeholder="Write an announcement for all members…"
+              rows={3}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+            />
+            <button
+              onClick={sendAnnouncement}
+              disabled={sending || !announcement.trim()}
+              className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+            >
+              {sent ? 'Sent ✓' : sending ? 'Sending…' : 'Send to all members'}
+            </button>
           </div>
-          <button
-            onClick={saveSettings}
-            disabled={saving}
-            className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
-          >
-            {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
-          </button>
-        </div>
+
+          {/* Group settings */}
+          <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Group Settings</p>
+            <div>
+              <label className="text-[12px] text-gray-500 font-medium mb-1 block">Name</label>
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+              />
+            </div>
+            <div>
+              <label className="text-[12px] text-gray-500 font-medium mb-1 block">Visibility</label>
+              <div className="flex gap-2">
+                {(['open', 'private'] as const).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setVisibility(v)}
+                    className={`flex-1 rounded-xl border py-2 text-[12px] font-semibold capitalize transition-colors ${
+                      visibility === v
+                        ? 'border-teal-300 bg-teal-50 text-teal-700'
+                        : 'border-gray-200 text-gray-500'
+                    }`}
+                  >
+                    {v}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={saveSettings}
+              disabled={saving}
+              className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
+            >
+              {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </div>
+        </>
       )}
 
       <div className="rounded-2xl border border-red-100 p-4">
@@ -737,7 +884,7 @@ function SettingsTab({ group, isAdmin, currentUserId }: {
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
               <p className="text-[16px] font-bold text-gray-900 text-center mb-2">Leave group?</p>
-              <p className="text-[13px] text-gray-500 text-center mb-6">You can rejoin later if the group is public.</p>
+              <p className="text-[13px] text-gray-500 text-center mb-6">You can rejoin later if the group is open.</p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">Cancel</button>
                 <button onClick={leaveGroup} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white">Leave</button>

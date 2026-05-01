@@ -309,17 +309,19 @@ function useMyConnections(userId: string) {
   })
 }
 
-function useFindPlayers(query: string, city: string | null) {
+function useFindPlayers(userId: string, query: string, city: string | null) {
   return useQuery({
-    queryKey: ['find-players', query, city],
-    enabled: query.trim().length >= 2,
+    queryKey: ['find-players', userId, query, city],
+    enabled: !!userId,
     queryFn: async () => {
       let q = supabase
         .from('profiles')
         .select('id, name, avatar_url, city, internal_ranking')
-        .ilike('name', `%${query.trim()}%`)
-        .limit(20)
-      if (city) q = q.ilike('city', `%${city}%`)
+        .neq('id', userId)
+        .order('internal_ranking', { ascending: false })
+        .limit(30)
+      if (query.trim()) q = q.ilike('name', `%${query.trim()}%`)
+      if (city && !query.trim()) q = q.ilike('city', `%${city}%`)
       const { data } = await q
       return data ?? []
     },
@@ -356,6 +358,7 @@ export function CommunityPage() {
   )
 
   const { data: foundPlayers = [] } = useFindPlayers(
+    userId,
     playerSearch,
     playerCityFilter ? (profile?.city ?? null) : null,
   )
@@ -530,59 +533,54 @@ export function CommunityPage() {
               Near me ({profile.city})
             </button>
           )}
-          {playerSearch.trim().length >= 2 && (
-            foundPlayers.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-                <p className="text-[13px] font-semibold text-gray-500">No players found</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {foundPlayers.map((p) => {
-                  const isConnected = myConnections.has(p.id) || p.id === userId
-                  return (
-                    <div
-                      key={p.id}
-                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-transparent"
+          {foundPlayers.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
+              <p className="text-[13px] font-semibold text-gray-500">
+                {playerSearch.trim() ? 'No players found' : 'No players yet'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {foundPlayers.map((p) => {
+                const isConnected = myConnections.has(p.id) || p.id === userId
+                return (
+                  <div
+                    key={p.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-transparent"
+                  >
+                    <button
+                      onClick={() => navigate(`/players/${p.id}`)}
+                      className="flex items-center gap-3 flex-1 min-w-0 text-left"
                     >
+                      <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
+                        {p.city && <p className="text-[11px] text-gray-400">{p.city}</p>}
+                      </div>
+                    </button>
+                    {p.internal_ranking != null && (
+                      <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
+                        {p.internal_ranking} ELO
+                      </span>
+                    )}
+                    {p.id !== userId && (
                       <button
-                        onClick={() => navigate(`/players/${p.id}`)}
-                        className="flex items-center gap-3 flex-1 min-w-0 text-left"
+                        onClick={() => !isConnected && connectMutation.mutate(p.id)}
+                        disabled={isConnected || connectMutation.isPending}
+                        className={`flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${
+                          isConnected
+                            ? 'bg-gray-100 text-gray-400'
+                            : 'bg-[#009688] text-white hover:bg-teal-700'
+                        }`}
                       >
-                        <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
-                          {p.city && <p className="text-[11px] text-gray-400">{p.city}</p>}
-                        </div>
+                        {isConnected ? <Check className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
+                        {isConnected ? 'Added' : 'Connect'}
                       </button>
-                      {p.internal_ranking != null && (
-                        <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
-                          {p.internal_ranking} ELO
-                        </span>
-                      )}
-                      {p.id !== userId && (
-                        <button
-                          onClick={() => !isConnected && connectMutation.mutate(p.id)}
-                          disabled={isConnected || connectMutation.isPending}
-                          className={`flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${
-                            isConnected
-                              ? 'bg-gray-100 text-gray-400'
-                              : 'bg-[#009688] text-white hover:bg-teal-700'
-                          }`}
-                        >
-                          {isConnected ? <Check className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                          {isConnected ? 'Added' : 'Connect'}
-                        </button>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            )
-          )}
-          {playerSearch.trim().length < 2 && (
-            <p className="text-[13px] text-gray-400 text-center py-4">
-              Search for players to find and connect
-            </p>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
           )}
         </section>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -420,6 +420,18 @@ function EditProfileSheet({
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [uploading, setUploading]   = useState(false)
   const fileInputRef                = useRef<HTMLInputElement>(null)
+
+  // Sync form when profile loads asynchronously
+  useEffect(() => {
+    if (!profile) return
+    setName(profile.name ?? '')
+    setCity(profile.city ?? '')
+    setPostalCode(profile.postal_code ?? '')
+    setCountry(profile.country ?? '')
+    setCanDrive(!!(profile as any).can_drive)
+    setMaxPassengers((profile as any).max_passengers ?? 3)
+    setTravelRadius((profile as any).travel_radius_miles ?? 5)
+  }, [profile?.id])
 
   const COUNTRIES = ['UK', 'Ireland', 'Spain', 'Portugal', 'Italy', 'France', 'Germany', 'Netherlands', 'Belgium', 'Other']
 

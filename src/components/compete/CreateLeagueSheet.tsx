@@ -534,6 +534,18 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
         status:    'active',
       })
 
+      // Seed initial standings row for the creator
+      await supabase.from('league_standings').insert({
+        league_id:      league.id,
+        user_id:        user.id,
+        wins:           0,
+        losses:         0,
+        draws:          0,
+        matches_played: 0,
+        ranking_points: 0,
+        category:       'overall',
+      })
+
       return league.id
     },
     onSuccess: (leagueId: string) => {

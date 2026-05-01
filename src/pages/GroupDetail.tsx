@@ -23,6 +23,10 @@ interface Group {
   visibility: string | null
   admin_id: string
   invite_code: string | null
+  rules: string | null
+  max_members: number | null
+  auto_approve: boolean | null
+  created_at: string | null
 }
 
 interface Member {
@@ -30,6 +34,7 @@ interface Member {
   name: string
   avatar_url: string | null
   ranking_points: number | null
+  internal_ranking: number | null
   role: string
   memberStatus: string
 }
@@ -67,7 +72,7 @@ function useGroup(groupId: string) {
     queryFn: async (): Promise<Group | null> => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id, invite_code')
+        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, created_at')
         .eq('id', groupId)
         .single()
       if (error) throw error
@@ -96,7 +101,7 @@ function useGroupMembers(groupId: string) {
       const userIds = memberRows.map((m) => m.user_id)
       const { data: profileRows } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url, ranking_points')
+        .select('id, name, avatar_url, ranking_points, internal_ranking')
         .in('id', userIds)
 
       const profileMap = Object.fromEntries((profileRows ?? []).map((p) => [p.id, p]))
@@ -106,12 +111,13 @@ function useGroupMembers(groupId: string) {
           const p = profileMap[m.user_id]
           if (!p) return null
           return {
-            id:             p.id,
-            name:           p.name,
-            avatar_url:     p.avatar_url ?? null,
-            ranking_points: p.ranking_points ?? null,
-            role:           m.role as string,
-            memberStatus:   m.status as string,
+            id:               p.id,
+            name:             p.name,
+            avatar_url:       p.avatar_url ?? null,
+            ranking_points:   p.ranking_points ?? null,
+            internal_ranking: p.internal_ranking ?? null,
+            role:             m.role as string,
+            memberStatus:     m.status as string,
           }
         })
         .filter(Boolean) as Member[]
@@ -678,29 +684,55 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
   )
 }
 
-// ── Tab: Settings ────────────────────────────────────────────────────────────
+// ── Tab: Settings / Admin ─────────────────────────────────────────────────────
 
-function SettingsTab({ group, isAdmin, currentUserId }: {
+type AdminSection = 'overview' | 'members' | 'announce' | 'settings'
+
+function SettingsTab({ group, members, isAdmin, currentUserId }: {
   group: Group
+  members: Member[]
   isAdmin: boolean
   currentUserId: string
 }) {
   const navigate    = useNavigate()
   const queryClient = useQueryClient()
+  const [adminSection, setAdminSection] = useState<AdminSection>('overview')
+  const [confirmLeave, setConfirmLeave] = useState(false)
+
+  // Settings form state
   const [name, setName]             = useState(group.name)
-  const [visibility, setVisibility] = useState(group.visibility ?? 'public')
+  const [description, setDescription] = useState(group.description ?? '')
+  const [city, setCity]             = useState(group.city ?? '')
+  const [visibility, setVisibility] = useState(group.visibility ?? 'open')
+  const [rules, setRules]           = useState(group.rules ?? '')
+  const [maxMembers, setMaxMembers] = useState(group.max_members?.toString() ?? '')
+  const [autoApprove, setAutoApprove] = useState(group.auto_approve ?? false)
   const [saving, setSaving]         = useState(false)
   const [saved, setSaved]           = useState(false)
-  const [confirmLeave, setConfirmLeave] = useState(false)
+
+  // Announcement form state
   const [announcement, setAnnouncement] = useState('')
   const [sending, setSending]       = useState(false)
   const [sent, setSent]             = useState(false)
 
   const { data: pendingMembers = [], isLoading: loadingPending } = usePendingMembers(group.id, isAdmin)
 
+  const approvedMembers = members.filter(m => m.memberStatus === 'approved')
+  const avgElo = approvedMembers.length > 0
+    ? Math.round(approvedMembers.reduce((s, m) => s + (m.internal_ranking ?? 1500), 0) / approvedMembers.length)
+    : null
+
   async function saveSettings() {
     setSaving(true)
-    await supabase.from('groups').update({ name, visibility }).eq('id', group.id)
+    await supabase.from('groups').update({
+      name,
+      description: description.trim() || null,
+      city: city.trim() || null,
+      visibility,
+      rules: rules.trim() || null,
+      max_members: maxMembers ? parseInt(maxMembers, 10) : null,
+      auto_approve: autoApprove,
+    }).eq('id', group.id)
     setSaving(false)
     setSaved(true)
     if (navigator.vibrate) navigator.vibrate(10)
@@ -714,7 +746,7 @@ function SettingsTab({ group, isAdmin, currentUserId }: {
     navigate('/community')
   }
 
-  async function approveMember(_memberId: string, userId: string) {
+  async function approveMember(userId: string) {
     await supabase.from('group_members').update({ status: 'approved' }).eq('group_id', group.id).eq('user_id', userId)
     await supabase.from('notifications').insert({
       user_id: userId,
@@ -732,15 +764,26 @@ function SettingsTab({ group, isAdmin, currentUserId }: {
     queryClient.invalidateQueries({ queryKey: ['pending-members', group.id] })
   }
 
+  async function removeMember(memberId: string) {
+    await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', memberId)
+    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+  }
+
+  async function toggleRole(member: Member) {
+    const newRole = member.role === 'admin' ? 'member' : 'admin'
+    await supabase.from('group_members').update({ role: newRole }).eq('group_id', group.id).eq('user_id', member.id)
+    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+  }
+
   async function sendAnnouncement() {
     if (!announcement.trim()) return
     setSending(true)
-    const { data: members } = await supabase
+    const { data: allMembers } = await supabase
       .from('group_members')
       .select('user_id')
       .eq('group_id', group.id)
       .eq('status', 'approved')
-    const notifications = (members ?? [])
+    const notifications = (allMembers ?? [])
       .filter((m) => m.user_id !== currentUserId)
       .map((m) => ({
         user_id: m.user_id,
@@ -762,103 +805,266 @@ function SettingsTab({ group, isAdmin, currentUserId }: {
     <div className="space-y-4">
       {isAdmin && (
         <>
-          {/* Pending join requests */}
-          {(loadingPending || pendingMembers.length > 0) && (
-            <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-              <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wide mb-3">
-                Pending requests {pendingMembers.length > 0 ? `(${pendingMembers.length})` : ''}
-              </p>
-              {loadingPending ? (
-                <div className="h-10 bg-amber-100 rounded-xl animate-pulse" />
-              ) : (
-                <div className="space-y-2">
-                  {pendingMembers.map((pm) => (
-                    <div key={pm.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5">
-                      <PlayerAvatar name={pm.name} avatarUrl={pm.avatar_url} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-800 truncate">{pm.name}</p>
-                        {pm.internal_ranking != null && (
-                          <p className="text-[11px] text-gray-400">{pm.internal_ranking} ELO</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => approveMember(pm.id, pm.user_id)}
-                        className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => declineMember(pm.user_id)}
-                        className="rounded-lg border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500"
-                      >
-                        Decline
-                      </button>
-                    </div>
-                  ))}
-                </div>
+          {/* Admin sub-nav */}
+          <div className="grid grid-cols-4 gap-1">
+            {(['overview', 'members', 'announce', 'settings'] as AdminSection[]).map((s) => (
+              <button
+                key={s}
+                onClick={() => setAdminSection(s)}
+                className={`text-[11px] font-semibold py-2 rounded-xl capitalize transition-colors ${
+                  adminSection === s
+                    ? 'bg-[#009688] text-white'
+                    : 'bg-gray-100 text-gray-500'
+                }`}
+              >
+                {s === 'announce' ? 'Post' : s}
+              </button>
+            ))}
+          </div>
+
+          {/* OVERVIEW */}
+          {adminSection === 'overview' && (
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { label: 'Total members', value: approvedMembers.length },
+                  { label: 'Pending requests', value: pendingMembers.length },
+                  { label: 'Avg group ELO', value: avgElo?.toLocaleString() ?? '—' },
+                  { label: 'Created', value: group.created_at ? format(parseISO(group.created_at), 'd MMM yyyy') : '—' },
+                ].map(({ label, value }) => (
+                  <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+                    <p className="text-[11px] text-gray-400 font-medium">{label}</p>
+                    <p className="text-[20px] font-black text-gray-900 mt-0.5">{value}</p>
+                  </div>
+                ))}
+              </div>
+              {pendingMembers.length > 0 && (
+                <button
+                  onClick={() => setAdminSection('members')}
+                  className="w-full rounded-xl bg-amber-50 border border-amber-100 py-3 text-[13px] font-bold text-amber-700"
+                >
+                  {pendingMembers.length} pending request{pendingMembers.length !== 1 ? 's' : ''} — Review
+                </button>
               )}
             </div>
           )}
 
-          {/* Send announcement */}
-          <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Send Announcement</p>
-            <textarea
-              value={announcement}
-              onChange={(e) => setAnnouncement(e.target.value)}
-              placeholder="Write an announcement for all members…"
-              rows={3}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
-            />
-            <button
-              onClick={sendAnnouncement}
-              disabled={sending || !announcement.trim()}
-              className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
-            >
-              {sent ? 'Sent ✓' : sending ? 'Sending…' : 'Send to all members'}
-            </button>
-          </div>
+          {/* MEMBERS */}
+          {adminSection === 'members' && (
+            <div className="space-y-3">
+              {/* Pending requests */}
+              {(loadingPending || pendingMembers.length > 0) && (
+                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+                  <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wide mb-3">
+                    Pending requests {pendingMembers.length > 0 ? `(${pendingMembers.length})` : ''}
+                  </p>
+                  {loadingPending ? (
+                    <div className="h-10 bg-amber-100 rounded-xl animate-pulse" />
+                  ) : (
+                    <div className="space-y-2">
+                      {pendingMembers.map((pm) => (
+                        <div key={pm.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5">
+                          <PlayerAvatar name={pm.name} avatarUrl={pm.avatar_url} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[13px] font-semibold text-gray-800 truncate">{pm.name}</p>
+                            {pm.internal_ranking != null && (
+                              <p className="text-[11px] text-gray-400">{pm.internal_ranking} ELO</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => approveMember(pm.user_id)}
+                            className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white"
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => declineMember(pm.user_id)}
+                            className="rounded-lg border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500"
+                          >
+                            Decline
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
-          {/* Group settings */}
-          <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-            <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Group Settings</p>
-            <div>
-              <label className="text-[12px] text-gray-500 font-medium mb-1 block">Name</label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
-              />
-            </div>
-            <div>
-              <label className="text-[12px] text-gray-500 font-medium mb-1 block">Visibility</label>
-              <div className="flex gap-2">
-                {(['open', 'private'] as const).map((v) => (
-                  <button
-                    key={v}
-                    onClick={() => setVisibility(v)}
-                    className={`flex-1 rounded-xl border py-2 text-[12px] font-semibold capitalize transition-colors ${
-                      visibility === v
-                        ? 'border-teal-300 bg-teal-50 text-teal-700'
-                        : 'border-gray-200 text-gray-500'
-                    }`}
-                  >
-                    {v}
-                  </button>
-                ))}
+              {/* Approved members */}
+              <div className="rounded-2xl border border-gray-100 p-4">
+                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">
+                  Members ({approvedMembers.length})
+                </p>
+                <div className="space-y-2">
+                  {approvedMembers.map((m) => (
+                    <div key={m.id} className="flex items-center gap-3 py-1.5">
+                      <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[13px] font-semibold text-gray-800 truncate">{m.name}</p>
+                          {m.id === currentUserId && (
+                            <span className="text-[10px] text-gray-400">(you)</span>
+                          )}
+                          {m.role === 'admin' && (
+                            <span className="text-[10px] font-bold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">Admin</span>
+                          )}
+                        </div>
+                        {m.internal_ranking != null && (
+                          <p className="text-[11px] text-gray-400">{m.internal_ranking.toLocaleString()} ELO</p>
+                        )}
+                      </div>
+                      {m.id !== currentUserId && (
+                        <div className="flex gap-1.5 flex-shrink-0">
+                          <button
+                            onClick={() => toggleRole(m)}
+                            className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-semibold text-gray-600"
+                          >
+                            {m.role === 'admin' ? 'Demote' : 'Admin'}
+                          </button>
+                          <button
+                            onClick={() => removeMember(m.id)}
+                            className="rounded-lg border border-red-200 px-2.5 py-1 text-[10px] font-semibold text-red-500"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            <button
-              onClick={saveSettings}
-              disabled={saving}
-              className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
-            >
-              {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
-            </button>
-          </div>
+          )}
+
+          {/* ANNOUNCE */}
+          {adminSection === 'announce' && (
+            <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Send Announcement</p>
+              <p className="text-[12px] text-gray-400">Sends to all {approvedMembers.length} members as a notification.</p>
+              <textarea
+                value={announcement}
+                onChange={(e) => setAnnouncement(e.target.value)}
+                placeholder="Write an announcement for all members…"
+                rows={4}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+              />
+              <button
+                onClick={sendAnnouncement}
+                disabled={sending || !announcement.trim()}
+                className="w-full rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-40"
+              >
+                {sent ? 'Sent to all members ✓' : sending ? 'Sending…' : 'Send to all members'}
+              </button>
+            </div>
+          )}
+
+          {/* SETTINGS */}
+          {adminSection === 'settings' && (
+            <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Group Settings</p>
+
+              <div>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Name</label>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Description</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  placeholder="Describe your group…"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">City</label>
+                <input
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. London"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Visibility</label>
+                <div className="flex gap-2">
+                  {(['open', 'private'] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setVisibility(v)}
+                      className={`flex-1 rounded-xl border py-2 text-[12px] font-semibold capitalize transition-colors ${
+                        visibility === v
+                          ? 'border-teal-300 bg-teal-50 text-teal-700'
+                          : 'border-gray-200 text-gray-500'
+                      }`}
+                    >
+                      {v === 'open' ? 'Open (anyone can join)' : 'Private (request to join)'}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between py-1">
+                <div>
+                  <p className="text-[13px] font-medium text-gray-700">Auto-approve members</p>
+                  <p className="text-[11px] text-gray-400">Skip approval for join requests</p>
+                </div>
+                <button
+                  onClick={() => setAutoApprove(v => !v)}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    autoApprove ? 'bg-[#009688]' : 'bg-gray-200'
+                  }`}
+                >
+                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                    autoApprove ? 'translate-x-6' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              <div>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Max members (optional)</label>
+                <input
+                  type="number"
+                  value={maxMembers}
+                  onChange={(e) => setMaxMembers(e.target.value)}
+                  placeholder="e.g. 20"
+                  min="1"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Group rules (optional)</label>
+                <textarea
+                  value={rules}
+                  onChange={(e) => setRules(e.target.value)}
+                  rows={3}
+                  placeholder="Code of conduct, match rules, etc."
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                />
+              </div>
+
+              <button
+                onClick={saveSettings}
+                disabled={saving}
+                className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
+              >
+                {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          )}
         </>
       )}
 
+      {/* Danger Zone — visible to all members */}
       <div className="rounded-2xl border border-red-100 p-4">
         <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">Danger Zone</p>
         <button
@@ -1088,6 +1294,7 @@ export function GroupDetailPage() {
           {activeTab === 'settings' && isAdmin && (
             <SettingsTab
               group={group}
+              members={members ?? []}
               isAdmin={isAdmin}
               currentUserId={userId}
             />

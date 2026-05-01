@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -95,6 +96,34 @@ function useMyGroups(userId: string) {
         hasActiveLeague: activeGroupIds.has(g.id),
         recentMembers:   (membersByGroup[g.id] ?? []).slice(0, 5),
       }))
+    },
+  })
+}
+
+// ── Pending requests query ────────────────────────────────────────────────────
+
+interface PendingRequest {
+  id: string
+  group_id: string
+  groupName: string
+  groupCity: string | null
+}
+
+function usePendingRequests(userId: string) {
+  return useQuery({
+    queryKey: ['pending-requests', userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<PendingRequest[]> => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('id, group_id, groups(id, name, city)')
+        .eq('user_id', userId)
+        .eq('status', 'pending')
+      if (error) throw error
+      return (data ?? []).map((row: any) => {
+        const g = Array.isArray(row.groups) ? row.groups[0] : row.groups
+        return { id: row.id, group_id: row.group_id, groupName: g?.name ?? 'Unknown group', groupCity: g?.city ?? null }
+      })
     },
   })
 }
@@ -334,6 +363,7 @@ export function CommunityPage() {
   const { profile } = useAuth()
   const navigate     = useNavigate()
   const queryClient  = useQueryClient()
+  const { t }        = useTranslation()
   const [search, setSearch]                   = useState('')
   const [activeFilter, setActiveFilter]       = useState<string | null>(null)
   const [showCreateSheet, setShowCreateSheet] = useState(false)
@@ -347,6 +377,7 @@ export function CommunityPage() {
   const userId = profile?.id ?? ''
   const { data: myConnections = new Set<string>() } = useMyConnections(userId)
   const { data: myGroups = [], isLoading: loadingMine } = useMyGroups(userId)
+  const { data: pendingRequests = [] } = usePendingRequests(userId)
   const myGroupIds = myGroups.map((g) => g.id)
 
   const { data: discoverGroups = [], isLoading: loadingDiscover } = useDiscoverGroups(
@@ -381,6 +412,18 @@ export function CommunityPage() {
     },
   })
 
+  const cancelRequestMutation = useMutation({
+    mutationFn: async (groupId: string) => {
+      const { error } = await supabase.from('group_members').delete()
+        .eq('group_id', groupId).eq('user_id', userId).eq('status', 'pending')
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['pending-requests', userId] })
+      queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })
+    },
+  })
+
   const connectMutation = useMutation({
     mutationFn: async (targetId: string) => {
       const { error } = await supabase.from('player_connections').insert({
@@ -399,14 +442,14 @@ export function CommunityPage() {
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
       <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-        <h1 className="text-[22px] font-bold text-gray-900">Community</h1>
+        <h1 className="text-[22px] font-bold text-gray-900">{t('community.title')}</h1>
       </div>
 
       <div className="px-5 space-y-6">
         {/* My Groups */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-bold text-gray-900">My Groups</h2>
+            <h2 className="text-[16px] font-bold text-gray-900">{t('community.my_groups')}</h2>
             {myGroups.length > 0 && (
               <span className="text-[12px] text-gray-400">
                 {myGroups.length} group{myGroups.length !== 1 ? 's' : ''}
@@ -425,14 +468,14 @@ export function CommunityPage() {
               <div className="h-10 w-10 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
                 <Users className="h-5 w-5 text-gray-400" />
               </div>
-              <p className="text-[14px] font-semibold text-gray-600 mb-1">You're not in any groups yet</p>
-              <p className="text-[12px] text-gray-400 mb-4">Discover groups below or create your own</p>
+              <p className="text-[14px] font-semibold text-gray-600 mb-1">{t('community.no_groups')}</p>
+              <p className="text-[12px] text-gray-400 mb-4">{t('community.no_groups_sub')}</p>
               <button
                 onClick={() => setShowCreateSheet(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Create a group
+                {t('community.create_group')}
               </button>
             </div>
           ) : (
@@ -444,9 +487,38 @@ export function CommunityPage() {
           )}
         </section>
 
+        {/* Pending requests */}
+        {pendingRequests.length > 0 && (
+          <section>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">
+              Pending requests ({pendingRequests.length})
+            </h2>
+            <div className="space-y-2">
+              {pendingRequests.map((req) => (
+                <div key={req.id} className="flex items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-gray-800 truncate">{req.groupName}</p>
+                    {req.groupCity && <p className="text-[11px] text-gray-500">{req.groupCity}</p>}
+                    <span className="inline-flex items-center mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                      Pending approval
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => cancelRequestMutation.mutate(req.group_id)}
+                    disabled={cancelRequestMutation.isPending}
+                    className="flex-shrink-0 rounded-xl border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500 active:scale-95 transition-transform"
+                  >
+                    Cancel request
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* Discover */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Discover Groups</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.discover')}</h2>
 
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -454,7 +526,7 @@ export function CommunityPage() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or city…"
+              placeholder={t('community.search_placeholder')}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
@@ -510,6 +582,7 @@ export function CommunityPage() {
         {/* Find Players */}
         <section>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Players</h2>
+          {/* Find Players section uses English intentionally — no i18n key yet */}
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input

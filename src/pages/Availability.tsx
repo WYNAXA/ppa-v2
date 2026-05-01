@@ -5,7 +5,7 @@ import { Plus, ChevronRight, Clock, Users, CheckCircle } from 'lucide-react'
 import { format, parseISO, formatDistanceToNow, isPast } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { cn } from '@/lib/utils'
+import { cn, parseJsonArray } from '@/lib/utils'
 import { getSlotDate } from '@/lib/pollUtils'
 
 interface PollSlot {
@@ -65,7 +65,7 @@ async function fetchAvailabilityHome(userId: string) {
   for (const r of (allResponses ?? [])) {
     responseCounts[r.poll_id] = (responseCounts[r.poll_id] ?? 0) + 1
     if (r.user_id === userId) {
-      myResponses.push({ poll_id: r.poll_id, selected_slots: r.selected_slots ?? [] })
+      myResponses.push({ poll_id: r.poll_id, selected_slots: parseJsonArray(r.selected_slots) })
     }
   }
 
@@ -189,9 +189,9 @@ export function AvailabilityPage() {
   const myAvailableSlots = polls.flatMap((poll) => {
     const myResp = myResponses.find((r) => r.poll_id === poll.id)
     if (!myResp) return []
-    return (poll.time_slots ?? [])
-      .filter((s) => myResp.selected_slots.includes(s.id))
-      .map((slot) => ({ poll, slot }))
+    return parseJsonArray(poll.time_slots)
+      .filter((s: PollSlot) => myResp.selected_slots.includes(s.id))
+      .map((slot: PollSlot) => ({ poll, slot }))
   })
 
   return (

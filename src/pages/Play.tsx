@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, ChevronRight, Plus, Search, BookOpen, ArrowRight, X } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
@@ -150,6 +151,7 @@ export function PlayPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const [createOpen, setCreateOpen] = useState(false)
   const [joinSheetOpen, setJoinSheetOpen] = useState(false)
   const today = new Date().toISOString().split('T')[0]
@@ -247,7 +249,7 @@ export function PlayPage() {
       <div className="min-h-full bg-white">
         {/* ── Header ──────────────────────────────────────────────────────── */}
         <div className="flex items-center justify-between px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">Play</h1>
+          <h1 className="text-2xl font-black text-gray-900 tracking-tight">{t('play.title')}</h1>
           <button
             onClick={() => navigate('/notifications')}
             className="relative h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors"
@@ -282,10 +284,8 @@ export function PlayPage() {
               <div className="relative flex items-center justify-between px-5 py-5">
                 <div className="text-left">
                   <p className="text-[11px] font-semibold text-white/60 uppercase tracking-widest mb-1">Auto-match</p>
-                  <p className="text-xl font-black text-white leading-tight">Find My Game</p>
-                  <p className="text-[13px] text-white/70 mt-1 leading-snug">
-                    Check availability and auto-match<br/>with your group
-                  </p>
+                  <p className="text-xl font-black text-white leading-tight">{t('play.find_my_game')}</p>
+                  <p className="text-[13px] text-white/70 mt-1 leading-snug">{t('play.find_sub')}</p>
                 </div>
                 <div className="h-12 w-12 rounded-full bg-white/15 flex items-center justify-center flex-shrink-0">
                   <ArrowRight className="h-6 w-6 text-white" />
@@ -305,7 +305,7 @@ export function PlayPage() {
                 <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
                   <Plus className="h-5 w-5 text-[#009688]" />
                 </div>
-                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">Create Match</span>
+                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">{t('play.create_match')}</span>
               </button>
 
               {/* Join Match */}
@@ -316,7 +316,7 @@ export function PlayPage() {
                 <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
                   <Search className="h-5 w-5 text-[#009688]" />
                 </div>
-                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">Join Match</span>
+                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">{t('play.join_match')}</span>
               </button>
 
               {/* Book Court */}
@@ -327,7 +327,7 @@ export function PlayPage() {
                 <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
                   <BookOpen className="h-5 w-5 text-[#009688]" />
                 </div>
-                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">Book Court</span>
+                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">{t('play.book_court')}</span>
               </button>
             </div>
           </motion.div>
@@ -336,7 +336,7 @@ export function PlayPage() {
           <motion.section variants={item}>
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide">
-                Your upcoming matches
+                {t('play.upcoming')}
               </h2>
               {upcoming.length > 0 && (
                 <button
@@ -358,17 +358,15 @@ export function PlayPage() {
               /* Empty state */
               <div className="rounded-2xl bg-gray-50 border border-gray-100 px-5 py-10 text-center">
                 <PadelCourtIllustration />
-                <p className="text-[15px] font-bold text-gray-700">No matches yet</p>
-                <p className="text-[13px] text-gray-400 mt-1.5 mb-5 leading-snug">
-                  Create a match or check availability<br/>with your group
-                </p>
+                <p className="text-[15px] font-bold text-gray-700">{t('play.no_upcoming')}</p>
+                <p className="text-[13px] text-gray-400 mt-1.5 mb-5 leading-snug">{t('play.no_open_sub')}</p>
                 <button
                   onClick={() => setCreateOpen(true)}
                   className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
                   style={{ background: '#009688' }}
                 >
                   <Plus className="h-4 w-4" />
-                  Create Match
+                  {t('play.create_match')}
                 </button>
               </div>
             ) : (
@@ -391,13 +389,13 @@ export function PlayPage() {
             <motion.section variants={item}>
               <div className="flex items-center justify-between mb-3">
                 <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide">
-                  Open matches near you
+                  {t('play.open_nearby')}
                 </h2>
                 <button
                   onClick={() => navigate('/matches?tab=open')}
                   className="flex items-center gap-0.5 text-[13px] font-medium text-teal-600"
                 >
-                  All <ChevronRight className="h-3.5 w-3.5" />
+                  {t('common.see_all')} <ChevronRight className="h-3.5 w-3.5" />
                 </button>
               </div>
               <div className="space-y-2.5">
@@ -418,11 +416,11 @@ export function PlayPage() {
           {openMatches.length === 0 && upcoming.length > 0 && (
             <motion.section variants={item}>
               <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                Open matches near you
+                {t('play.open_nearby')}
               </h2>
               <div className="rounded-2xl bg-gray-50 border border-gray-100 px-5 py-6 text-center">
-                <p className="text-[14px] font-medium text-gray-500">No open matches right now</p>
-                <p className="text-[12px] text-gray-400 mt-1">Check back later or create one</p>
+                <p className="text-[14px] font-medium text-gray-500">{t('play.no_open')}</p>
+                <p className="text-[12px] text-gray-400 mt-1">{t('play.no_open_sub')}</p>
               </div>
             </motion.section>
           )}

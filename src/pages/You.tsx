@@ -965,7 +965,8 @@ export function YouPage() {
                     const reg = await navigator.serviceWorker.ready
                     const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
                     if (!vapidKey) {
-                      // No VAPID key configured — still mark as enabled for local UI state
+                      console.warn('[PushNotifications] VITE_VAPID_PUBLIC_KEY not configured')
+                      // No VAPID key — enable UI state only, no actual subscription
                       setNotifEnabled(true)
                       return
                     }

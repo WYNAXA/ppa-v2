@@ -110,7 +110,7 @@ interface EloPrediction {
 }
 
 function getEloPrediction(players: Profile[], team1Ids: string[], team2Ids: string[]): EloPrediction | null {
-  const getElo = (id: string) => (players.find((p) => p.id === id) as Profile & { internal_ranking?: number })?.internal_ranking ?? 1000
+  const getElo = (id: string) => (players.find((p) => p.id === id) as Profile & { internal_ranking?: number })?.internal_ranking ?? 1500
   if (team1Ids.length < 2 || team2Ids.length < 2) return null
   const avgA = (getElo(team1Ids[0]) + getElo(team1Ids[1])) / 2
   const avgB = (getElo(team2Ids[0]) + getElo(team2Ids[1])) / 2
@@ -696,6 +696,7 @@ export function MatchDetailPage() {
         const meOnTeam1 = team1Ids.includes(currentUserId)
         const pointsIfWin  = meOnTeam1 ? pred.pointsIfAWins  : pred.pointsIfBWins
         const pointsIfLose = meOnTeam1 ? pred.pointsIfBWins  : pred.pointsIfAWins
+        const isEven = Math.abs(pred.probA - 0.5) < 0.03
         return (
           <div className="px-5 mb-4">
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
@@ -703,29 +704,44 @@ export function MatchDetailPage() {
                 <BarChart2 className="h-4 w-4 text-[#009688]" />
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Match Prediction</p>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 text-center">
-                  <p className="text-[24px] font-black text-teal-600">{Math.round(pred.probA * 100)}%</p>
-                  <p className="text-[10px] text-gray-400 mb-0.5">Team 1 win</p>
-                  <p className="text-[11px] text-teal-700 font-semibold">avg {avgA.toLocaleString()} ELO</p>
-                  <p className="text-[10px] text-teal-500">+{pred.pointsIfAWins} if win</p>
+              {isEven ? (
+                <div className="text-center py-1">
+                  <p className="text-[22px] font-black text-gray-600">50% — 50%</p>
+                  <p className="text-[12px] font-semibold text-gray-500 mt-1">Equal teams</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">Both teams have similar ELO ratings. This will be a closely contested match!</p>
+                  <div className="flex justify-center gap-3 mt-2 text-[11px] text-gray-500">
+                    <span>Team 1 avg: <strong>{avgA.toLocaleString()} ELO</strong></span>
+                    <span>·</span>
+                    <span>Team 2 avg: <strong>{avgB.toLocaleString()} ELO</strong></span>
+                  </div>
                 </div>
-                <div className="text-center px-1">
-                  <p className="text-[12px] text-gray-300 font-bold">vs</p>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 text-center">
+                    <p className="text-[24px] font-black text-teal-600">{Math.round(pred.probA * 100)}%</p>
+                    <p className="text-[10px] text-gray-400 mb-0.5">Team 1 win</p>
+                    <p className="text-[11px] text-teal-700 font-semibold">avg {avgA.toLocaleString()} ELO</p>
+                    <p className="text-[10px] text-teal-500">+{pred.pointsIfAWins} if win</p>
+                  </div>
+                  <div className="text-center px-1">
+                    <p className="text-[12px] text-gray-300 font-bold">vs</p>
+                  </div>
+                  <div className="flex-1 text-center">
+                    <p className="text-[24px] font-black text-orange-500">{Math.round(pred.probB * 100)}%</p>
+                    <p className="text-[10px] text-gray-400 mb-0.5">Team 2 win</p>
+                    <p className="text-[11px] text-orange-600 font-semibold">avg {avgB.toLocaleString()} ELO</p>
+                    <p className="text-[10px] text-orange-400">+{pred.pointsIfBWins} if win</p>
+                  </div>
                 </div>
-                <div className="flex-1 text-center">
-                  <p className="text-[24px] font-black text-orange-500">{Math.round(pred.probB * 100)}%</p>
-                  <p className="text-[10px] text-gray-400 mb-0.5">Team 2 win</p>
-                  <p className="text-[11px] text-orange-600 font-semibold">avg {avgB.toLocaleString()} ELO</p>
-                  <p className="text-[10px] text-orange-400">+{pred.pointsIfBWins} if win</p>
+              )}
+              {!isEven && (
+                <div className="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-gradient-to-r from-teal-500 to-orange-400 transition-all"
+                    style={{ width: `${Math.round(pred.probA * 100)}%` }}
+                  />
                 </div>
-              </div>
-              <div className="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-gradient-to-r from-teal-500 to-orange-400 transition-all"
-                  style={{ width: `${Math.round(pred.probA * 100)}%` }}
-                />
-              </div>
+              )}
               {(meOnTeam1 || team2Ids.includes(currentUserId)) && (
                 <div className="mt-2 flex gap-2 justify-center">
                   <span className="text-[10px] font-semibold text-green-600 bg-green-50 rounded-full px-2 py-0.5">

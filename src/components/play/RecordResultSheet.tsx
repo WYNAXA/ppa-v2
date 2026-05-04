@@ -56,8 +56,9 @@ function countSetWins(sets: SetScore[]): [number, number] {
   return [t1Wins, t2Wins]
 }
 
-function initTeams(playerIds: string[]): [string[], string[]] {
-  return [playerIds.slice(0, 2), playerIds.slice(2, 4)]
+function initTeams(playerIds: string[] | undefined): [string[], string[]] {
+  const ids = playerIds ?? []
+  return [ids.slice(0, 2), ids.slice(2, 4)]
 }
 
 

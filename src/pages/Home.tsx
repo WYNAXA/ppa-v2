@@ -412,7 +412,7 @@ function RankingCard({
   isLoading: boolean
 }) {
   const navigate = useNavigate()
-  const elo      = profile?.internal_ranking ?? 0
+  const elo      = profile?.internal_ranking
 
   return (
     <motion.button
@@ -424,7 +424,7 @@ function RankingCard({
       className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
     >
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">My ranking</p>
-      <p className="text-[26px] font-black text-[#009688] leading-none">{elo.toLocaleString()}</p>
+      <p className="text-[26px] font-black text-[#009688] leading-none">{elo != null ? elo.toLocaleString() : '—'}</p>
       <p className="text-[11px] text-gray-500 mt-0.5 font-medium">ELO</p>
 
       {!isLoading && ranking && (

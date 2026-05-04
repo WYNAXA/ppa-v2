@@ -78,6 +78,7 @@ export function OnboardingPage() {
     setSaving(true)
     await supabase.from('profiles').update({
       city: city.trim() || null,
+      postal_code: postcode.trim() || null,
     }).eq('id', user.id)
     setSaving(false)
     setStep(2)

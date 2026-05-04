@@ -35,7 +35,7 @@ const TYPE_META: Record<SearchResult['type'], {
     icon:  <User className="h-4 w-4" />,
     color: 'bg-teal-50 text-[#009688]',
     label: 'Players',
-    navFn: () => '/you',
+    navFn: (id) => `/players/${id}`,
   },
   group: {
     icon:  <Users className="h-4 w-4" />,

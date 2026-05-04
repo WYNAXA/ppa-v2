@@ -1161,7 +1161,7 @@ export function YouPage() {
           </div>
 
           {/* App version */}
-          <p className="text-[11px] text-gray-300 text-center mt-3">PPA v1.0.6</p>
+          <p className="text-[11px] text-gray-300 text-center mt-3">PPA v1.0.7</p>
 
           {/* Sign out */}
           <button

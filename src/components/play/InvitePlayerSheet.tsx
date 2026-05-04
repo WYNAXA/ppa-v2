@@ -104,7 +104,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
       const { error } = await supabase.from('matches').update({
         player_ids: newPlayerIds,
         notes: guestLine,
-        ...(newPlayerIds.length >= 4 ? { status: 'confirmed' } : {}),
+        ...(newPlayerIds.length >= 4 ? { status: 'scheduled' } : {}),
       }).eq('id', matchId)
       if (error) throw error
     },

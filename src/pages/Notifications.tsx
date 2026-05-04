@@ -160,10 +160,10 @@ export function NotificationsPage() {
   const earlier: Notification[] = []
 
   for (const n of notifications) {
-    const t = new Date(n.created_at).getTime()
-    if (t >= todayStart) today.push(n)
-    else if (t >= yesterdayStart) yesterday.push(n)
-    else if (t >= weekStart) thisWeek.push(n)
+    const ts = new Date(n.created_at).getTime()
+    if (ts >= todayStart) today.push(n)
+    else if (ts >= yesterdayStart) yesterday.push(n)
+    else if (ts >= weekStart) thisWeek.push(n)
     else earlier.push(n)
   }
 

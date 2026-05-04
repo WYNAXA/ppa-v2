@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -40,6 +41,7 @@ function initTeams(playerIds: string[]): [string[], string[]] {
 
 
 export function RecordResultSheet({ open, onClose, match, players, currentUserId }: RecordResultSheetProps) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(1)
   const [team1, setTeam1] = useState<string[]>([])
   const [team2, setTeam2] = useState<string[]>([])
@@ -246,7 +248,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
               >
                 {step > 1 && step < 4 ? <ChevronLeft className="h-5 w-5 text-gray-600" /> : <X className="h-4 w-4 text-gray-600" />}
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Record Result</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('match.record_result')}</h2>
               <div className="w-9" />
             </div>
 
@@ -269,11 +271,11 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                 {/* Step 1: Teams */}
                 {step === 1 && (
                   <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                    <p className="text-[13px] text-gray-500 mb-4 text-center">Confirm or adjust team pairings</p>
+                    <p className="text-[13px] text-gray-500 mb-4 text-center">{t('record_result.confirm_teams')}</p>
                     <div className="grid grid-cols-2 gap-3">
                       {/* Team 1 */}
                       <div className="bg-teal-50 rounded-2xl p-3">
-                        <p className="text-[11px] font-bold text-teal-700 mb-2 uppercase tracking-wide">Team 1</p>
+                        <p className="text-[11px] font-bold text-teal-700 mb-2 uppercase tracking-wide">{t('record_result.team1')}</p>
                         {team1.map((pid) => {
                           const p = getPlayer(pid)
                           return (
@@ -290,7 +292,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       </div>
                       {/* Team 2 */}
                       <div className="bg-orange-50 rounded-2xl p-3">
-                        <p className="text-[11px] font-bold text-orange-600 mb-2 uppercase tracking-wide">Team 2</p>
+                        <p className="text-[11px] font-bold text-orange-600 mb-2 uppercase tracking-wide">{t('record_result.team2')}</p>
                         {team2.map((pid) => {
                           const p = getPlayer(pid)
                           return (
@@ -306,13 +308,13 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         })}
                       </div>
                     </div>
-                    <p className="text-[11px] text-gray-400 text-center mt-3">Tap a player to swap teams</p>
+                    <p className="text-[11px] text-gray-400 text-center mt-3">{t('record_result.tap_to_swap')}</p>
                     <button
                       onClick={() => setStep(2)}
                       disabled={!canAdvanceStep1}
                       className="mt-5 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
-                      Next → Scores
+                      {t('record_result.next_scores')}
                     </button>
                   </motion.div>
                 )}
@@ -320,20 +322,20 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                 {/* Step 2: Set scores */}
                 {step === 2 && (
                   <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                    <p className="text-[13px] text-gray-500 mb-4 text-center">Enter scores for each set (0–9)</p>
+                    <p className="text-[13px] text-gray-500 mb-4 text-center">{t('record_result.enter_scores')}</p>
 
                     {/* Column headers */}
                     <div className="grid grid-cols-[1fr_60px_16px_60px] gap-2 mb-2 px-1">
                       <div />
-                      <p className="text-[11px] font-bold text-teal-700 text-center uppercase tracking-wide">Team 1</p>
+                      <p className="text-[11px] font-bold text-teal-700 text-center uppercase tracking-wide">{t('record_result.team1')}</p>
                       <div />
-                      <p className="text-[11px] font-bold text-orange-600 text-center uppercase tracking-wide">Team 2</p>
+                      <p className="text-[11px] font-bold text-orange-600 text-center uppercase tracking-wide">{t('record_result.team2')}</p>
                     </div>
 
                     {sets.map((s, i) => (
                       <div key={i} className="flex items-center gap-2 mb-3">
                         <div className="flex-1 flex items-center gap-1.5">
-                          <span className="text-[12px] text-gray-400 w-10">Set {i + 1}</span>
+                          <span className="text-[12px] text-gray-400 w-10">{t('record_result.set')} {i + 1}</span>
                           {sets.length > 1 && (
                             <button
                               onClick={() => removeSet(i)}
@@ -372,7 +374,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         onClick={addSet}
                         className="w-full rounded-xl border border-dashed border-gray-200 py-2.5 text-[12px] text-gray-400 hover:border-teal-300 hover:text-teal-600 transition-colors mb-3"
                       >
-                        + Add set
+                        {t('record_result.add_set')}
                       </button>
                     )}
 
@@ -381,7 +383,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       disabled={!canAdvanceStep2}
                       className="mt-2 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
-                      Next → Result
+                      {t('record_result.next_result')}
                     </button>
                   </motion.div>
                 )}
@@ -389,7 +391,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                 {/* Step 3: Confirm result */}
                 {step === 3 && (
                   <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                    <p className="text-[13px] text-gray-500 mb-4 text-center">Confirm the match result</p>
+                    <p className="text-[13px] text-gray-500 mb-4 text-center">{t('record_result.confirm_result')}</p>
 
                     {/* Score summary */}
                     <div className="bg-gray-50 rounded-2xl p-4 mb-4">
@@ -412,34 +414,34 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     {/* Winner display */}
                     <div className="text-center mb-5">
                       {resultType === 'draw' ? (
-                        <p className="text-[15px] font-bold text-gray-700">Draw</p>
+                        <p className="text-[15px] font-bold text-gray-700">{t('matches.draw')}</p>
                       ) : resultType === 'team1_win' ? (
                         <div>
-                          <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">Winner</p>
+                          <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">{t('record_result.winner')}</p>
                           <div className="flex items-center justify-center gap-2">
                             {team1.map((pid) => {
                               const p = getPlayer(pid)
                               return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
                             })}
-                            <span className="text-[14px] font-bold text-teal-700">Team 1</span>
+                            <span className="text-[14px] font-bold text-teal-700">{t('record_result.team1')}</span>
                           </div>
                         </div>
                       ) : resultType === 'team2_win' ? (
                         <div>
-                          <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">Winner</p>
+                          <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">{t('record_result.winner')}</p>
                           <div className="flex items-center justify-center gap-2">
                             {team2.map((pid) => {
                               const p = getPlayer(pid)
                               return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
                             })}
-                            <span className="text-[14px] font-bold text-orange-600">Team 2</span>
+                            <span className="text-[14px] font-bold text-orange-600">{t('record_result.team2')}</span>
                           </div>
                         </div>
                       ) : null}
                     </div>
 
                     {submitMutation.isError && (
-                      <p className="text-[12px] text-red-500 text-center mb-3">Failed to submit. Try again.</p>
+                      <p className="text-[12px] text-red-500 text-center mb-3">{t('record_result.submit_failed')}</p>
                     )}
 
                     <button
@@ -447,7 +449,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       disabled={!resultType || submitMutation.isPending}
                       className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
-                      {submitMutation.isPending ? 'Submitting…' : 'Submit Result'}
+                      {submitMutation.isPending ? t('record_result.submitting') : t('record_result.submit')}
                     </button>
                   </motion.div>
                 )}
@@ -463,17 +465,17 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     <div className="h-16 w-16 rounded-full bg-teal-50 flex items-center justify-center mb-4">
                       <Trophy className="h-8 w-8 text-[#009688]" />
                     </div>
-                    <h3 className="text-[18px] font-bold text-gray-900 mb-1">Result Submitted</h3>
+                    <h3 className="text-[18px] font-bold text-gray-900 mb-1">{t('match.result_submitted')}</h3>
                     <p className="text-[13px] text-gray-500 mb-6 text-center">
                       {Object.keys(eloChanges).length > 0
-                        ? 'ELO updated!'
-                        : 'Waiting for other players to verify. ELO will update once confirmed.'}
+                        ? t('record_result.elo_updated')
+                        : t('record_result.waiting_verify')}
                     </p>
 
                     {/* ELO changes from process-elo function (preferred) */}
                     {Object.keys(eloChanges).length > 0 && (
                       <div className="w-full bg-gray-50 rounded-2xl p-4 mb-5">
-                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">ELO Changes</p>
+                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">{t('record_result.elo_changes')}</p>
                         {Object.entries(eloChanges).map(([playerId, data]) => {
                           const p = getPlayer(playerId)
                           const delta = data.ratingChange
@@ -508,7 +510,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     {/* Fallback: legacy ranking_changes */}
                     {Object.keys(eloChanges).length === 0 && rankingChanges.length > 0 && (
                       <div className="w-full bg-gray-50 rounded-2xl p-4 mb-5">
-                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">ELO Changes</p>
+                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">{t('record_result.elo_changes')}</p>
                         {rankingChanges.map((rc) => {
                           const p = getPlayer(rc.player_id)
                           const delta = rc.points_change
@@ -571,7 +573,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       onClick={onClose}
                       className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
                     >
-                      Done
+                      {t('common.done')}
                     </button>
                   </motion.div>
                 )}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, X, Clock, Calendar, CheckCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -61,6 +62,7 @@ function formatTime(iso: string): string {
 export function BookCourtPage() {
   const navigate = useNavigate()
   const { session } = useAuth()
+  const { t } = useTranslation()
   const [params] = useSearchParams()
 
   const matchId  = params.get('match_id') ?? ''
@@ -244,7 +246,7 @@ export function BookCourtPage() {
         >
           <CheckCircle className="h-10 w-10 text-[#009688]" />
         </motion.div>
-        <h1 className="text-[22px] font-bold text-gray-900 mb-2">Court Booked!</h1>
+        <h1 className="text-[22px] font-bold text-gray-900 mb-2">{t('book_court.court_booked')}</h1>
         <p className="text-[14px] text-gray-500 mb-1">{selectedVenue?.venue_name}</p>
         {selectedSlot && (
           <p className="text-[13px] text-gray-400 mb-8">
@@ -255,7 +257,7 @@ export function BookCourtPage() {
           onClick={() => matchId ? navigate(`/matches/${matchId}`) : navigate('/play')}
           className="w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
         >
-          {matchId ? 'Back to Match' : 'Go to Play'}
+          {matchId ? t('book_court.back_to_match') : 'Go to Play'}
         </button>
       </div>
     )
@@ -296,7 +298,7 @@ export function BookCourtPage() {
           <ChevronLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div>
-          <h1 className="text-[18px] font-bold text-gray-900">Book a Court</h1>
+          <h1 className="text-[18px] font-bold text-gray-900">{t('book_court.title')}</h1>
           <p className="text-[12px] text-gray-400">Find and reserve your court</p>
         </div>
       </div>
@@ -337,7 +339,7 @@ export function BookCourtPage() {
                 if (!e.target.value) { setSelectedVenue(null); setSlots([]); setSelectedCourtId('') }
               }}
               onFocus={() => setShowVenueList(true)}
-              placeholder="Search venues…"
+              placeholder={t('book_court.venue_placeholder')}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
             {selectedVenue && (
@@ -461,7 +463,7 @@ export function BookCourtPage() {
                 disabled={loadingSlots}
                 className="w-full rounded-xl border-2 border-[#009688] py-3 text-[14px] font-bold text-[#009688] disabled:opacity-50"
               >
-                {loadingSlots ? 'Checking availability…' : 'Check Availability via PPA'}
+                {loadingSlots ? t('book_court.checking') : t('book_court.check_availability')}
               </button>
             )}
           </div>
@@ -474,7 +476,7 @@ export function BookCourtPage() {
         {/* Time slots */}
         {slots.length > 0 && (
           <div>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Available Times</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('book_court.available_times')}</p>
             <div className="grid grid-cols-2 gap-2">
               {slots.map((slot, i) => (
                 <button
@@ -498,7 +500,7 @@ export function BookCourtPage() {
                     <p className="text-[11px] font-semibold text-[#009688] mt-0.5">£{slot.price}</p>
                   )}
                   {!slot.available && (
-                    <p className="text-[10px] text-red-400 mt-0.5">Unavailable</p>
+                    <p className="text-[10px] text-red-400 mt-0.5">{t('book_court.unavailable')}</p>
                   )}
                 </button>
               ))}
@@ -513,7 +515,7 @@ export function BookCourtPage() {
             animate={{ opacity: 1, y: 0 }}
             className="rounded-2xl bg-gray-50 border border-gray-100 p-4"
           >
-            <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide mb-2">Booking Summary</p>
+            <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide mb-2">{t('book_court.booking_summary')}</p>
             <p className="text-[14px] font-bold text-gray-900">{selectedVenue?.venue_name}</p>
             <p className="text-[13px] text-gray-600 mt-0.5">
               {matchDate} · {formatTime(selectedSlot.start_time)} – {formatTime(selectedSlot.end_time)}
@@ -534,7 +536,7 @@ export function BookCourtPage() {
               disabled={booking}
               className="mt-4 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
             >
-              {booking ? 'Confirming…' : 'Confirm Booking'}
+              {booking ? t('book_court.confirming') : t('book_court.confirm_booking')}
             </button>
           </motion.div>
         )}

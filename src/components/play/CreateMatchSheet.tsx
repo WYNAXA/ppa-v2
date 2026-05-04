@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, UserPlus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -78,10 +79,11 @@ const MATCH_TYPES: Array<{ type: MatchType; label: string; desc: string; Icon: t
 ]
 
 function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+  const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Match type</h2>
-      <p className="text-sm text-gray-500 mb-6">What kind of match is this?</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.match_type')}</h2>
+      <p className="text-sm text-gray-500 mb-6">{t('create_match.match_type_sub')}</p>
       <div className="space-y-3">
         {MATCH_TYPES.map(({ type, label, desc, Icon, accent, bg }) => {
           const selected = form.matchType === type
@@ -118,6 +120,7 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 // ── Step 2 — Setup ────────────────────────────────────────────────────────────
 
 function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+  const { t } = useTranslation()
   const [venueQuery, setVenueQuery] = useState(form.venue?.venue_name ?? '')
   const [venues, setVenues]         = useState<Venue[]>([])
   const [courts, setCourts]         = useState<Court[]>([])
@@ -153,14 +156,14 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Match setup</h2>
-      <p className="text-sm text-gray-500 mb-6">When and where?</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.match_setup')}</h2>
+      <p className="text-sm text-gray-500 mb-6">{t('create_match.match_setup_sub')}</p>
       <div className="space-y-4">
 
         {/* Date — full width stacked */}
         <div className="flex flex-col gap-3">
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Date</label>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.date')}</label>
             <input
               type="date"
               value={form.date}
@@ -173,7 +176,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
           {/* Time — full width, below date */}
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Time</label>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.time')}</label>
             <input
               type="time"
               value={form.time}
@@ -187,7 +190,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
         {/* Duration */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Duration</label>
+          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('create_match.duration')}</label>
           <div className="flex gap-2">
             {DURATIONS.map((d) => (
               <button
@@ -209,7 +212,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
         {/* Venue search */}
         <div className="relative">
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            Venue <span className="text-gray-400 font-normal">(optional)</span>
+            {t('match.venue')} <span className="text-gray-400 font-normal">({t('common.optional')})</span>
           </label>
           <div className="relative">
             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -218,7 +221,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               value={venueQuery}
               onChange={(e) => { setVenueQuery(e.target.value); setShowVenues(true); if (!e.target.value) setForm({ ...form, venue: null, court: null }) }}
               onFocus={() => setShowVenues(true)}
-              placeholder="Search venues…"
+              placeholder={t('book_court.venue_placeholder')}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
@@ -259,7 +262,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
         {/* Court dropdown */}
         {form.venue && courts.length > 0 && (
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Court</label>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.court')}</label>
             <select
               value={form.court?.id ?? ''}
               onChange={(e) => {
@@ -282,12 +285,12 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
         {/* Notes */}
         <div>
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            Notes <span className="text-gray-400 font-normal">(optional)</span>
+            {t('match.notes')} <span className="text-gray-400 font-normal">({t('common.optional')})</span>
           </label>
           <textarea
             value={form.notes}
             onChange={(e) => setForm({ ...form, notes: e.target.value })}
-            placeholder="Any details for the players…"
+            placeholder={t('create_match.notes_placeholder')}
             rows={2}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
@@ -301,6 +304,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 // ── Step 3 — Players ──────────────────────────────────────────────────────────
 
 function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f: FormState) => void; creatorProfile: Profile | null }) {
+  const { t } = useTranslation()
   const [query, setQuery]               = useState('')
   const [results, setResults]           = useState<Profile[]>([])
   const [showGuestInput, setShowGuestInput] = useState(false)
@@ -344,9 +348,9 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
   return (
     // min-h keeps the sheet stable when search results appear/disappear
     <div className="min-h-[360px]">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Select players</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.select_players')}</h2>
       <p className="text-sm text-gray-500 mb-4">
-        {form.players.length}/4 players selected
+        {t('create_match.players_selected', { count: form.players.length })}
       </p>
 
       {/* Selected players — always 4 rows (selected + empty slots) */}
@@ -363,10 +367,10 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
                 )}
               </div>
               {isCreator && (
-                <span className="text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">You</span>
+                <span className="text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">{t('common.you')}</span>
               )}
               {p.isGuest && (
-                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">Guest</span>
+                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">{t('common.guest')}</span>
               )}
               {!isCreator && (
                 <button
@@ -386,7 +390,7 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
             <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center">
               <UserPlus className="h-3.5 w-3.5" />
             </div>
-            <p className="text-[13px]">Open spot</p>
+            <p className="text-[13px]">{t('create_match.open_spot')}</p>
           </div>
         ))}
       </div>
@@ -399,7 +403,7 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search players by name…"
+            placeholder={t('create_match.search_players')}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
@@ -445,7 +449,7 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
                 value={guestName}
                 onChange={(e) => setGuestName(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') addGuest() }}
-                placeholder="Guest name…"
+                placeholder={t('create_match.guest_name')}
                 autoFocus
                 style={{ fontSize: '16px' }}
                 className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
@@ -455,7 +459,7 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
                 disabled={!guestName.trim()}
                 className="rounded-xl bg-gray-800 px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-40"
               >
-                Add
+                {t('create_match.add')}
               </button>
               <button
                 onClick={() => { setShowGuestInput(false); setGuestName('') }}
@@ -470,7 +474,7 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
               className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 py-2.5 text-[13px] text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
             >
               <UserPlus className="h-4 w-4" />
-              Add guest player
+              {t('create_match.add_guest')}
             </button>
           )}
         </div>
@@ -482,18 +486,19 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
 // ── Step 4 — Review ───────────────────────────────────────────────────────────
 
 function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] }) {
+  const { t } = useTranslation()
   const rows = [
-    { label: 'Type',     value: form.matchType ?? '—' },
-    { label: 'Date',     value: form.date },
-    { label: 'Time',     value: form.time.slice(0, 5) },
-    { label: 'Duration', value: `${form.duration} min` },
-    { label: 'Venue',    value: form.venue?.venue_name ?? 'TBC' },
-    { label: 'Court',    value: form.court?.court_name ?? 'Any' },
+    { label: t('match.match_type'), value: form.matchType ?? '—' },
+    { label: t('match.date'),       value: form.date },
+    { label: t('match.time'),       value: form.time.slice(0, 5) },
+    { label: t('create_match.duration'), value: `${form.duration} min` },
+    { label: t('match.venue'),      value: form.venue?.venue_name ?? 'TBC' },
+    { label: t('match.court'),      value: form.court?.court_name ?? t('book_court.court_any') },
   ]
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Review</h2>
-      <p className="text-sm text-gray-500 mb-6">Confirm the match details below</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.review')}</h2>
+      <p className="text-sm text-gray-500 mb-6">{t('create_match.review_sub')}</p>
 
       <div className="rounded-2xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100 mb-5 overflow-hidden">
         {rows.map(({ label, value }) => (
@@ -504,21 +509,21 @@ function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] 
         ))}
       </div>
 
-      <p className="text-[13px] font-medium text-gray-700 mb-2.5">Players</p>
+      <p className="text-[13px] font-medium text-gray-700 mb-2.5">{t('match.players')}</p>
       <div className="grid grid-cols-2 gap-2">
         {safePlayers.map((p) => (
           <div key={p.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2.5">
             <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
             <div className="flex-1 min-w-0">
               <p className="text-[12px] font-semibold text-gray-900 truncate">{p.name.split(' ')[0]}</p>
-              {p.isGuest && <p className="text-[10px] text-gray-400">Guest</p>}
+              {p.isGuest && <p className="text-[10px] text-gray-400">{t('common.guest')}</p>}
             </div>
           </div>
         ))}
         {Array.from({ length: Math.max(0, 4 - safePlayers.length) }).map((_, i) => (
           <div key={i} className="flex items-center gap-2 border border-dashed border-gray-200 rounded-xl px-3 py-2.5">
             <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex-shrink-0" />
-            <p className="text-[12px] text-gray-300">Open</p>
+            <p className="text-[12px] text-gray-300">{t('create_match.open_spot')}</p>
           </div>
         ))}
       </div>
@@ -544,6 +549,7 @@ interface CreateMatchSheetProps {
 export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchSheetProps) {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const creatorProfile: Profile | null = profile
     ? { id: user!.id, name: profile.name, email: profile.email, avatar_url: profile.avatar_url ?? null, playtomic_level: profile.playtomic_level ?? null }
@@ -718,7 +724,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
               >
                 {step > 1 ? <ChevronLeft className="h-5 w-5 text-gray-600" /> : <X className="h-4 w-4 text-gray-600" />}
               </button>
-              <span className="text-[13px] text-gray-400 font-medium">Step {step} of 4</span>
+              <span className="text-[13px] text-gray-400 font-medium">{t('create_match.step_of', { step, total: 4 })}</span>
               <div className="w-9" />
             </div>
 
@@ -756,7 +762,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-40"
                   style={{ background: '#009688' }}
                 >
-                  Continue <ChevronRight className="h-5 w-5" />
+                  {t('common.continue')} <ChevronRight className="h-5 w-5" />
                 </button>
               ) : (
                 <button
@@ -765,7 +771,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-60"
                   style={{ background: '#009688' }}
                 >
-                  {submitting ? 'Creating…' : 'Create Match'}
+                  {submitting ? t('create_match.creating') : t('play.create_match')}
                 </button>
               )}
             </div>
@@ -794,20 +800,20 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
                       <span className="text-[20px]">⚠️</span>
                     </div>
                   </div>
-                  <p className="text-[16px] font-bold text-gray-900 text-center mb-2">You already have a match on this day</p>
+                  <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('create_match.conflict_title')}</p>
                   <p className="text-[13px] text-gray-500 text-center mb-6">
                     {conflictWarning.match_time
-                      ? `There's a match at ${conflictWarning.match_time.slice(0, 5)}`
-                      : "There's already a match scheduled for this date"}
+                      ? `${t('create_match.conflict_at')} ${conflictWarning.match_time.slice(0, 5)}`
+                      : t('create_match.conflict_date')}
                     {conflictWarning.venue ? ` at ${conflictWarning.venue}` : ''}.
-                    {' '}Create another anyway?
+                    {' '}{t('create_match.conflict_anyway')}
                   </p>
                   <div className="flex gap-3">
                     <button
                       onClick={() => setConflictWarning(null)}
                       className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
                     >
-                      Cancel
+                      {t('common.cancel')}
                     </button>
                     <button
                       onClick={() => handleSubmit()}
@@ -815,7 +821,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
                       className="flex-1 rounded-2xl py-3 text-[14px] font-bold text-white disabled:opacity-60"
                       style={{ background: '#009688' }}
                     >
-                      {submitting ? 'Creating…' : 'Create Anyway'}
+                      {submitting ? t('create_match.creating') : t('create_match.create_anyway')}
                     </button>
                   </div>
                 </motion.div>

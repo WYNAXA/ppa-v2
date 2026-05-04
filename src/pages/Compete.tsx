@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { TrendingUp, TrendingDown, Minus, Trophy, Plus, ChevronRight, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -289,6 +290,7 @@ function RankingCard({
   isLoading: boolean
   achievementCount: number
 }) {
+  const { t } = useTranslation()
   const elo = profile?.internal_ranking ?? 0
 
   return (
@@ -306,7 +308,7 @@ function RankingCard({
             <p className="text-white font-bold text-[16px] truncate">{profile?.name ?? '—'}</p>
             {!isLoading && stats && (
               <p className="text-teal-200 text-[12px] mt-0.5">
-                Ranked <span className="font-bold text-white">#{stats.rank}</span> of {stats.totalPlayers} players
+                {t('compete.ranked_of', { rank: stats.rank, total: stats.totalPlayers })}
               </p>
             )}
           </div>
@@ -326,10 +328,10 @@ function RankingCard({
             {/* Win/loss row */}
             <div className="grid grid-cols-4 gap-2 mb-4">
               {[
-                { label: 'Wins',   value: stats.wins,   color: 'text-green-300' },
-                { label: 'Losses', value: stats.losses, color: 'text-red-300'   },
-                { label: 'Draws',  value: stats.draws,  color: 'text-gray-300'  },
-                { label: 'Badges', value: achievementCount, color: 'text-yellow-300' },
+                { label: t('compete.wins'),   value: stats.wins,   color: 'text-green-300' },
+                { label: t('compete.losses'), value: stats.losses, color: 'text-red-300'   },
+                { label: t('compete.draws'),  value: stats.draws,  color: 'text-gray-300'  },
+                { label: t('compete.my_badges'), value: achievementCount, color: 'text-yellow-300' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-white/10 rounded-xl py-2.5 text-center">
                   <p className={cn('text-[18px] font-black', color)}>{value}</p>
@@ -341,12 +343,12 @@ function RankingCard({
             {/* Win rate + trend + form */}
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1">Win rate</p>
+                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1">{t('compete.win_rate')}</p>
                 <p className="text-white font-bold text-[16px]">{stats.winRate}%</p>
               </div>
 
               <div>
-                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1">30d trend</p>
+                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1">{t('compete.trend_30d')}</p>
                 <div className="flex items-center gap-1">
                   {stats.trend > 0 ? (
                     <TrendingUp className="h-4 w-4 text-green-300" />
@@ -365,11 +367,11 @@ function RankingCard({
               </div>
 
               <div>
-                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1.5">Recent form</p>
+                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1.5">{t('compete.recent_form')}</p>
                 <div className="flex gap-1.5">
                   {stats.recentForm.length > 0
                     ? stats.recentForm.map((r, i) => <FormDot key={i} result={r} />)
-                    : <span className="text-teal-300 text-[11px]">No matches yet</span>
+                    : <span className="text-teal-300 text-[11px]">{t('compete.no_matches_yet')}</span>
                   }
                 </div>
               </div>
@@ -432,6 +434,7 @@ function LeaderboardRow({
 
 function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   const STATUS_STYLE: Record<string, string> = {
     active:    'bg-green-50 text-green-600 border-green-100',
@@ -466,14 +469,14 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
             <div className="flex items-center gap-3 mt-2">
               {league.standing.rank != null && (
                 <span className="text-[11px] text-gray-500">
-                  Position <span className="font-bold text-[#009688]">#{league.standing.rank}</span>
+                  {t('compete.position')} <span className="font-bold text-[#009688]">#{league.standing.rank}</span>
                 </span>
               )}
               <span className="text-[11px] text-gray-500">
-                {league.standing.played} played
+                {league.standing.played} {t('compete.played')}
               </span>
               <span className="text-[11px] text-gray-500">
-                <span className="font-bold text-gray-700">{league.standing.points}</span> pts
+                <span className="font-bold text-gray-700">{league.standing.points}</span> {t('compete.pts')}
               </span>
             </div>
           )}
@@ -498,6 +501,7 @@ export function CompetePage() {
   const { profile }  = useAuth()
   const navigate     = useNavigate()
   const location     = useLocation()
+  const { t }        = useTranslation()
   const [searchParams] = useSearchParams()
   const userId       = profile?.id ?? ''
   const defaultGroupId = searchParams.get('group_id') ?? undefined
@@ -539,7 +543,7 @@ export function CompetePage() {
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
       <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-        <h1 className="text-[22px] font-bold text-gray-900">Compete</h1>
+        <h1 className="text-[22px] font-bold text-gray-900">{t('compete.title')}</h1>
       </div>
 
       <div className="px-5 space-y-6">
@@ -551,9 +555,9 @@ export function CompetePage() {
         {myBadges.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[16px] font-bold text-gray-900">My Badges</h2>
+              <h2 className="text-[16px] font-bold text-gray-900">{t('compete.my_badges')}</h2>
               <span className="rounded-full bg-yellow-50 border border-yellow-100 px-2 py-0.5 text-[11px] font-bold text-yellow-600">
-                {achievementCount} earned
+                {t('compete.earned', { count: achievementCount })}
               </span>
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -578,7 +582,7 @@ export function CompetePage() {
 
         {/* ── Leaderboard ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Leaderboard</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('compete.leaderboard')}</h2>
 
           {/* Tab switcher */}
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
@@ -591,7 +595,7 @@ export function CompetePage() {
                   leaderboardTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                 )}
               >
-                {tab === 'global' ? 'Global' : 'My Groups'}
+                {tab === 'global' ? t('compete.global') : t('compete.my_groups')}
               </button>
             ))}
           </div>
@@ -603,7 +607,7 @@ export function CompetePage() {
               type="text"
               value={leaderboardSearch}
               onChange={(e) => setLeaderboardSearch(e.target.value)}
-              placeholder="Search players…"
+              placeholder={t('compete.search_players')}
               className="w-full rounded-xl border border-gray-200 pl-8 pr-3 py-2 text-[13px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>
@@ -612,8 +616,8 @@ export function CompetePage() {
           {myGlobalRank > 0 && !loadingLeaderboard && !leaderboardSearch && (
             <div className="rounded-2xl bg-[#009688] px-4 py-3.5 mb-2 flex items-center justify-between">
               <div>
-                <p className="text-[11px] text-white/70 font-medium mb-0.5">Your ranking</p>
-                <p className="text-[20px] font-black text-white">#{myGlobalRank} of {rawLeaderboard.length}</p>
+                <p className="text-[11px] text-white/70 font-medium mb-0.5">{t('compete.your_ranking')}</p>
+                <p className="text-[20px] font-black text-white">{t('compete.ranked_of', { rank: myGlobalRank, total: rawLeaderboard.length })}</p>
               </div>
               <div className="text-right">
                 <p className="text-[20px] font-black text-white">{(profile?.internal_ranking ?? 0).toLocaleString()} ELO</p>
@@ -621,7 +625,7 @@ export function CompetePage() {
                   onClick={() => myRowRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                   className="text-[11px] text-white/70 underline underline-offset-2"
                 >
-                  Jump to my position
+                  {t('compete.jump_to_me')}
                 </button>
               </div>
             </div>
@@ -636,7 +640,7 @@ export function CompetePage() {
           ) : leaderboard.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
               <p className="text-[13px] font-semibold text-gray-500">
-                {leaderboardSearch ? 'No players match your search' : leaderboardTab === 'global' ? 'No ranked players yet' : 'No group members found'}
+                {leaderboardSearch ? t('compete.no_search_results') : leaderboardTab === 'global' ? t('compete.no_ranked') : t('compete.no_group_members')}
               </p>
             </div>
           ) : (
@@ -668,13 +672,13 @@ export function CompetePage() {
         {/* ── My Leagues ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-bold text-gray-900">My Leagues</h2>
+            <h2 className="text-[16px] font-bold text-gray-900">{t('compete.my_leagues')}</h2>
             <button
               onClick={() => setShowCreateLeague(true)}
               className="flex items-center gap-1 rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white"
             >
               <Plus className="h-3.5 w-3.5" />
-              Create
+              {t('compete.create_league')}
             </button>
           </div>
 
@@ -689,14 +693,14 @@ export function CompetePage() {
               <div className="h-10 w-10 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
                 <Trophy className="h-5 w-5 text-gray-400" />
               </div>
-              <p className="text-[13px] font-semibold text-gray-600 mb-1">No active leagues</p>
-              <p className="text-[12px] text-gray-400 mb-4">Create one or join a group league</p>
+              <p className="text-[13px] font-semibold text-gray-600 mb-1">{t('compete.no_leagues')}</p>
+              <p className="text-[12px] text-gray-400 mb-4">{t('compete.no_leagues_sub')}</p>
               <button
                 onClick={() => setShowCreateLeague(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 <Plus className="h-3.5 w-3.5" />
-                Create a league
+                {t('compete.create_league_cta')}
               </button>
             </div>
           ) : (

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { EmptyState } from '@/components/shared/EmptyState'
@@ -84,6 +85,7 @@ export function NotificationsPage() {
   const userId = session?.user.id
   const navigate = useNavigate()
   const qc = useQueryClient()
+  const { t } = useTranslation()
   const [markingAll, setMarkingAll] = useState(false)
 
   const { data: notifications = [], isLoading } = useQuery({
@@ -165,10 +167,10 @@ export function NotificationsPage() {
     else earlier.push(n)
   }
 
-  if (today.length)     groups.push({ label: 'Today',      items: today })
-  if (yesterday.length) groups.push({ label: 'Yesterday',  items: yesterday })
-  if (thisWeek.length)  groups.push({ label: 'This week',  items: thisWeek })
-  if (earlier.length)   groups.push({ label: 'Earlier',    items: earlier })
+  if (today.length)     groups.push({ label: t('notifications.today'),     items: today })
+  if (yesterday.length) groups.push({ label: t('notifications.yesterday'), items: yesterday })
+  if (thisWeek.length)  groups.push({ label: t('notifications.this_week'), items: thisWeek })
+  if (earlier.length)   groups.push({ label: t('notifications.earlier'),   items: earlier })
 
   return (
     <div className="flex flex-col min-h-full bg-gray-50">
@@ -181,7 +183,7 @@ export function NotificationsPage() {
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">Notifications</h1>
+          <h1 className="text-xl font-bold text-gray-900 flex-1">{t('notifications.title')}</h1>
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAll}
@@ -189,12 +191,12 @@ export function NotificationsPage() {
               className="flex items-center gap-1.5 text-sm font-medium text-[#009688] disabled:opacity-50"
             >
               <CheckCheck className="w-4 h-4" />
-              Mark all read
+              {t('notifications.mark_all_read')}
             </button>
           )}
         </div>
         {unreadCount > 0 && (
-          <p className="text-xs text-gray-400 mt-1 ml-10">{unreadCount} unread</p>
+          <p className="text-xs text-gray-400 mt-1 ml-10">{t('notifications.unread', { count: unreadCount })}</p>
         )}
       </div>
 
@@ -207,8 +209,8 @@ export function NotificationsPage() {
         ) : notifications.length === 0 ? (
           <EmptyState
             icon={<Bell className="h-8 w-8" />}
-            title="You're all caught up!"
-            subtitle="We'll notify you when something happens"
+            title={t('notifications.empty')}
+            subtitle={t('notifications.empty_sub')}
           />
         ) : (
           <div className="space-y-4">

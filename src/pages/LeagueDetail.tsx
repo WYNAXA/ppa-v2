@@ -61,7 +61,7 @@ interface ResultMatch {
   profiles: Record<string, { name: string; avatar_url: string | null }>
 }
 
-type Tab = 'standings' | 'fixtures' | 'results' | 'mexicano'
+type Tab = 'standings' | 'fixtures' | 'results' | 'mexicano' | 'admin'
 
 // ── Data hooks ────────────────────────────────────────────────────────────────
 
@@ -327,6 +327,155 @@ function MexicanoTab({
   )
 }
 
+// ── Admin tab ─────────────────────────────────────────────────────────────────
+
+function AdminTab({ league, standings }: { league: LeagueInfo; standings: Standing[] }) {
+  const queryClient = useQueryClient()
+  const [selectedUserId, setSelectedUserId] = useState('')
+  const [pointsDelta, setPointsDelta] = useState('')
+  const [reason, setReason] = useState('')
+  const [adjusting, setAdjusting] = useState(false)
+  const [adjustSaved, setAdjustSaved] = useState(false)
+
+  const [jerseyUserId, setJerseyUserId] = useState('')
+  const [jerseyNumber, setJerseyNumber] = useState('')
+  const [savingJersey, setSavingJersey] = useState(false)
+
+  const [newEndDate, setNewEndDate] = useState(league.season_end ?? '')
+  const [savingDate, setSavingDate] = useState(false)
+  const [dateSaved, setDateSaved] = useState(false)
+
+  async function saveAdjustment() {
+    if (!selectedUserId || !pointsDelta) return
+    setAdjusting(true)
+    const delta = parseInt(pointsDelta, 10)
+    const { data: { user } } = await supabase.auth.getUser()
+    await Promise.all([
+      supabase.from('league_adjustments').insert({
+        league_id: league.id, user_id: selectedUserId,
+        points_delta: delta, reason: reason.trim() || null, created_by: user?.id,
+      }),
+      supabase.from('league_standings')
+        .update({ points: (standings.find(s => s.user_id === selectedUserId)?.points ?? 0) + delta })
+        .eq('league_id', league.id).eq('user_id', selectedUserId),
+    ])
+    await queryClient.invalidateQueries({ queryKey: ['league-standings', league.id] })
+    setAdjusting(false)
+    setAdjustSaved(true)
+    setSelectedUserId('')
+    setPointsDelta('')
+    setReason('')
+    setTimeout(() => setAdjustSaved(false), 2000)
+  }
+
+  async function saveJersey() {
+    if (!jerseyUserId || !jerseyNumber) return
+    setSavingJersey(true)
+    await supabase.from('league_jerseys').upsert(
+      { league_id: league.id, user_id: jerseyUserId, jersey_number: parseInt(jerseyNumber, 10) },
+      { onConflict: 'league_id,user_id' }
+    )
+    setSavingJersey(false)
+    setJerseyUserId('')
+    setJerseyNumber('')
+  }
+
+  async function saveEndDate() {
+    if (!newEndDate) return
+    setSavingDate(true)
+    await supabase.from('leagues').update({ season_end: newEndDate }).eq('id', league.id)
+    await queryClient.invalidateQueries({ queryKey: ['league', league.id] })
+    setSavingDate(false)
+    setDateSaved(true)
+    setTimeout(() => setDateSaved(false), 2000)
+  }
+
+  const playerOptions = standings.map(s => ({ id: s.user_id, name: s.profile?.name ?? s.user_id }))
+
+  return (
+    <div className="space-y-4">
+      {/* Points adjustment */}
+      <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Manual Points Adjustment</p>
+        <select
+          value={selectedUserId}
+          onChange={e => setSelectedUserId(e.target.value)}
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+        >
+          <option value="">Select player…</option>
+          {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <input
+          type="number"
+          value={pointsDelta}
+          onChange={e => setPointsDelta(e.target.value)}
+          placeholder="Points change (e.g. +5 or -3)"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+        />
+        <input
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="Reason (optional)"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+        />
+        <button
+          onClick={saveAdjustment}
+          disabled={adjusting || !selectedUserId || !pointsDelta}
+          className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+        >
+          {adjustSaved ? 'Saved!' : adjusting ? 'Saving…' : 'Apply Adjustment'}
+        </button>
+      </div>
+
+      {/* Jersey assignment */}
+      <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Assign Jersey Number</p>
+        <select
+          value={jerseyUserId}
+          onChange={e => setJerseyUserId(e.target.value)}
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+        >
+          <option value="">Select player…</option>
+          {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+        </select>
+        <input
+          type="number"
+          value={jerseyNumber}
+          onChange={e => setJerseyNumber(e.target.value)}
+          placeholder="Jersey number"
+          min="1"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+        />
+        <button
+          onClick={saveJersey}
+          disabled={savingJersey || !jerseyUserId || !jerseyNumber}
+          className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+        >
+          {savingJersey ? 'Saving…' : 'Assign Jersey'}
+        </button>
+      </div>
+
+      {/* Amend end date */}
+      <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">League End Date</p>
+        <input
+          type="date"
+          value={newEndDate}
+          onChange={e => setNewEndDate(e.target.value)}
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+        />
+        <button
+          onClick={saveEndDate}
+          disabled={savingDate || !newEndDate}
+          className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+        >
+          {dateSaved ? 'Saved!' : savingDate ? 'Saving…' : 'Update End Date'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── UI helpers ────────────────────────────────────────────────────────────────
 
 function TabSkeleton() {
@@ -367,6 +516,7 @@ export function LeagueDetailPage() {
   const { id = '' }       = useParams<{ id: string }>()
   const navigate          = useNavigate()
   const { profile }       = useAuth()
+  const queryClient       = useQueryClient()
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
 
@@ -389,6 +539,7 @@ export function LeagueDetailPage() {
     { id: 'fixtures',  label: 'Fixtures'  },
     { id: 'results',   label: 'Results'   },
     ...(isMexicano ? [{ id: 'mexicano' as Tab, label: 'Mexicano' }] : []),
+    ...(isAdmin ? [{ id: 'admin' as Tab, label: 'Admin' }] : []),
   ]
 
   const { data: standings = [], isLoading: loadingStandings } = useStandings(id)
@@ -592,34 +743,48 @@ export function LeagueDetailPage() {
             fixtures.length === 0 ? <EmptyTab message="No upcoming fixtures" /> : (
               <div className="space-y-2">
                 {fixtures.map((match) => (
-                  <button
-                    key={match.id}
-                    onClick={() => navigate(`/matches/${match.id}`)}
-                    className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <p className="text-[13px] font-semibold text-gray-900">
-                        {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()}
-                        {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
-                      </p>
-                      <span className={cn(
-                        'rounded-full border px-2 py-0.5 text-[10px] font-semibold flex-shrink-0 capitalize',
-                        STATUS_BADGE[match.status] ?? 'bg-gray-50 text-gray-500 border-gray-100'
-                      )}>
-                        {match.status}
-                      </span>
-                    </div>
-                    {match.booked_venue_name && (
-                      <p className="text-[11px] text-gray-400">{match.booked_venue_name}</p>
-                    )}
-                    {match.players && match.players.length > 0 && (
-                      <div className="flex -space-x-1 mt-2">
-                        {match.players.slice(0, 4).map((p) => (
-                          <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                        ))}
+                  <div key={match.id} className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
+                    <button
+                      onClick={() => navigate(`/matches/${match.id}`)}
+                      className="w-full text-left px-4 py-3 hover:bg-gray-100 transition-colors"
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <p className="text-[13px] font-semibold text-gray-900">
+                          {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()}
+                          {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
+                        </p>
+                        <span className={cn(
+                          'rounded-full border px-2 py-0.5 text-[10px] font-semibold flex-shrink-0 capitalize',
+                          STATUS_BADGE[match.status] ?? 'bg-gray-50 text-gray-500 border-gray-100'
+                        )}>
+                          {match.status}
+                        </span>
+                      </div>
+                      {match.booked_venue_name && (
+                        <p className="text-[11px] text-gray-400">{match.booked_venue_name}</p>
+                      )}
+                      {match.players && match.players.length > 0 && (
+                        <div className="flex -space-x-1 mt-2">
+                          {match.players.slice(0, 4).map((p) => (
+                            <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                    {isAdmin && (
+                      <div className="px-4 pb-3 border-t border-gray-100 pt-2">
+                        <button
+                          onClick={async () => {
+                            await supabase.from('matches').update({ status: 'cancelled' }).eq('id', match.id)
+                            queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
+                          }}
+                          className="rounded-lg border border-red-200 px-3 py-1 text-[11px] font-semibold text-red-500"
+                        >
+                          Cancel match
+                        </button>
                       </div>
                     )}
-                  </button>
+                  </div>
                 ))}
               </div>
             )
@@ -686,6 +851,11 @@ export function LeagueDetailPage() {
             loadingStandings ? <TabSkeleton /> : (
               <MexicanoTab standings={standings} leagueId={id} isAdmin={isAdmin} />
             )
+          )}
+
+          {/* ── Admin ── */}
+          {activeTab === 'admin' && isAdmin && (
+            <AdminTab league={league} standings={standings} />
           )}
 
         </motion.div>

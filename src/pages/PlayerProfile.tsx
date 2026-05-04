@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Trophy, BarChart2, Calendar } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
@@ -131,6 +132,7 @@ export function PlayerProfilePage() {
   const { playerId } = useParams<{ playerId: string }>()
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { t } = useTranslation()
   const currentUserId = profile?.id ?? ''
 
   const { data, isLoading } = useQuery({
@@ -151,8 +153,8 @@ export function PlayerProfilePage() {
   if (!data) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
-        <p className="text-[14px] text-gray-500">Player not found.</p>
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[#009688] font-semibold">Go back</button>
+        <p className="text-[14px] text-gray-500">{t('player_profile.not_found')}</p>
+        <button onClick={() => navigate(-1)} className="text-[13px] text-[#009688] font-semibold">{t('common.go_back')}</button>
       </div>
     )
   }
@@ -207,21 +209,21 @@ export function PlayerProfilePage() {
         <div className="mx-5 mb-5">
           <div className="flex items-center gap-2 mb-3">
             <Trophy className="h-4 w-4 text-gray-400" />
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Head to Head</p>
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('player_profile.head_to_head')}</p>
           </div>
           <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
             <div className="flex items-center justify-around">
               <div className="text-center">
                 <p className="text-[28px] font-black text-teal-600">{h2h.wins}</p>
-                <p className="text-[11px] text-gray-400">Wins</p>
+                <p className="text-[11px] text-gray-400">{t('compete.wins')}</p>
               </div>
               <div className="text-center">
                 <p className="text-[28px] font-black text-gray-300">{h2h.draws}</p>
-                <p className="text-[11px] text-gray-400">Draws</p>
+                <p className="text-[11px] text-gray-400">{t('compete.draws')}</p>
               </div>
               <div className="text-center">
                 <p className="text-[28px] font-black text-red-400">{h2h.losses}</p>
-                <p className="text-[11px] text-gray-400">Losses</p>
+                <p className="text-[11px] text-gray-400">{t('compete.losses')}</p>
               </div>
             </div>
             {/* Win rate bar */}
@@ -246,13 +248,13 @@ export function PlayerProfilePage() {
       <div className="mx-5 mb-5">
         <div className="flex items-center gap-2 mb-3">
           <BarChart2 className="h-4 w-4 text-gray-400" />
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">If you played now</p>
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('player_profile.if_played_now')}</p>
         </div>
         <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
           <div className="flex items-center gap-3">
             <div className="flex-1 text-center">
               <p className="text-[24px] font-black text-teal-600">{Math.round(myWinProb * 100)}%</p>
-              <p className="text-[11px] text-gray-500">Your win chance</p>
+              <p className="text-[11px] text-gray-500">{t('player_profile.your_win_chance')}</p>
               <p className="text-[10px] text-gray-400 mt-0.5">{myElo} ELO</p>
             </div>
             <div className="text-center px-1">
@@ -279,7 +281,7 @@ export function PlayerProfilePage() {
           <div className="flex items-center gap-2 mb-3">
             <Calendar className="h-4 w-4 text-gray-400" />
             <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
-              Matches Together ({commonMatches.length})
+              {t('player_profile.matches_together', { count: commonMatches.length })}
             </p>
           </div>
           <div className="flex flex-col gap-2">
@@ -323,8 +325,8 @@ export function PlayerProfilePage() {
 
       {h2h.total === 0 && commonMatches.length === 0 && (
         <div className="mx-5 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-8 text-center">
-          <p className="text-[14px] font-semibold text-gray-500">No matches together yet</p>
-          <p className="text-[12px] text-gray-400 mt-1">Play a match with {player.name.split(' ')[0]} to see stats here</p>
+          <p className="text-[14px] font-semibold text-gray-500">{t('player_profile.no_matches_together')}</p>
+          <p className="text-[12px] text-gray-400 mt-1">{t('player_profile.no_matches_together_sub', { name: player.name.split(' ')[0] })}</p>
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type ChangeEvent } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -27,6 +27,7 @@ interface Group {
   max_members: number | null
   auto_approve: boolean | null
   created_at: string | null
+  banner_url: string | null
 }
 
 interface Member {
@@ -72,7 +73,7 @@ function useGroup(groupId: string) {
     queryFn: async (): Promise<Group | null> => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, created_at')
+        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, created_at, banner_url')
         .eq('id', groupId)
         .single()
       if (error) throw error
@@ -709,6 +710,24 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   const [autoApprove, setAutoApprove] = useState(group.auto_approve ?? false)
   const [saving, setSaving]         = useState(false)
   const [saved, setSaved]           = useState(false)
+  const [uploading, setUploading]   = useState(false)
+
+  async function handleBannerUpload(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    const ext  = file.name.split('.').pop() ?? 'jpg'
+    const path = `${group.id}/banner.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from('group-banners')
+      .upload(path, file, { upsert: true })
+    if (!uploadError) {
+      const { data: { publicUrl } } = supabase.storage.from('group-banners').getPublicUrl(path)
+      await supabase.from('groups').update({ banner_url: publicUrl }).eq('id', group.id)
+      queryClient.invalidateQueries({ queryKey: ['group', group.id] })
+    }
+    setUploading(false)
+  }
 
   // Announcement form state
   const [announcement, setAnnouncement] = useState('')
@@ -963,6 +982,18 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
             <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
               <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Group Settings</p>
 
+              {/* Banner upload */}
+              <div>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Group Banner</label>
+                {group.banner_url && (
+                  <img src={group.banner_url} alt="Banner" className="w-full h-24 object-cover rounded-xl mb-2" />
+                )}
+                <label className={`flex items-center justify-center gap-2 w-full rounded-xl border border-dashed border-gray-300 py-2.5 text-[12px] font-semibold text-gray-500 cursor-pointer hover:border-teal-400 hover:text-teal-600 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
+                  {uploading ? 'Uploading…' : 'Upload banner image'}
+                </label>
+              </div>
+
               <div>
                 <label className="text-[12px] text-gray-500 font-medium mb-1 block">Name</label>
                 <input
@@ -1183,8 +1214,15 @@ export function GroupDetailPage() {
 
   return (
     <div className="min-h-full bg-white">
+      {/* Banner */}
+      {group.banner_url && (
+        <div className="relative h-36 overflow-hidden">
+          <img src={group.banner_url} alt={group.name} className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/30" />
+        </div>
+      )}
       {/* Header */}
-      <div className="px-5 pt-14 pb-4">
+      <div className={`px-5 pb-4 ${group.banner_url ? 'pt-4' : 'pt-14'}`}>
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate('/community')}

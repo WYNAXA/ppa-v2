@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { MapPin, Clock, ChevronRight } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { PlayerAvatar } from './PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
@@ -28,19 +29,19 @@ interface MatchCardProps {
   index?: number
 }
 
-const TYPE_STYLES: Record<string, { label: string; className: string }> = {
-  competitive: { label: 'Competitive', className: 'bg-orange-50 text-orange-600 border-orange-100' },
-  friendly:    { label: 'Friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100'   },
-  casual:      { label: 'Casual',      className: 'bg-gray-50 text-gray-500 border-gray-100'   },
-  group:       { label: 'Group',       className: 'bg-teal-50 text-teal-600 border-teal-100'   },
+const TYPE_CLASS: Record<string, string> = {
+  competitive: 'bg-orange-50 text-orange-600 border-orange-100',
+  friendly:    'bg-blue-50 text-blue-600 border-blue-100',
+  casual:      'bg-gray-50 text-gray-500 border-gray-100',
+  group:       'bg-teal-50 text-teal-600 border-teal-100',
 }
 
-const STATUS_STYLES: Record<string, { label: string; dot: string }> = {
-  confirmed: { label: 'Confirmed', dot: 'bg-green-400' },
-  scheduled: { label: 'Confirmed', dot: 'bg-green-400' },
-  open:      { label: 'Open',      dot: 'bg-orange-400' },
-  pending:   { label: 'Pending',   dot: 'bg-yellow-400' },
-  completed: { label: 'Played',    dot: 'bg-gray-400' },
+const STATUS_DOT: Record<string, string> = {
+  confirmed: 'bg-green-400',
+  scheduled: 'bg-green-400',
+  open:      'bg-orange-400',
+  pending:   'bg-yellow-400',
+  completed: 'bg-gray-400',
 }
 
 function formatMatchDate(dateStr: string, timeStr: string | null) {
@@ -56,8 +57,13 @@ function formatMatchDate(dateStr: string, timeStr: string | null) {
 
 export function MatchCard({ match, currentUserId: _currentUserId, action = 'view', onJoin, index = 0 }: MatchCardProps) {
   const navigate = useNavigate()
-  const typeStyle = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
-  const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, dot: 'bg-gray-300' }
+  const { t } = useTranslation()
+  const typeKey = match.match_type ?? 'group'
+  const typeClass = TYPE_CLASS[typeKey] ?? TYPE_CLASS.group
+  const typeLabel = t(`matches.type_${typeKey}`, { defaultValue: typeKey })
+  const statusDot = STATUS_DOT[match.status] ?? 'bg-gray-300'
+  const statusKey = match.status === 'scheduled' ? 'confirmed' : match.status
+  const statusLabel = t(`matches.status_${statusKey}`, { defaultValue: match.status })
 
   // Show up to 4 avatars
   const avatarSlots = match.player_ids.slice(0, 4)
@@ -115,13 +121,13 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
 
           {/* Badges */}
           <div className="flex items-center gap-1.5 mt-2">
-            <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold', typeStyle.className)}>
-              {typeStyle.label}
+            <span className={cn('inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold', typeClass)}>
+              {typeLabel}
             </span>
             {!hasResult && (
               <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 border border-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">
-                <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
-                {statusStyle.label}
+                <span className={cn('h-1.5 w-1.5 rounded-full', statusDot)} />
+                {statusLabel}
               </span>
             )}
           </div>
@@ -144,7 +150,7 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
                 'text-[10px] font-bold uppercase tracking-wide',
                 match.didWin === true ? 'text-teal-500' : match.didWin === false ? 'text-red-400' : 'text-gray-400'
               )}>
-                {match.didWin === true ? 'Win' : match.didWin === false ? 'Loss' : 'Draw'}
+                {match.didWin === true ? t('matches.win') : match.didWin === false ? t('matches.loss') : t('matches.draw')}
               </span>
             </div>
           ) : action === 'join' && onJoin ? (
@@ -152,7 +158,7 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
               onClick={(e) => { e.stopPropagation(); onJoin(match.id) }}
               className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-teal-700 active:scale-95"
             >
-              Join
+              {t('play.join')}
             </button>
           ) : (
             <ChevronRight className="h-4 w-4 text-gray-300 mt-1" />

@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Home, Trophy, Users, User } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 // Padel ball icon — circle with curved seam lines
@@ -25,42 +26,18 @@ function PadelBallIcon({ className, strokeWidth = 1.8 }: { className?: string; s
 const ACTIVE = '#009688'
 const ACTIVE_BG = 'rgba(0,150,136,0.09)'
 
-const navItems = [
-  {
-    icon: Home,
-    label: 'Home',
-    path: '/home',
-    activePaths: ['/home'],
-  },
-  {
-    icon: PadelBallIcon,
-    label: 'Play',
-    path: '/play',
-    activePaths: ['/play', '/matches'],
-  },
-  {
-    icon: Trophy,
-    label: 'Compete',
-    path: '/compete',
-    activePaths: ['/compete', '/leagues'],
-  },
-  {
-    icon: Users,
-    label: 'Community',
-    path: '/community',
-    activePaths: ['/community', '/groups'],
-  },
-  {
-    icon: User,
-    label: 'You',
-    path: '/you',
-    activePaths: ['/you', '/profile'],
-  },
+const NAV_ITEMS = [
+  { icon: Home,          key: 'home',      path: '/home',      activePaths: ['/home'] },
+  { icon: PadelBallIcon, key: 'play',      path: '/play',      activePaths: ['/play', '/matches'] },
+  { icon: Trophy,        key: 'compete',   path: '/compete',   activePaths: ['/compete', '/leagues'] },
+  { icon: Users,         key: 'community', path: '/community', activePaths: ['/community', '/groups'] },
+  { icon: User,          key: 'you',       path: '/you',       activePaths: ['/you', '/profile'] },
 ]
 
 export function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { t } = useTranslation()
 
   return (
     <div
@@ -74,7 +51,7 @@ export function BottomNav() {
         className="w-full max-w-sm bg-white/95 backdrop-blur-xl border border-gray-100 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.10)] px-2 py-2"
       >
         <div className="grid grid-cols-5 gap-1">
-          {navItems.map((item) => {
+          {NAV_ITEMS.map((item) => {
             const Icon = item.icon
             const isActive = item.activePaths.some(
               (p) => location.pathname === p || location.pathname.startsWith(p + '/')
@@ -90,7 +67,7 @@ export function BottomNav() {
                   isActive ? '' : 'text-gray-400 hover:text-gray-600 hover:bg-gray-50'
                 )}
                 style={isActive ? { backgroundColor: ACTIVE_BG } : undefined}
-                aria-label={item.label}
+                aria-label={t(`nav.${item.key}`)}
               >
                 <Icon
                   className="h-5 w-5"
@@ -101,7 +78,7 @@ export function BottomNav() {
                   className="text-[10px] font-medium leading-none"
                   style={{ color: isActive ? ACTIVE : undefined }}
                 >
-                  {item.label}
+                  {t(`nav.${item.key}`)}
                 </span>
               </motion.button>
             )

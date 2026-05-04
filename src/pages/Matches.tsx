@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
@@ -10,18 +11,8 @@ import { cn } from '@/lib/utils'
 type Tab = 'upcoming' | 'past' | 'open'
 type MatchTypeFilter = 'all' | 'competitive' | 'friendly' | 'casual'
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'upcoming', label: 'Upcoming' },
-  { id: 'past',     label: 'Past' },
-  { id: 'open',     label: 'Open' },
-]
-
-const TYPE_FILTERS: { id: MatchTypeFilter; label: string }[] = [
-  { id: 'all',         label: 'All' },
-  { id: 'competitive', label: 'Competitive' },
-  { id: 'friendly',    label: 'Friendly' },
-  { id: 'casual',      label: 'Casual' },
-]
+const TAB_IDS: Tab[] = ['upcoming', 'past', 'open']
+const FILTER_IDS: MatchTypeFilter[] = ['all', 'competitive', 'friendly', 'casual']
 
 async function fetchPlayerProfiles(playerIds: string[]) {
   if (playerIds.length === 0) return []
@@ -123,22 +114,18 @@ function useMatches(tab: Tab, userId: string, typeFilter: MatchTypeFilter) {
 }
 
 function EmptyState({ tab }: { tab: Tab }) {
-  const messages: Record<Tab, { title: string; sub: string }> = {
-    upcoming: { title: 'No upcoming matches', sub: 'Head to Play to schedule one' },
-    past:     { title: 'No past matches yet', sub: 'Your match history will appear here' },
-    open:     { title: 'No open matches', sub: 'Check back later or create your own' },
-  }
-  const { title, sub } = messages[tab]
+  const { t } = useTranslation()
   return (
     <div className="flex flex-col items-center justify-center py-20 px-8 text-center">
-      <p className="text-[15px] font-semibold text-gray-500 mb-1">{title}</p>
-      <p className="text-[13px] text-gray-400">{sub}</p>
+      <p className="text-[15px] font-semibold text-gray-500 mb-1">{t(`matches.no_${tab}`)}</p>
+      <p className="text-[13px] text-gray-400">{t(`matches.no_${tab}_sub`)}</p>
     </div>
   )
 }
 
 export function MatchesPage() {
   const { profile } = useAuth()
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<Tab>('upcoming')
   const [typeFilter, setTypeFilter] = useState<MatchTypeFilter>('all')
 
@@ -149,24 +136,24 @@ export function MatchesPage() {
     <div className="min-h-full bg-white pb-6">
       {/* Header */}
       <div className="px-5 pt-14 pb-3">
-        <h1 className="text-[22px] font-bold text-gray-900">Matches</h1>
+        <h1 className="text-[22px] font-bold text-gray-900">{t('matches.title')}</h1>
       </div>
 
       {/* Tab switcher */}
       <div className="px-5 mb-3">
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
-          {TABS.map((tab) => (
+          {TAB_IDS.map((id) => (
             <button
-              key={tab.id}
-              onClick={() => { setActiveTab(tab.id); setTypeFilter('all') }}
+              key={id}
+              onClick={() => { setActiveTab(id); setTypeFilter('all') }}
               className={cn(
                 'flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors',
-                activeTab === tab.id
+                activeTab === id
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500'
               )}
             >
-              {tab.label}
+              {t(`matches.${id}`)}
             </button>
           ))}
         </div>
@@ -175,18 +162,18 @@ export function MatchesPage() {
       {/* Filter pills — past tab only */}
       {activeTab === 'past' && (
         <div className="px-5 mb-3 flex gap-2 overflow-x-auto no-scrollbar">
-          {TYPE_FILTERS.map((f) => (
+          {FILTER_IDS.map((id) => (
             <button
-              key={f.id}
-              onClick={() => setTypeFilter(f.id)}
+              key={id}
+              onClick={() => setTypeFilter(id)}
               className={cn(
                 'flex-shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors',
-                typeFilter === f.id
+                typeFilter === id
                   ? 'bg-[#009688] border-[#009688] text-white'
                   : 'border-gray-200 text-gray-600 bg-white'
               )}
             >
-              {f.label}
+              {t(`matches.filter_${id}`)}
             </button>
           ))}
         </div>

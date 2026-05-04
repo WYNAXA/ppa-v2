@@ -2,26 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, ChevronRight, Plus, Search, BookOpen, ArrowRight, X } from 'lucide-react'
+import { Bell, Plus, Search, BookOpen, ArrowRight, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
-
-// ── Custom padel racket SVG ───────────────────────────────────────────────────
-function PadelCourtIllustration() {
-  return (
-    <svg viewBox="0 0 120 80" className="w-24 h-16 mx-auto mb-4 opacity-30" fill="none">
-      <rect x="8" y="8" width="104" height="64" rx="4" stroke="#009688" strokeWidth="2.5"/>
-      <line x1="60" y1="8" x2="60" y2="72" stroke="#009688" strokeWidth="1.5"/>
-      <line x1="8" y1="40" x2="60" y2="40" stroke="#009688" strokeWidth="1.5"/>
-      <line x1="60" y1="40" x2="112" y2="40" stroke="#009688" strokeWidth="1.5"/>
-      <rect x="20" y="24" width="24" height="32" rx="2" stroke="#009688" strokeWidth="1" opacity="0.5"/>
-      <rect x="76" y="24" width="24" height="32" rx="2" stroke="#009688" strokeWidth="1" opacity="0.5"/>
-    </svg>
-  )
-}
+import { WeekMatchView } from '@/components/play/WeekMatchView'
 
 // ── Container animation ───────────────────────────────────────────────────────
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
@@ -154,95 +141,6 @@ export function PlayPage() {
   const { t } = useTranslation()
   const [createOpen, setCreateOpen] = useState(false)
   const [joinSheetOpen, setJoinSheetOpen] = useState(false)
-  const today = new Date().toISOString().split('T')[0]
-
-  // ── Upcoming matches query ─────────────────────────────────────────────────
-  const { data: upcoming = [], isLoading: loadingUpcoming } = useQuery<MatchCardData[]>({
-    queryKey: ['play-upcoming', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, player_ids, match_type, status')
-        .contains('player_ids', [user!.id])
-        .neq('status', 'cancelled')
-        .gte('match_date', today)
-        .order('match_date', { ascending: true })
-        .order('match_time', { ascending: true })
-        .limit(5)
-      if (error) throw error
-
-      // Fetch player profiles for the first 5 unique IDs across all matches
-      const allIds = [...new Set((data ?? []).flatMap((m) => m.player_ids as string[]))].slice(0, 20)
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .in('id', allIds)
-
-      return (data ?? []).map((m) => ({
-        ...m,
-        players: (profiles ?? []).filter((p) => (m.player_ids as string[]).includes(p.id)),
-      }))
-    },
-  })
-
-  // ── Past matches query ─────────────────────────────────────────────────────
-  const { data: recentMatches = [] } = useQuery<MatchCardData[]>({
-    queryKey: ['play-recent', user?.id],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, player_ids, match_type, status')
-        .contains('player_ids', [user!.id])
-        .lt('match_date', today)
-        .order('match_date', { ascending: false })
-        .limit(5)
-      if (error) throw error
-
-      const allIds = [...new Set((data ?? []).flatMap((m) => m.player_ids as string[]))].slice(0, 20)
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, name, avatar_url')
-        .in('id', allIds)
-
-      return (data ?? []).map((m) => ({
-        ...m,
-        players: (profiles ?? []).filter((p) => (m.player_ids as string[]).includes(p.id)),
-      }))
-    },
-  })
-
-  // ── Open matches query ─────────────────────────────────────────────────────
-  const { data: openMatches = [] } = useQuery<MatchCardData[]>({
-    queryKey: ['play-open'],
-    enabled: !!user,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, player_ids, match_type, status')
-        .eq('status', 'open')
-        .gte('match_date', today)
-        .order('match_date', { ascending: true })
-        .limit(5)
-      if (error) throw error
-
-      // Filter out matches the user is already in
-      const filtered = (data ?? []).filter(
-        (m) => !(m.player_ids as string[]).includes(user!.id)
-      ).slice(0, 3)
-
-      const allIds = [...new Set(filtered.flatMap((m) => m.player_ids as string[]))].slice(0, 16)
-      const { data: profiles } = allIds.length > 0
-        ? await supabase.from('profiles').select('id, name, avatar_url').in('id', allIds)
-        : { data: [] }
-
-      return filtered.map((m) => ({
-        ...m,
-        players: (profiles ?? []).filter((p) => (m.player_ids as string[]).includes(p.id)),
-      }))
-    },
-  })
 
   return (
     <>
@@ -332,126 +230,10 @@ export function PlayPage() {
             </div>
           </motion.div>
 
-          {/* ── Upcoming matches ─────────────────────────────────────────── */}
-          <motion.section variants={item}>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide">
-                {t('play.upcoming')}
-              </h2>
-              {upcoming.length > 0 && (
-                <button
-                  onClick={() => navigate('/matches')}
-                  className="flex items-center gap-0.5 text-[13px] font-medium text-teal-600"
-                >
-                  All <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-
-            {loadingUpcoming ? (
-              <div className="space-y-3">
-                {[0, 1].map((i) => (
-                  <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />
-                ))}
-              </div>
-            ) : upcoming.length === 0 ? (
-              /* Empty state */
-              <div className="rounded-2xl bg-gray-50 border border-gray-100 px-5 py-10 text-center">
-                <PadelCourtIllustration />
-                <p className="text-[15px] font-bold text-gray-700">{t('play.no_upcoming')}</p>
-                <p className="text-[13px] text-gray-400 mt-1.5 mb-5 leading-snug">{t('play.no_open_sub')}</p>
-                <button
-                  onClick={() => setCreateOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
-                  style={{ background: '#009688' }}
-                >
-                  <Plus className="h-4 w-4" />
-                  {t('play.create_match')}
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-2.5">
-                {upcoming.map((match, i) => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    currentUserId={user?.id}
-                    action="view"
-                    index={i}
-                  />
-                ))}
-              </div>
-            )}
-          </motion.section>
-
-          {/* ── Open matches ─────────────────────────────────────────────── */}
-          {openMatches.length > 0 && (
-            <motion.section variants={item}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide">
-                  {t('play.open_nearby')}
-                </h2>
-                <button
-                  onClick={() => navigate('/matches?tab=open')}
-                  className="flex items-center gap-0.5 text-[13px] font-medium text-teal-600"
-                >
-                  {t('common.see_all')} <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="space-y-2.5">
-                {openMatches.map((match, i) => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    currentUserId={user?.id}
-                    action="join"
-                    onJoin={() => navigate(`/matches/${match.id}`)}
-                    index={i}
-                  />
-                ))}
-              </div>
-            </motion.section>
-          )}
-
-          {openMatches.length === 0 && upcoming.length > 0 && (
-            <motion.section variants={item}>
-              <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide mb-3">
-                {t('play.open_nearby')}
-              </h2>
-              <div className="rounded-2xl bg-gray-50 border border-gray-100 px-5 py-6 text-center">
-                <p className="text-[14px] font-medium text-gray-500">{t('play.no_open')}</p>
-                <p className="text-[12px] text-gray-400 mt-1">{t('play.no_open_sub')}</p>
-              </div>
-            </motion.section>
-          )}
-
-          {/* ── Recent matches ───────────────────────────────────────────── */}
-          {recentMatches.length > 0 && (
-            <motion.section variants={item}>
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-[13px] font-semibold text-gray-400 uppercase tracking-wide">
-                  Recent matches
-                </h2>
-                <button
-                  onClick={() => navigate('/matches')}
-                  className="flex items-center gap-0.5 text-[13px] font-medium text-teal-600"
-                >
-                  All <ChevronRight className="h-3.5 w-3.5" />
-                </button>
-              </div>
-              <div className="space-y-2.5">
-                {recentMatches.map((match, i) => (
-                  <MatchCard
-                    key={match.id}
-                    match={match}
-                    currentUserId={user?.id}
-                    action="view"
-                    index={i}
-                  />
-                ))}
-              </div>
-            </motion.section>
-          )}
+          {/* ── Week Match View ─────────────────────────────────────────── */}
+          <motion.div variants={item}>
+            <WeekMatchView onCreateMatch={() => setCreateOpen(true)} />
+          </motion.div>
 
           {/* Bottom spacing for nav */}
           <div className="h-4" />

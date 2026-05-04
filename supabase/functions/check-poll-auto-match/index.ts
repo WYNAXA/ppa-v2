@@ -594,13 +594,28 @@ serve(async (req: Request) => {
             });
           }
 
+          // Check for existing match before creating pending
+          const pendingDateStr = matchDate.toISOString().split('T')[0];
+          const { data: existingPendingMatch } = await supabase
+            .from("matches")
+            .select("id")
+            .eq("poll_id", poll_id)
+            .eq("match_date", pendingDateStr)
+            .eq("match_time", slot.start_time)
+            .maybeSingle();
+
+          if (existingPendingMatch) {
+            console.log(`Pending match already exists for ${pendingDateStr} ${slot.start_time}, skipping`);
+            break;
+          }
+
           // Create pending match
           const { data: newMatch, error: matchError } = await supabase
             .from("matches")
             .insert({
               group_id: poll.group_id,
               poll_id: poll_id,
-              match_date: matchDate.toISOString().split('T')[0],
+              match_date: pendingDateStr,
               match_time: slot.start_time,
               player_ids: playerIds,
               status: "pending",

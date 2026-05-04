@@ -604,7 +604,9 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
   }, [step, form])
 
   const handleSubmit = async () => {
-    if (!user) return
+    if (!user || submitting) return
+    setSubmitting(true)
+    setError(null)
 
     // Separate real players from guests (guests have fake IDs that fail FK checks)
     const realPlayers  = safePlayers.filter((p) => !p.isGuest)
@@ -633,10 +635,6 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       created_by:          user.id,
       notes:               finalNotes,
     }
-
-    console.log('[CreateMatch] handleSubmit payload:', payload)
-    setSubmitting(true)
-    setError(null)
 
     try {
       // Conflict check — warn if creator has another match on the same date

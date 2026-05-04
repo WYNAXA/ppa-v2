@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -203,7 +202,6 @@ function RingerOfferSheet({ match, userId, onClose }: {
 
 export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   const { profile } = useAuth()
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const userId = profile?.id ?? ''
 
@@ -292,7 +290,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   })
 
   // ── Shared enrichment function ─────────────────────────────────────────────
-  async function enrichMatches(data: any[], uid: string): Promise<EnrichedMatch[]> {
+  async function enrichMatches(data: any[], _uid?: string): Promise<EnrichedMatch[]> {
     if (data.length === 0) return []
     const allIds = [...new Set(data.flatMap((m) => (m.player_ids as string[]) ?? []))]
     const { data: profiles } = allIds.length > 0

@@ -2,13 +2,13 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Star, ExternalLink, Phone, Mail, Globe } from 'lucide-react'
+import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe } from 'lucide-react'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
-import { calculateDistance, formatDistance } from '@/lib/travelUtils'
+import { calculateDistance } from '@/lib/travelUtils'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 

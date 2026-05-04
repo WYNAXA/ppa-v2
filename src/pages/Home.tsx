@@ -9,7 +9,7 @@ import {
   Clock, Users, Trophy, BarChart3, Search, Bell,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/shared/NotificationBell'
-import { format, parseISO, differenceInCalendarDays } from 'date-fns'
+import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -583,6 +583,52 @@ function QuickStatsRow({ stats }: { stats: QuickStats | undefined }) {
   )
 }
 
+// ── Group opportunities (matches user is NOT in) ────────────────────────────
+
+function useGroupOpportunities(userId: string) {
+  return useQuery<Array<{ id: string; match_date: string; match_time: string | null; booked_venue_name: string | null; player_ids: string[]; group_name: string | null; spots: number }>>({
+    queryKey: ['home-group-opps', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data: memberships } = await supabase
+        .from('group_members').select('group_id').eq('user_id', userId).eq('status', 'approved')
+      if (!memberships || memberships.length === 0) return []
+      const groupIds = memberships.map((m) => m.group_id)
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd')
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('id, match_date, match_time, booked_venue_name, player_ids, group_id')
+        .in('group_id', groupIds)
+        .gte('match_date', today).lte('match_date', weekEnd)
+        .not('status', 'in', '(cancelled,completed)')
+        .order('match_date', { ascending: true })
+        .limit(10)
+      if (!matches) return []
+      // Only matches user is NOT in and has open slots
+      const opps = matches
+        .filter((m) => !(m.player_ids as string[]).includes(userId) && (m.player_ids as string[]).length < 4)
+        .slice(0, 3)
+      if (opps.length === 0) return []
+      const gIds = [...new Set(opps.map((m) => m.group_id).filter(Boolean))]
+      const { data: groups } = gIds.length > 0
+        ? await supabase.from('groups').select('id, name').in('id', gIds)
+        : { data: [] }
+      const gMap = Object.fromEntries((groups ?? []).map((g) => [g.id, g]))
+      return opps.map((m) => ({
+        id: m.id,
+        match_date: m.match_date,
+        match_time: m.match_time,
+        booked_venue_name: m.booked_venue_name,
+        player_ids: (m.player_ids as string[]) ?? [],
+        group_name: m.group_id ? gMap[m.group_id]?.name ?? null : null,
+        spots: 4 - ((m.player_ids as string[]) ?? []).length,
+      }))
+    },
+    staleTime: 5 * 60 * 1000,
+  })
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function HomePage() {
@@ -598,6 +644,7 @@ export function HomePage() {
   const { data: activePoll, isLoading: loadingPoll     } = useActivePoll(userId)
   const { data: quickStats                             } = useQuickStats(userId)
   const { data: activity = []                          } = useRecentActivity(userId)
+  const { data: groupOpps = [] } = useGroupOpportunities(userId)
 
   const today = new Date()
   const dateLabel = (() => {
@@ -673,6 +720,43 @@ export function HomePage() {
 
         {/* ── Quick Stats ── */}
         <QuickStatsRow stats={quickStats} />
+
+        {/* ── Group opportunities ── */}
+        {groupOpps.length > 0 && (
+          <section>
+            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide mb-2">In your groups this week</h2>
+            <div className="space-y-2">
+              {groupOpps.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => navigate(`/matches/${m.id}`)}
+                  className="w-full text-left rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3 active:scale-[0.98] transition-transform"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] font-semibold text-gray-800">
+                        {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM') } catch { return m.match_date } })()}
+                        {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
+                      </p>
+                      {m.booked_venue_name && (
+                        <p className="text-[11px] text-gray-500 mt-0.5 truncate">{m.booked_venue_name}</p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1">
+                        {m.group_name && (
+                          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{m.group_name}</span>
+                        )}
+                        <span className="text-[10px] font-bold text-orange-600">{m.spots} spot{m.spots !== 1 ? 's' : ''} open</span>
+                      </div>
+                    </div>
+                    <span className="rounded-xl bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white flex-shrink-0">
+                      Join
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Recent Activity ── */}
         <section>

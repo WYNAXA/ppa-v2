@@ -323,6 +323,61 @@ function DiscoverCard({
 
 // ── Find Players query ────────────────────────────────────────────────────────
 
+// ── Nearby Venues ────────────────────────────────────────────────────────────
+
+function NearbyVenuesSection({ userCity }: { userCity?: string | null }) {
+  const navigate = useNavigate()
+
+  const { data: venues = [] } = useQuery({
+    queryKey: ['nearby-venues-community', userCity],
+    queryFn: async () => {
+      let q = supabase
+        .from('padel_venues')
+        .select('venue_id, venue_name, city, indoor_courts, outdoor_courts, ppa_bookable, rating')
+        .limit(8)
+      if (userCity) q = q.ilike('city', `%${userCity}%`)
+      const { data } = await q
+      return data ?? []
+    },
+  })
+
+  if (venues.length === 0) return null
+
+  return (
+    <section>
+      <h2 className="text-[16px] font-bold text-gray-900 mb-3">Padel Courts Near You</h2>
+      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+        {venues.map((v) => {
+          const courts = (v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0)
+          return (
+            <button
+              key={v.venue_id}
+              onClick={() => navigate(`/venues/${v.venue_id}`)}
+              className="flex-shrink-0 w-48 rounded-2xl border border-gray-100 bg-white overflow-hidden text-left active:scale-[0.97] transition-transform"
+            >
+              <div className="h-20 bg-gradient-to-br from-teal-600 to-teal-400 flex items-center justify-center">
+                <span className="text-3xl">🎾</span>
+              </div>
+              <div className="px-3 py-2.5">
+                <p className="text-[13px] font-bold text-gray-900 truncate">{v.venue_name}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{v.city}{courts > 0 ? ` · ${courts} courts` : ''}</p>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  {v.ppa_bookable && (
+                    <span className="text-[9px] font-bold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">PPA</span>
+                  )}
+                  {(v.rating as number) > 0 && (
+                    <span className="text-[10px] text-gray-500">⭐ {Number(v.rating).toFixed(1)}</span>
+                  )}
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
+}
+
 function useMyConnections(userId: string) {
   return useQuery<Set<string>>({
     queryKey: ['my-connections', userId],
@@ -656,6 +711,9 @@ export function CommunityPage() {
             </div>
           )}
         </section>
+
+        {/* ── Nearby Venues ── */}
+        <NearbyVenuesSection userCity={profile?.city} />
       </div>
 
       {/* Floating + button */}

@@ -31,6 +31,7 @@ const NotificationsPage = lazy(() => import('@/pages/Notifications').then(m => (
 const SearchPage = lazy(() => import('@/pages/Search').then(m => ({ default: m.SearchPage })))
 const PlayerProfilePage = lazy(() => import('@/pages/PlayerProfile').then(m => ({ default: m.PlayerProfilePage })))
 const PayBookingPage = lazy(() => import('@/pages/PayBooking').then(m => ({ default: m.PayBookingPage })))
+const VenueDetailPage = lazy(() => import('@/pages/VenueDetail').then(m => ({ default: m.VenueDetailPage })))
 
 
 const queryClient = new QueryClient({
@@ -197,6 +198,9 @@ function AppShell() {
 
             {/* Player profiles */}
             <Route path="/players/:playerId" element={<Guard><PlayerProfilePage /></Guard>} />
+
+            {/* Venue detail */}
+            <Route path="/venues/:venueId" element={<Guard><VenueDetailPage /></Guard>} />
 
             {/* Notifications */}
             <Route path="/notifications" element={<Guard><NotificationsPage /></Guard>} />

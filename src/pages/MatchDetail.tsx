@@ -127,13 +127,20 @@ function getEloPrediction(players: Profile[], team1Ids: string[], team2Ids: stri
 
 function ResultBanner({ result, players }: { result: MatchResult; players: Profile[] }) {
   const getPlayer = (id: string) => players.find((p) => p.id === id)
-  // sets_data may be stored as a JSON string in the DB
-  const rawSets = typeof result.sets_data === 'string'
-    ? (() => { try { return JSON.parse(result.sets_data as unknown as string) } catch { return [] } })()
-    : (result.sets_data ?? [])
-  const completedSets: Array<{ team1: number; team2: number }> =
-    (rawSets as Array<{ team1: number | ''; team2: number | '' }>)
-      .filter((s) => s.team1 !== '' && s.team2 !== '') as Array<{ team1: number; team2: number }>
+  // sets_data may be stored as a JSON string in the DB — handle both key conventions
+  const rawSets: Array<Record<string, unknown>> = (() => {
+    const parsed = typeof result.sets_data === 'string'
+      ? (() => { try { return JSON.parse(result.sets_data as unknown as string) } catch { return [] } })()
+      : result.sets_data
+    return Array.isArray(parsed) ? parsed : []
+  })()
+  const completedSets = rawSets
+    .map((s) => ({
+      team1: Number(s.team1 ?? s.team1_score ?? ''),
+      team2: Number(s.team2 ?? s.team2_score ?? ''),
+      tiebreak: s.tiebreak as { team1: number; team2: number } | undefined,
+    }))
+    .filter((s) => !isNaN(s.team1) && !isNaN(s.team2))
 
   return (
     <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-100 p-4">
@@ -175,7 +182,10 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
           </div>
           {completedSets.length > 0 && (
             <p className="text-[10px] text-gray-400">
-              {completedSets.map((s) => `${s.team1}-${s.team2}`).join('  ')}
+              {completedSets.map((s) => {
+                const base = `${s.team1}-${s.team2}`
+                return s.tiebreak ? `${base} (${s.tiebreak.team1}-${s.tiebreak.team2})` : base
+              }).join('  ')}
             </p>
           )}
         </div>

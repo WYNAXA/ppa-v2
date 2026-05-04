@@ -134,6 +134,7 @@ export function AvailabilityPollPage() {
 
   // ── Post-submit state ──
   const [submitted, setSubmitted] = useState(false)
+  const [submittedUnavailable, setSubmittedUnavailable] = useState(false)
   const [matchCreated, setMatchCreated] = useState<{ id: string } | null>(null)
 
   // ── Conflict dialog ──
@@ -287,6 +288,7 @@ export function AvailabilityPollPage() {
     onSuccess: ({ newMatchId }) => {
       setMatchCreated(newMatchId ? { id: newMatchId } : null)
       setSubmitted(true)
+      setSubmittedUnavailable(cantDoWeek)
       setIsEditMode(false)
       queryClient.invalidateQueries({ queryKey: ['poll', pollId] })
       queryClient.invalidateQueries({ queryKey: ['availability-home'] })
@@ -464,7 +466,25 @@ export function AvailabilityPollPage() {
             </motion.div>
           )}
 
-          {!submitMutation.isPending && submitted && !matchCreated && (
+          {!submitMutation.isPending && submitted && submittedUnavailable && !matchCreated && (
+            <motion.div
+              key="unavailable"
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 space-y-1"
+            >
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <p className="text-[13px] font-semibold text-gray-700">You're marked as unavailable this week</p>
+              </div>
+              <p className="text-[12px] text-gray-500 pl-6">
+                No problem! We'll let you know when next week's poll opens. See you next week! 👋
+              </p>
+            </motion.div>
+          )}
+
+          {!submitMutation.isPending && submitted && !submittedUnavailable && !matchCreated && (
             <motion.div
               key="waiting"
               initial={{ opacity: 0, y: -8 }}
@@ -477,7 +497,7 @@ export function AvailabilityPollPage() {
                 <p className="text-[13px] font-semibold text-teal-800">Availability saved!</p>
               </div>
               <p className="text-[12px] text-teal-600 pl-6">
-                We need 1 more player. We'll notify you when your game is confirmed.
+                We'll notify you when enough players are available for your slots.
               </p>
             </motion.div>
           )}

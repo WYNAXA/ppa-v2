@@ -33,6 +33,27 @@ interface RecordResultSheetProps {
 interface SetScore {
   team1: number | ''
   team2: number | ''
+  tiebreak?: { team1: number | ''; team2: number | '' } | null
+  time_limit?: boolean
+}
+
+function countSetWins(sets: SetScore[]): [number, number] {
+  let t1Wins = 0, t2Wins = 0
+  for (const s of sets) {
+    if (s.team1 === '' || s.team2 === '') continue
+    const t1 = Number(s.team1)
+    const t2 = Number(s.team2)
+    if (t1 > t2) t1Wins++
+    else if (t2 > t1) t2Wins++
+    else if (t1 === 6 && t2 === 6 && s.tiebreak) {
+      const tb1 = Number(s.tiebreak.team1)
+      const tb2 = Number(s.tiebreak.team2)
+      if (tb1 > tb2) t1Wins++
+      else if (tb2 > tb1) t2Wins++
+    }
+    // If 6-6 time_limit or no tiebreak, it's a drawn set (neither gets a win)
+  }
+  return [t1Wins, t2Wins]
 }
 
 function initTeams(playerIds: string[]): [string[], string[]] {
@@ -76,8 +97,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const submitMutation = useMutation({
     mutationFn: async () => {
       const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
-      const t1Total = completedSets.reduce((acc, s) => acc + (Number(s.team1) > Number(s.team2) ? 1 : 0), 0)
-      const t2Total = completedSets.reduce((acc, s) => acc + (Number(s.team2) > Number(s.team1) ? 1 : 0), 0)
+      const [t1Total, t2Total] = countSetWins(completedSets)
 
       // Filter out guest/non-UUID player IDs — they fail FK constraints
       const cleanTeam1 = team1.filter((id) => UUID_RE.test(id))
@@ -85,6 +105,13 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
 
       console.log('[RecordResult] teams after guest filter:', cleanTeam1, cleanTeam2)
       console.log('[RecordResult] result_type:', resultType, 'match_id:', match.id)
+
+      const setsData = sets.filter(s => s.team1 !== '' && s.team2 !== '').map(s => ({
+        team1: Number(s.team1),
+        team2: Number(s.team2),
+        ...(s.tiebreak ? { tiebreak: { team1: Number(s.tiebreak.team1), team2: Number(s.tiebreak.team2) } } : {}),
+        ...(s.time_limit ? { time_limit: true } : {}),
+      }))
 
       const payload = {
         match_id:            match.id,
@@ -96,6 +123,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
         verification_status: 'pending',
         submitted_by:        currentUserId,
         is_friendly:         match.match_type === 'casual',
+        sets_data:           setsData,
       }
 
       console.log('[RecordResult] inserting payload:', payload)
@@ -161,8 +189,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     if (step !== 3) return
     const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
     if (completedSets.length === 0) { setResultType(null); return }
-    const t1Wins = completedSets.reduce((acc, s) => acc + (Number(s.team1) > Number(s.team2) ? 1 : 0), 0)
-    const t2Wins = completedSets.reduce((acc, s) => acc + (Number(s.team2) > Number(s.team1) ? 1 : 0), 0)
+    const [t1Wins, t2Wins] = countSetWins(completedSets)
     if (t1Wins > t2Wins) setResultType('team1_win')
     else if (t2Wins > t1Wins) setResultType('team2_win')
     else setResultType('draw')
@@ -204,6 +231,25 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       const nextKey = side === 'team1' ? `${index}-team2` : `${index + 1}-team1`
       setTimeout(() => inputRefs.current[nextKey]?.focus(), 0)
     }
+  }
+
+  function updateTiebreak(index: number, side: 'team1' | 'team2', raw: string) {
+    const val = raw === '' ? '' : Math.min(99, Math.max(0, parseInt(raw, 10)))
+    setSets((prev) => prev.map((s, i) => {
+      if (i !== index) return s
+      return { ...s, tiebreak: { ...(s.tiebreak ?? { team1: '', team2: '' }), [side]: val } }
+    }))
+  }
+
+  function setTiebreakMode(index: number, mode: 'tiebreak' | 'time_limit') {
+    setSets((prev) => prev.map((s, i) => {
+      if (i !== index) return s
+      if (mode === 'tiebreak') {
+        return { ...s, tiebreak: { team1: '', team2: '' }, time_limit: false }
+      } else {
+        return { ...s, tiebreak: null, time_limit: true }
+      }
+    }))
   }
 
   function addSet() {
@@ -332,42 +378,105 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       <p className="text-[11px] font-bold text-orange-600 text-center uppercase tracking-wide">{t('record_result.team2')}</p>
                     </div>
 
-                    {sets.map((s, i) => (
-                      <div key={i} className="flex items-center gap-2 mb-3">
-                        <div className="flex-1 flex items-center gap-1.5">
-                          <span className="text-[12px] text-gray-400 w-10">{t('record_result.set')} {i + 1}</span>
-                          {sets.length > 1 && (
-                            <button
-                              onClick={() => removeSet(i)}
-                              className="text-[10px] text-gray-300 hover:text-red-400"
-                            >
-                              ×
-                            </button>
+                    {sets.map((s, i) => {
+                      const isTied66 = s.team1 === 6 && s.team2 === 6
+                      return (
+                        <div key={i} className="mb-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 flex items-center gap-1.5">
+                              <span className="text-[12px] text-gray-400 w-10">{t('record_result.set')} {i + 1}</span>
+                              {sets.length > 1 && (
+                                <button
+                                  onClick={() => removeSet(i)}
+                                  className="text-[10px] text-gray-300 hover:text-red-400"
+                                >
+                                  ×
+                                </button>
+                              )}
+                            </div>
+                            <input
+                              ref={i === 0 ? firstInputRef : (el) => { inputRefs.current[`${i}-team1`] = el }}
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              max={9}
+                              value={s.team1}
+                              onChange={(e) => updateSet(i, 'team1', e.target.value)}
+                              className="w-[60px] rounded-xl border border-gray-200 bg-teal-50 py-2.5 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                            />
+                            <span className="text-gray-300 text-sm">—</span>
+                            <input
+                              ref={(el) => { inputRefs.current[`${i}-team2`] = el }}
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              max={9}
+                              value={s.team2}
+                              onChange={(e) => updateSet(i, 'team2', e.target.value)}
+                              className="w-[60px] rounded-xl border border-gray-200 bg-orange-50 py-2.5 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                            />
+                          </div>
+                          {isTied66 && (
+                            <div className="mt-2 ml-1">
+                              <div className="rounded-lg bg-teal-50 border border-teal-100 px-3 py-2 mb-2">
+                                <p className="text-[12px] font-semibold text-teal-700">Set tied 6-6. How did it finish?</p>
+                              </div>
+                              <div className="flex gap-2 mb-2">
+                                <button
+                                  onClick={() => setTiebreakMode(i, 'tiebreak')}
+                                  className={cn(
+                                    'flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors',
+                                    s.tiebreak && !s.time_limit
+                                      ? 'bg-teal-50 border-teal-300 text-teal-700'
+                                      : 'border-gray-200 text-gray-500 hover:border-teal-200'
+                                  )}
+                                >
+                                  Tiebreak played
+                                </button>
+                                <button
+                                  onClick={() => setTiebreakMode(i, 'time_limit')}
+                                  className={cn(
+                                    'flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors',
+                                    s.time_limit
+                                      ? 'bg-orange-50 border-orange-300 text-orange-700'
+                                      : 'border-gray-200 text-gray-500 hover:border-orange-200'
+                                  )}
+                                >
+                                  Finished on time
+                                </button>
+                              </div>
+                              {s.tiebreak && !s.time_limit && (
+                                <div className="flex items-center gap-2 pl-2">
+                                  <span className="text-[11px] text-gray-400">TB:</span>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={0}
+                                    max={99}
+                                    value={s.tiebreak.team1}
+                                    onChange={(e) => updateTiebreak(i, 'team1', e.target.value)}
+                                    className="w-[48px] rounded-lg border border-gray-200 bg-teal-50 py-1.5 text-center text-[14px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                                  />
+                                  <span className="text-gray-300 text-sm">—</span>
+                                  <input
+                                    type="number"
+                                    inputMode="numeric"
+                                    min={0}
+                                    max={99}
+                                    value={s.tiebreak.team2}
+                                    onChange={(e) => updateTiebreak(i, 'team2', e.target.value)}
+                                    className="w-[48px] rounded-lg border border-gray-200 bg-orange-50 py-1.5 text-center text-[14px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                                  />
+                                </div>
+                              )}
+                              {s.time_limit && (
+                                <p className="text-[11px] text-gray-400 italic pl-2">Drawn set — no winner</p>
+                              )}
+                            </div>
                           )}
                         </div>
-                        <input
-                          ref={i === 0 ? firstInputRef : (el) => { inputRefs.current[`${i}-team1`] = el }}
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          max={9}
-                          value={s.team1}
-                          onChange={(e) => updateSet(i, 'team1', e.target.value)}
-                          className="w-[60px] rounded-xl border border-gray-200 bg-teal-50 py-2.5 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
-                        />
-                        <span className="text-gray-300 text-sm">—</span>
-                        <input
-                          ref={(el) => { inputRefs.current[`${i}-team2`] = el }}
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          max={9}
-                          value={s.team2}
-                          onChange={(e) => updateSet(i, 'team2', e.target.value)}
-                          className="w-[60px] rounded-xl border border-gray-200 bg-orange-50 py-2.5 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
-                        />
-                      </div>
-                    ))}
+                      )
+                    })}
 
                     {sets.length < 3 && (
                       <button
@@ -395,20 +504,36 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
 
                     {/* Score summary */}
                     <div className="bg-gray-50 rounded-2xl p-4 mb-4">
-                      {sets.filter((s) => s.team1 !== '' && s.team2 !== '').map((s, i) => (
-                        <div key={i} className="flex items-center justify-between mb-1 last:mb-0">
-                          <span className="text-[12px] text-gray-500">Set {i + 1}</span>
-                          <div className="flex items-center gap-3">
-                            <span className={cn('text-[16px] font-bold', Number(s.team1) > Number(s.team2) ? 'text-teal-700' : 'text-gray-400')}>
-                              {s.team1}
-                            </span>
-                            <span className="text-gray-300">–</span>
-                            <span className={cn('text-[16px] font-bold', Number(s.team2) > Number(s.team1) ? 'text-orange-600' : 'text-gray-400')}>
-                              {s.team2}
-                            </span>
+                      {sets.filter((s) => s.team1 !== '' && s.team2 !== '').map((s, i) => {
+                        // Determine set winner considering tiebreaks
+                        const t1 = Number(s.team1), t2 = Number(s.team2)
+                        let t1Wins = t1 > t2
+                        let t2Wins = t2 > t1
+                        if (t1 === 6 && t2 === 6 && s.tiebreak) {
+                          t1Wins = Number(s.tiebreak.team1) > Number(s.tiebreak.team2)
+                          t2Wins = Number(s.tiebreak.team2) > Number(s.tiebreak.team1)
+                        }
+                        return (
+                          <div key={i} className="flex items-center justify-between mb-1 last:mb-0">
+                            <span className="text-[12px] text-gray-500">Set {i + 1}</span>
+                            <div className="flex items-center gap-3">
+                              <span className={cn('text-[16px] font-bold', t1Wins ? 'text-teal-700' : 'text-gray-400')}>
+                                {s.team1}
+                              </span>
+                              <span className="text-gray-300">–</span>
+                              <span className={cn('text-[16px] font-bold', t2Wins ? 'text-orange-600' : 'text-gray-400')}>
+                                {s.team2}
+                              </span>
+                              {s.tiebreak && (
+                                <span className="text-[11px] text-gray-400">({s.tiebreak.team1}-{s.tiebreak.team2})</span>
+                              )}
+                              {s.time_limit && (
+                                <span className="text-[10px] text-gray-400 italic">time</span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
 
                     {/* Winner display */}

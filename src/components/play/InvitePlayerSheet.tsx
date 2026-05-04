@@ -33,11 +33,14 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<PlayerResult[]>([])
   const [searching, setSearching] = useState(false)
+  const [showGuestForm, setShowGuestForm] = useState(false)
+  const [guestName, setGuestName] = useState('')
+  const [guestContact, setGuestContact] = useState('')
   const debouncedQuery = useDebounce(query, 300)
   const queryClient = useQueryClient()
 
   useEffect(() => {
-    if (!open) { setQuery(''); setResults([]) }
+    if (!open) { setQuery(''); setResults([]); setShowGuestForm(false); setGuestName(''); setGuestContact('') }
   }, [open])
 
   useEffect(() => {
@@ -72,6 +75,38 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
         related_id: matchId,
         read: false,
       })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match', matchId] })
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+      onClose()
+    },
+  })
+
+  const guestMutation = useMutation({
+    mutationFn: async () => {
+      if (!guestName.trim()) return
+      const guestId = `guest_${Date.now()}`
+      const newPlayerIds = [...currentPlayerIds, guestId]
+
+      // Fetch current match to get notes
+      const { data: matchData } = await supabase
+        .from('matches')
+        .select('notes')
+        .eq('id', matchId)
+        .single()
+
+      const existingNotes = matchData?.notes ?? ''
+      const guestLine = existingNotes.includes('Guests:')
+        ? existingNotes.replace(/Guests: (.+)/, `Guests: $1, ${guestName.trim()}`)
+        : existingNotes + (existingNotes ? '\n' : '') + `Guests: ${guestName.trim()}`
+
+      const { error } = await supabase.from('matches').update({
+        player_ids: newPlayerIds,
+        notes: guestLine,
+        ...(newPlayerIds.length >= 4 ? { status: 'confirmed' } : {}),
+      }).eq('id', matchId)
+      if (error) throw error
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match', matchId] })
@@ -163,9 +198,62 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                 </div>
               )}
 
-              {query.length < 2 && !searching && (
+              {query.length < 2 && !searching && !showGuestForm && (
                 <div className="py-10 text-center">
                   <p className="text-[13px] text-gray-400">Type a name to search players</p>
+                </div>
+              )}
+
+              {/* Add guest player option */}
+              {!showGuestForm ? (
+                <button
+                  onClick={() => setShowGuestForm(true)}
+                  className="w-full flex items-center gap-3 px-3 py-3 mt-2 rounded-xl border border-dashed border-gray-200 hover:border-teal-300 hover:bg-teal-50/30 transition-colors text-left"
+                >
+                  <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                    <UserPlus className="h-4 w-4 text-gray-400" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-gray-600">Add guest player</p>
+                    <p className="text-[11px] text-gray-400">Someone without an account</p>
+                  </div>
+                </button>
+              ) : (
+                <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+                  <p className="text-[13px] font-bold text-gray-700">Add Guest Player</p>
+                  <input
+                    type="text"
+                    value={guestName}
+                    onChange={(e) => setGuestName(e.target.value)}
+                    placeholder="Name (required)"
+                    autoFocus
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  />
+                  <input
+                    type="text"
+                    value={guestContact}
+                    onChange={(e) => setGuestContact(e.target.value)}
+                    placeholder="Phone or email (optional)"
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  />
+                  {guestMutation.isError && (
+                    <p className="text-[12px] text-red-500">Failed to add guest. Try again.</p>
+                  )}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowGuestForm(false); setGuestName(''); setGuestContact('') }}
+                      className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => guestMutation.mutate()}
+                      disabled={!guestName.trim() || guestMutation.isPending}
+                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+                    >
+                      {guestMutation.isPending ? 'Adding...' : 'Add Guest'}
+                    </button>
+                  </div>
                 </div>
               )}
             </div>

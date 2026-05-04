@@ -11,7 +11,7 @@ import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
 
-// v1.0.6 — bump this comment to force service worker cache invalidation
+// v1.0.7 — bump this comment to force service worker cache invalidation
 
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
@@ -130,6 +130,14 @@ function TranslationBanner() {
   )
 }
 
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
 function AppShell() {
   const { session, loading } = useAuth()
   const location = useLocation()
@@ -140,6 +148,7 @@ function AppShell() {
 
   return (
     <OnboardingGuard>
+      <ScrollToTop />
       <UpdateBanner />
       <TranslationBanner />
       <div className="flex h-full flex-col">

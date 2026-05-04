@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Zap, Share2 } from 'lucide-react'
+import { ChevronLeft, Zap, Share2, Plus, X } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -510,6 +510,344 @@ const LEAGUE_STATUS_STYLE: Record<string, string> = {
   completed: 'bg-gray-100 text-gray-500 border-gray-200',
 }
 
+// ── QuickResultSheet ─────────────────────────────────────────────────────────
+
+interface QuickSetScore {
+  team1: number | ''
+  team2: number | ''
+}
+
+function QuickResultSheet({ open, onClose, match, leagueId }: {
+  open: boolean
+  onClose: () => void
+  match: { id: string; player_ids: string[]; players?: Array<{ id: string; name: string }> } | null
+  leagueId: string
+}) {
+  const [step, setStep] = useState(1)
+  const [sets, setSets] = useState<QuickSetScore[]>([{ team1: '', team2: '' }])
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const queryClient = useQueryClient()
+
+  // Reset on open/close
+  if (!open && (step !== 1 || sets.length !== 1)) {
+    // Using this pattern to avoid effect — resets when sheet closes
+  }
+
+  const team1Names = match?.players?.filter((p) => match.player_ids.slice(0, 2).includes(p.id)).map((p) => p.name.split(' ')[0]) ?? ['Team 1']
+  const team2Names = match?.players?.filter((p) => match.player_ids.slice(2, 4).includes(p.id)).map((p) => p.name.split(' ')[0]) ?? ['Team 2']
+
+  function countWins(): [number, number] {
+    let t1 = 0, t2 = 0
+    for (const s of sets) {
+      if (s.team1 === '' || s.team2 === '') continue
+      if (Number(s.team1) > Number(s.team2)) t1++
+      else if (Number(s.team2) > Number(s.team1)) t2++
+    }
+    return [t1, t2]
+  }
+
+  const [t1Wins, t2Wins] = countWins()
+  const resultType = t1Wins > t2Wins ? 'team1_win' : t2Wins > t1Wins ? 'team2_win' : 'draw'
+  const resultLabel = resultType === 'team1_win'
+    ? `${team1Names.join(' & ')} win ${t1Wins}-${t2Wins}`
+    : resultType === 'team2_win'
+    ? `${team2Names.join(' & ')} win ${t2Wins}-${t1Wins}`
+    : `Draw ${t1Wins}-${t2Wins}`
+  const canAdvance = sets.some((s) => s.team1 !== '' && s.team2 !== '')
+
+  function handleReset() {
+    setStep(1)
+    setSets([{ team1: '', team2: '' }])
+    setError(null)
+  }
+
+  function handleClose() {
+    handleReset()
+    onClose()
+  }
+
+  async function handleSubmit() {
+    if (!match) return
+    setSubmitting(true)
+    setError(null)
+    try {
+      const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
+
+      // 1. Insert match_results
+      const { error: resultError } = await supabase.from('match_results').insert({
+        match_id: match.id,
+        team1_players: match.player_ids.slice(0, 2),
+        team2_players: match.player_ids.slice(2, 4),
+        team1_score: t1Wins,
+        team2_score: t2Wins,
+        result_type: resultType,
+        verification_status: 'verified',
+        sets_data: completedSets.map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) })),
+      })
+      if (resultError) throw resultError
+
+      // 2. Update match status
+      const { error: matchError } = await supabase.from('matches').update({ status: 'completed' }).eq('id', match.id)
+      if (matchError) throw matchError
+
+      // 3. Update league_standings for all players
+      for (const pid of match.player_ids) {
+        const isOnTeam1 = match.player_ids.slice(0, 2).includes(pid)
+        const isWinner = (isOnTeam1 && resultType === 'team1_win') || (!isOnTeam1 && resultType === 'team2_win')
+        const isDraw = resultType === 'draw'
+
+        const { data: current } = await supabase
+          .from('league_standings')
+          .select('*')
+          .eq('league_id', leagueId)
+          .eq('user_id', pid)
+          .maybeSingle()
+
+        if (current) {
+          await supabase.from('league_standings').update({
+            played: (current.played ?? current.matches_played ?? 0) + 1,
+            wins: (current.wins ?? 0) + (isWinner ? 1 : 0),
+            losses: (current.losses ?? 0) + (!isWinner && !isDraw ? 1 : 0),
+            draws: (current.draws ?? 0) + (isDraw ? 1 : 0),
+            points: (current.points ?? current.ranking_points ?? 0) + (isWinner ? 3 : isDraw ? 1 : 0),
+          }).eq('id', current.id)
+        }
+      }
+
+      // 4. Invalidate and close
+      queryClient.invalidateQueries({ queryKey: ['league-standings', leagueId] })
+      queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
+      queryClient.invalidateQueries({ queryKey: ['league-results', leagueId] })
+      queryClient.invalidateQueries({ queryKey: ['match', match.id] })
+      handleClose()
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Failed to submit result')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  if (!match) return null
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-[55] bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleClose}
+          />
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[80vh] flex flex-col"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="h-1 w-10 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
+              <button onClick={handleClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+              <h2 className="text-[15px] font-bold text-gray-900">Enter Result</h2>
+              <div className="w-9" />
+            </div>
+
+            <div className="overflow-y-auto flex-1 px-5 pb-8">
+              {step === 1 && (
+                <div>
+                  {/* Team labels */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="text-center flex-1">
+                      <p className="text-[11px] font-bold text-teal-700 uppercase tracking-wide">Team 1</p>
+                      <p className="text-[12px] text-gray-600 truncate">{team1Names.join(' & ')}</p>
+                    </div>
+                    <span className="text-gray-300 text-sm px-2">vs</span>
+                    <div className="text-center flex-1">
+                      <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wide">Team 2</p>
+                      <p className="text-[12px] text-gray-600 truncate">{team2Names.join(' & ')}</p>
+                    </div>
+                  </div>
+
+                  {/* Set inputs */}
+                  {sets.map((s, i) => (
+                    <div key={i} className="flex items-center gap-2 mb-3 justify-center">
+                      <span className="text-[12px] text-gray-400 w-12">Set {i + 1}</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={9}
+                        value={s.team1}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
+                          setSets((prev) => prev.map((x, j) => j === i ? { ...x, team1: val } : x))
+                        }}
+                        className="w-[56px] rounded-xl border border-gray-200 bg-teal-50 py-2 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                      />
+                      <span className="text-gray-300">—</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={0}
+                        max={9}
+                        value={s.team2}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
+                          setSets((prev) => prev.map((x, j) => j === i ? { ...x, team2: val } : x))
+                        }}
+                        className="w-[56px] rounded-xl border border-gray-200 bg-orange-50 py-2 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                      />
+                      {sets.length > 1 && (
+                        <button onClick={() => setSets((prev) => prev.filter((_, j) => j !== i))} className="text-[10px] text-gray-300 hover:text-red-400 ml-1">
+                          x
+                        </button>
+                      )}
+                    </div>
+                  ))}
+
+                  {sets.length < 3 && (
+                    <button
+                      onClick={() => setSets((prev) => [...prev, { team1: '', team2: '' }])}
+                      className="w-full rounded-xl border border-dashed border-gray-200 py-2 text-[12px] text-gray-400 hover:border-teal-300 hover:text-teal-600 transition-colors mb-3"
+                    >
+                      + Add set
+                    </button>
+                  )}
+
+                  <button
+                    onClick={() => setStep(2)}
+                    disabled={!canAdvance}
+                    className="mt-2 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div>
+                  <div className="bg-gray-50 rounded-2xl p-4 mb-4 text-center">
+                    <p className="text-[15px] font-bold text-gray-800 mb-2">{resultLabel}</p>
+                    <div className="flex items-center justify-center gap-2 text-[13px] text-gray-500">
+                      {sets.filter((s) => s.team1 !== '' && s.team2 !== '').map((s, i) => (
+                        <span key={i}>{Number(s.team1)}-{Number(s.team2)}</span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {error && (
+                    <p className="text-[12px] text-red-500 text-center mb-3">{error}</p>
+                  )}
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setStep(1)}
+                      className="flex-1 rounded-2xl border border-gray-200 py-3.5 text-[14px] font-semibold text-gray-700"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className="flex-1 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                    >
+                      {submitting ? 'Submitting...' : 'Submit Result'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
+// ── FixturePickerSheet ───────────────────────────────────────────────────────
+
+function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
+  open: boolean
+  onClose: () => void
+  fixtures: FixtureMatch[]
+  onSelect: (match: FixtureMatch) => void
+}) {
+  const unplayed = fixtures.filter((m) => m.status !== 'completed' && m.status !== 'cancelled')
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-[55] bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[70vh] flex flex-col"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="h-1 w-10 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+              <h2 className="text-[15px] font-bold text-gray-900">Select Fixture</h2>
+              <div className="w-9" />
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 pb-8">
+              {unplayed.length === 0 ? (
+                <div className="py-10 text-center">
+                  <p className="text-[13px] text-gray-400">No unplayed fixtures</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {unplayed.map((match) => (
+                    <button
+                      key={match.id}
+                      onClick={() => { onSelect(match); onClose() }}
+                      className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
+                    >
+                      <p className="text-[13px] font-semibold text-gray-900 mb-1">
+                        {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()}
+                        {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
+                      </p>
+                      {match.players && match.players.length > 0 && (
+                        <div className="flex -space-x-1">
+                          {match.players.slice(0, 4).map((p) => (
+                            <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                          ))}
+                          <span className="ml-2 text-[11px] text-gray-400 self-center">
+                            {match.players.map((p) => p.name.split(' ')[0]).join(', ')}
+                          </span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function LeagueDetailPage() {
@@ -519,6 +857,8 @@ export function LeagueDetailPage() {
   const queryClient       = useQueryClient()
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
+  const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
+  const [showFixturePicker, setShowFixturePicker] = useState(false)
 
   async function handleShare(leagueName: string) {
     const url = `${window.location.origin}/compete/leagues/${id}`
@@ -772,7 +1112,15 @@ export function LeagueDetailPage() {
                       )}
                     </button>
                     {isAdmin && (
-                      <div className="px-4 pb-3 border-t border-gray-100 pt-2">
+                      <div className="px-4 pb-3 border-t border-gray-100 pt-2 flex gap-2">
+                        {match.status !== 'completed' && (
+                          <button
+                            onClick={() => setQuickResultMatch(match)}
+                            className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-700"
+                          >
+                            Enter result
+                          </button>
+                        )}
                         <button
                           onClick={async () => {
                             await supabase.from('matches').update({ status: 'cancelled' }).eq('id', match.id)
@@ -860,6 +1208,32 @@ export function LeagueDetailPage() {
 
         </motion.div>
       </AnimatePresence>
+
+      {/* FAB for quick result entry */}
+      {isAdmin && activeTab === 'standings' && (
+        <button
+          onClick={() => setShowFixturePicker(true)}
+          className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-[#009688] shadow-lg flex items-center justify-center z-40"
+        >
+          <Plus className="h-6 w-6 text-white" />
+        </button>
+      )}
+
+      {/* Fixture picker sheet */}
+      <FixturePickerSheet
+        open={showFixturePicker}
+        onClose={() => setShowFixturePicker(false)}
+        fixtures={fixtures}
+        onSelect={(match) => setQuickResultMatch(match)}
+      />
+
+      {/* Quick result sheet */}
+      <QuickResultSheet
+        open={!!quickResultMatch}
+        onClose={() => setQuickResultMatch(null)}
+        match={quickResultMatch}
+        leagueId={id}
+      />
     </div>
   )
 }

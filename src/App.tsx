@@ -30,6 +30,7 @@ const BookCourtPage = lazy(() => import('@/pages/BookCourt').then(m => ({ defaul
 const NotificationsPage = lazy(() => import('@/pages/Notifications').then(m => ({ default: m.NotificationsPage })))
 const SearchPage = lazy(() => import('@/pages/Search').then(m => ({ default: m.SearchPage })))
 const PlayerProfilePage = lazy(() => import('@/pages/PlayerProfile').then(m => ({ default: m.PlayerProfilePage })))
+const PayBookingPage = lazy(() => import('@/pages/PayBooking').then(m => ({ default: m.PayBookingPage })))
 
 
 const queryClient = new QueryClient({
@@ -39,7 +40,7 @@ const queryClient = new QueryClient({
 })
 
 // Pages that don't show the bottom nav
-const NO_NAV_PREFIXES = ['/auth', '/onboarding', '/search']
+const NO_NAV_PREFIXES = ['/auth', '/onboarding', '/search', '/pay']
 
 function Guard({ children }: { children: React.ReactNode }) {
   const { session } = useAuth()
@@ -154,6 +155,7 @@ function AppShell() {
             {/* Public pages (no auth required) */}
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/pay/booking/:bookingId/player/:playerId" element={<PayBookingPage />} />
 
             {/* Onboarding */}
             <Route path="/onboarding" element={<Guard><OnboardingPage /></Guard>} />

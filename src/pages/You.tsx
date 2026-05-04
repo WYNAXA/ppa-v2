@@ -11,6 +11,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { BADGE_DEFINITIONS } from '@/lib/badges'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
+import { RewardsCard } from '@/components/rewards/RewardsCard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -245,6 +246,48 @@ function useAdminGroups(userId: string) {
         .eq('role', 'admin')
         .eq('status', 'approved')
       return (data ?? []) as unknown as Array<{ group_id: string; groups: { id: string; name: string } | null }>
+    },
+  })
+}
+
+// ── My Rewards hook ───────────────────────────────────────────────────────────
+
+interface MyRewardsVenue {
+  venueId: string
+  venueName: string
+  stampCount: number
+  lifetimeStamps: number
+}
+
+function useMyRewards(userId: string) {
+  return useQuery<MyRewardsVenue[]>({
+    queryKey: ['my-rewards-venues', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data: wallets } = await supabase
+        .from('user_venue_stamps')
+        .select('venue_id, stamp_count, lifetime_stamps')
+        .eq('user_id', userId)
+        .gt('stamp_count', 0)
+
+      if (!wallets || wallets.length === 0) return []
+
+      const venueIds = wallets.map((w) => w.venue_id as string)
+      const { data: venues } = await supabase
+        .from('padel_venues')
+        .select('venue_id, venue_name')
+        .in('venue_id', venueIds)
+
+      const venueMap = Object.fromEntries(
+        (venues ?? []).map((v) => [v.venue_id, v])
+      )
+
+      return wallets.map((w) => ({
+        venueId:        w.venue_id as string,
+        venueName:      venueMap[w.venue_id as string]?.venue_name ?? 'Unknown venue',
+        stampCount:     w.stamp_count as number,
+        lifetimeStamps: w.lifetime_stamps as number,
+      }))
     },
   })
 }
@@ -716,6 +759,7 @@ export function YouPage() {
   const { data: achievements = [] }     = useAchievements(userId)
   const { data: householdPartner }      = useHouseholdPartner(fullProfile?.household_partner_id)
   const { data: adminGroups = [] }      = useAdminGroups(userId)
+  const { data: myRewards = [] }        = useMyRewards(userId)
   const { t, i18n }                     = useTranslation()
 
   const profile = fullProfile ?? authProfile
@@ -805,6 +849,23 @@ export function YouPage() {
             </div>
           ) : null}
         </section>
+
+        {/* ── My Rewards ── */}
+        {myRewards.length > 0 && (
+          <section className="pb-2">
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">My Rewards</h2>
+            <div className="space-y-3">
+              {myRewards.map((venue) => (
+                <RewardsCard
+                  key={venue.venueId}
+                  venueId={venue.venueId}
+                  venueName={venue.venueName}
+                  userId={userId}
+                />
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Household ── */}
         <section>

@@ -9,6 +9,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { generateHalfHourSlots, getTimePeriod, getSlotDate } from '@/lib/pollUtils'
 import { WeeklyScheduleSelector } from '@/components/polls/WeeklyScheduleSelector'
+import { PollAdminView } from '@/components/polls/PollAdminView'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -501,6 +502,19 @@ export function AvailabilityPollPage() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* ── Admin overview panel ── */}
+        {data?.isAdmin && poll && (
+          <PollAdminView
+            pollId={pollId!}
+            groupId={poll.group_id}
+            poll={poll}
+            isAdmin={data.isAdmin}
+            currentUserId={userId}
+            currentUserName={profile?.name ?? 'Admin'}
+            onRefetch={() => queryClient.invalidateQueries({ queryKey: ['poll', pollId] })}
+          />
+        )}
 
         {/* ── Existing response summary (not in edit mode) ── */}
         {myResponse && !isEditMode && (

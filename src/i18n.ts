@@ -20,9 +20,15 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'ar', label: 'العربية' },
 ]
 
-const savedLang = typeof localStorage !== 'undefined'
-  ? (localStorage.getItem(STORAGE_KEY) ?? 'en')
-  : 'en'
+const SUPPORTED_CODES = SUPPORTED_LANGUAGES.map((l) => l.code)
+
+const savedLang = (() => {
+  if (typeof localStorage === 'undefined') return 'en'
+  const stored = localStorage.getItem(STORAGE_KEY)
+    ?? localStorage.getItem('language')
+    ?? localStorage.getItem('i18n_language')
+  return stored && SUPPORTED_CODES.includes(stored) ? stored : 'en'
+})()
 
 i18n
   .use(initReactI18next)
@@ -44,6 +50,9 @@ i18n
 export function setLanguage(code: string) {
   i18n.changeLanguage(code)
   localStorage.setItem(STORAGE_KEY, code)
+  // Clear stale keys from other naming conventions
+  localStorage.removeItem('language')
+  localStorage.removeItem('i18n_language')
 }
 
 export default i18n

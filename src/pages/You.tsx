@@ -795,7 +795,7 @@ export function YouPage() {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <h2 className="text-[18px] font-bold text-gray-900 truncate">{profile?.name ?? '—'}</h2>
+                <h2 className="text-[18px] font-bold text-gray-900 truncate">{profile?.name || authProfile?.email?.split('@')[0] || '—'}</h2>
                 {fullProfile?.account_type === 'coach' && (
                   <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">🎾 Coach</span>
                 )}
@@ -1178,7 +1178,11 @@ export function YouPage() {
 
           {/* Sign out */}
           <button
-            onClick={signOut}
+            onClick={async () => {
+              try { await signOut() } catch { /* proceed */ }
+              localStorage.clear()
+              window.location.href = '/auth'
+            }}
             className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl border border-red-100 py-3.5 text-[14px] font-semibold text-red-500 hover:bg-red-50 transition-colors"
           >
             <LogOut className="h-4 w-4" />

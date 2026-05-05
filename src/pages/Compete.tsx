@@ -732,6 +732,13 @@ export function CompetePage() {
               </button>
             </div>
           )}
+          <button
+            onClick={() => navigate('/leagues')}
+            className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-50 border border-gray-100 py-2.5 text-[12px] font-semibold text-[#009688]"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Find open leagues & tournaments
+          </button>
         </section>
       </div>
 

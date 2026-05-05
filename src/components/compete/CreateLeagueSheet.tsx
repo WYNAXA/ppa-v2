@@ -16,6 +16,8 @@ type Visibility    = 'group_only' | 'open' | 'invite_only'
 
 interface MyGroup { id: string; name: string }
 
+type JoinMode = 'auto_add' | 'invite' | 'open'
+
 interface FormState {
   leagueType:      LeagueType | null
   name:            string
@@ -29,6 +31,7 @@ interface FormState {
   visibility:      Visibility
   minElo:          string
   maxElo:          string
+  joinMode:        JoinMode
 }
 
 function emptyForm(defaultGroupId?: string): FormState {
@@ -45,6 +48,7 @@ function emptyForm(defaultGroupId?: string): FormState {
     visibility:      'group_only',
     minElo:          '',
     maxElo:          '',
+    joinMode:        'auto_add',
   }
 }
 
@@ -423,6 +427,38 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           </div>
         </div>
 
+        {/* How members join */}
+        <div>
+          <label className="block text-[13px] font-medium text-gray-700 mb-2">How should members join?</label>
+          <div className="space-y-2">
+            {([
+              { id: 'auto_add' as JoinMode, label: 'Auto-add group members', desc: 'All group members are added instantly' },
+              { id: 'invite' as JoinMode, label: 'Send invitations', desc: 'Members must accept to join' },
+              { id: 'open' as JoinMode, label: 'Open registration', desc: 'Anyone with the link can join' },
+            ]).map(({ id, label, desc }) => (
+              <button
+                key={id}
+                onClick={() => setForm({ ...form, joinMode: id })}
+                className={cn(
+                  'w-full flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all',
+                  form.joinMode === id ? 'border-[#009688] bg-teal-50/50' : 'border-gray-100 bg-white'
+                )}
+              >
+                <div className={cn(
+                  'h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
+                  form.joinMode === id ? 'border-[#009688]' : 'border-gray-300'
+                )}>
+                  {form.joinMode === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
+                </div>
+                <div>
+                  <p className="text-[13px] font-semibold text-gray-900">{label}</p>
+                  <p className="text-[11px] text-gray-400">{desc}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* ELO range */}
         <div>
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
@@ -559,7 +595,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
       })
       console.log('[CreateLeague] standings error:', standingsError)
 
-      // Group invitations (non-blocking — don't fail league creation)
+      // Add group members based on joinMode (non-blocking)
       if (form.groupId) {
         try {
           const { data: members } = await supabase
@@ -570,32 +606,46 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
             .neq('user_id', user.id)
 
           if (members && members.length > 0) {
-            const { data: creatorProfile } = await supabase
-              .from('profiles').select('name').eq('id', user.id).single()
-            const creatorName = creatorProfile?.name ?? 'Someone'
+            if (form.joinMode === 'auto_add') {
+              // Auto-add all group members directly
+              await supabase.from('league_members').insert(
+                members.map((m) => ({
+                  league_id: league.id, user_id: m.user_id, role: 'member', status: 'active',
+                }))
+              )
+              await supabase.from('league_standings').insert(
+                members.map((m) => ({
+                  league_id: league.id, user_id: m.user_id,
+                  wins: 0, losses: 0, draws: 0, matches_played: 0, ranking_points: 0, category: 'overall',
+                }))
+              )
+              console.log('[CreateLeague] auto-added', members.length, 'members')
+            } else if (form.joinMode === 'invite') {
+              // Send invitations
+              const { data: creatorProfile } = await supabase
+                .from('profiles').select('name').eq('id', user.id).single()
+              const creatorName = creatorProfile?.name ?? 'Someone'
 
-            await supabase.from('league_invitations').insert(
-              members.map((m) => ({
-                league_id: league.id,
-                invited_user_id: m.user_id,
-                invited_by: user.id,
-                status: 'pending',
-              }))
-            )
-            await supabase.from('notifications').insert(
-              members.map((m) => ({
-                user_id: m.user_id,
-                type: 'league_invite',
-                title: 'League invitation',
-                message: `${creatorName} invited you to join ${form.name.trim()}`,
-                related_id: league.id,
-                read: false,
-              }))
-            )
-            console.log('[CreateLeague] invited', members.length, 'members')
+              await supabase.from('league_invitations').insert(
+                members.map((m) => ({
+                  league_id: league.id, invited_user_id: m.user_id,
+                  invited_by: user.id, status: 'pending',
+                }))
+              )
+              await supabase.from('notifications').insert(
+                members.map((m) => ({
+                  user_id: m.user_id, type: 'league_invite',
+                  title: 'League invitation',
+                  message: `${creatorName} invited you to join ${form.name.trim()}`,
+                  related_id: league.id, read: false,
+                }))
+              )
+              console.log('[CreateLeague] invited', members.length, 'members')
+            }
+            // 'open' mode: do nothing — members join via link
           }
         } catch (e) {
-          console.warn('[CreateLeague] invitation error (non-blocking):', e)
+          console.warn('[CreateLeague] member add error (non-blocking):', e)
         }
       }
 

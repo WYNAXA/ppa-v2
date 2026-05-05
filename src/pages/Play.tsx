@@ -228,15 +228,15 @@ export function PlayPage() {
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.book_court')}</span>
               </button>
 
-              {/* League */}
+              {/* Leagues */}
               <button
-                onClick={() => navigate('/compete?createLeague=true')}
+                onClick={() => navigate('/leagues')}
                 className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
                   <Trophy className="h-4 w-4 text-[#009688]" />
                 </div>
-                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">League</span>
+                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">Leagues</span>
               </button>
             </div>
           </motion.div>

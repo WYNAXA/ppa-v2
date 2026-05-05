@@ -515,11 +515,12 @@ interface QuickSetScore {
   team2: number | ''
 }
 
-function QuickResultSheet({ open, onClose, match, leagueId }: {
+function QuickResultSheet({ open, onClose, match, leagueId, currentUserId }: {
   open: boolean
   onClose: () => void
   match: { id: string; player_ids: string[]; players?: Array<{ id: string; name: string }> } | null
   leagueId: string
+  currentUserId: string
 }) {
   const [step, setStep] = useState(1)
   const [sets, setSets] = useState<QuickSetScore[]>([{ team1: '', team2: '' }])
@@ -581,6 +582,7 @@ function QuickResultSheet({ open, onClose, match, leagueId }: {
         team2_score: t2Wins,
         result_type: resultType,
         verification_status: 'verified',
+        submitted_by: currentUserId,
         sets_data: completedSets.map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) })),
       })
       if (resultError) throw resultError
@@ -1293,6 +1295,7 @@ export function LeagueDetailPage() {
         onClose={() => setQuickResultMatch(null)}
         match={quickResultMatch}
         leagueId={id}
+        currentUserId={currentUserId}
       />
     </div>
   )

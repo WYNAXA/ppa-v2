@@ -53,7 +53,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profileLoadedForRef = { current: '' }
 
   useEffect(() => {
+    console.log('[Auth] initializing')
+
+    // Safety timeout — never leave user on splash forever
+    const timeout = setTimeout(() => {
+      console.warn('[Auth] timeout — forcing loading=false after 5s')
+      setLoading(false)
+    }, 5000)
+
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      console.log('[Auth] getSession resolved, user:', session?.user?.id ?? 'none')
+      clearTimeout(timeout)
       setSession(session)
       setUser(session?.user ?? null)
       if (session?.user) {
@@ -61,10 +71,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const p = await ensureProfile(session.user)
           setProfile(p)
-        } catch {
-          // profile fetch failure is non-fatal
+        } catch (e) {
+          console.warn('[Auth] profile fetch failed:', e)
         }
       }
+      setLoading(false)
+    }).catch((err) => {
+      console.error('[Auth] getSession error:', err)
+      clearTimeout(timeout)
       setLoading(false)
     })
 

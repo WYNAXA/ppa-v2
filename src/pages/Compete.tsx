@@ -235,9 +235,9 @@ function useMyLeagues(userId: string) {
         // (avoids relying on a 'rank' column that may not exist)
         supabase
           .from('league_standings')
-          .select('league_id, user_id, played, points, wins, losses')
+          .select('league_id, user_id, matches_played, ranking_points, wins, losses')
           .in('league_id', leagueIds)
-          .order('points', { ascending: false }),
+          .order('ranking_points', { ascending: false }),
       ])
 
       // Calculate position for current user per league
@@ -249,14 +249,14 @@ function useMyLeagues(userId: string) {
         byLeague[s.league_id].push(s)
       }
       for (const [leagueId, rows] of Object.entries(byLeague)) {
-        const sorted = (rows ?? []).slice().sort((a, b) => ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number))
+        const sorted = (rows ?? []).slice().sort((a, b) => ((b.ranking_points ?? 0) as number) - ((a.ranking_points ?? 0) as number))
         const idx    = sorted.findIndex((r) => r.user_id === userId)
         const mine   = sorted[idx]
         if (mine) {
           standingMap[leagueId] = {
             rank:   idx + 1,
-            played: (mine.matches_played ?? mine.played ?? 0) as number,
-            points: (mine.ranking_points ?? mine.points ?? 0) as number,
+            played: (mine.matches_played ?? 0) as number,
+            points: (mine.ranking_points ?? 0) as number,
           }
         }
       }

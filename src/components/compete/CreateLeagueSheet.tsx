@@ -533,16 +533,21 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
 
       console.log('[CreateLeague] result:', league, 'error:', insertError)
       if (insertError) throw insertError
+      console.log('[CreateLeague] league created:', league.id)
 
-      await supabase.from('league_members').insert({
+      // Add creator as admin member
+      console.log('[CreateLeague] inserting creator as member')
+      const { error: memberError } = await supabase.from('league_members').insert({
         league_id: league.id,
         user_id:   user.id,
         role:      'admin',
         status:    'active',
       })
+      console.log('[CreateLeague] member error:', memberError)
 
-      // Seed initial standings row for the creator
-      await supabase.from('league_standings').insert({
+      // Seed initial standings row
+      console.log('[CreateLeague] inserting standings row')
+      const { error: standingsError } = await supabase.from('league_standings').insert({
         league_id:      league.id,
         user_id:        user.id,
         wins:           0,
@@ -552,44 +557,49 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
         ranking_points: 0,
         category:       'overall',
       })
+      console.log('[CreateLeague] standings error:', standingsError)
 
-      // If group selected, invite all group members
+      // Group invitations (non-blocking — don't fail league creation)
       if (form.groupId) {
-        const { data: members } = await supabase
-          .from('group_members')
-          .select('user_id')
-          .eq('group_id', form.groupId)
-          .eq('status', 'approved')
-          .neq('user_id', user.id)
+        try {
+          const { data: members } = await supabase
+            .from('group_members')
+            .select('user_id')
+            .eq('group_id', form.groupId)
+            .eq('status', 'approved')
+            .neq('user_id', user.id)
 
-        if (members && members.length > 0) {
-          // Fetch creator name for notification
-          const { data: creatorProfile } = await supabase
-            .from('profiles').select('name').eq('id', user.id).single()
-          const creatorName = creatorProfile?.name ?? 'Someone'
+          if (members && members.length > 0) {
+            const { data: creatorProfile } = await supabase
+              .from('profiles').select('name').eq('id', user.id).single()
+            const creatorName = creatorProfile?.name ?? 'Someone'
 
-          // Insert invitations + notifications
-          await supabase.from('league_invitations').insert(
-            members.map((m) => ({
-              league_id: league.id,
-              invited_user_id: m.user_id,
-              invited_by: user.id,
-              status: 'pending',
-            }))
-          )
-          await supabase.from('notifications').insert(
-            members.map((m) => ({
-              user_id: m.user_id,
-              type: 'league_invite',
-              title: 'League invitation',
-              message: `${creatorName} invited you to join ${form.name.trim()}`,
-              related_id: league.id,
-              read: false,
-            }))
-          )
+            await supabase.from('league_invitations').insert(
+              members.map((m) => ({
+                league_id: league.id,
+                invited_user_id: m.user_id,
+                invited_by: user.id,
+                status: 'pending',
+              }))
+            )
+            await supabase.from('notifications').insert(
+              members.map((m) => ({
+                user_id: m.user_id,
+                type: 'league_invite',
+                title: 'League invitation',
+                message: `${creatorName} invited you to join ${form.name.trim()}`,
+                related_id: league.id,
+                read: false,
+              }))
+            )
+            console.log('[CreateLeague] invited', members.length, 'members')
+          }
+        } catch (e) {
+          console.warn('[CreateLeague] invitation error (non-blocking):', e)
         }
       }
 
+      console.log('[CreateLeague] navigating to:', league.id)
       return league.id
     },
     onSuccess: (leagueId: string) => {

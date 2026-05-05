@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, Plus, Search, BookOpen, ArrowRight, X } from 'lucide-react'
+import { Bell, Plus, Search, BookOpen, ArrowRight, X, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -194,38 +194,49 @@ export function PlayPage() {
 
           {/* ── Quick actions ────────────────────────────────────────────── */}
           <motion.div variants={item}>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-4 gap-2">
               {/* Create Match */}
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-[#009688] bg-white py-4 px-2 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
-                <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <Plus className="h-5 w-5 text-[#009688]" />
+                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                  <Plus className="h-4 w-4 text-[#009688]" />
                 </div>
-                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">{t('play.create_match')}</span>
+                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.create_match')}</span>
               </button>
 
               {/* Join Match */}
               <button
                 onClick={() => setJoinSheetOpen(true)}
-                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-[#009688] bg-white py-4 px-2 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
-                <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <Search className="h-5 w-5 text-[#009688]" />
+                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                  <Search className="h-4 w-4 text-[#009688]" />
                 </div>
-                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">{t('play.join_match')}</span>
+                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.join_match')}</span>
               </button>
 
               {/* Book Court */}
               <button
                 onClick={() => navigate('/play/book-court')}
-                className="flex flex-col items-center gap-2 rounded-2xl border-2 border-[#009688] bg-white py-4 px-2 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
-                <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <BookOpen className="h-5 w-5 text-[#009688]" />
+                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                  <BookOpen className="h-4 w-4 text-[#009688]" />
                 </div>
-                <span className="text-[12px] font-semibold text-gray-700 text-center leading-tight">{t('play.book_court')}</span>
+                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.book_court')}</span>
+              </button>
+
+              {/* League */}
+              <button
+                onClick={() => navigate('/compete?createLeague=true')}
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+              >
+                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                  <Trophy className="h-4 w-4 text-[#009688]" />
+                </div>
+                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">League</span>
               </button>
             </div>
           </motion.div>

@@ -521,9 +521,9 @@ export function CompetePage() {
     location.pathname === '/compete/leagues/create'
   )
 
-  // Auto-open sheet when navigated to /compete/leagues/create
+  // Auto-open sheet when navigated to /compete/leagues/create or ?createLeague=true
   useEffect(() => {
-    if (location.pathname === '/compete/leagues/create') {
+    if (location.pathname === '/compete/leagues/create' || searchParams.get('createLeague') === 'true') {
       setShowCreateLeague(true)
     }
   }, [location.pathname])
@@ -551,8 +551,14 @@ export function CompetePage() {
   return (
     <div className="min-h-full bg-white pb-32">
       {/* Header */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
+      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50 flex items-center justify-between">
         <h1 className="text-[22px] font-bold text-gray-900">{t('compete.title')}</h1>
+        <button
+          onClick={() => setShowCreateLeague(true)}
+          className="h-9 w-9 rounded-full bg-[#009688] flex items-center justify-center shadow-sm"
+        >
+          <Plus className="h-5 w-5 text-white" />
+        </button>
       </div>
 
       <div className="px-5 space-y-6">

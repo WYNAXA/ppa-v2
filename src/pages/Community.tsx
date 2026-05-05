@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateGroupSheet } from '@/components/community/CreateGroupSheet'
+import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -326,23 +327,27 @@ function DiscoverCard({
 
 // ── Nearby Venues ────────────────────────────────────────────────────────────
 
-// ── Official Events ──────────────────────────────────────────────────────────
+// ── Upcoming Events (group + official + own) ─────────────────────────────────
 
-function OfficialEventsSection({ userCity }: { userCity?: string | null }) {
+function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userGroupIds: string[] }) {
   const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
 
   const { data: events = [] } = useQuery({
-    queryKey: ['official-events', userCity],
+    queryKey: ['upcoming-events-community', userId, userGroupIds],
+    enabled: !!userId,
     queryFn: async () => {
-      let q = supabase
+      // Fetch events in user's groups + official + created by user
+      const filters = ['is_official.eq.true', `created_by.eq.${userId}`]
+      if (userGroupIds.length > 0) filters.push(`group_id.in.(${userGroupIds.join(',')})`)
+
+      const { data } = await supabase
         .from('events')
-        .select('id, title, start_time, location, entry_fee_pence, max_capacity, is_official, source_type')
-        .eq('is_official', true)
+        .select('id, title, start_time, location, entry_fee_pence, is_official, group_id')
         .gte('start_time', today)
+        .or(filters.join(','))
         .order('start_time', { ascending: true })
-        .limit(5)
-      const { data } = await q
+        .limit(6)
       return data ?? []
     },
   })
@@ -351,20 +356,26 @@ function OfficialEventsSection({ userCity }: { userCity?: string | null }) {
 
   return (
     <section>
-      <h2 className="text-[16px] font-bold text-gray-900 mb-3">Official Events Near You</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[16px] font-bold text-gray-900">Upcoming Events</h2>
+      </div>
       <div className="space-y-2">
         {events.map((e) => (
           <button
             key={e.id}
             onClick={() => navigate(`/community/events/${e.id}`)}
-            className="w-full text-left rounded-2xl border border-purple-100 bg-purple-50/30 px-4 py-3 active:scale-[0.98] transition-transform"
+            className={cn(
+              'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
+              e.is_official ? 'border-purple-100 bg-purple-50/30' : 'border-gray-100 bg-white',
+            )}
           >
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">🏟️ OFFICIAL</span>
-              {(e.entry_fee_pence ?? 0) > 0 && (
-                <span className="text-[10px] font-semibold text-gray-500">£{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
+              {e.is_official && (
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">🏟️ OFFICIAL</span>
               )}
-              {e.entry_fee_pence === 0 && (
+              {(e.entry_fee_pence ?? 0) > 0 ? (
+                <span className="text-[10px] font-semibold text-gray-500">£{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
+              ) : (
                 <span className="text-[10px] font-semibold text-green-600">Free</span>
               )}
             </div>
@@ -811,8 +822,8 @@ export function CommunityPage() {
           )}
         </section>
 
-        {/* ── Official Events ── */}
-        <OfficialEventsSection userCity={profile?.city} />
+        {/* ── Upcoming Events ── */}
+        <UpcomingEventsSection userId={userId} userGroupIds={myGroups.map(g => g.id)} />
 
         {/* ── Find a Coach ── */}
         <CoachesSection userCity={profile?.city} />

@@ -259,16 +259,15 @@ export function AvailabilityPollPage() {
         submitted_at: new Date().toISOString(),
       }
 
-      // Upsert: delete existing then insert
-      if (myResponse?.id) {
-        await supabase.from('poll_responses').delete().eq('id', myResponse.id)
-      } else {
-        await supabase.from('poll_responses').delete()
-          .eq('poll_id', pollId!).eq('user_id', userId)
+      // Upsert response (requires unique constraint on poll_id + user_id)
+      const { error } = await supabase.from('poll_responses').upsert(responseData, {
+        onConflict: 'poll_id,user_id',
+        ignoreDuplicates: false,
+      })
+      if (error) {
+        console.error('[Poll submit] upsert error:', error)
+        throw error
       }
-
-      const { error } = await supabase.from('poll_responses').insert(responseData)
-      if (error) throw error
 
       // Call auto-match edge function
       let newMatchId: string | null = null

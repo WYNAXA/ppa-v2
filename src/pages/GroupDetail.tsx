@@ -413,7 +413,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
                     className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     <Star className="h-4 w-4 text-gray-400" />
-                    Remove Ringer Status
+                    Promote to Member
                   </button>
                 )}
                 <button

@@ -43,7 +43,7 @@ interface MyStats {
   totalMatches: number
   winRate:      number
   recentForm:   Array<'win' | 'loss' | 'draw'>
-  trend:        number
+  trend:        number | null
 }
 
 // ── Data hooks ────────────────────────────────────────────────────────────────
@@ -104,7 +104,11 @@ function useMyStats(userId: string, currentRanking: number | undefined) {
         return 'loss'
       })
 
-      const trend = (trendData.data ?? []).reduce((acc, c) => acc + (c.points_change as number), 0)
+      // Calculate 30-day trend: sum points changes, or fallback to null if no data
+      const trendRows = trendData.data ?? []
+      const trend = trendRows.length > 0
+        ? trendRows.reduce((acc, c) => acc + (c.points_change as number), 0)
+        : null  // null = no history (new player)
 
       return {
         rank,
@@ -350,19 +354,24 @@ function RankingCard({
               <div>
                 <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1">{t('compete.trend_30d')}</p>
                 <div className="flex items-center gap-1">
-                  {stats.trend > 0 ? (
-                    <TrendingUp className="h-4 w-4 text-green-300" />
+                  {stats.trend === null ? (
+                    <span className="text-[13px] font-semibold text-gray-300">New</span>
+                  ) : stats.trend > 0 ? (
+                    <>
+                      <TrendingUp className="h-4 w-4 text-green-300" />
+                      <span className="text-[14px] font-bold text-green-300">+{stats.trend}</span>
+                    </>
                   ) : stats.trend < 0 ? (
-                    <TrendingDown className="h-4 w-4 text-red-300" />
+                    <>
+                      <TrendingDown className="h-4 w-4 text-red-300" />
+                      <span className="text-[14px] font-bold text-red-300">{stats.trend}</span>
+                    </>
                   ) : (
-                    <Minus className="h-4 w-4 text-gray-300" />
+                    <>
+                      <Minus className="h-4 w-4 text-gray-300" />
+                      <span className="text-[14px] font-bold text-gray-300">0</span>
+                    </>
                   )}
-                  <span className={cn(
-                    'text-[14px] font-bold',
-                    stats.trend > 0 ? 'text-green-300' : stats.trend < 0 ? 'text-red-300' : 'text-gray-300'
-                  )}>
-                    {stats.trend > 0 ? '+' : ''}{stats.trend}
-                  </span>
                 </div>
               </div>
 

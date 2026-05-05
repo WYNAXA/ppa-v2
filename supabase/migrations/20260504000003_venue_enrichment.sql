@@ -13,7 +13,7 @@ ADD COLUMN IF NOT EXISTS photos jsonb DEFAULT '[]',
 ADD COLUMN IF NOT EXISTS description text,
 ADD COLUMN IF NOT EXISTS surface_type text DEFAULT 'artificial_grass',
 ADD COLUMN IF NOT EXISTS is_members_only boolean DEFAULT false,
-ADD COLUMN IF NOT EXISTS membership_required text,
+ADD COLUMN IF NOT EXISTS membership_note text,
 ADD COLUMN IF NOT EXISTS phone text,
 ADD COLUMN IF NOT EXISTS email text,
 ADD COLUMN IF NOT EXISTS instagram text,
@@ -66,7 +66,7 @@ WHERE city IN ('Dublin','Cork','Limerick','Galway','Celbridge') AND country_code
 -- David Lloyd venues → members only, premium
 UPDATE padel_venues SET
   is_members_only = true, pricing_tier = 3,
-  membership_required = 'David Lloyd membership required',
+  membership_note = 'David Lloyd membership required',
   facilities = '["parking","changing_rooms","bar","coaching","equipment_hire","cafe","showers","lockers","viewing_area"]'
 WHERE venue_name ILIKE '%David Lloyd%';
 

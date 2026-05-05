@@ -500,6 +500,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
 
   const createMutation = useMutation({
     mutationFn: async () => {
+      console.log('[CreateLeague] mutate fired, user:', user?.id)
       if (!user) throw new Error('Not authenticated')
 
       // Only include fields with values to avoid CHECK constraint issues
@@ -522,12 +523,15 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
       if (form.minElo) payload.min_elo = parseInt(form.minElo, 10)
       if (form.maxElo) payload.max_elo = parseInt(form.maxElo, 10)
 
+      console.log('[CreateLeague] payload:', JSON.stringify(payload))
+
       const { data: league, error: insertError } = await supabase
         .from('leagues')
         .insert(payload)
         .select('id')
         .single()
 
+      console.log('[CreateLeague] result:', league, 'error:', insertError)
       if (insertError) throw insertError
 
       await supabase.from('league_members').insert({
@@ -593,7 +597,9 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
       navigate(`/compete/leagues/${leagueId}`)
     },
     onError: (err: unknown) => {
-      setError(err instanceof Error ? err.message : 'Failed to create league')
+      console.error('[CreateLeague] error:', err)
+      const msg = err instanceof Error ? err.message : typeof err === 'object' && err !== null ? JSON.stringify(err) : 'Failed to create league'
+      setError(msg)
     },
   })
 

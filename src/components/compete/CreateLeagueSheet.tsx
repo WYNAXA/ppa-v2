@@ -502,22 +502,25 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
     mutationFn: async () => {
       if (!user) throw new Error('Not authenticated')
 
+      // Only include fields with values to avoid CHECK constraint issues
       const payload: Record<string, unknown> = {
         name:             form.name.trim(),
-        description:      form.description.trim() || null,
-        match_type:       form.leagueType === 'tournament' ? 'competitive' : (form.leagueType ?? 'competitive'),
-        format:           form.format,
-        scoring_format:   form.scoringFormat,
-        visibility:       form.visibility === 'group_only' ? 'group' : form.visibility,
-        season_start:     form.startDate || null,
-        season_end:       form.endDate || null,
-        max_participants: form.maxParticipants ? parseInt(form.maxParticipants, 10) : null,
-        min_elo:          form.minElo ? parseInt(form.minElo, 10) : null,
-        max_elo:          form.maxElo ? parseInt(form.maxElo, 10) : null,
         created_by:       user.id,
         status:           'active',
         linked_group_ids: form.groupId ? [form.groupId] : [],
       }
+      // Optional fields — only include if set
+      if (form.description.trim()) payload.description = form.description.trim()
+      if (form.leagueType) payload.match_type = form.leagueType === 'tournament' ? 'competitive' : form.leagueType
+      if (form.format) payload.format = form.format
+      if (form.scoringFormat !== 'standard') payload.scoring_format = form.scoringFormat
+      const vis = form.visibility === 'group_only' ? 'group' : form.visibility
+      if (vis) payload.visibility = vis
+      if (form.startDate) payload.season_start = form.startDate
+      if (form.endDate) payload.season_end = form.endDate
+      if (form.maxParticipants) payload.max_participants = parseInt(form.maxParticipants, 10)
+      if (form.minElo) payload.min_elo = parseInt(form.minElo, 10)
+      if (form.maxElo) payload.max_elo = parseInt(form.maxElo, 10)
 
       const { data: league, error: insertError } = await supabase
         .from('leagues')

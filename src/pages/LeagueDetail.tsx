@@ -589,28 +589,23 @@ function QuickResultSheet({ open, onClose, match, leagueId }: {
       const { error: matchError } = await supabase.from('matches').update({ status: 'completed' }).eq('id', match.id)
       if (matchError) throw matchError
 
-      // 3. Update league_standings for all players
-      for (const pid of match.player_ids) {
-        const isOnTeam1 = match.player_ids.slice(0, 2).includes(pid)
-        const isWinner = (isOnTeam1 && resultType === 'team1_win') || (!isOnTeam1 && resultType === 'team2_win')
-        const isDraw = resultType === 'draw'
+      // 3. Update league_standings via RPC
+      const team1 = match.player_ids.slice(0, 2)
+      const team2 = match.player_ids.slice(2, 4)
 
-        const { data: current } = await supabase
-          .from('league_standings')
-          .select('*')
-          .eq('league_id', leagueId)
-          .eq('user_id', pid)
-          .maybeSingle()
-
-        if (current) {
-          await supabase.from('league_standings').update({
-            played: (current.played ?? current.matches_played ?? 0) + 1,
-            wins: (current.wins ?? 0) + (isWinner ? 1 : 0),
-            losses: (current.losses ?? 0) + (!isWinner && !isDraw ? 1 : 0),
-            draws: (current.draws ?? 0) + (isDraw ? 1 : 0),
-            points: (current.points ?? current.ranking_points ?? 0) + (isWinner ? 3 : isDraw ? 1 : 0),
-          }).eq('id', current.id)
-        }
+      if (resultType === 'draw') {
+        await supabase.rpc('update_league_standings_draw', {
+          p_league_id: leagueId,
+          p_player_ids: [...team1, ...team2],
+        })
+      } else {
+        const winners = resultType === 'team1_win' ? team1 : team2
+        const losers = resultType === 'team1_win' ? team2 : team1
+        await supabase.rpc('update_league_standings_win', {
+          p_league_id: leagueId,
+          p_winner_ids: winners,
+          p_loser_ids: losers,
+        })
       }
 
       // 4. Invalidate and close

@@ -608,17 +608,21 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
           if (members && members.length > 0) {
             if (form.joinMode === 'auto_add') {
               // Auto-add all group members directly
-              await supabase.from('league_members').insert(
+              const { error: memErr } = await supabase.from('league_members').insert(
                 members.map((m) => ({
                   league_id: league.id, user_id: m.user_id, role: 'member', status: 'active',
                 }))
               )
-              await supabase.from('league_standings').insert(
+              if (memErr) console.error('[CreateLeague] auto-add members error:', memErr)
+
+              const { error: stErr } = await supabase.from('league_standings').insert(
                 members.map((m) => ({
                   league_id: league.id, user_id: m.user_id,
                   wins: 0, losses: 0, draws: 0, matches_played: 0, ranking_points: 0, category: 'overall',
                 }))
               )
+              if (stErr) console.error('[CreateLeague] auto-add standings error:', stErr)
+
               console.log('[CreateLeague] auto-added', members.length, 'members')
             } else if (form.joinMode === 'invite') {
               // Send invitations
@@ -626,13 +630,15 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                 .from('profiles').select('name').eq('id', user.id).single()
               const creatorName = creatorProfile?.name ?? 'Someone'
 
-              await supabase.from('league_invitations').insert(
+              const { error: invErr } = await supabase.from('league_invitations').insert(
                 members.map((m) => ({
                   league_id: league.id, invited_user_id: m.user_id,
                   invited_by: user.id, status: 'pending',
                 }))
               )
-              await supabase.from('notifications').insert(
+              if (invErr) console.error('[CreateLeague] invitation INSERT error:', invErr)
+
+              const { error: notifErr } = await supabase.from('notifications').insert(
                 members.map((m) => ({
                   user_id: m.user_id, type: 'league_invite',
                   title: 'League invitation',
@@ -640,6 +646,8 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   related_id: league.id, read: false,
                 }))
               )
+              if (notifErr) console.error('[CreateLeague] notification INSERT error:', notifErr)
+
               console.log('[CreateLeague] invited', members.length, 'members')
             }
             // 'open' mode: do nothing — members join via link

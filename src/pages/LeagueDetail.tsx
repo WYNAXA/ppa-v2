@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -327,7 +327,7 @@ function MexicanoTab({
 
 // ── Admin tab ─────────────────────────────────────────────────────────────────
 
-function AdminTab({ league, standings }: { league: LeagueInfo; standings: Standing[] }) {
+function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; standings: Standing[]; onNavigate: (path: string) => void }) {
   const queryClient = useQueryClient()
   const [selectedUserId, setSelectedUserId] = useState('')
   const [pointsDelta, setPointsDelta] = useState('')
@@ -468,6 +468,21 @@ function AdminTab({ league, standings }: { league: LeagueInfo; standings: Standi
           className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
         >
           {dateSaved ? 'Saved!' : savingDate ? 'Saving…' : 'Update End Date'}
+        </button>
+      </div>
+
+      {/* Delete league */}
+      <div className="rounded-2xl border border-red-100 p-4 space-y-3">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Danger Zone</p>
+        <button
+          onClick={async () => {
+            if (!confirm('Delete this league? All fixtures and standings will be lost.')) return
+            await supabase.from('leagues').delete().eq('id', league.id)
+            onNavigate('/compete')
+          }}
+          className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
+        >
+          Delete League
         </button>
       </div>
     </div>
@@ -854,6 +869,7 @@ export function LeagueDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('standings')
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
+  const [generatingRound, setGeneratingRound] = useState(false)
 
   async function handleShare(leagueName: string) {
     const url = `${window.location.origin}/compete/leagues/${id}`
@@ -924,6 +940,53 @@ export function LeagueDetailPage() {
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['league-invite', id] }),
   })
+
+  // Realtime subscription for live standings + results
+  useEffect(() => {
+    if (!id) return
+    const channel = supabase
+      .channel(`league-live-${id}`)
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'league_standings',
+        filter: `league_id=eq.${id}`
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['league-standings', id] })
+      })
+      .on('postgres_changes', {
+        event: '*', schema: 'public', table: 'match_results',
+      }, () => {
+        queryClient.invalidateQueries({ queryKey: ['league-results', id] })
+        queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
+      })
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [id, queryClient])
+
+  async function handleGenerateRound() {
+    if (!league || standings.length < 4) return
+    setGeneratingRound(true)
+
+    const players = standings.map(s => s.user_id)
+    const matchesToCreate = []
+    const today = format(new Date(), 'yyyy-MM-dd')
+
+    for (let i = 0; i + 3 < players.length; i += 4) {
+      matchesToCreate.push({
+        match_date: today,
+        match_time: '12:00:00',
+        match_type: league.match_type ?? 'competitive',
+        status: 'scheduled',
+        player_ids: [players[i], players[i+1], players[i+2], players[i+3]],
+        group_id: league.linked_group_ids?.[0] ?? null,
+        league_id: id,
+        created_manually: false,
+      })
+    }
+
+    await supabase.from('matches').insert(matchesToCreate)
+    queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
+    setGeneratingRound(false)
+  }
 
   if (loadingLeague) {
     return (
@@ -1040,6 +1103,20 @@ export function LeagueDetailPage() {
         </div>
       </div>
 
+      {/* League summary */}
+      <div className="px-5 pt-3 pb-1">
+        <div className="flex items-center justify-between gap-3 text-[12px]">
+          <span className="text-gray-500">
+            {standings.reduce((s, r) => s + r.played, 0) / 2} matches played
+          </span>
+          {standings[0] && (
+            <span className="font-semibold text-gray-700">
+              Leader: {standings[0].profile?.name?.split(' ')[0]} · {standings[0].points} pts
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Tab content */}
       <AnimatePresence mode="wait">
         <motion.div
@@ -1142,7 +1219,39 @@ export function LeagueDetailPage() {
           {/* ── Fixtures ── */}
           {activeTab === 'fixtures' && (
             loadingFixtures ? <TabSkeleton /> :
-            fixtures.length === 0 ? <EmptyTab message="No upcoming fixtures" /> : (
+            fixtures.length === 0 ? (
+              <div>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 py-3 mb-4 text-[13px] font-bold text-white"
+                  >
+                    <Zap className="h-4 w-4" />
+                    Tournament Mode — Enter Results Fast
+                  </button>
+                )}
+                <EmptyTab message="No upcoming fixtures" />
+                {isAdmin && (
+                  <button
+                    onClick={handleGenerateRound}
+                    disabled={generatingRound}
+                    className="mt-4 w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50"
+                  >
+                    {generatingRound ? 'Generating\u2026' : 'Generate Next Round'}
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div>
+                {isAdmin && (
+                  <button
+                    onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
+                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 py-3 mb-4 text-[13px] font-bold text-white"
+                  >
+                    <Zap className="h-4 w-4" />
+                    Tournament Mode — Enter Results Fast
+                  </button>
+                )}
               <div className="space-y-2">
                 {fixtures.map((match) => (
                   <div key={match.id} className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
@@ -1196,6 +1305,16 @@ export function LeagueDetailPage() {
                     )}
                   </div>
                 ))}
+              </div>
+                {isAdmin && (
+                  <button
+                    onClick={handleGenerateRound}
+                    disabled={generatingRound}
+                    className="mt-4 w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50"
+                  >
+                    {generatingRound ? 'Generating\u2026' : 'Generate Next Round'}
+                  </button>
+                )}
               </div>
             )
           )}
@@ -1265,7 +1384,7 @@ export function LeagueDetailPage() {
 
           {/* ── Admin ── */}
           {activeTab === 'admin' && isAdmin && (
-            <AdminTab league={league} standings={standings} />
+            <AdminTab league={league} standings={standings} onNavigate={navigate} />
           )}
 
         </motion.div>

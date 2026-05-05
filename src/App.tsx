@@ -32,6 +32,7 @@ const SearchPage = lazy(() => import('@/pages/Search').then(m => ({ default: m.S
 const PlayerProfilePage = lazy(() => import('@/pages/PlayerProfile').then(m => ({ default: m.PlayerProfilePage })))
 const PayBookingPage = lazy(() => import('@/pages/PayBooking').then(m => ({ default: m.PayBookingPage })))
 const VenueDetailPage = lazy(() => import('@/pages/VenueDetail').then(m => ({ default: m.VenueDetailPage })))
+const TournamentModePage = lazy(() => import('@/pages/TournamentMode').then(m => ({ default: m.TournamentModePage })))
 
 
 const queryClient = new QueryClient({
@@ -195,6 +196,7 @@ function AppShell() {
             {/* Compete sub-routes */}
             <Route path="/compete/leagues/create" element={<Guard><CompetePage /></Guard>} />
             <Route path="/compete/leagues/:id"    element={<Guard><LeagueDetailPage /></Guard>} />
+            <Route path="/compete/leagues/:id/tournament" element={<Guard><TournamentModePage /></Guard>} />
 
             {/* Player profiles */}
             <Route path="/players/:playerId" element={<Guard><PlayerProfilePage /></Guard>} />

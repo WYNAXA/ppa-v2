@@ -249,14 +249,14 @@ function useMyLeagues(userId: string) {
         byLeague[s.league_id].push(s)
       }
       for (const [leagueId, rows] of Object.entries(byLeague)) {
-        const sorted = (rows ?? []).slice().sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+        const sorted = (rows ?? []).slice().sort((a, b) => ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number))
         const idx    = sorted.findIndex((r) => r.user_id === userId)
         const mine   = sorted[idx]
         if (mine) {
           standingMap[leagueId] = {
             rank:   idx + 1,
-            played: mine.played ?? 0,
-            points: mine.points ?? 0,
+            played: (mine.matches_played ?? mine.played ?? 0) as number,
+            points: (mine.ranking_points ?? mine.points ?? 0) as number,
           }
         }
       }

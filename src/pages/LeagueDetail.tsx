@@ -103,18 +103,18 @@ function useStandings(leagueId: string) {
 
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
 
-      // Sort by points desc then calculate rank client-side
-      const sorted = [...rows].sort((a, b) => (b.points ?? 0) - (a.points ?? 0))
+      // Sort by ranking_points desc then calculate rank client-side
+      const sorted = [...rows].sort((a, b) => ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number))
 
       return sorted.map((r, i) => ({
         id:      r.id,
         user_id: r.user_id,
         rank:    i + 1,
-        played:  r.played ?? r.matches_played ?? 0,
-        won:     r.wins ?? r.won ?? 0,
-        lost:    r.losses ?? r.lost ?? 0,
-        drawn:   r.draws ?? r.drawn ?? 0,
-        points:  r.points ?? r.ranking_points ?? 0,
+        played:  (r.matches_played ?? r.played ?? 0) as number,
+        won:     (r.wins ?? r.won ?? 0) as number,
+        lost:    (r.losses ?? r.lost ?? 0) as number,
+        drawn:   (r.draws ?? r.drawn ?? 0) as number,
+        points:  (r.ranking_points ?? r.points ?? 0) as number,
         profile: profileMap[r.user_id],
       }))
     },
@@ -354,7 +354,7 @@ function AdminTab({ league, standings }: { league: LeagueInfo; standings: Standi
         points_delta: delta, reason: reason.trim() || null, created_by: user?.id,
       }),
       supabase.from('league_standings')
-        .update({ points: (standings.find(s => s.user_id === selectedUserId)?.points ?? 0) + delta })
+        .update({ ranking_points: (standings.find(s => s.user_id === selectedUserId)?.points ?? 0) + delta })
         .eq('league_id', league.id).eq('user_id', selectedUserId),
     ])
     await queryClient.invalidateQueries({ queryKey: ['league-standings', league.id] })

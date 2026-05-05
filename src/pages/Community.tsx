@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -322,6 +323,104 @@ function DiscoverCard({
 }
 
 // ── Find Players query ────────────────────────────────────────────────────────
+
+// ── Nearby Venues ────────────────────────────────────────────────────────────
+
+// ── Official Events ──────────────────────────────────────────────────────────
+
+function OfficialEventsSection({ userCity }: { userCity?: string | null }) {
+  const navigate = useNavigate()
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data: events = [] } = useQuery({
+    queryKey: ['official-events', userCity],
+    queryFn: async () => {
+      let q = supabase
+        .from('events')
+        .select('id, title, start_time, location, entry_fee_pence, max_capacity, is_official, source_type')
+        .eq('is_official', true)
+        .gte('start_time', today)
+        .order('start_time', { ascending: true })
+        .limit(5)
+      const { data } = await q
+      return data ?? []
+    },
+  })
+
+  if (events.length === 0) return null
+
+  return (
+    <section>
+      <h2 className="text-[16px] font-bold text-gray-900 mb-3">Official Events Near You</h2>
+      <div className="space-y-2">
+        {events.map((e) => (
+          <button
+            key={e.id}
+            onClick={() => navigate(`/community/events/${e.id}`)}
+            className="w-full text-left rounded-2xl border border-purple-100 bg-purple-50/30 px-4 py-3 active:scale-[0.98] transition-transform"
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">🏟️ OFFICIAL</span>
+              {(e.entry_fee_pence ?? 0) > 0 && (
+                <span className="text-[10px] font-semibold text-gray-500">£{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
+              )}
+              {e.entry_fee_pence === 0 && (
+                <span className="text-[10px] font-semibold text-green-600">Free</span>
+              )}
+            </div>
+            <p className="text-[14px] font-bold text-gray-900">{e.title}</p>
+            <p className="text-[12px] text-gray-500 mt-0.5">
+              {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM · HH:mm') } catch { return e.start_time } })()}
+              {e.location && ` · ${e.location}`}
+            </p>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+// ── Find a Coach ─────────────────────────────────────────────────────────────
+
+function CoachesSection({ userCity }: { userCity?: string | null }) {
+  const navigate = useNavigate()
+
+  const { data: coaches = [] } = useQuery({
+    queryKey: ['coaches-nearby', userCity],
+    queryFn: async () => {
+      let q = supabase
+        .from('profiles')
+        .select('id, name, avatar_url, city, internal_ranking')
+        .eq('account_type', 'coach')
+        .limit(6)
+      if (userCity) q = q.ilike('city', `%${userCity}%`)
+      const { data } = await q
+      return data ?? []
+    },
+  })
+
+  if (coaches.length === 0) return null
+
+  return (
+    <section>
+      <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find a Coach</h2>
+      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+        {coaches.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => navigate(`/players/${c.id}`)}
+            className="flex-shrink-0 w-32 flex flex-col items-center rounded-2xl border border-gray-100 bg-white p-3 text-center active:scale-[0.97] transition-transform"
+          >
+            <PlayerAvatar name={c.name} avatarUrl={c.avatar_url} size="lg" />
+            <p className="text-[12px] font-bold text-gray-900 mt-2 truncate w-full">{c.name}</p>
+            <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-2 py-0.5 mt-1">🎾 Coach</span>
+            {c.city && <p className="text-[10px] text-gray-400 mt-0.5">{c.city}</p>}
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
 
 // ── Nearby Venues ────────────────────────────────────────────────────────────
 
@@ -711,6 +810,12 @@ export function CommunityPage() {
             </div>
           )}
         </section>
+
+        {/* ── Official Events ── */}
+        <OfficialEventsSection userCity={profile?.city} />
+
+        {/* ── Find a Coach ── */}
+        <CoachesSection userCity={profile?.city} />
 
         {/* ── Nearby Venues ── */}
         <NearbyVenuesSection userCity={profile?.city} />

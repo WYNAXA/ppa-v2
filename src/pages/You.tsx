@@ -29,6 +29,8 @@ interface FullProfile {
   show_email: boolean | null
   show_location: boolean | null
   public_history: boolean | null
+  account_type: string | null
+  is_verified: boolean | null
 }
 
 interface MatchHistoryItem {
@@ -65,7 +67,7 @@ function useFullProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history')
+        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history, account_type, is_verified')
         .eq('id', userId)
         .single()
       if (error) return null
@@ -792,7 +794,18 @@ export function YouPage() {
               size="lg"
             />
             <div className="flex-1 min-w-0">
-              <h2 className="text-[18px] font-bold text-gray-900 truncate">{profile?.name ?? '—'}</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-[18px] font-bold text-gray-900 truncate">{profile?.name ?? '—'}</h2>
+                {fullProfile?.account_type === 'coach' && (
+                  <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">🎾 Coach</span>
+                )}
+                {fullProfile?.account_type === 'venue_manager' && (
+                  <span className="rounded-full bg-purple-50 border border-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-600">🏟️ Venue</span>
+                )}
+                {fullProfile?.account_type === 'organiser' && (
+                  <span className="rounded-full bg-amber-50 border border-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-600">🏆 Organiser</span>
+                )}
+              </div>
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                 {fullProfile?.city && (
                   <span className="text-[12px] text-gray-400">{fullProfile.city}</span>

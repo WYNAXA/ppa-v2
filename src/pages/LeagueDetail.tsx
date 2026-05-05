@@ -884,6 +884,50 @@ export function LeagueDetailPage() {
   const { data: fixtures  = [], isLoading: loadingFixtures  } = useFixtures(id, groupIds)
   const { data: results   = [], isLoading: loadingResults   } = useResults(id, groupIds)
 
+  // Check for pending invitation
+  const { data: pendingInvite } = useQuery({
+    queryKey: ['league-invite', id, currentUserId],
+    enabled: !!id && !!currentUserId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('league_invitations')
+        .select('id')
+        .eq('league_id', id)
+        .eq('invited_user_id', currentUserId)
+        .eq('status', 'pending')
+        .maybeSingle()
+      return data
+    },
+  })
+
+  const acceptInviteMutation = useMutation({
+    mutationFn: async () => {
+      await supabase.from('league_invitations')
+        .update({ status: 'accepted' })
+        .eq('league_id', id).eq('invited_user_id', currentUserId)
+      await supabase.from('league_members').insert({
+        league_id: id, user_id: currentUserId, role: 'member', status: 'active',
+      })
+      await supabase.from('league_standings').insert({
+        league_id: id, user_id: currentUserId,
+        wins: 0, losses: 0, draws: 0, matches_played: 0, ranking_points: 0, category: 'overall',
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['league-invite', id] })
+      queryClient.invalidateQueries({ queryKey: ['league-standings', id] })
+    },
+  })
+
+  const declineInviteMutation = useMutation({
+    mutationFn: async () => {
+      await supabase.from('league_invitations')
+        .update({ status: 'declined' })
+        .eq('league_id', id).eq('invited_user_id', currentUserId)
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['league-invite', id] }),
+  })
+
   if (loadingLeague) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -947,6 +991,29 @@ export function LeagueDetailPage() {
           </p>
         )}
       </div>
+
+      {/* Invitation banner */}
+      {pendingInvite && (
+        <div className="mx-5 mb-3 rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3">
+          <p className="text-[13px] font-bold text-teal-800 mb-2">You've been invited to this league</p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => acceptInviteMutation.mutate()}
+              disabled={acceptInviteMutation.isPending}
+              className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-50"
+            >
+              {acceptInviteMutation.isPending ? 'Joining…' : 'Accept & Join'}
+            </button>
+            <button
+              onClick={() => declineInviteMutation.mutate()}
+              disabled={declineInviteMutation.isPending}
+              className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
+            >
+              Decline
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="px-5 border-b border-gray-100 overflow-x-auto">

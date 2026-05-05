@@ -504,10 +504,16 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
 
       const payload: Record<string, unknown> = {
         name:             form.name.trim(),
-        match_type:       form.format ?? form.leagueType,  // DB uses match_type
-        visibility:       form.visibility,
-        season_start:     form.startDate || null,          // DB uses season_start
-        season_end:       form.endDate || null,            // DB uses season_end
+        description:      form.description.trim() || null,
+        match_type:       form.leagueType === 'tournament' ? 'competitive' : (form.leagueType ?? 'competitive'),
+        format:           form.format,
+        scoring_format:   form.scoringFormat,
+        visibility:       form.visibility === 'group_only' ? 'group' : form.visibility,
+        season_start:     form.startDate || null,
+        season_end:       form.endDate || null,
+        max_participants: form.maxParticipants ? parseInt(form.maxParticipants, 10) : null,
+        min_elo:          form.minElo ? parseInt(form.minElo, 10) : null,
+        max_elo:          form.maxElo ? parseInt(form.maxElo, 10) : null,
         created_by:       user.id,
         status:           'active',
         linked_group_ids: form.groupId ? [form.groupId] : [],
@@ -539,6 +545,43 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
         ranking_points: 0,
         category:       'overall',
       })
+
+      // If group selected, invite all group members
+      if (form.groupId) {
+        const { data: members } = await supabase
+          .from('group_members')
+          .select('user_id')
+          .eq('group_id', form.groupId)
+          .eq('status', 'approved')
+          .neq('user_id', user.id)
+
+        if (members && members.length > 0) {
+          // Fetch creator name for notification
+          const { data: creatorProfile } = await supabase
+            .from('profiles').select('name').eq('id', user.id).single()
+          const creatorName = creatorProfile?.name ?? 'Someone'
+
+          // Insert invitations + notifications
+          await supabase.from('league_invitations').insert(
+            members.map((m) => ({
+              league_id: league.id,
+              invited_user_id: m.user_id,
+              invited_by: user.id,
+              status: 'pending',
+            }))
+          )
+          await supabase.from('notifications').insert(
+            members.map((m) => ({
+              user_id: m.user_id,
+              type: 'league_invite',
+              title: 'League invitation',
+              message: `${creatorName} invited you to join ${form.name.trim()}`,
+              related_id: league.id,
+              read: false,
+            }))
+          )
+        }
+      }
 
       return league.id
     },

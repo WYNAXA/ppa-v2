@@ -504,16 +504,10 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
 
       const payload: Record<string, unknown> = {
         name:             form.name.trim(),
-        description:      form.description.trim() || null,
-        league_type:      form.leagueType,
-        format:           form.format,
-        scoring_format:   form.scoringFormat,
-        start_date:       form.startDate || null,
-        end_date:         form.endDate || null,
-        max_participants: form.maxParticipants ? parseInt(form.maxParticipants, 10) : null,
+        match_type:       form.format ?? form.leagueType,  // DB uses match_type
         visibility:       form.visibility,
-        min_elo:          form.minElo ? parseInt(form.minElo, 10) : null,
-        max_elo:          form.maxElo ? parseInt(form.maxElo, 10) : null,
+        season_start:     form.startDate || null,          // DB uses season_start
+        season_end:       form.endDate || null,            // DB uses season_end
         created_by:       user.id,
         status:           'active',
         linked_group_ids: form.groupId ? [form.groupId] : [],

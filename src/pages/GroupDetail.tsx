@@ -436,6 +436,8 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
 
 // ── Tab: Matches ──────────────────────────────────────────────────────────────
 
+type PastFilter = 'all' | 'competitive' | 'friendly' | 'this_month'
+
 function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
   matches: MatchCardData[]
   isLoading: boolean
@@ -443,11 +445,25 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
   onCreateMatch: () => void
 }) {
   const [view, setView] = useState<'upcoming' | 'past'>('upcoming')
+  const [pastFilter, setPastFilter] = useState<PastFilter>('all')
   const today = format(new Date(), 'yyyy-MM-dd')
+  const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd')
 
-  const filtered = matches.filter((m) =>
-    view === 'upcoming' ? m.match_date >= today : m.match_date < today
-  )
+  const upcoming = matches.filter((m) => m.match_date >= today)
+  const past = matches.filter((m) => m.match_date < today)
+
+  const filteredPast = past.filter((m) => {
+    if (pastFilter === 'competitive') return m.match_type === 'competitive'
+    if (pastFilter === 'friendly') return m.match_type === 'friendly'
+    if (pastFilter === 'this_month') return m.match_date >= monthStart
+    return true
+  })
+
+  const filtered = view === 'upcoming' ? upcoming : filteredPast
+
+  // Past stats
+  const pastCount = past.length
+  const winsCount = past.filter(m => m.didWin === true).length
 
   if (isLoading) return <TabSkeleton />
 
@@ -462,7 +478,7 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
       </button>
 
       {/* Upcoming / Past toggle */}
-      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
+      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
         {(['upcoming', 'past'] as const).map((v) => (
           <button
             key={v}
@@ -471,10 +487,49 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
               view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
           >
-            {v === 'upcoming' ? 'Upcoming' : 'Past'}
+            {v === 'upcoming' ? `Upcoming (${upcoming.length})` : `Past (${past.length})`}
           </button>
         ))}
       </div>
+
+      {/* Past filter pills */}
+      {view === 'past' && past.length > 0 && (
+        <>
+          <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
+            {([
+              { id: 'all' as PastFilter, label: 'All' },
+              { id: 'competitive' as PastFilter, label: 'Competitive' },
+              { id: 'friendly' as PastFilter, label: 'Friendly' },
+              { id: 'this_month' as PastFilter, label: 'This month' },
+            ]).map((f) => (
+              <button
+                key={f.id}
+                onClick={() => setPastFilter(f.id)}
+                className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
+                  pastFilter === f.id ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-500 bg-white'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          {/* Stats summary */}
+          <div className="flex gap-2 mb-3">
+            <div className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-center">
+              <p className="text-[16px] font-black text-gray-900">{pastCount}</p>
+              <p className="text-[10px] text-gray-400">Played</p>
+            </div>
+            <div className="flex-1 rounded-xl bg-green-50 border border-green-100 px-3 py-2 text-center">
+              <p className="text-[16px] font-black text-green-700">{winsCount}</p>
+              <p className="text-[10px] text-green-600">Wins</p>
+            </div>
+            <div className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-center">
+              <p className="text-[16px] font-black text-gray-900">{pastCount > 0 ? Math.round((winsCount / pastCount) * 100) : 0}%</p>
+              <p className="text-[10px] text-gray-400">Win rate</p>
+            </div>
+          </div>
+        </>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyTab

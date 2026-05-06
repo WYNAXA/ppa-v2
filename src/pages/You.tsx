@@ -12,6 +12,7 @@ import { BADGE_DEFINITIONS } from '@/lib/achievements'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
+import { EloHistoryChart } from '@/components/compete/EloHistoryChart'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -862,6 +863,14 @@ export function YouPage() {
             </div>
           ) : null}
         </section>
+
+        {/* ── Rating History ── */}
+        {userId && (
+          <section className="pb-2">
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Rating History</h2>
+            <EloHistoryChart userId={userId} />
+          </section>
+        )}
 
         {/* ── My Rewards ── */}
         {myRewards.length > 0 && (

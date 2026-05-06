@@ -10,6 +10,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { BADGE_DEFINITIONS } from '@/lib/achievements'
 import { cn } from '@/lib/utils'
 import { CreateLeagueSheet } from '@/components/compete/CreateLeagueSheet'
+import { EloHistoryChart } from '@/components/compete/EloHistoryChart'
 import BadgeInfoModal from '@/components/shared/BadgeInfoModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -565,6 +566,14 @@ export function CompetePage() {
 
         {/* ── My Ranking Card ── */}
         <RankingCard profile={profile} stats={stats} isLoading={loadingStats} achievementCount={achievementCount} />
+
+        {/* ── ELO History Chart ── */}
+        {userId && (
+          <section>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-2">Your ELO Journey</h2>
+            <EloHistoryChart userId={userId} compact />
+          </section>
+        )}
 
         {/* ── My Badges ── */}
         {myBadges.length > 0 && (

@@ -280,12 +280,16 @@ function DiscoverCard({
               <p className="text-[12px] text-gray-400">{group.city}</p>
             </div>
           )}
-          <div className="flex items-center gap-1 mt-1.5">
-            <Users className="h-3 w-3 text-gray-400" />
-            <span className="text-[12px] text-gray-500">
-              <span className="font-semibold">{group.memberCount}</span>{' '}
-              member{group.memberCount !== 1 ? 's' : ''}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+            <span className="inline-flex items-center gap-1 text-[12px] text-gray-500">
+              <Users className="h-3 w-3 text-gray-400" />
+              <span className="font-semibold">{group.memberCount}</span> member{group.memberCount !== 1 ? 's' : ''}
             </span>
+            {group.visibility === 'open' || group.visibility === 'public' ? (
+              <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">🟢 Open</span>
+            ) : (
+              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">🟡 Request</span>
+            )}
           </div>
           {group.description && (
             <p className="text-[12px] text-gray-400 mt-1 line-clamp-2">{group.description}</p>

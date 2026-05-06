@@ -147,8 +147,20 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
 
     if (earned.length === 0) return []
 
-    // Insert into user_badges (for backwards compat) + player_achievements
+    // Insert into user_badges (for backwards compat)
     await supabase.from('user_badges').insert(earned.map(badge_key => ({ user_id: userId, badge_key })))
+
+    // Send notification for each earned achievement
+    await supabase.from('notifications').insert(
+      earned.map(key => ({
+        user_id: userId,
+        type: 'achievement',
+        title: `${ACHIEVEMENT_LIBRARY[key]?.emoji ?? '🏆'} ${ACHIEVEMENT_LIBRARY[key]?.name ?? key} earned!`,
+        message: ACHIEVEMENT_LIBRARY[key]?.description ?? 'New achievement unlocked',
+        related_id: userId,
+        read: false,
+      }))
+    )
 
     return earned.map(key => ({
       badge_key: key,

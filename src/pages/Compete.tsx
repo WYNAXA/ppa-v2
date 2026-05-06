@@ -176,28 +176,44 @@ function useGlobalLeaderboard(limit: number, search: string) {
   })
 }
 
-function useGroupLeaderboard(userId: string) {
-  return useQuery<RankedProfile[]>({
-    queryKey: ['group-leaderboard', userId],
+function useUserGroups(userId: string) {
+  return useQuery<Array<{ group_id: string; name: string }>>({
+    queryKey: ['user-groups-compete', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data: memberships } = await supabase
+      const { data } = await supabase
         .from('group_members')
-        .select('group_id')
-        .eq('user_id', userId)
-        .eq('status', 'approved')
+        .select('group_id, groups:group_id(id, name)')
+        .eq('user_id', userId).eq('status', 'approved')
+      return (data ?? []).map(m => ({
+        group_id: (m.groups as any)?.id ?? m.group_id,
+        name: (m.groups as any)?.name ?? 'Group',
+      }))
+    },
+  })
+}
 
-      if (!memberships || memberships.length === 0) return []
+function useGroupLeaderboard(userId: string, selectedGroupId: string) {
+  return useQuery<RankedProfile[]>({
+    queryKey: ['group-leaderboard', userId, selectedGroupId],
+    enabled: !!userId,
+    queryFn: async () => {
+      let groupIds: string[]
+      if (selectedGroupId) {
+        groupIds = [selectedGroupId]
+      } else {
+        const { data: memberships } = await supabase
+          .from('group_members').select('group_id')
+          .eq('user_id', userId).eq('status', 'approved')
+        if (!memberships || memberships.length === 0) return []
+        groupIds = memberships.map(m => m.group_id)
+      }
 
-      const groupIds = memberships.map((m) => m.group_id)
       const { data: members } = await supabase
-        .from('group_members')
-        .select('user_id')
-        .in('group_id', groupIds)
-        .eq('status', 'approved')
-
+        .from('group_members').select('user_id')
+        .in('group_id', groupIds).eq('status', 'approved')
       if (!members) return []
-      const userIds = [...new Set(members.map((m) => m.user_id))]
+      const userIds = [...new Set(members.map(m => m.user_id))]
 
       const { data } = await supabase
         .from('profiles')
@@ -531,14 +547,21 @@ export function CompetePage() {
 
   const [leaderboardSearch, setLeaderboardSearch] = useState('')
   const [leaderboardLimit, setLeaderboardLimit]   = useState(50)
+  const [selectedGroupId, setSelectedGroupId]     = useState('')
   const myRowRef = useRef<HTMLDivElement>(null)
 
   const { data: stats,            isLoading: loadingStats    } = useMyStats(userId, profile?.internal_ranking)
   const { data: achievementCount = 0 }                        = useAchievementCount(userId)
   const { data: myBadges = [] }                               = useMyBadges(userId)
+  const { data: userGroups = [] }                              = useUserGroups(userId)
   const { data: globalBoard = [], isLoading: loadingGlobal   } = useGlobalLeaderboard(leaderboardLimit, leaderboardSearch)
-  const { data: groupBoard  = [], isLoading: loadingGroup    } = useGroupLeaderboard(userId)
+  const { data: groupBoard  = [], isLoading: loadingGroup    } = useGroupLeaderboard(userId, selectedGroupId)
   const { data: myLeagues   = [], isLoading: loadingLeagues  } = useMyLeagues(userId)
+
+  // Auto-select first group
+  useEffect(() => {
+    if (userGroups.length > 0 && !selectedGroupId) setSelectedGroupId(userGroups[0].group_id)
+  }, [userGroups, selectedGroupId])
 
   const rawLeaderboard     = leaderboardTab === 'global' ? globalBoard : groupBoard
   const loadingLeaderboard = leaderboardTab === 'global' ? loadingGlobal : loadingGroup
@@ -623,6 +646,19 @@ export function CompetePage() {
               </button>
             ))}
           </div>
+
+          {/* Group selector — shown in My Groups tab */}
+          {leaderboardTab === 'my_groups' && userGroups.length > 1 && (
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 mb-3 focus:outline-none focus:border-teal-500 bg-white"
+            >
+              {userGroups.map((g) => (
+                <option key={g.group_id} value={g.group_id}>{g.name}</option>
+              ))}
+            </select>
+          )}
 
           {/* Search bar */}
           <div className="relative mb-3">

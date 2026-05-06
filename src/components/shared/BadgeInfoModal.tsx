@@ -85,7 +85,8 @@ export default function BadgeInfoModal({ badgeKey, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="w-full max-w-md rounded-t-3xl bg-white px-6 pt-6 pb-10"
+        className="w-full max-w-md rounded-t-3xl bg-white px-6 pt-6"
+        style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom) + 80px)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Handle */}

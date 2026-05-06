@@ -796,6 +796,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   const [announcement, setAnnouncement] = useState('')
   const [sending, setSending]       = useState(false)
   const [sent, setSent]             = useState(false)
+  const [sentCount, setSentCount]   = useState(0)
 
   const { data: pendingMembers = [], isLoading: loadingPending } = usePendingMembers(group.id, isAdmin)
 
@@ -875,12 +876,14 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
         read: false,
       }))
     if (notifications.length > 0) {
-      await supabase.from('notifications').insert(notifications)
+      const { error: notifErr } = await supabase.from('notifications').insert(notifications)
+      if (notifErr) console.error('[Announce] notification error:', notifErr)
     }
     setSending(false)
     setSent(true)
+    setSentCount(notifications.length)
     setAnnouncement('')
-    setTimeout(() => setSent(false), 3000)
+    setTimeout(() => setSent(false), 5000)
   }
 
   return (
@@ -1035,7 +1038,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 disabled={sending || !announcement.trim()}
                 className="w-full rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-40"
               >
-                {sent ? 'Sent to all members ✓' : sending ? 'Sending…' : 'Send to all members'}
+                {sent ? `📢 Sent to ${sentCount} members ✓` : sending ? 'Sending…' : `Send to ${approvedMembers.length} members`}
               </button>
             </div>
           )}

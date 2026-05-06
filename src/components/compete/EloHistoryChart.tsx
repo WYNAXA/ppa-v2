@@ -73,7 +73,6 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
 
   // Computed stats
   const peakElo = Math.max(...history.map(h => h.elo), 0)
-  const currentElo = history.length > 0 ? history[history.length - 1].elo : null
 
   const thirtyDayTrend = useMemo(() => {
     const cutoff = subMonths(new Date(), 1)

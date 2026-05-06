@@ -150,7 +150,8 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       }
 
       if (activeFilter === 'near_me' && userCity) {
-        query = query.ilike('city', `%${userCity}%`)
+        const cityName = userCity.split(',')[0].trim()
+        query = query.ilike('city', `%${cityName}%`)
       }
 
       if (activeFilter === 'open_to_join') {

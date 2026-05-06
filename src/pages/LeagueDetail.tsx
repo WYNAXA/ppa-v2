@@ -325,6 +325,104 @@ function MexicanoTab({
   )
 }
 
+// ── Invite from group ─────────────────────────────────────────────────────────
+
+function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; standings: Standing[] }) {
+  const { profile } = useAuth()
+  const queryClient = useQueryClient()
+  const [invitedIds, setInvitedIds] = useState<string[]>([])
+  const groupId = league.linked_group_ids?.[0]
+
+  const { data: groupMembers = [] } = useQuery({
+    queryKey: ['league-group-members', groupId],
+    enabled: !!groupId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId!)
+        .eq('status', 'approved')
+      if (!data || data.length === 0) return []
+      const ids = data.map(m => m.user_id)
+      const { data: profiles } = await supabase
+        .from('profiles').select('id, name, avatar_url, internal_ranking').in('id', ids)
+      return profiles ?? []
+    },
+  })
+
+  const leagueMemberIds = new Set(standings.map(s => s.user_id))
+  const notInLeague = groupMembers.filter(p => !leagueMemberIds.has(p.id) && p.id !== profile?.id)
+
+  async function handleInvite(userId: string) {
+    const { error } = await supabase.from('league_invitations').insert({
+      league_id: league.id, invited_user_id: userId, invited_by: profile?.id, status: 'pending',
+    })
+    if (error) { console.error('[LeagueInvite]', error); return }
+    await supabase.from('notifications').insert({
+      user_id: userId, type: 'league_invite', title: 'League invitation',
+      message: `${profile?.name ?? 'Someone'} invited you to join ${league.name}`,
+      related_id: league.id, read: false,
+    })
+    setInvitedIds(prev => [...prev, userId])
+    queryClient.invalidateQueries({ queryKey: ['league-invite'] })
+  }
+
+  async function handleShare() {
+    const url = `${window.location.origin}/leagues/${league.id}/join`
+    if (navigator.share) {
+      try { await navigator.share({ title: league.name, text: `Join ${league.name} on Padel Players`, url }) } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url)
+    }
+  }
+
+  if (!groupId) return null
+
+  return (
+    <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Invite Players</p>
+        <span className="text-[11px] text-gray-400">{standings.length} members</span>
+      </div>
+
+      <button onClick={handleShare} className="w-full rounded-xl border border-teal-200 bg-teal-50 py-2.5 text-[13px] font-semibold text-teal-700 mb-2">
+        Share league link
+      </button>
+
+      {notInLeague.length > 0 && (
+        <>
+          <p className="text-[11px] text-gray-500">{notInLeague.length} group members not yet in league:</p>
+          <div className="space-y-1.5 max-h-48 overflow-y-auto">
+            {notInLeague.map(p => (
+              <div key={p.id} className="flex items-center gap-2.5 rounded-xl bg-gray-50 px-3 py-2">
+                <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold text-gray-800 truncate">{p.name}</p>
+                  {p.internal_ranking != null && <p className="text-[10px] text-gray-400">{(p.internal_ranking as number).toLocaleString()} ELO</p>}
+                </div>
+                <button
+                  onClick={() => handleInvite(p.id)}
+                  disabled={invitedIds.includes(p.id)}
+                  className={cn(
+                    'rounded-lg px-3 py-1 text-[11px] font-bold flex-shrink-0',
+                    invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white'
+                  )}
+                >
+                  {invitedIds.includes(p.id) ? 'Invited ✓' : 'Invite'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {notInLeague.length === 0 && groupId && (
+        <p className="text-[12px] text-gray-400 text-center py-2">All group members are in this league</p>
+      )}
+    </div>
+  )
+}
+
 // ── Admin tab ─────────────────────────────────────────────────────────────────
 
 function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; standings: Standing[]; onNavigate: (path: string) => void }) {
@@ -495,6 +593,9 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
           {dateSaved ? 'Saved!' : savingDate ? 'Saving…' : 'Update End Date'}
         </button>
       </div>
+
+      {/* Invite from group */}
+      <InviteFromGroupSection league={league} standings={standings} />
 
       {/* Delete league */}
       <div className="rounded-2xl border border-red-100 p-4 space-y-3">

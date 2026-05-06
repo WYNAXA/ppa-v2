@@ -147,17 +147,38 @@ export function LeagueDiscoveryPage() {
 
   // ── Open Leagues ─────────────────────────────────────────────────────────
 
+  const [leagueFilter, setLeagueFilter] = useState('all')
+  const userCity = profile?.city?.split(',')[0]?.trim() ?? ''
+
+  const LEAGUE_FILTERS = [
+    { id: 'all', label: 'All' },
+    { id: 'open', label: 'Open to join' },
+    { id: 'near_me', label: 'Near me' },
+    { id: 'competitive', label: 'Competitive' },
+    { id: 'friendly', label: 'Friendly' },
+    { id: 'mexicano', label: 'Mexicano' },
+    { id: 'round_robin', label: 'Round Robin' },
+    { id: 'free', label: 'Free entry' },
+  ]
+
   const { data: openLeagues = [] } = useQuery<OpenLeague[]>({
-    queryKey: ['open-leagues', searchQuery],
+    queryKey: ['open-leagues', searchQuery, leagueFilter],
     queryFn: async () => {
       let q = supabase
         .from('leagues')
-        .select('id, name, match_type, format, status, is_open_registration, entry_fee_pence, max_participants, is_official')
+        .select('id, name, match_type, format, status, is_open_registration, entry_fee_pence, max_participants, is_official, city')
         .eq('status', 'active')
         .or('is_open_registration.eq.true,visibility.eq.public')
         .order('created_at', { ascending: false })
-        .limit(20)
+        .limit(30)
       if (searchQuery.trim()) q = q.ilike('name', `%${searchQuery.trim()}%`)
+      if (leagueFilter === 'open') q = q.eq('is_open_registration', true)
+      if (leagueFilter === 'near_me' && userCity) q = q.ilike('city', `%${userCity}%`)
+      if (leagueFilter === 'competitive') q = q.eq('match_type', 'competitive')
+      if (leagueFilter === 'friendly') q = q.eq('match_type', 'friendly')
+      if (leagueFilter === 'mexicano') q = q.eq('format', 'mexicano')
+      if (leagueFilter === 'round_robin') q = q.eq('format', 'round_robin')
+      if (leagueFilter === 'free') q = q.or('entry_fee_pence.eq.0,entry_fee_pence.is.null')
       const { data } = await q
       const myIds = new Set(myLeagues.map(l => l.id))
       return (data ?? []).filter(l => !myIds.has(l.id))
@@ -329,6 +350,22 @@ export function LeagueDiscoveryPage() {
         {/* ── Open Leagues ───────────────────────────────────────────────── */}
         <section className="px-4 pt-5">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Open Leagues</h2>
+
+          {/* Filter chips */}
+          <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3 pb-0.5">
+            {LEAGUE_FILTERS.map(f => (
+              <button
+                key={f.id}
+                onClick={() => setLeagueFilter(f.id)}
+                className={cn(
+                  'flex-shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors',
+                  leagueFilter === f.id ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-600 bg-white'
+                )}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
 
           {/* Search */}
           <div className="relative mb-3">

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
@@ -8,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { isUserAvailableForSlot, getSlotDate } from '@/lib/pollUtils'
+import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -131,14 +131,14 @@ export function PollAdminView({
   currentUserName,
   onRefetch,
 }: PollAdminViewProps) {
-  const navigate = useNavigate()
-
   // ── State ──
   const [expandedSection, setExpandedSection] = useState<'available' | 'unavailable' | 'notVoted' | null>(null)
   const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
   const [remindedUsers, setRemindedUsers] = useState<Set<string>>(new Set())
   const [generating, setGenerating] = useState(false)
   const [matchSchedules, setMatchSchedules] = useState<any[]>([])
+  const [createMatchOpen, setCreateMatchOpen] = useState(false)
+  const [scheduleDefaults, setScheduleDefaults] = useState<{ date?: string; groupId?: string }>({})
 
   // ── Data Fetching ──
   const { data: responses = [] } = useQuery<ResponseWithProfile[]>({
@@ -553,7 +553,11 @@ export function PollAdminView({
               {/* Schedule Match button */}
               {isAdmin && count >= 4 && (
                 <button
-                  onClick={() => navigate(`/groups/${groupId}/schedule?day=${day}`)}
+                  onClick={() => {
+                    const dayDate = (() => { try { return format(getSlotDate(poll.week_start_date, day), 'yyyy-MM-dd') } catch { return '' } })()
+                    setScheduleDefaults({ date: dayDate, groupId })
+                    setCreateMatchOpen(true)
+                  }}
                   className="flex items-center gap-1.5 rounded-xl bg-[#009688] px-3 py-2 text-[12px] font-bold text-white mt-1"
                 >
                   <Zap className="h-3.5 w-3.5" />
@@ -790,6 +794,13 @@ export function PollAdminView({
           )}
         </div>
       )}
+
+      {/* CreateMatchSheet for schedule match */}
+      <CreateMatchSheet
+        open={createMatchOpen}
+        onClose={() => { setCreateMatchOpen(false); onRefetch() }}
+        defaultGroupId={scheduleDefaults.groupId}
+      />
     </div>
   )
 }

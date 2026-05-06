@@ -140,8 +140,8 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       let query = supabase
         .from('groups')
         .select('id, name, description, city, visibility, join_mode, admin_id')
-        // Accept both 'public' and 'open' visibility values
-        .in('visibility', ['public', 'open'])
+        // Accept public, open, or null visibility
+        .or('visibility.in.(public,open),visibility.is.null')
         .order('name')
         .limit(40)
 

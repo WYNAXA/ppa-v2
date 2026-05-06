@@ -366,11 +366,20 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
     setTimeout(() => setAdjustSaved(false), 2000)
   }
 
+  const JERSEY_COLOURS = [
+    { id: 'yellow', emoji: '\u{1F7E1}', label: 'Leader', desc: 'Currently leading the league' },
+    { id: 'green', emoji: '\u{1F7E2}', label: 'Most Improved', desc: 'Most improved this season' },
+    { id: 'red', emoji: '\u{1F534}', label: 'Most Competitive', desc: 'Most competitive player' },
+    { id: 'blue', emoji: '\u{1F535}', label: 'Most Active', desc: 'Most matches played' },
+    { id: 'black', emoji: '\u26AB', label: 'Veteran', desc: 'Most experienced player' },
+  ]
+
   async function saveJersey() {
     if (!jerseyUserId || !jerseyNumber) return
     setSavingJersey(true)
+    const colorIndex = JERSEY_COLOURS.findIndex(c => c.id === jerseyNumber)
     await supabase.from('league_jerseys').upsert(
-      { league_id: league.id, user_id: jerseyUserId, jersey_number: parseInt(jerseyNumber, 10) },
+      { league_id: league.id, user_id: jerseyUserId, jersey_number: colorIndex >= 0 ? colorIndex + 1 : 1 },
       { onConflict: 'league_id,user_id' }
     )
     setSavingJersey(false)
@@ -381,7 +390,8 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
   async function saveEndDate() {
     if (!newEndDate) return
     setSavingDate(true)
-    await supabase.from('leagues').update({ season_end: newEndDate }).eq('id', league.id)
+    const { error } = await supabase.from('leagues').update({ season_end: newEndDate }).eq('id', league.id)
+    if (error) console.error('[League] end date update error:', error)
     await queryClient.invalidateQueries({ queryKey: ['league', league.id] })
     setSavingDate(false)
     setDateSaved(true)
@@ -403,6 +413,14 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
           <option value="">Select player…</option>
           {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
+        {selectedUserId && (
+          <p className="text-[12px] text-gray-500">
+            Current: <span className="font-bold text-gray-900">{standings.find(s => s.user_id === selectedUserId)?.points ?? 0}</span> points
+            {pointsDelta && (
+              <span className="ml-2">&rarr; <span className="font-bold text-[#009688]">{(standings.find(s => s.user_id === selectedUserId)?.points ?? 0) + parseInt(pointsDelta, 10)}</span> points</span>
+            )}
+          </p>
+        )}
         <input
           type="number"
           value={pointsDelta}
@@ -436,14 +454,21 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
           <option value="">Select player…</option>
           {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <input
-          type="number"
-          value={jerseyNumber}
-          onChange={e => setJerseyNumber(e.target.value)}
-          placeholder="Jersey number"
-          min="1"
-          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
-        />
+        <div className="grid grid-cols-5 gap-2">
+          {JERSEY_COLOURS.map(c => (
+            <button
+              key={c.id}
+              onClick={() => setJerseyNumber(c.id)}
+              className={cn(
+                'flex flex-col items-center gap-1 rounded-xl border-2 p-2 text-center transition-all',
+                jerseyNumber === c.id ? 'border-[#009688] bg-teal-50' : 'border-gray-100'
+              )}
+            >
+              <span className="text-[18px]">{c.emoji}</span>
+              <span className="text-[9px] font-semibold text-gray-600 leading-tight">{c.label}</span>
+            </button>
+          ))}
+        </div>
         <button
           onClick={saveJersey}
           disabled={savingJersey || !jerseyUserId || !jerseyNumber}
@@ -963,8 +988,12 @@ export function LeagueDetailPage() {
   }, [id, queryClient])
 
   async function handleGenerateRound() {
-    if (!league || standings.length < 4) return
+    if (!league || standings.length < 4) {
+      console.warn('[GenerateRound] not enough players:', standings.length)
+      return
+    }
     setGeneratingRound(true)
+    console.log('[GenerateRound] generating for', standings.length, 'players')
 
     const players = standings.map(s => s.user_id)
     const matchesToCreate = []
@@ -983,7 +1012,8 @@ export function LeagueDetailPage() {
       })
     }
 
-    await supabase.from('matches').insert(matchesToCreate)
+    const { error } = await supabase.from('matches').insert(matchesToCreate)
+    if (error) console.error('[GenerateRound] insert error:', error)
     queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
     setGeneratingRound(false)
   }

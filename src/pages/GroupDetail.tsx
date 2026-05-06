@@ -173,7 +173,8 @@ function useGroupMatches(groupId: string) {
         .from('matches')
         .select('*')
         .eq('group_id', groupId)
-        .order('match_date', { ascending: false })
+        .order('match_date', { ascending: true })
+        .order('match_time', { ascending: true })
         .limit(50)
 
       if (error) throw error

@@ -443,11 +443,15 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
           </button>
           <div className="text-center">
             <p className="text-[14px] font-bold text-gray-900">
-              {format(weekStart, 'd MMM')} — {format(weekEnd, 'd MMM')}
+              {selectedDay
+                ? format(selectedDay, 'EEEE d MMM')
+                : `${format(weekStart, 'd MMM')} — ${format(weekEnd, 'd MMM')}`}
             </p>
-            {!isCurrentWeek && (
+            {selectedDay ? (
+              <button onClick={() => setSelectedDay(null)} className="text-[11px] font-semibold text-[#009688] mt-0.5">Show full week</button>
+            ) : !isCurrentWeek ? (
               <button onClick={goToday} className="text-[11px] font-semibold text-[#009688] mt-0.5">Today</button>
-            )}
+            ) : null}
           </div>
           <button onClick={goNextWeek} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
             <ChevronRight className="h-4 w-4 text-gray-600" />

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation } from 'lucide-react'
@@ -209,6 +209,7 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
 export function MatchDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const { profile } = useAuth()
   const queryClient = useQueryClient()
   const [showRecordResult, setShowRecordResult] = useState(false)
@@ -415,7 +416,15 @@ export function MatchDetailPage() {
   // Any participant can edit, regardless of how they navigated here
   const canEdit       = (isParticipant || playerIds.length === 0) &&
                         match.status !== 'completed' && match.status !== 'cancelled'
-  const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && playerIds.length === 4 && !result
+  const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
+  const effectivePlayerCount = playerIds.length + guestNamesForCount.length
+  const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result
+
+  useEffect(() => {
+    if ((location.state as any)?.openResult && canRecordResult) {
+      setShowRecordResult(true)
+    }
+  }, [location.state, canRecordResult])
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }

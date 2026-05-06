@@ -11,7 +11,7 @@ import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
 
-// v1.0.7 — bump this comment to force service worker cache invalidation
+// v1.0.8 — bump this comment to force service worker cache invalidation
 
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
@@ -76,39 +76,78 @@ function UpdateBanner() {
   const [showUpdate, setShowUpdate] = useState(false)
 
   useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.ready.then(reg => {
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing
-          newWorker?.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              setShowUpdate(true)
-            }
-          })
+    if (!('serviceWorker' in navigator)) return
+
+    // Check for updates every 60 seconds + on tab focus
+    const checkForUpdates = async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration()
+        reg?.update().catch(() => {})
+      } catch { /* ignore */ }
+    }
+    const interval = setInterval(checkForUpdates, 60_000)
+    const handleFocus = () => checkForUpdates()
+    window.addEventListener('focus', handleFocus)
+
+    navigator.serviceWorker.ready.then((reg) => {
+      // Already waiting SW
+      if (reg.waiting) setShowUpdate(true)
+
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing
+        if (!newWorker) return
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            setShowUpdate(true)
+          }
         })
       })
+    })
+
+    // Auto-reload when new SW activates
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) { refreshing = true; window.location.reload() }
+    })
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleFocus)
     }
   }, [])
 
   if (!showUpdate) return null
 
+  const handleUpdate = () => {
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
+    })
+    setTimeout(() => window.location.reload(), 500)
+  }
+
   return (
     <div style={{
-      position: 'fixed', top: 0, left: 0, right: 0,
+      position: 'fixed', bottom: 90, left: 16, right: 16,
       background: '#009688', color: 'white',
-      padding: '12px 16px', zIndex: 9999,
-      display: 'flex', justifyContent: 'space-between',
-      alignItems: 'center',
+      borderRadius: 16, padding: '14px 16px', zIndex: 9999,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
     }}>
-      <span style={{ fontSize: 14, fontWeight: 600 }}>New version available</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ fontSize: 20 }}>🚀</span>
+        <div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>New version available</div>
+          <div style={{ fontSize: 12, opacity: 0.85 }}>Tap to get the latest updates</div>
+        </div>
+      </div>
       <button
-        onClick={() => window.location.reload()}
+        onClick={handleUpdate}
         style={{
-          background: 'rgba(255,255,255,0.2)', border: 'none', color: 'white',
-          padding: '6px 14px', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+          background: 'white', color: '#009688', border: 'none',
+          borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
         }}
       >
-        Update now
+        Update
       </button>
     </div>
   )

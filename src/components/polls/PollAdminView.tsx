@@ -294,9 +294,21 @@ export function PollAdminView({
   }
 
   async function handleSelectSchedule(schedule: any) {
-    await supabase.functions.invoke('check-poll-auto-match', {
-      body: { poll_id: pollId, selected_configuration: schedule },
+    // Map to the format check-poll-auto-match expects
+    const config = {
+      id: schedule.scheduleNumber ?? 1,
+      matches: (schedule.matches ?? []).map((m: any) => ({
+        players: m.playerIds ?? m.player_ids ?? [],
+        date: m.date,
+        time: (m.timeSlot ?? '19:00').split('-')[0]?.trim() + ':00',
+        day: m.dayOfWeek ?? m.day,
+      })),
+    }
+    console.log('[PollAdmin] selecting schedule:', config)
+    const { error } = await supabase.functions.invoke('check-poll-auto-match', {
+      body: { poll_id: pollId, selected_configuration: config },
     })
+    if (error) console.error('[PollAdmin] select error:', error)
     onRefetch()
   }
 
@@ -706,13 +718,20 @@ export function PollAdminView({
               </p>
               {matchSchedules.map((schedule, idx) => (
                 <div key={idx} className="rounded-xl border border-gray-200 bg-white px-4 py-3 space-y-2">
-                  <p className="text-[13px] font-semibold text-gray-900">
-                    Option {idx + 1}
-                    {schedule.totalMatches && (
-                      <span className="text-[11px] font-normal text-gray-400 ml-2">
-                        {schedule.totalMatches} match{schedule.totalMatches !== 1 ? 'es' : ''}
-                      </span>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[13px] font-semibold text-gray-900">
+                      {schedule.strategyName ?? `Option ${idx + 1}`}
+                    </p>
+                    {schedule.isRecommended && (
+                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 rounded-full px-2 py-0.5">Recommended</span>
                     )}
+                  </div>
+                  {schedule.strategyDescription && (
+                    <p className="text-[11px] text-gray-400">{schedule.strategyDescription}</p>
+                  )}
+                  <p className="text-[11px] text-gray-500">
+                    {schedule.totalMatches ?? schedule.matches?.length ?? 0} matches · {schedule.totalPlayers ?? 0} players
+                    {(schedule.ringersNeeded ?? 0) > 0 && ` · ${schedule.ringersNeeded} ringers needed`}
                   </p>
 
                   {(schedule.matches ?? []).map((match: any, mIdx: number) => (

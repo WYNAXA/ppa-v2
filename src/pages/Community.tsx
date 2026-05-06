@@ -157,7 +157,11 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       }
 
       if (activeFilter === 'open_to_join') {
-        query = query.neq('join_mode', 'closed')
+        query = query.or('join_mode.eq.open,auto_approve.eq.true,join_mode.is.null')
+      }
+
+      if (activeFilter === 'active_league') {
+        // Will filter client-side after fetching (need to check leagues table)
       }
 
       console.log('[Discover] search:', search)
@@ -200,11 +204,18 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
         (g) => membershipStatusMap[g.id] !== 'approved'
       )
 
-      return visibleGroups.map((g) => ({
+      const result = visibleGroups.map((g) => ({
         ...g,
         memberCount: countMap[g.id] ?? 0,
         membershipStatus: membershipStatusMap[g.id] ?? 'none',
       }))
+
+      // Sort by member count if filter is 'most_members'
+      if (activeFilter === 'most_members') {
+        result.sort((a, b) => b.memberCount - a.memberCount)
+      }
+
+      return result
     },
   })
 }
@@ -701,10 +712,12 @@ export function CommunityPage() {
           </div>
 
           {/* Filter chips */}
-          <div className="flex gap-2 mb-3 overflow-x-auto pb-1">
+          <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar pb-1">
             {[
               { key: 'near_me',      label: 'Near me'       },
               { key: 'open_to_join', label: 'Open to join'  },
+              { key: 'active_league', label: 'Has league'   },
+              { key: 'most_members', label: 'Most members'  },
             ].map(({ key, label }) => (
               <button
                 key={key}

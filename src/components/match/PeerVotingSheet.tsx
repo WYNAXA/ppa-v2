@@ -22,10 +22,10 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
 
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const rows = Object.entries(votes).map(([category, voted_for]) => ({
+      const rows = Object.entries(votes).map(([category, votedForId]) => ({
         match_id: matchId,
         voter_id: currentUserId,
-        voted_for,
+        voted_for_id: votedForId,
         category,
       }))
       if (rows.length === 0) return

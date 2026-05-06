@@ -528,7 +528,6 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
             </div>
           </div>
           )}
-          </div>
         </>
       )}
 

@@ -362,16 +362,27 @@ export function MatchDetailPage() {
         ...(reason ? { dispute_reason: reason } : {}),
       })
       if (vote === 'confirm') {
+        // Check if opposing team has now fully confirmed
+        const submittedBy = result.submitted_by
+        const opposingTeam = result.team1_players?.includes(submittedBy)
+          ? result.team2_players : result.team1_players
         const { count } = await supabase
           .from('match_result_votes')
           .select('id', { count: 'exact', head: true })
           .eq('match_result_id', result.id)
+          .in('voter_id', opposingTeam ?? [])
           .eq('vote', 'confirm')
-        if ((count ?? 0) >= 3) {
+        if ((count ?? 0) >= (opposingTeam ?? []).length) {
           await supabase
             .from('match_results')
             .update({ verification_status: 'verified' })
             .eq('id', result.id)
+          // Trigger ELO processing
+          try {
+            await supabase.functions.invoke('process-elo', {
+              body: { match_result_id: result.id },
+            })
+          } catch { /* non-blocking */ }
         }
       } else {
         await supabase
@@ -786,42 +797,48 @@ export function MatchDetailPage() {
         )
       })()}
 
-      {/* Peer voting card */}
-      {result && (result.verification_status === 'pending' || result.verification_status === 'disputed') && isParticipant && (
+      {/* Verification card */}
+      {result && (result.verification_status === 'pending' || result.verification_status === 'disputed') && isParticipant && (() => {
+        const submittedBy = result.submitted_by
+        const submittingTeam = result.team1_players?.includes(submittedBy) ? result.team1_players : result.team2_players
+        const opposingTeam = result.team1_players?.includes(submittedBy) ? result.team2_players : result.team1_players
+        const isOnSubmittingTeam = submittingTeam?.includes(currentUserId)
+        const opposingNeeded = (opposingTeam ?? []).length
+        // confirmVoteCount already fetched from server
+        const opposingConfirmed = Math.max(0, confirmVoteCount - (submittingTeam ?? []).length)
+        return (
         <div className="px-5 mb-4">
-          {voteSubmitted || myVote ? (
+          {isOnSubmittingTeam ? (
+            <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
+              <p className="text-[13px] font-semibold text-green-700">You submitted this result</p>
+              <p className="text-[11px] text-gray-400 mt-1">
+                Waiting for opponents to verify ({opposingConfirmed}/{opposingNeeded})
+              </p>
+            </div>
+          ) : voteSubmitted || myVote ? (
             <div className={cn(
               'rounded-2xl border p-3 text-center',
-              myVote === 'dispute' || voteSubmitted && showDisputeInput
-                ? 'bg-red-50 border-red-100'
-                : 'bg-green-50 border-green-100'
+              myVote === 'dispute' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
             )}>
-              <p className={cn(
-                'text-[13px] font-semibold',
-                myVote === 'dispute' ? 'text-red-700' : 'text-green-700'
-              )}>
+              <p className={cn('text-[13px] font-semibold', myVote === 'dispute' ? 'text-red-700' : 'text-green-700')}>
                 {myVote === 'dispute' ? 'You disputed this result' : 'Vote submitted · thank you'}
               </p>
-              <p className="text-[11px] text-gray-400 mt-1">
-                {confirmVoteCount} of {match.player_ids.length} verified
-              </p>
+              <p className="text-[11px] text-gray-400 mt-1">{opposingConfirmed}/{opposingNeeded} opponents verified</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[13px] font-bold text-gray-800">Verify this result?</p>
-                <span className="text-[11px] text-gray-500">{confirmVoteCount}/{match.player_ids.length} verified</span>
+                <span className="text-[11px] text-gray-500">{opposingConfirmed}/{opposingNeeded} opponents</span>
               </div>
-              {/* Progress bar */}
               <div className="h-1.5 rounded-full bg-yellow-200 mb-3 overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[#009688] transition-all"
-                  style={{ width: `${(confirmVoteCount / Math.max(match.player_ids.length, 1)) * 100}%` }}
-                />
+                <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${(opposingConfirmed / Math.max(opposingNeeded, 1)) * 100}%` }} />
               </div>
               <p className="text-[12px] text-gray-500 mb-3">
                 {result.team1_score}–{result.team2_score} ·{' '}
-                {result.result_type === 'team1_win' ? 'Team 1 wins' : 'Team 2 wins'}
+                {result.result_type === 'team1_win'
+                  ? `${result.team1_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ')} win`
+                  : `${result.team2_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ')} win`}
               </p>
               {showDisputeInput ? (
                 <div>
@@ -871,7 +888,8 @@ export function MatchDetailPage() {
             </div>
           )}
         </div>
-      )}
+        )
+      })()}
 
       {/* Getting there */}
       {match.status !== 'completed' && match.status !== 'cancelled' && (playerIds.length > 0 || match.booked_venue_name) && (

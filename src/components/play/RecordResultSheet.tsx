@@ -148,14 +148,15 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       console.log('[RecordResult] match update error:', matchError)
       if (matchError) throw matchError
 
-      // Auto-confirm: submitter counts as 1 vote
-      await supabase.from('match_result_votes').insert({
-        match_result_id: result.id,
-        voter_id: currentUserId,
-        vote: 'confirm',
-      }).then(({ error: voteErr }) => {
+      // Auto-confirm both submitting team members (they know their score)
+      const submittingTeam = team1.includes(currentUserId) ? team1 : team2
+      const autoVotes = submittingTeam
+        .filter(pid => UUID_RE.test(pid))
+        .map(pid => ({ match_result_id: result.id, voter_id: pid, vote: 'confirm' }))
+      if (autoVotes.length > 0) {
+        const { error: voteErr } = await supabase.from('match_result_votes').insert(autoVotes)
         if (voteErr) console.warn('[RecordResult] auto-vote error:', voteErr)
-      })
+      }
 
       // Fetch legacy ranking changes after insert
       const { data: changes } = await supabase

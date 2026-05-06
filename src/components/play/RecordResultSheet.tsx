@@ -208,7 +208,15 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     else setResultType('draw')
   }, [step, sets])
 
-  function getPlayer(id: string) {
+  // Parse guest names from match notes
+  const guestNamesList = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map((n: string) => n.trim()) ?? []
+
+  function getPlayer(id: string): Player | { id: string; name: string; avatar_url: null; isGuest: true } | undefined {
+    if (id.startsWith('guest_')) {
+      const guestIndex = match.player_ids.indexOf(id) - (match.player_ids.length - guestNamesList.length)
+      const name = guestNamesList[Math.max(0, guestIndex)] ?? 'Guest'
+      return { id, name, avatar_url: null, isGuest: true as const }
+    }
     return players.find((p) => p.id === id)
   }
 

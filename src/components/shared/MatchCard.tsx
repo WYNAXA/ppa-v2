@@ -14,6 +14,7 @@ export interface MatchCardData {
   player_ids: string[]
   match_type: string | null
   status: string
+  notes?: string | null
   // Joined player profiles (optional — shown as initials if absent)
   players?: Array<{ id: string; name: string; avatar_url?: string | null }>
   // Past match result data
@@ -65,7 +66,9 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
   const statusKey = match.status === 'scheduled' ? 'confirmed' : match.status
   const statusLabel = t(`matches.status_${statusKey}`, { defaultValue: match.status })
 
-  // Show up to 4 avatars
+  // Parse guest names from notes
+  const guestNames = (match as any).notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map((n: string) => n.trim()) ?? []
+  const totalPlayers = match.player_ids.length + guestNames.length
   const avatarSlots = match.player_ids.slice(0, 4)
   const hasResult = match.score !== undefined
 
@@ -108,14 +111,19 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
                   />
                 )
               })}
-              {match.player_ids.length < 4 && (
+              {guestNames.slice(0, 4 - avatarSlots.length).map((name: string, i: number) => (
+                <div key={`guest-${i}`} className="h-7 w-7 rounded-full bg-gray-200 border-2 border-white flex items-center justify-center" title={`Guest: ${name}`}>
+                  <span className="text-[10px] font-bold text-gray-500 leading-none">{name.charAt(0).toUpperCase()}</span>
+                </div>
+              ))}
+              {totalPlayers < 4 && (
                 <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center">
                   <span className="text-[10px] text-gray-300 leading-none">+</span>
                 </div>
               )}
             </div>
             <span className="text-[11px] text-gray-400">
-              {match.player_ids.length}/4
+              {totalPlayers}/4
             </span>
           </div>
 

@@ -282,33 +282,57 @@ export function PollAdminView({
     setGenerating(true)
     setMatchSchedules([])
     try {
-      const { data } = await supabase.functions.invoke('generate-match-options', {
+      const { data, error } = await supabase.functions.invoke('generate-match-options', {
         body: { poll_id: pollId, max_options: 3 },
       })
-      if (data?.weeklySchedules) setMatchSchedules(data.weeklySchedules)
+      console.log('[GenerateOptions] data:', JSON.stringify(data)?.slice(0, 200), 'error:', error)
+      const schedules = data?.weeklySchedules ?? data?.schedules ?? data?.options ?? (Array.isArray(data) ? data : [])
+      setMatchSchedules(schedules)
     } catch (e) {
-      console.error('generate-match-options error:', e)
+      console.error('[GenerateOptions] error:', e)
     } finally {
       setGenerating(false)
     }
   }
 
   async function handleSelectSchedule(schedule: any) {
-    // Map to the format check-poll-auto-match expects
-    const config = {
-      id: schedule.scheduleNumber ?? 1,
-      matches: (schedule.matches ?? []).map((m: any) => ({
-        players: m.playerIds ?? m.player_ids ?? [],
-        date: m.date,
-        time: (m.timeSlot ?? '19:00').split('-')[0]?.trim() + ':00',
-        day: m.dayOfWeek ?? m.day,
-      })),
+    // Create matches directly from the schedule
+    const matches = schedule.matches ?? []
+    let created = 0
+
+    for (const m of matches) {
+      const playerIds = m.playerIds ?? m.player_ids ?? (m.players ?? []).map((p: any) => p.id ?? p).filter(Boolean)
+      if (playerIds.length < 2) continue
+      const matchTime = ((m.timeSlot ?? m.time ?? '19:00').split('-')[0]?.trim())
+      const { error } = await supabase.from('matches').insert({
+        match_date: m.date ?? new Date().toISOString().split('T')[0],
+        match_time: matchTime.length === 5 ? matchTime + ':00' : matchTime,
+        match_type: 'competitive',
+        status: playerIds.length >= 4 ? 'scheduled' : 'pending',
+        player_ids: playerIds,
+        group_id: groupId,
+        poll_id: pollId,
+        created_manually: false,
+      })
+      if (!error) created++
+      else console.error('[SelectSchedule] match insert error:', error)
     }
-    console.log('[PollAdmin] selecting schedule:', config)
-    const { error } = await supabase.functions.invoke('check-poll-auto-match', {
-      body: { poll_id: pollId, selected_configuration: config },
-    })
-    if (error) console.error('[PollAdmin] select error:', error)
+
+    // Mark poll as processed
+    await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
+
+    // Notify players
+    const allPlayerIds = [...new Set(matches.flatMap((m: any) => m.playerIds ?? m.player_ids ?? []))]
+    if (allPlayerIds.length > 0) {
+      await supabase.from('notifications').insert(
+        allPlayerIds.map((pid: string) => ({
+          user_id: pid, type: 'match_suggested', title: '🎾 Match scheduled!',
+          message: `Your match has been scheduled from the weekly poll`, related_id: groupId, read: false,
+        }))
+      )
+    }
+
+    setMatchSchedules([])
     onRefetch()
   }
 
@@ -734,16 +758,25 @@ export function PollAdminView({
                     {(schedule.ringersNeeded ?? 0) > 0 && ` · ${schedule.ringersNeeded} ringers needed`}
                   </p>
 
-                  {(schedule.matches ?? []).map((match: any, mIdx: number) => (
-                    <div key={mIdx} className="rounded-lg bg-gray-50 px-3 py-2 text-[12px] text-gray-600">
-                      <span className="font-medium text-gray-800">{match.date ?? match.day}</span>
-                      {' '}
-                      {match.timeSlot ?? `${match.start_time}–${match.end_time}`}
-                      {match.playerNames && (
-                        <span className="text-gray-400"> — {match.playerNames.join(', ')}</span>
-                      )}
-                    </div>
-                  ))}
+                  {(schedule.matches ?? []).map((match: any, mIdx: number) => {
+                    const names = match.playerNames ?? []
+                    const team1 = names.slice(0, 2).map((n: string) => n.split(' ')[0]).join(' + ')
+                    const team2 = names.slice(2, 4).map((n: string) => n.split(' ')[0]).join(' + ')
+                    return (
+                      <div key={mIdx} className="rounded-lg bg-gray-50 px-3 py-2 text-[12px]">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-gray-800">{match.dayOfWeek ?? match.date ?? match.day}</span>
+                          <span className="text-gray-400">{match.timeSlot ?? `${match.start_time}–${match.end_time}`}</span>
+                        </div>
+                        {names.length >= 4 && (
+                          <p className="text-[11px] text-gray-600 mt-0.5">{team1} <span className="text-gray-400">vs</span> {team2}</p>
+                        )}
+                        {names.length > 0 && names.length < 4 && (
+                          <p className="text-[11px] text-gray-500 mt-0.5">{names.join(', ')} <span className="text-orange-500">+ {4 - names.length} needed</span></p>
+                        )}
+                      </div>
+                    )
+                  })}
 
                   <button
                     onClick={() => handleSelectSchedule(schedule)}

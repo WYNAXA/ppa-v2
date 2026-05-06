@@ -43,8 +43,19 @@ function CustomTooltip({ active, payload }: any) {
 export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
   const [range, setRange] = useState<TimeRange>('3m')
 
+  // Fetch current ELO from profile
+  const { data: currentElo } = useQuery<number | null>({
+    queryKey: ['current-elo', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase.from('profiles').select('internal_ranking').eq('id', userId).single()
+      return (data?.internal_ranking as number) ?? null
+    },
+    staleTime: 60_000,
+  })
+
   // Fetch rating history
-  const { data: history = [] } = useQuery<HistoryPoint[]>({
+  const { data: rawHistory = [] } = useQuery<HistoryPoint[]>({
     queryKey: ['elo-history', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -65,6 +76,14 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Always append current ELO as final point
+  const history = useMemo(() => {
+    if (currentElo == null) return rawHistory
+    const lastHistoryElo = rawHistory.length > 0 ? rawHistory[rawHistory.length - 1].elo : null
+    if (lastHistoryElo === currentElo) return rawHistory
+    return [...rawHistory, { date: new Date().toISOString(), elo: currentElo, change: 0, label: 'Now' }]
+  }, [rawHistory, currentElo])
+
   // Time-filtered data
   const filteredHistory = useMemo(() => {
     if (range === 'all' || history.length === 0) return history
@@ -82,11 +101,14 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
     return recent[recent.length - 1].elo - recent[0].elo
   }, [history])
 
-  // Empty state
-  if (history.length === 0) {
+  // Empty state (no history AND no current ELO, or only single current point)
+  if (rawHistory.length === 0) {
     return (
       <div className={cn('rounded-2xl bg-gray-50 border border-gray-100 p-6 text-center', compact && 'p-4')}>
-        <p className="text-[13px] font-semibold text-gray-500">No rating history yet</p>
+        {currentElo != null && (
+          <p className="text-[22px] font-black text-[#009688] mb-1">{currentElo.toLocaleString()} ELO</p>
+        )}
+        <p className="text-[13px] font-semibold text-gray-500">{currentElo != null ? 'Current rating' : 'No rating history yet'}</p>
         <p className="text-[11px] text-gray-400 mt-1">Play competitive matches to build your ELO history</p>
       </div>
     )

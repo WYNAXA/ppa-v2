@@ -7,7 +7,7 @@ import { TrendingUp, TrendingDown, Minus, Trophy, Plus, ChevronRight, Search } f
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
-import { BADGE_DEFINITIONS } from '@/lib/badges'
+import { BADGE_DEFINITIONS } from '@/lib/achievements'
 import { cn } from '@/lib/utils'
 import { CreateLeagueSheet } from '@/components/compete/CreateLeagueSheet'
 import BadgeInfoModal from '@/components/shared/BadgeInfoModal'

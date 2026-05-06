@@ -4,7 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { checkAndAwardBadges, type BadgeAward } from '@/lib/badges'
+import { checkAndAwardBadges, type BadgeAward } from '@/lib/achievements'
+import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import type { Match, RankingChange } from '@/lib/types'
@@ -72,6 +73,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [rankingChanges, setRankingChanges] = useState<RankingChange[]>([])
   const [eloChanges, setEloChanges] = useState<Record<string, EloChange>>({})
   const [newBadges, setNewBadges] = useState<BadgeAward[]>([])
+  const [showPeerVoting, setShowPeerVoting] = useState(false)
 
   // Guard: initialise teams ONCE on open, never re-derived
   const initialisedRef = useRef(false)
@@ -695,12 +697,29 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       </motion.div>
                     )}
 
+                    {!showPeerVoting && (
+                      <button
+                        onClick={() => setShowPeerVoting(true)}
+                        className="w-full rounded-2xl bg-purple-50 border border-purple-100 py-3 text-[13px] font-bold text-purple-700 mt-3"
+                      >
+                        🎾 Rate your teammates
+                      </button>
+                    )}
+
                     <button
                       onClick={onClose}
-                      className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+                      className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white mt-3"
                     >
                       {t('common.done')}
                     </button>
+
+                    <PeerVotingSheet
+                      open={showPeerVoting}
+                      onClose={() => setShowPeerVoting(false)}
+                      matchId={match.id}
+                      players={players}
+                      currentUserId={currentUserId}
+                    />
                   </motion.div>
                 )}
               </AnimatePresence>

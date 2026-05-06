@@ -279,23 +279,36 @@ export function PollAdminView({
   }
 
   const [generateError, setGenerateError] = useState<string | null>(null)
+  const [selectedSchedule, setSelectedSchedule] = useState<any>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [availableRingers, setAvailableRingers] = useState<any[]>([])
 
   async function handleGenerateMatches() {
     setGenerating(true)
     setMatchSchedules([])
     setGenerateError(null)
+    setSelectedSchedule(null)
     try {
-      const { data, error } = await supabase.functions.invoke('generate-match-options', {
-        body: { poll_id: pollId, max_options: 3 },
-      })
-      console.log('[GenerateOptions] data:', JSON.stringify(data)?.slice(0, 300), 'error:', error)
-      if (error) {
-        setGenerateError(typeof error === 'string' ? error : error.message ?? JSON.stringify(error))
-        return
-      }
-      const schedules = data?.weeklySchedules ?? data?.schedules ?? data?.options ?? (Array.isArray(data) ? data : [])
-      if (schedules.length === 0) setGenerateError('No match options returned. Ensure players have voted.')
+      // Use direct fetch with anon key — confirmed working via curl
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-match-options`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+          },
+          body: JSON.stringify({ poll_id: pollId }),
+        },
+      )
+      const data = await res.json()
+      console.log('[GenerateOptions] status:', res.status, 'schedules:', data?.weeklySchedules?.length)
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
+      const schedules = data?.weeklySchedules ?? []
+      if (schedules.length === 0) setGenerateError('No match options returned. Ensure enough players have voted.')
       setMatchSchedules(schedules)
+      setAvailableRingers(data?.availableRingers ?? [])
     } catch (e: any) {
       console.error('[GenerateOptions] error:', e)
       setGenerateError(e?.message ?? 'Unknown error')
@@ -304,44 +317,35 @@ export function PollAdminView({
     }
   }
 
-  async function handleSelectSchedule(schedule: any) {
-    // Create matches directly from the schedule
-    const matches = schedule.matches ?? []
+  async function handleConfirmSchedule() {
+    if (!selectedSchedule) return
+    setConfirming(true)
     let created = 0
 
-    for (const m of matches) {
-      const playerIds = m.playerIds ?? m.player_ids ?? (m.players ?? []).map((p: any) => p.id ?? p).filter(Boolean)
-      if (playerIds.length < 2) continue
-      const matchTime = ((m.timeSlot ?? m.time ?? '19:00').split('-')[0]?.trim())
+    for (const m of selectedSchedule.matches ?? []) {
+      if (!m.playerIds || m.playerIds.length < 2) continue
+      const matchTime = (m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'
       const { error } = await supabase.from('matches').insert({
-        match_date: m.date ?? new Date().toISOString().split('T')[0],
-        match_time: matchTime.length === 5 ? matchTime + ':00' : matchTime,
+        match_date: m.date, match_time: matchTime,
         match_type: 'competitive',
-        status: playerIds.length >= 4 ? 'scheduled' : 'pending',
-        player_ids: playerIds,
-        group_id: groupId,
-        poll_id: pollId,
-        created_manually: false,
+        status: m.status === 'ready' ? 'scheduled' : 'pending',
+        player_ids: m.playerIds, group_id: groupId, poll_id: pollId, created_manually: false,
       })
-      if (!error) created++
-      else console.error('[SelectSchedule] match insert error:', error)
+      if (error) console.error('[Confirm] error:', error)
+      else {
+        created++
+        await supabase.from('notifications').insert(
+          m.playerIds.map((pid: string) => ({
+            user_id: pid, type: 'match_suggested', title: '🎾 Match scheduled!',
+            message: `${m.dayOfWeek} ${m.timeSlot} match with ${(m.playerNames ?? []).join(', ')}`,
+            related_id: groupId, read: false,
+          }))
+        )
+      }
     }
 
-    // Mark poll as processed
     await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
-
-    // Notify players
-    const allPlayerIds = [...new Set(matches.flatMap((m: any) => m.playerIds ?? m.player_ids ?? []))] as string[]
-    if (allPlayerIds.length > 0) {
-      await supabase.from('notifications').insert(
-        allPlayerIds.map((pid: string) => ({
-          user_id: pid, type: 'match_suggested', title: '🎾 Match scheduled!',
-          message: `Your match has been scheduled from the weekly poll`, related_id: groupId, read: false,
-        }))
-      )
-    }
-
-    setMatchSchedules([])
+    setMatchSchedules([]); setSelectedSchedule(null); setConfirming(false)
     onRefetch()
   }
 
@@ -799,13 +803,39 @@ export function PollAdminView({
                   })}
 
                   <button
-                    onClick={() => handleSelectSchedule(schedule)}
-                    className="w-full rounded-xl border-2 border-[#009688] py-2.5 text-[13px] font-bold text-[#009688] hover:bg-teal-50 active:scale-[0.98] transition-all"
+                    onClick={() => setSelectedSchedule(schedule)}
+                    className={cn(
+                      'w-full rounded-xl border-2 py-2.5 text-[13px] font-bold transition-all active:scale-[0.98]',
+                      selectedSchedule?.scheduleNumber === schedule.scheduleNumber
+                        ? 'border-[#009688] bg-[#009688] text-white'
+                        : 'border-[#009688] text-[#009688] hover:bg-teal-50'
+                    )}
                   >
-                    Select this option
+                    {selectedSchedule?.scheduleNumber === schedule.scheduleNumber ? '✓ Selected' : 'Select this option'}
                   </button>
                 </div>
               ))}
+
+              {/* Confirm button */}
+              {selectedSchedule && (
+                <button
+                  onClick={handleConfirmSchedule}
+                  disabled={confirming}
+                  className="w-full rounded-2xl bg-gray-900 py-3.5 text-[14px] font-bold text-white disabled:opacity-50 mt-2"
+                >
+                  {confirming ? '⏳ Scheduling matches...' : `✓ Confirm — schedule ${selectedSchedule.totalMatches ?? selectedSchedule.matches?.length ?? 0} matches`}
+                </button>
+              )}
+
+              {/* Available ringers */}
+              {availableRingers.length > 0 && (
+                <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 mt-2">
+                  <p className="text-[12px] font-semibold text-blue-700 mb-1">Available ringers:</p>
+                  {availableRingers.map((r: any) => (
+                    <p key={r.userId} className="text-[11px] text-blue-600">👤 {r.userName}</p>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -132,86 +132,65 @@ function usePendingRequests(userId: string) {
 
 // ── Discover Groups query ─────────────────────────────────────────────────────
 
-function useDiscoverGroups(userId: string, search: string, myGroupIds: string[], activeFilter: string | null, userCity: string | null) {
+function useDiscoverGroups(userId: string, search: string, myGroupIds: string[], activeFilter: string | null, userCity: string | null, sortBy: string) {
   return useQuery({
-    queryKey: ['discover-groups', userId, search, activeFilter],
+    queryKey: ['discover-groups', userId, search, activeFilter, sortBy],
     enabled: !!userId,
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let query = supabase
         .from('groups')
         .select('id, name, description, city, visibility, join_mode, admin_id')
-        // Accept public, open, or null visibility
         .or('visibility.in.(public,open),visibility.is.null')
-        .order('name')
         .limit(40)
 
+      // Sort server-side
+      if (sortBy === 'newest') query = query.order('created_at', { ascending: false })
+      else query = query.order('name')
+
+      // Search
       if (search.trim()) {
         query = query.or(`name.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%,city.ilike.%${search.trim()}%`)
       }
 
+      // Filters
       if (activeFilter === 'near_me' && userCity) {
         const cityName = userCity.split(',')[0].split(' ')[0].trim()
-        if (cityName.length >= 3) {
-          query = query.or(`city.ilike.%${cityName}%,name.ilike.%${cityName}%,description.ilike.%${cityName}%`)
-        }
+        if (cityName.length >= 3) query = query.ilike('city', `%${cityName}%`)
       }
-
       if (activeFilter === 'open_to_join') {
         query = query.or('join_mode.eq.open,auto_approve.eq.true,join_mode.is.null')
       }
 
-      if (activeFilter === 'active_league') {
-        // Will filter client-side after fetching (need to check leagues table)
-      }
-
-      console.log('[Discover] search:', search)
       const { data: groups, error } = await query
-      console.log('[Discover] results:', groups?.length, 'error:', error)
       if (error) throw error
       if (!groups || groups.length === 0) return []
 
       const filtered = groups.filter((g) => !myGroupIds.includes(g.id))
       if (filtered.length === 0) return []
-
       const filteredIds = filtered.map((g) => g.id)
 
       // Count members
       const { data: memberRows } = await supabase
-        .from('group_members')
-        .select('group_id')
-        .in('group_id', filteredIds)
-        .eq('status', 'approved')
-
+        .from('group_members').select('group_id')
+        .in('group_id', filteredIds).eq('status', 'approved')
       const countMap: Record<string, number> = {}
-      for (const m of memberRows ?? []) {
-        countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
-      }
+      for (const m of memberRows ?? []) countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
 
-      // Check user's membership status for each group
+      // User's membership status
       const { data: membershipRows } = await supabase
-        .from('group_members')
-        .select('group_id, status')
-        .in('group_id', filteredIds)
-        .eq('user_id', userId)
-
+        .from('group_members').select('group_id, status')
+        .in('group_id', filteredIds).eq('user_id', userId)
       const membershipStatusMap: Record<string, 'pending' | 'approved'> = {}
-      for (const r of membershipRows ?? []) {
-        membershipStatusMap[r.group_id] = r.status as 'pending' | 'approved'
-      }
+      for (const r of membershipRows ?? []) membershipStatusMap[r.group_id] = r.status as 'pending' | 'approved'
 
-      // Exclude groups where user is already an approved member
-      const visibleGroups = filtered.filter(
-        (g) => membershipStatusMap[g.id] !== 'approved'
-      )
+      const visibleGroups = filtered.filter((g) => membershipStatusMap[g.id] !== 'approved')
 
       const result = visibleGroups.map((g) => ({
-        ...g,
-        memberCount: countMap[g.id] ?? 0,
-        membershipStatus: membershipStatusMap[g.id] ?? 'none',
+        ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: membershipStatusMap[g.id] ?? 'none',
       }))
 
-      // Sort by member count if filter is 'most_members'
-      if (activeFilter === 'most_members') {
+      // Client-side sorts
+      if (sortBy === 'most_members') {
         result.sort((a, b) => b.memberCount - a.memberCount)
       }
 
@@ -545,6 +524,7 @@ export function CommunityPage() {
   const { t }        = useTranslation()
   const [search, setSearch]                   = useState('')
   const [activeFilter, setActiveFilter]       = useState<string | null>(null)
+  const [sortBy, setSortBy]                   = useState('newest')
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [playerSearch, setPlayerSearch]       = useState('')
   const [playerCityFilter, setPlayerCityFilter] = useState(false)
@@ -560,11 +540,7 @@ export function CommunityPage() {
   const myGroupIds = myGroups.map((g) => g.id)
 
   const { data: discoverGroups = [], isLoading: loadingDiscover } = useDiscoverGroups(
-    userId,
-    search,
-    myGroupIds,
-    activeFilter,
-    profile?.city ?? null,
+    userId, search, myGroupIds, activeFilter, profile?.city ?? null, sortBy,
   )
 
   const { data: foundPlayers = [] } = useFindPlayers(
@@ -712,20 +688,35 @@ export function CommunityPage() {
           </div>
 
           {/* Filter chips */}
-          <div className="flex gap-2 mb-3 overflow-x-auto no-scrollbar pb-1">
+          <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-0.5">
             {[
               { key: 'near_me',      label: 'Near me'       },
               { key: 'open_to_join', label: 'Open to join'  },
-              { key: 'active_league', label: 'Has league'   },
-              { key: 'most_members', label: 'Most members'  },
             ].map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-                className={`flex-shrink-0 rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${
+                className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
                   activeFilter === key
                     ? 'bg-[#009688] text-white border-[#009688]'
                     : 'bg-white text-gray-600 border-gray-200'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="text-gray-300 self-center">|</span>
+            {[
+              { key: 'newest',       label: 'Newest'        },
+              { key: 'most_members', label: 'Most members'  },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setSortBy(key)}
+                className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium border transition-colors ${
+                  sortBy === key
+                    ? 'bg-gray-800 text-white border-gray-800'
+                    : 'bg-gray-50 text-gray-500 border-gray-200'
                 }`}
               >
                 {label}

@@ -52,6 +52,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
         .from('rating_history')
         .select('rating_after, rating_change, created_at')
         .eq('user_id', userId)
+        .gte('created_at', '2026-04-29T00:00:00Z')
         .order('created_at', { ascending: true })
         .limit(100)
       return (data ?? []).map(r => ({

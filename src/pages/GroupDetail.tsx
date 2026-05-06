@@ -463,9 +463,10 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
 
   const filtered = view === 'upcoming' ? upcoming : filteredPast
 
-  // Past stats
-  const pastCount = past.length
-  const winsCount = past.filter(m => m.didWin === true).length
+  // Personal stats in this group (only matches user participated in)
+  const myPastMatches = past.filter(m => m.player_ids.includes(userId))
+  const pastCount = myPastMatches.length
+  const winsCount = myPastMatches.filter(m => m.didWin === true).length
 
   if (isLoading) return <TabSkeleton />
 
@@ -516,19 +517,17 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
             ))}
           </div>
           {/* Stats summary */}
-          <div className="flex gap-2 mb-3">
-            <div className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-center">
-              <p className="text-[16px] font-black text-gray-900">{pastCount}</p>
-              <p className="text-[10px] text-gray-400">Played</p>
+          {pastCount > 0 && (
+          <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 mb-3">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Your record in this group</p>
+            <div className="flex gap-4">
+              <span className="text-[13px] font-bold text-gray-900">{pastCount} played</span>
+              <span className="text-[13px] font-bold text-green-700">{winsCount}W</span>
+              <span className="text-[13px] font-bold text-red-500">{pastCount - winsCount}L</span>
+              <span className="text-[13px] font-bold text-gray-500">{pastCount > 0 ? Math.round((winsCount / pastCount) * 100) : 0}%</span>
             </div>
-            <div className="flex-1 rounded-xl bg-green-50 border border-green-100 px-3 py-2 text-center">
-              <p className="text-[16px] font-black text-green-700">{winsCount}</p>
-              <p className="text-[10px] text-green-600">Wins</p>
-            </div>
-            <div className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-center">
-              <p className="text-[16px] font-black text-gray-900">{pastCount > 0 ? Math.round((winsCount / pastCount) * 100) : 0}%</p>
-              <p className="text-[10px] text-gray-400">Win rate</p>
-            </div>
+          </div>
+          )}
           </div>
         </>
       )}

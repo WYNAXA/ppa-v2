@@ -132,17 +132,15 @@ export function PollAdminView({
   onRefetch,
 }: PollAdminViewProps) {
   // Safe parse time_slots and additional_options (may be JSON strings from DB)
-  const safeTimeSlots: PollSlot[] = useMemo(() => {
-    if (Array.isArray(safePoll.time_slots)) return safePoll.time_slots
-    if (typeof safePoll.time_slots === 'string') { try { return JSON.parse(safePoll.time_slots) } catch { return [] } }
-    return []
-  }, [safePoll.time_slots])
-  const safeAdditionalOptions: string[] = useMemo(() => {
-    if (Array.isArray(safePoll.additional_options)) return safePoll.additional_options
-    if (typeof safePoll.additional_options === 'string') { try { return JSON.parse(safePoll.additional_options) } catch { return [] } }
-    return []
-  }, [safePoll.additional_options])
-  const safePoll = { ...poll, time_slots: safeTimeSlots, additional_options: safeAdditionalOptions }
+  const safePoll = useMemo(() => {
+    const ts = Array.isArray(poll.time_slots) ? poll.time_slots
+      : typeof poll.time_slots === 'string' ? (() => { try { return JSON.parse(poll.time_slots as unknown as string) } catch { return [] } })()
+      : []
+    const ao = Array.isArray(poll.additional_options) ? poll.additional_options
+      : typeof poll.additional_options === 'string' ? (() => { try { return JSON.parse(poll.additional_options as unknown as string) } catch { return [] } })()
+      : []
+    return { ...poll, time_slots: ts as PollSlot[], additional_options: ao as string[] }
+  }, [poll])
 
   // ── State ──
   const [expandedSection, setExpandedSection] = useState<'available' | 'unavailable' | 'notVoted' | null>(null)

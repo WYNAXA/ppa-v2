@@ -152,7 +152,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       if (activeFilter === 'near_me' && userCity) {
         const cityName = userCity.split(',')[0].split(' ')[0].trim()
         if (cityName.length >= 3) {
-          query = query.or(`city.ilike.%${cityName}%,name.ilike.%${cityName}%,description.ilike.%${cityName}%`)
+          query = query.or(`city.ilike.%${cityName}%,location.ilike.%${cityName}%,name.ilike.%${cityName}%,description.ilike.%${cityName}%`)
         }
       }
 

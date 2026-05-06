@@ -488,7 +488,20 @@ export function BookCourtPage() {
       })
       if (!res.ok) throw new Error('Failed to fetch availability')
       const json = await res.json()
-      setSlots(json.slots ?? json ?? [])
+      console.log('[Availability] raw:', JSON.stringify(json).slice(0, 200))
+      // The API returns { slots: [{ start_time, end_time, available_courts }] }
+      const rawSlots = json.slots ?? json.availableSlots ?? json ?? []
+      // Flatten: each slot with available_courts becomes selectable
+      const parsed = rawSlots.map((s: any) => ({
+        start_time: s.start_time,
+        end_time: s.end_time,
+        available: true,
+        court_id: s.available_courts?.[0]?.id ?? null,
+        court_label: s.available_courts?.[0]?.name ?? null,
+        courts: s.available_courts ?? [],
+        price: null,
+      }))
+      setSlots(parsed)
     } catch {
       setSlotsError('Could not load availability. Please try another day.')
     } finally {

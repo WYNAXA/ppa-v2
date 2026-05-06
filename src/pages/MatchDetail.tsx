@@ -337,6 +337,20 @@ export function MatchDetailPage() {
     },
   })
 
+  // Auto-open result sheet from navigation state (must be before early returns)
+  useEffect(() => {
+    if (!data || !profile?.id) return
+    const match = data.match
+    const playerIds = match.player_ids ?? []
+    const isParticipant = playerIds.includes(profile.id)
+    const guestNames = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map((n: string) => n.trim()) ?? []
+    const effectiveCount = playerIds.length + guestNames.length
+    const canRecord = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectiveCount >= 4 && !data.result
+    if ((location.state as any)?.openResult && canRecord) {
+      setShowRecordResult(true)
+    }
+  }, [data, location.state, profile?.id])
+
   const voteMutation = useMutation({
     mutationFn: async ({ vote, reason }: { vote: 'confirm' | 'dispute'; reason?: string }) => {
       const result = data?.result
@@ -419,12 +433,6 @@ export function MatchDetailPage() {
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result
-
-  useEffect(() => {
-    if ((location.state as any)?.openResult && canRecordResult) {
-      setShowRecordResult(true)
-    }
-  }, [location.state, canRecordResult])
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }

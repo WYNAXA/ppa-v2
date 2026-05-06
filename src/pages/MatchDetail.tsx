@@ -716,6 +716,8 @@ export function MatchDetailPage() {
         const pointsIfWin  = meOnTeam1 ? pred.pointsIfAWins  : pred.pointsIfBWins
         const pointsIfLose = meOnTeam1 ? pred.pointsIfBWins  : pred.pointsIfAWins
         const isEven = Math.abs(pred.probA - 0.5) < 0.03
+        const t1Names = team1Ids.map(id => players.find(p => p.id === id)?.name?.split(' ')[0] ?? '?').join(' + ')
+        const t2Names = team2Ids.map(id => players.find(p => p.id === id)?.name?.split(' ')[0] ?? '?').join(' + ')
         return (
           <div className="px-5 mb-4">
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
@@ -729,16 +731,16 @@ export function MatchDetailPage() {
                   <p className="text-[12px] font-semibold text-gray-500 mt-1">Equal teams</p>
                   <p className="text-[11px] text-gray-400 mt-0.5">Both teams have similar ELO ratings. This will be a closely contested match!</p>
                   <div className="flex justify-center gap-3 mt-2 text-[11px] text-gray-500">
-                    <span>Team 1 avg: <strong>{avgA.toLocaleString()} ELO</strong></span>
+                    <span>{t1Names}: <strong>{avgA.toLocaleString()} ELO</strong></span>
                     <span>·</span>
-                    <span>Team 2 avg: <strong>{avgB.toLocaleString()} ELO</strong></span>
+                    <span>{t2Names}: <strong>{avgB.toLocaleString()} ELO</strong></span>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-center gap-3">
                   <div className="flex-1 text-center">
                     <p className="text-[24px] font-black text-teal-600">{Math.round(pred.probA * 100)}%</p>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Team 1 win</p>
+                    <p className="text-[10px] text-gray-500 font-semibold mb-0.5">{t1Names}</p>
                     <p className="text-[11px] text-teal-700 font-semibold">avg {avgA.toLocaleString()} ELO</p>
                     <p className="text-[10px] text-teal-500">+{pred.pointsIfAWins} if win</p>
                   </div>
@@ -747,7 +749,7 @@ export function MatchDetailPage() {
                   </div>
                   <div className="flex-1 text-center">
                     <p className="text-[24px] font-black text-orange-500">{Math.round(pred.probB * 100)}%</p>
-                    <p className="text-[10px] text-gray-400 mb-0.5">Team 2 win</p>
+                    <p className="text-[10px] text-gray-500 font-semibold mb-0.5">{t2Names}</p>
                     <p className="text-[11px] text-orange-600 font-semibold">avg {avgB.toLocaleString()} ELO</p>
                     <p className="text-[10px] text-orange-400">+{pred.pointsIfBWins} if win</p>
                   </div>

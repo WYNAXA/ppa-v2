@@ -227,7 +227,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   }, [step])
 
   function updateSet(index: number, side: 'team1' | 'team2', raw: string) {
-    const val = raw === '' ? '' : Math.min(9, Math.max(0, parseInt(raw, 10)))
+    const val = raw === '' ? '' : Math.min(7, Math.max(0, parseInt(raw, 10)))
     setSets((prev) => prev.map((s, i) => i === index ? { ...s, [side]: val } : s))
     // Auto-advance: if a digit was entered, move to the next input
     if (raw !== '') {
@@ -373,12 +373,16 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                   <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                     <p className="text-[13px] text-gray-500 mb-4 text-center">{t('record_result.enter_scores')}</p>
 
-                    {/* Column headers */}
+                    {/* Column headers with player names */}
                     <div className="grid grid-cols-[1fr_60px_16px_60px] gap-2 mb-2 px-1">
                       <div />
-                      <p className="text-[11px] font-bold text-teal-700 text-center uppercase tracking-wide">{t('record_result.team1')}</p>
+                      <p className="text-[10px] font-bold text-teal-700 text-center leading-tight truncate">
+                        {team1.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')}
+                      </p>
                       <div />
-                      <p className="text-[11px] font-bold text-orange-600 text-center uppercase tracking-wide">{t('record_result.team2')}</p>
+                      <p className="text-[10px] font-bold text-orange-600 text-center leading-tight truncate">
+                        {team2.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')}
+                      </p>
                     </div>
 
                     {sets.map((s, i) => {
@@ -402,7 +406,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               type="number"
                               inputMode="numeric"
                               min={0}
-                              max={9}
+                              max={7}
                               value={s.team1}
                               onChange={(e) => updateSet(i, 'team1', e.target.value)}
                               className="w-[60px] rounded-xl border border-gray-200 bg-teal-50 py-2.5 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
@@ -413,7 +417,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               type="number"
                               inputMode="numeric"
                               min={0}
-                              max={9}
+                              max={7}
                               value={s.team2}
                               onChange={(e) => updateSet(i, 'team2', e.target.value)}
                               className="w-[60px] rounded-xl border border-gray-200 bg-orange-50 py-2.5 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"

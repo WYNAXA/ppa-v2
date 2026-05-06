@@ -131,6 +131,19 @@ export function PollAdminView({
   currentUserName,
   onRefetch,
 }: PollAdminViewProps) {
+  // Safe parse time_slots and additional_options (may be JSON strings from DB)
+  const safeTimeSlots: PollSlot[] = useMemo(() => {
+    if (Array.isArray(safePoll.time_slots)) return safePoll.time_slots
+    if (typeof safePoll.time_slots === 'string') { try { return JSON.parse(safePoll.time_slots) } catch { return [] } }
+    return []
+  }, [safePoll.time_slots])
+  const safeAdditionalOptions: string[] = useMemo(() => {
+    if (Array.isArray(safePoll.additional_options)) return safePoll.additional_options
+    if (typeof safePoll.additional_options === 'string') { try { return JSON.parse(safePoll.additional_options) } catch { return [] } }
+    return []
+  }, [safePoll.additional_options])
+  const safePoll = { ...poll, time_slots: safeTimeSlots, additional_options: safeAdditionalOptions }
+
   // ── State ──
   const [expandedSection, setExpandedSection] = useState<'available' | 'unavailable' | 'notVoted' | null>(null)
   const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
@@ -208,7 +221,7 @@ export function PollAdminView({
 
   const dayData = useMemo(() => {
     const slotsByDay: Record<string, PollSlot[]> = {}
-    for (const slot of poll.time_slots) {
+    for (const slot of safePoll.time_slots) {
       if (!slotsByDay[slot.day]) slotsByDay[slot.day] = []
       slotsByDay[slot.day].push(slot)
     }
@@ -228,23 +241,23 @@ export function PollAdminView({
 
       return { day, dateLabel, slots: daySlots, availablePlayers }
     })
-  }, [poll.time_slots, poll.week_start_date, availableResponses])
+  }, [safePoll.time_slots, poll.week_start_date, availableResponses])
 
   // ── Slot-level data ──
   const slotData = useMemo(() => {
-    return poll.time_slots.map((slot) => {
+    return safePoll.time_slots.map((slot) => {
       const voters = responses.filter((r) => isUserAvailableForSlot(r, slot))
       return { slot, voters }
     })
-  }, [poll.time_slots, responses])
+  }, [safePoll.time_slots, responses])
 
   // ── Additional options summary ──
   const additionalSummary = useMemo(() => {
-    return (poll.additional_options ?? []).map((opt) => {
+    return (safePoll.additional_options ?? []).map((opt) => {
       const players = responses.filter((r) => r.additional_responses?.[opt] === true)
       return { option: opt, players }
     })
-  }, [poll.additional_options, responses])
+  }, [safePoll.additional_options, responses])
 
   // Any slot with 4+ players?
   const hasViableSlot = slotData.some((s) => s.voters.length >= 4)

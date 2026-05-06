@@ -363,7 +363,7 @@ export function MatchDetailPage() {
       })
       if (vote === 'confirm') {
         // Check if opposing team has now fully confirmed
-        const submittedBy = result.submitted_by
+        const submittedBy = result.submitted_by ?? ''
         const opposingTeam = result.team1_players?.includes(submittedBy)
           ? result.team2_players : result.team1_players
         const { count } = await supabase
@@ -799,7 +799,7 @@ export function MatchDetailPage() {
 
       {/* Verification card */}
       {result && (result.verification_status === 'pending' || result.verification_status === 'disputed') && isParticipant && (() => {
-        const submittedBy = result.submitted_by
+        const submittedBy = result.submitted_by ?? ''
         const submittingTeam = result.team1_players?.includes(submittedBy) ? result.team1_players : result.team2_players
         const opposingTeam = result.team1_players?.includes(submittedBy) ? result.team2_players : result.team1_players
         const isOnSubmittingTeam = submittingTeam?.includes(currentUserId)

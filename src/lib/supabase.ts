@@ -11,8 +11,6 @@ console.log('[Supabase] URL:', SUPABASE_URL?.slice(0, 30), 'Key exists:', !!SUPA
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
   auth: {
     persistSession: true,
-    storageKey: 'ppa-auth-token',
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     autoRefreshToken: true,
     detectSessionInUrl: true,
   },

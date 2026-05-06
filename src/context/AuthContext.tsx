@@ -23,25 +23,28 @@ interface AuthContextValue {
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
 
-async function ensureProfile(user: User): Promise<Profile> {
+async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
     .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city')
-    .eq('id', user.id)
+    .eq('id', userId)
     .single()
 
   if (!error && data) return data
 
   // No profile yet — create one
-  const name = user.user_metadata?.name ?? user.email?.split('@')[0] ?? 'Player'
-  const { data: created, error: createError } = await supabase
-    .from('profiles')
-    .insert({ id: user.id, name, email: user.email ?? '' })
-    .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city')
-    .single()
-
-  if (createError) throw createError
-  return created
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    const name = user?.user_metadata?.name ?? user?.email?.split('@')[0] ?? 'Player'
+    const { data: created } = await supabase
+      .from('profiles')
+      .insert({ id: userId, name, email: user?.email ?? '' })
+      .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city')
+      .single()
+    return created
+  } catch {
+    return null
+  }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -49,66 +52,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
-  // Track the user ID we've already fetched a profile for to avoid double-load
   const profileLoadedForRef = useRef('')
+  const mountedRef = useRef(true)
 
   useEffect(() => {
+    mountedRef.current = true
     console.log('[Auth] initializing')
 
-    // Safety timeout — never leave user on splash forever
-    const timeout = setTimeout(() => {
-      console.warn('[Auth] timeout — forcing loading=false after 15s')
-      setLoading(false)
-    }, 15000)
+    // PRIMARY: onAuthStateChange fires immediately with current session
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log('[Auth] state change:', event, newSession?.user?.id ?? 'none')
+        if (!mountedRef.current) return
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      console.log('[Auth] getSession resolved, user:', session?.user?.id ?? 'none')
-      clearTimeout(timeout)
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        profileLoadedForRef.current = session.user.id
-        try {
-          const p = await ensureProfile(session.user)
-          setProfile(p)
-        } catch (e) {
-          console.warn('[Auth] profile fetch failed:', e)
+        setSession(newSession)
+        setUser(newSession?.user ?? null)
+
+        if (newSession?.user) {
+          if (profileLoadedForRef.current !== newSession.user.id) {
+            profileLoadedForRef.current = newSession.user.id
+            const p = await fetchProfile(newSession.user.id)
+            if (mountedRef.current && p) setProfile(p)
+          }
+        } else {
+          profileLoadedForRef.current = ''
+          setProfile(null)
         }
+
+        if (mountedRef.current) setLoading(false)
+      },
+    )
+
+    // SECONDARY: getSession triggers onAuthStateChange above
+    // but also acts as fallback if onAuthStateChange doesn't fire
+    supabase.auth.getSession().then(({ data: { session: s } }) => {
+      console.log('[Auth] getSession resolved:', s?.user?.id ?? 'none')
+      // If still loading after getSession and no user, stop loading
+      if (!s && mountedRef.current) {
+        setTimeout(() => {
+          if (mountedRef.current && loading) {
+            console.warn('[Auth] no session — stopping loading')
+            setLoading(false)
+          }
+        }, 3000)
       }
-      setLoading(false)
-    }).catch((err) => {
-      console.error('[Auth] getSession error:', err)
-      clearTimeout(timeout)
-      setLoading(false)
+    }).catch(() => {
+      if (mountedRef.current) setLoading(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session)
-      setUser(session?.user ?? null)
-      if (session?.user) {
-        // Skip re-fetch if we already loaded this user's profile (avoids double render on initial load)
-        if (profileLoadedForRef.current === session.user.id) return
-        profileLoadedForRef.current = session.user.id
-        try {
-          const p = await ensureProfile(session.user)
-          setProfile(p)
-        } catch {
-          // profile fetch failure is non-fatal
-        }
-      } else {
-        profileLoadedForRef.current = ''
-        setProfile(null)
-      }
-    })
-
-    return () => subscription.unsubscribe()
-  }, [])
+    return () => {
+      mountedRef.current = false
+      subscription.unsubscribe()
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const signOut = async () => {
     await supabase.auth.signOut()
     setSession(null)
     setUser(null)
     setProfile(null)
+    profileLoadedForRef.current = ''
   }
 
   return (

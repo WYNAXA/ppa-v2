@@ -57,9 +57,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Safety timeout — never leave user on splash forever
     const timeout = setTimeout(() => {
-      console.warn('[Auth] timeout — forcing loading=false after 5s')
+      console.warn('[Auth] timeout — forcing loading=false after 15s')
       setLoading(false)
-    }, 5000)
+    }, 15000)
 
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       console.log('[Auth] getSession resolved, user:', session?.user?.id ?? 'none')

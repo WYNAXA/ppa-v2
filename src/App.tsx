@@ -11,7 +11,7 @@ import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
 
-// v1.0.8 — bump this comment to force service worker cache invalidation
+// v1.0.9 — bump this comment to force service worker cache invalidation
 
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))

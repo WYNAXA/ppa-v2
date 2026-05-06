@@ -322,7 +322,7 @@ export function PollAdminView({
     await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
 
     // Notify players
-    const allPlayerIds = [...new Set(matches.flatMap((m: any) => m.playerIds ?? m.player_ids ?? []))]
+    const allPlayerIds = [...new Set(matches.flatMap((m: any) => m.playerIds ?? m.player_ids ?? []))] as string[]
     if (allPlayerIds.length > 0) {
       await supabase.from('notifications').insert(
         allPlayerIds.map((pid: string) => ({

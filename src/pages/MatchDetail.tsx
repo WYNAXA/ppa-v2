@@ -1039,6 +1039,15 @@ export function MatchDetailPage() {
         )}
 
         <div className="grid grid-cols-2 gap-2">
+          {!match.booked_venue_name && match.status !== 'completed' && match.status !== 'cancelled' && isParticipant && (
+            <button
+              onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
+            >
+              <BookOpen className="h-4 w-4" />
+              Book Court
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={() => setShowEdit(true)}

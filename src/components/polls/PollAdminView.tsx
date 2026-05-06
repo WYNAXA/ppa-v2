@@ -719,7 +719,7 @@ export function PollAdminView({
       )}
 
       {/* 7. Match Generation (Admin Only) */}
-      {isAdmin && hasViableSlot && (
+      {isAdmin && (hasViableSlot || matchSchedules.length > 0) && (
         <div className="rounded-2xl border border-teal-100 bg-teal-50/30 px-4 py-4 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">

@@ -286,10 +286,14 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
     },
   })
 
-  function copyInvite() {
+  async function shareOrCopyInvite() {
     const url = inviteCode
       ? `${window.location.origin}/join/${inviteCode}`
       : `${window.location.origin}/community/groups/${groupId}`
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Join our padel group', url }) } catch { /* cancelled */ }
+      return
+    }
     const doWrite = () => { setCopied(true); setTimeout(() => setCopied(false), 2000) }
     if (navigator.clipboard) {
       navigator.clipboard.writeText(url).then(doWrite).catch(() => { fallbackCopy(url); doWrite() })
@@ -311,14 +315,12 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
 
   return (
     <div>
-      {isAdmin && (
-        <button
-          onClick={copyInvite}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 mb-4 text-[13px] font-semibold text-teal-700 transition-colors"
-        >
-          {copied ? <><Check className="h-4 w-4" /> Copied!</> : <><Share2 className="h-4 w-4" /> Copy invite link</>}
-        </button>
-      )}
+      <button
+        onClick={shareOrCopyInvite}
+        className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 mb-4 text-[13px] font-semibold text-teal-700 transition-colors"
+      >
+        {copied ? <><Check className="h-4 w-4" /> Copied!</> : <><Share2 className="h-4 w-4" /> Share group</>}
+      </button>
 
       {/* Member/Ringer filter */}
       <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
@@ -450,7 +452,7 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
   const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd')
 
   const upcoming = matches.filter((m) => m.match_date >= today)
-  const past = matches.filter((m) => m.match_date < today)
+  const past = [...matches.filter((m) => m.match_date < today)].sort((a, b) => b.match_date.localeCompare(a.match_date))
 
   const filteredPast = past.filter((m) => {
     if (pastFilter === 'competitive') return m.match_type === 'competitive'
@@ -771,16 +773,21 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   async function handleBannerUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (!file.type.startsWith('image/')) return
+    if (file.size > 5 * 1024 * 1024) return
     setUploading(true)
     const ext  = file.name.split('.').pop() ?? 'jpg'
     const path = `${group.id}/banner.${ext}`
     const { error: uploadError } = await supabase.storage
       .from('group-banners')
-      .upload(path, file, { upsert: true })
-    if (!uploadError) {
+      .upload(path, file, { upsert: true, cacheControl: '3600' })
+    if (uploadError) {
+      console.error('[Banner] upload error:', uploadError)
+    } else {
       const { data: { publicUrl } } = supabase.storage.from('group-banners').getPublicUrl(path)
-      await supabase.from('groups').update({ banner_url: publicUrl }).eq('id', group.id)
-      queryClient.invalidateQueries({ queryKey: ['group', group.id] })
+      const { error: updateError } = await supabase.from('groups').update({ banner_url: publicUrl }).eq('id', group.id)
+      if (updateError) console.error('[Banner] update error:', updateError)
+      else queryClient.invalidateQueries({ queryKey: ['group', group.id] })
     }
     setUploading(false)
   }
@@ -1102,12 +1109,15 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               <div className="flex items-center justify-between py-1">
                 <div>
                   <p className="text-[13px] font-medium text-gray-700">Auto-approve members</p>
-                  <p className="text-[11px] text-gray-400">Skip approval for join requests</p>
+                  <p className="text-[11px] text-gray-400">
+                    {visibility === 'private' ? 'Disabled for private groups' : 'Skip approval for join requests'}
+                  </p>
                 </div>
                 <button
-                  onClick={() => setAutoApprove(v => !v)}
+                  onClick={() => visibility !== 'private' && setAutoApprove(v => !v)}
+                  disabled={visibility === 'private'}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    autoApprove ? 'bg-[#009688]' : 'bg-gray-200'
+                    visibility === 'private' ? 'bg-gray-100 opacity-50' : autoApprove ? 'bg-[#009688]' : 'bg-gray-200'
                   }`}
                 >
                   <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${

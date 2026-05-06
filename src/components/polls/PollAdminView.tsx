@@ -278,18 +278,27 @@ export function PollAdminView({
     setRemindedUsers((prev) => new Set([...prev, ...toRemind.map((m) => m.id)]))
   }
 
+  const [generateError, setGenerateError] = useState<string | null>(null)
+
   async function handleGenerateMatches() {
     setGenerating(true)
     setMatchSchedules([])
+    setGenerateError(null)
     try {
       const { data, error } = await supabase.functions.invoke('generate-match-options', {
         body: { poll_id: pollId, max_options: 3 },
       })
-      console.log('[GenerateOptions] data:', JSON.stringify(data)?.slice(0, 200), 'error:', error)
+      console.log('[GenerateOptions] data:', JSON.stringify(data)?.slice(0, 300), 'error:', error)
+      if (error) {
+        setGenerateError(typeof error === 'string' ? error : error.message ?? JSON.stringify(error))
+        return
+      }
       const schedules = data?.weeklySchedules ?? data?.schedules ?? data?.options ?? (Array.isArray(data) ? data : [])
+      if (schedules.length === 0) setGenerateError('No match options returned. Ensure players have voted.')
       setMatchSchedules(schedules)
-    } catch (e) {
+    } catch (e: any) {
       console.error('[GenerateOptions] error:', e)
+      setGenerateError(e?.message ?? 'Unknown error')
     } finally {
       setGenerating(false)
     }
@@ -736,6 +745,13 @@ export function PollAdminView({
             <div className="flex flex-col items-center py-6 gap-2">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
               <p className="text-[12px] text-gray-400">Finding optimal match configurations...</p>
+            </div>
+          )}
+
+          {generateError && (
+            <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
+              <p className="text-[12px] font-semibold text-red-700">Generation failed</p>
+              <p className="text-[11px] text-red-500 mt-0.5">{generateError}</p>
             </div>
           )}
 

@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format, parseISO } from 'date-fns'
+import { format } from 'date-fns'
 import { Bell, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Users, Zap, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -127,12 +127,11 @@ export function PollAdminView({
   groupId,
   poll,
   isAdmin,
-  currentUserId,
+  currentUserId: _currentUserId,
   currentUserName,
   onRefetch,
 }: PollAdminViewProps) {
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
 
   // ── State ──
   const [expandedSection, setExpandedSection] = useState<'available' | 'unavailable' | 'notVoted' | null>(null)

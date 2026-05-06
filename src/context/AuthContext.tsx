@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
@@ -50,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [loading, setLoading] = useState(true)
   // Track the user ID we've already fetched a profile for to avoid double-load
-  const profileLoadedForRef = { current: '' }
+  const profileLoadedForRef = useRef('')
 
   useEffect(() => {
     console.log('[Auth] initializing')

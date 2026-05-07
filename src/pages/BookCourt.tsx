@@ -1568,7 +1568,8 @@ export function BookCourtPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white shadow-2xl max-h-[85vh] flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white shadow-2xl max-h-[80vh] flex flex-col"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
             >
               {/* Handle + title */}
               <div className="flex-shrink-0 px-5 pt-4 pb-3">

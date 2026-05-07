@@ -950,54 +950,49 @@ export function BookCourtPage() {
                 </div>
               </div>
 
-              {/* Date list */}
+              {/* Date calendar grid */}
               <div>
-                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">Date</p>
-                <div className="flex flex-col gap-1.5">
-                  {dateRange.map(({ date, label, isPpaExclusive }) => (
-                    <button
-                      key={date}
-                      onClick={() => setSelectedDate(date)}
-                      className={cn(
-                        'w-full text-left rounded-2xl border px-4 py-3 transition-all active:scale-[0.99]',
-                        selectedDate === date
-                          ? 'border-[#009688] bg-teal-50 shadow-sm'
-                          : isPpaExclusive
-                            ? 'border-teal-100 bg-teal-50/40 hover:border-teal-300'
-                            : 'border-gray-100 bg-white hover:border-gray-200',
-                      )}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2.5">
-                          <Calendar
-                            className={cn(
-                              'h-4 w-4 flex-shrink-0',
-                              selectedDate === date ? 'text-[#009688]' : 'text-gray-400',
-                            )}
-                          />
-                          <span
-                            className={cn(
-                              'text-[14px] font-semibold',
-                              selectedDate === date ? 'text-[#009688]' : 'text-gray-800',
-                            )}
-                          >
-                            {label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {isPpaExclusive && (
-                            <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">
-                              PPA exclusive
-                            </span>
-                          )}
-                          {selectedDate === date && (
-                            <CheckCircle className="h-4 w-4 text-[#009688] flex-shrink-0" />
-                          )}
-                        </div>
-                      </div>
-                    </button>
+                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">Select date</p>
+                <div className="grid grid-cols-7 gap-1 text-center mb-1">
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                    <span key={d} className="text-[10px] font-semibold text-gray-400">{d}</span>
                   ))}
                 </div>
+                <div className="grid grid-cols-7 gap-1">
+                  {(() => {
+                    // Pad start to align with day-of-week
+                    const firstDate = dateRange[0]?.date ? new Date(dateRange[0].date + 'T12:00:00') : new Date()
+                    const startDow = (firstDate.getDay() + 6) % 7 // Mon=0
+                    const pads = Array.from({ length: startDow }, (_, i) => <div key={`pad-${i}`} />)
+                    const cells = dateRange.map(({ date, isPpaExclusive }) => {
+                      const isSelected = selectedDate === date
+                      const d = new Date(date + 'T12:00:00')
+                      return (
+                        <button
+                          key={date}
+                          onClick={() => setSelectedDate(date)}
+                          className={cn(
+                            'h-10 w-full rounded-xl text-[13px] font-semibold transition-all relative',
+                            isSelected ? 'bg-[#009688] text-white' : 'bg-white text-gray-800 hover:bg-gray-50',
+                            isPpaExclusive && !isSelected && 'bg-teal-50/60',
+                          )}
+                        >
+                          {d.getDate()}
+                          {isPpaExclusive && !isSelected && (
+                            <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-teal-400" />
+                          )}
+                        </button>
+                      )
+                    })
+                    return [...pads, ...cells]
+                  })()}
+                </div>
+                {selectedDate && (
+                  <p className="text-[12px] text-[#009688] font-semibold mt-2">
+                    {format(new Date(selectedDate + 'T12:00:00'), 'EEEE d MMMM yyyy')}
+                    {dateRange.find(d => d.date === selectedDate)?.isPpaExclusive && ' · PPA exclusive'}
+                  </p>
+                )}
               </div>
 
               {/* Slots */}

@@ -484,13 +484,13 @@ async function generateMaximizeFullMatchesStrategy(
   
   // Sort days by UNSCHEDULED player count
   const sortedDays = dayAnalysis
-    .filter(da => da.maxFullMatches > 0)
+    .filter(da => da.playerCount >= 2)
     .map(da => {
       const unscheduledCount = da.playerIds.filter(id => !scheduledPlayers.has(id)).length;
       return { ...da, unscheduledCount };
     })
-    .filter(da => da.unscheduledCount >= 4)
-    .sort((a, b) => b.unscheduledCount - a.unscheduledCount);
+    .filter(da => da.unscheduledCount >= 2)
+    .sort((a, b) => a.unscheduledCount - b.unscheduledCount);
 
   console.log(`   Days with unscheduled players: ${sortedDays.map(d => `${d.day}(${d.unscheduledCount})`).join(', ')}`);
 
@@ -518,9 +518,9 @@ async function generateMaximizeFullMatchesStrategy(
 
     console.log(`   ${dayInfo.day}: ${availablePlayers.length} unscheduled players available`);
 
-    // Create matches for this day
+    // Create matches for this day (full or partial)
     let dayMatchesCreated = 0;
-    while (availablePlayers.length >= 4 && dayMatchesCreated === 0) {
+    while (availablePlayers.length >= 2 && dayMatchesCreated === 0) {
       const matchPlayers = availablePlayers.slice(0, 4);
 
       const match = await createBestMatch(

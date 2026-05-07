@@ -258,12 +258,14 @@ export function AvailabilityPollPage() {
   async function checkHouseholdConflicts(): Promise<any[]> {
     if (!poll || !userId || selectedSlots.length === 0) return []
     try {
-      const { data: result } = await supabase.rpc('get_household_conflicts', {
+      const { data: result, error } = await supabase.rpc('get_household_conflicts', {
         p_user_id: userId,
         p_slots: selectedSlots,
       })
+      if (error) { console.warn('[Conflicts] RPC error, skipping:', error.message); return [] }
       return result ?? []
-    } catch {
+    } catch (e) {
+      console.warn('[Conflicts] RPC not available, skipping')
       return []
     }
   }

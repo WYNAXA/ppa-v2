@@ -115,6 +115,19 @@ export function AuthPage() {
               placeholder="••••••••"
               className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
+            <button
+              type="button"
+              onClick={async () => {
+                if (!email.trim()) return
+                await supabase.auth.resetPasswordForEmail(email, {
+                  redirectTo: `${window.location.origin}/auth`,
+                })
+                setMessage({ type: 'success', text: 'Password reset link sent — check your email' })
+              }}
+              className="mt-2 text-[13px] text-[#009688] font-medium hover:underline"
+            >
+              Forgot password?
+            </button>
           </div>
         )}
 

@@ -348,6 +348,7 @@ export function MatchDetailPage() {
     const canRecord = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectiveCount >= 4 && !data.result
     if ((location.state as any)?.openResult && canRecord) {
       setShowRecordResult(true)
+      window.history.replaceState({}, document.title)
     }
   }, [data, location.state, profile?.id])
 
@@ -1064,15 +1065,6 @@ export function MatchDetailPage() {
             >
               <LogOut className="h-4 w-4" />
               Leave
-            </button>
-          )}
-          {!match.booked_venue_name && match.status !== 'completed' && match.status !== 'cancelled' && (
-            <button
-              onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
-            >
-              <BookOpen className="h-4 w-4" />
-              Book Court
             </button>
           )}
           {calendarEvent && (

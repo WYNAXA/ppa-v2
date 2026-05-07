@@ -522,8 +522,8 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
         <input
           type="number"
           value={pointsDelta}
-          onChange={e => setPointsDelta(e.target.value)}
-          placeholder="Points change (e.g. +5 or -3)"
+          onChange={e => setPointsDelta(e.target.value.replace(/[^0-9-]/g, ''))}
+          placeholder="Points change (e.g. 5 or -3)"
           className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
         />
         <input
@@ -1437,15 +1437,6 @@ export function LeagueDetailPage() {
                   </div>
                 ))}
               </div>
-                {isAdmin && (
-                  <button
-                    onClick={handleGenerateRound}
-                    disabled={generatingRound}
-                    className="mt-4 w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50"
-                  >
-                    {generatingRound ? 'Generating\u2026' : 'Generate Next Round'}
-                  </button>
-                )}
               </div>
             )
           )}

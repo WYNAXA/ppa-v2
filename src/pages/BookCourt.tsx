@@ -316,6 +316,7 @@ export function BookCourtPage() {
   const [slotsError, setSlotsError] = useState('')
   const [selectedSlot, setSelectedSlot] = useState<TimeSlot | null>(null)
   const [selectedCourtId, setSelectedCourtId] = useState<string>('')
+  const [timePeriod, setTimePeriod] = useState('evening')
 
   // ── Players step ────────────────────────────────────────────────────────────
   const [selectedPlayers, setSelectedPlayers] = useState<BookingPlayer[]>([])
@@ -459,8 +460,10 @@ export function BookCourtPage() {
       .then(({ data }) => setUserResults(data ?? []))
   }, [debouncedUserSearch, userId])
 
-  // Fetch slots when date/duration changes
+  // Fetch slots when date/duration changes + reset period
   useEffect(() => {
+    setTimePeriod('evening')
+    setSelectedSlot(null)
     if (!selectedDate || !selectedVenue) return
     fetchSlots()
   }, [selectedDate, selectedDuration, selectedVenue?.venue_id])
@@ -1040,9 +1043,46 @@ export function BookCourtPage() {
                     </div>
                   )}
 
+                  {/* Time period filter */}
                   {!loadingSlots && slots.length > 0 && (
-                    <div className="grid grid-cols-2 gap-2">
-                      {slots.map((slot, i) => {
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
+                      {[
+                        { id: 'morning', label: 'Morning', emoji: '🌅', from: 6, to: 12 },
+                        { id: 'afternoon', label: 'Afternoon', emoji: '☀️', from: 12, to: 17 },
+                        { id: 'evening', label: 'Evening', emoji: '🌆', from: 17, to: 22 },
+                      ].filter(p => slots.some(s => { const h = parseInt(s.start_time?.split(':')[0] ?? '0'); return h >= p.from && h < p.to }))
+                      .map(p => {
+                        const count = slots.filter(s => { const h = parseInt(s.start_time?.split(':')[0] ?? '0'); return h >= p.from && h < p.to }).length
+                        return (
+                          <button
+                            key={p.id}
+                            onClick={() => setTimePeriod(p.id)}
+                            className={cn(
+                              'flex-shrink-0 flex flex-col items-center rounded-xl border-2 px-4 py-2 transition-all min-w-[80px]',
+                              timePeriod === p.id ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-100 bg-white text-gray-600',
+                            )}
+                          >
+                            <span className="text-[18px]">{p.emoji}</span>
+                            <span className="text-[12px] font-semibold mt-0.5">{p.label}</span>
+                            <span className="text-[10px] opacity-70">{count} slots</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {!loadingSlots && slots.length > 0 && (() => {
+                    const period = [
+                      { id: 'morning', from: 6, to: 12 },
+                      { id: 'afternoon', from: 12, to: 17 },
+                      { id: 'evening', from: 17, to: 22 },
+                    ].find(p => p.id === timePeriod)
+                    const filtered = period
+                      ? slots.filter(s => { const h = parseInt(s.start_time?.split(':')[0] ?? '0'); return h >= period.from && h < period.to })
+                      : slots
+                    return filtered.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {filtered.map((slot, i) => {
                         const priceP =
                           slot.price != null
                             ? slot.price
@@ -1099,7 +1139,13 @@ export function BookCourtPage() {
                         )
                       })}
                     </div>
-                  )}
+                    ) : (
+                      <div className="rounded-2xl border border-gray-100 bg-gray-50 py-6 text-center">
+                        <p className="text-[13px] text-gray-400">No slots for this time period</p>
+                        <p className="text-[11px] text-gray-300 mt-1">Try another time of day</p>
+                      </div>
+                    )
+                  })()}
                 </div>
               )}
 

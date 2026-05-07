@@ -121,6 +121,16 @@ export function AvailabilityPollPage() {
     enabled: !!pollId && !!userId,
   })
 
+  const { data: existingMatchCount = 0 } = useQuery({
+    queryKey: ['poll-matches-count', pollId],
+    enabled: !!pollId,
+    queryFn: async () => {
+      const { count } = await supabase.from('matches').select('*', { count: 'exact', head: true })
+        .eq('poll_id', pollId!).neq('status', 'cancelled')
+      return count ?? 0
+    },
+  })
+
   // ── Response form state ──
   const [cantDoWeek, setCantDoWeek] = useState(false)
   const [selectedSlots, setSelectedSlots] = useState<string[]>([])
@@ -177,7 +187,13 @@ export function AvailabilityPollPage() {
   const poll = data?.poll
   const myResponse = data?.myResponse
   const isAdmin = data?.isAdmin ?? false
-  const isClosed = poll ? (isPast(parseISO(poll.closes_at)) || poll.status !== 'open') : false
+  const isClosed = poll ? (() => {
+    if (poll.status !== 'open') return true
+    const closeDate = new Date(poll.closes_at)
+    // If date-only (no time component), treat as end of day
+    if (poll.closes_at.length <= 10) closeDate.setHours(23, 59, 59, 999)
+    return closeDate < new Date()
+  })() : false
   const isFormActive = !isClosed && (!myResponse || isEditMode)
 
   const timeSlots: PollSlot[] = (() => {
@@ -418,7 +434,7 @@ export function AvailabilityPollPage() {
 
   const closesLabel = (() => {
     try {
-      if (isPast(parseISO(poll.closes_at))) return 'Closed'
+      if (isClosed) return 'Closed'
       return `Closes ${format(parseISO(poll.closes_at), 'MMM d, yyyy \'at\' h:mm a')}`
     } catch { return '' }
   })()
@@ -584,10 +600,20 @@ export function AvailabilityPollPage() {
           </div>
         )}
 
+        {/* ── Existing matches from this poll ── */}
+        {existingMatchCount > 0 && (
+          <div className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3">
+            <p className="text-[13px] font-bold text-teal-800">✓ {existingMatchCount} match{existingMatchCount !== 1 ? 'es' : ''} scheduled from this poll</p>
+            <p className="text-[11px] text-teal-600 mt-0.5">View them in the Matches tab</p>
+          </div>
+        )}
+
         {/* ── Admin: closed poll actions ── */}
         {isAdmin && isClosed && !showMatchGen && (
           <div className="rounded-2xl border border-gray-100 px-4 py-4">
-            <p className="text-[13px] font-semibold text-gray-700 mb-3">Admin — Poll closed</p>
+            <p className="text-[13px] font-semibold text-gray-700 mb-3">
+              {existingMatchCount > 0 ? 'Admin — Reschedule' : 'Admin — Poll closed'}
+            </p>
             <button
               onClick={handleGenerateMatches}
               className="flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"

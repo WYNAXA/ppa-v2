@@ -127,7 +127,7 @@ export function PollAdminView({
   groupId,
   poll,
   isAdmin,
-  currentUserId: _currentUserId,
+  currentUserId,
   currentUserName,
   onRefetch,
 }: PollAdminViewProps) {
@@ -340,7 +340,7 @@ export function PollAdminView({
         match_date: m.date, match_time: matchTime,
         match_type: 'competitive',
         status: m.status === 'ready' ? 'scheduled' : 'pending',
-        player_ids: m.playerIds, group_id: groupId, poll_id: pollId, created_manually: false,
+        player_ids: m.playerIds, group_id: groupId, poll_id: pollId, created_manually: false, created_by: currentUserId,
       })
       if (error) console.error('[Confirm] error:', error)
       else {

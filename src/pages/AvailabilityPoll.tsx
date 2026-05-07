@@ -379,6 +379,7 @@ export function AvailabilityPollPage() {
           match_type: 'competitive',
           context_type: 'poll',
           created_manually: false,
+          created_by: userId,
         }
       })
 

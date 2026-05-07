@@ -103,8 +103,9 @@ Deno.serve(async (req) => {
       throw pollError;
     }
 
-    const timeSlots = poll.time_slots as TimeSlot[];
-    console.log(`📅 Poll has ${timeSlots?.length || 0} time slots`);
+    const rawTs = poll.time_slots;
+    const timeSlots: TimeSlot[] = Array.isArray(rawTs) ? rawTs : typeof rawTs === 'string' ? (() => { try { return JSON.parse(rawTs); } catch { return []; } })() : [];
+    console.log(`📅 Poll has ${timeSlots.length} time slots (raw type: ${typeof rawTs})`);
     
     if (!timeSlots || timeSlots.length === 0) {
       return new Response(

@@ -383,7 +383,10 @@ export function AvailabilityPollPage() {
         }
       })
 
-      const { error } = await supabase.from('matches').insert(matchesToCreate)
+      const { error } = await supabase.from('matches').upsert(matchesToCreate, {
+        onConflict: 'match_date,match_time,poll_id',
+        ignoreDuplicates: true,
+      })
       if (error) throw error
 
       await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)

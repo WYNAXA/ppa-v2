@@ -968,7 +968,7 @@ export function AvailabilityPollPage() {
 
       {/* ── Review schedule overlay ── */}
       {reviewSchedule && (
-        <div className="fixed inset-0 z-50 bg-white overflow-y-auto" style={{ paddingBottom: 100 }}>
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto" style={{ paddingBottom: 180 }}>
           <div className="px-5 pt-14 pb-4">
             <div className="flex items-center gap-3 mb-4">
               <button onClick={() => setReviewSchedule(null)} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
@@ -993,12 +993,28 @@ export function AvailabilityPollPage() {
                   {m.status === 'need_ringer' && (
                     <p className="text-[11px] text-orange-600 mt-1">⚠️ Ringer needed</p>
                   )}
+                  {/* Player team display */}
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="rounded-xl bg-teal-50 px-3 py-2">
+                      <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">Team 1</p>
+                      {(m.playerNames ?? []).slice(0, 2).map((name: string, pi: number) => (
+                        <p key={pi} className="text-[12px] font-medium text-gray-700">{name}</p>
+                      ))}
+                    </div>
+                    <div className="rounded-xl bg-orange-50 px-3 py-2">
+                      <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">Team 2</p>
+                      {(m.playerNames ?? []).slice(2, 4).map((name: string, pi: number) => (
+                        <p key={pi} className="text-[12px] font-medium text-gray-700">{name}</p>
+                      ))}
+                      {(m.playersNeeded ?? 0) > 0 && <p className="text-[11px] text-orange-400 italic">+ {m.playersNeeded} needed</p>}
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom) + 80px)' }}>
             <button
               onClick={handleConfirmSchedule}
               disabled={creatingMatches}

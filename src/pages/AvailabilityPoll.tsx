@@ -94,11 +94,7 @@ async function fetchPollDetail(pollId: string, userId: string) {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function parseJSON<T>(val: unknown, fallback: T): T {
-  if (Array.isArray(val)) return val as unknown as T
-  if (typeof val === 'string') { try { return JSON.parse(val) } catch { return fallback } }
-  return fallback
-}
+
 
 function getDayLabel(weekStartDate: string, dayName: string): string {
   try {

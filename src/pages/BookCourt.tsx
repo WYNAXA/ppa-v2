@@ -37,6 +37,7 @@ type BookingStep = 'venue' | 'date-slot' | 'players' | 'payment' | 'confirmation
 
 interface Venue {
   venue_id: string
+  venues_id?: string | null
   venue_name: string
   city?: string | null
   full_address?: string | null
@@ -418,7 +419,7 @@ export function BookCourtPage() {
     supabase
       .from('padel_venues')
       .select(
-        'venue_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_pence, price_per_player_pence',
+        'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_pence, price_per_player_pence',
       )
       .or(`venue_name.ilike.%${debouncedVenueQuery}%,city.ilike.%${debouncedVenueQuery}%`)
       .limit(15)
@@ -481,7 +482,7 @@ export function BookCourtPage() {
           'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          venue_id: selectedVenue.venue_id,
+          venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
           date: selectedDate,
           duration_minutes: selectedDuration,
         }),

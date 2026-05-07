@@ -326,15 +326,28 @@ export function AvailabilityPollPage() {
     setShowMatchGen(true)
     setMatchSchedules([])
     try {
-      const { data } = await supabase.functions.invoke('generate-match-options', {
-        body: { poll_id: pollId, max_options: 4 },
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-match-options`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+          },
+          body: JSON.stringify({ poll_id: pollId }),
+        },
+      )
+      console.log('[GenerateOptions] status:', response.status)
+      const data = await response.json()
+      console.log('[GenerateOptions] weeklySchedules:', data.weeklySchedules?.length)
+      if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`)
       if (data?.weeklySchedules) {
         setMatchSchedules(data.weeklySchedules)
         setMatchProfiles(data.profiles ?? {})
       }
-    } catch (e) {
-      console.error('generate-match-options error:', e)
+    } catch (e: any) {
+      console.error('[GenerateOptions] error:', e)
     } finally {
       setGeneratingMatches(false)
     }

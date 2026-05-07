@@ -156,6 +156,7 @@ export function AvailabilityPollPage() {
   const [matchProfiles, setMatchProfiles] = useState<Record<string, any>>({})
   const [generatingMatches, setGeneratingMatches] = useState(false)
   const [creatingMatches, setCreatingMatches] = useState(false)
+  const [reviewSchedule, setReviewSchedule] = useState<any>(null)
 
   // Populate form from existing response once data loads
   useEffect(() => {
@@ -378,39 +379,36 @@ export function AvailabilityPollPage() {
     }
   }
 
-  async function handleSelectSchedule(schedule: any) {
-    if (!pollId || creatingMatches) return
+  function handleSelectSchedule(schedule: any) {
+    setReviewSchedule(schedule)
+  }
+
+  async function handleConfirmSchedule() {
+    if (!pollId || !reviewSchedule || creatingMatches) return
     setCreatingMatches(true)
+    const results = { created: 0, skipped: 0, failed: 0 }
     try {
-      const matchesToCreate = (schedule.matches ?? []).map((m: any) => {
-        const timeToUse = m.actualStartTime ?? m.timeSlot.split('-')[0].trim()
-        const matchTime = timeToUse.includes(':') && timeToUse.split(':').length === 2
-          ? `${timeToUse}:00`
-          : timeToUse
-        return {
-          poll_id: pollId,
-          group_id: poll!.group_id,
-          match_date: m.date,
-          match_time: matchTime,
+      for (const m of reviewSchedule.matches ?? []) {
+        const timeToUse = m.actualStartTime ?? (m.timeSlot ?? '19:00').split('-')[0].trim()
+        const matchTime = timeToUse.includes(':') && timeToUse.split(':').length === 2 ? `${timeToUse}:00` : timeToUse
+        const { error } = await supabase.from('matches').insert({
+          poll_id: pollId, group_id: poll!.group_id, match_date: m.date, match_time: matchTime,
           player_ids: Array.isArray(m.playerIds) ? m.playerIds : [m.playerIds],
           status: m.playersNeeded > 0 ? 'pending' : 'scheduled',
-          match_type: 'competitive',
-          context_type: 'poll',
-          created_manually: false,
-          created_by: userId,
-        }
-      })
-
-      const { error } = await supabase.from('matches').insert(matchesToCreate)
-      if (error && error.code !== '23505') throw error
-      if (error?.code === '23505') console.log('[Schedule] some matches already exist, skipping duplicates')
-
+          match_type: 'competitive', context_type: 'poll', created_manually: false, created_by: userId,
+        })
+        if (error && error.code === '23505') results.skipped++
+        else if (error) { results.failed++; console.error('[Schedule] error:', error) }
+        else results.created++
+      }
       await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
-
       setShowMatchGen(false)
+      setReviewSchedule(null)
       queryClient.invalidateQueries({ queryKey: ['poll', pollId] })
+      queryClient.invalidateQueries({ queryKey: ['poll-matches-count', pollId] })
+      navigate(`/community/groups/${poll!.group_id}?tab=matches`)
     } catch (e) {
-      console.error('create matches error:', e)
+      console.error('[Schedule] error:', e)
     } finally {
       setCreatingMatches(false)
     }
@@ -965,6 +963,50 @@ export function AvailabilityPollPage() {
               </button>
             </div>
           </motion.div>
+        </div>
+      )}
+
+      {/* ── Review schedule overlay ── */}
+      {reviewSchedule && (
+        <div className="fixed inset-0 z-50 bg-white overflow-y-auto" style={{ paddingBottom: 100 }}>
+          <div className="px-5 pt-14 pb-4">
+            <div className="flex items-center gap-3 mb-4">
+              <button onClick={() => setReviewSchedule(null)} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
+                <ChevronLeft className="h-5 w-5 text-gray-600" />
+              </button>
+              <div>
+                <h2 className="text-[18px] font-bold text-gray-900">Review matches</h2>
+                <p className="text-[12px] text-gray-400">Review before scheduling. All players will be notified.</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              {(reviewSchedule.matches ?? []).map((m: any, i: number) => (
+                <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                  <p className="text-[14px] font-bold text-gray-900">{m.dayOfWeek} · {m.date}</p>
+                  <p className="text-[12px] text-gray-500 mt-0.5">🕐 {m.timeSlot}</p>
+                  <p className="text-[13px] text-gray-700 mt-2">
+                    {(m.playerNames ?? []).slice(0, 2).join(' + ')}
+                    <span className="text-gray-400 mx-2">vs</span>
+                    {(m.playerNames ?? []).slice(2, 4).join(' + ') || (m.playersNeeded > 0 ? `+ ${m.playersNeeded} needed` : '')}
+                  </p>
+                  {m.status === 'need_ringer' && (
+                    <p className="text-[11px] text-orange-600 mt-1">⚠️ Ringer needed</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
+            <button
+              onClick={handleConfirmSchedule}
+              disabled={creatingMatches}
+              className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50"
+            >
+              {creatingMatches ? 'Scheduling...' : `✓ Confirm & notify — ${reviewSchedule.matches?.length ?? 0} matches`}
+            </button>
+          </div>
         </div>
       )}
     </div>

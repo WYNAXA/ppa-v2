@@ -184,8 +184,8 @@ export function AvailabilityPollPage() {
   const isClosed = poll ? (isPast(parseISO(poll.closes_at)) || poll.status !== 'open') : false
   const isFormActive = !isClosed && (!myResponse || isEditMode)
 
-  const timeSlots = parseJSON<PollSlot[]>(poll?.time_slots, [])
-  const additionalOptions = parseJSON<string[]>(poll?.additional_options, [])
+  const timeSlots: PollSlot[] = Array.isArray(poll?.time_slots) ? poll.time_slots : []
+  const additionalOptions: string[] = Array.isArray(poll?.additional_options) ? poll.additional_options : []
 
   // Slots grouped by day (order: Mon-Sun)
   const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']

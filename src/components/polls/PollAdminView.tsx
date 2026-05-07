@@ -336,13 +336,14 @@ export function PollAdminView({
     for (const m of selectedSchedule.matches ?? []) {
       if (!m.playerIds || m.playerIds.length < 2) continue
       const matchTime = (m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'
-      const { error } = await supabase.from('matches').upsert({
+      const { error } = await supabase.from('matches').insert({
         match_date: m.date, match_time: matchTime,
         match_type: 'competitive',
         status: m.status === 'ready' ? 'scheduled' : 'pending',
         player_ids: m.playerIds, group_id: groupId, poll_id: pollId, created_manually: false, created_by: currentUserId,
-      }, { onConflict: 'match_date,match_time,poll_id', ignoreDuplicates: true })
-      if (error) console.error('[Confirm] error:', error)
+      })
+      if (error && error.code !== '23505') console.error('[Confirm] error:', error)
+      else if (error?.code === '23505') { console.log('[Confirm] match exists, skipping'); created++ }
       else {
         created++
         await supabase.from('notifications').insert(

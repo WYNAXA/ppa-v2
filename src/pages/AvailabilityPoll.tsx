@@ -383,11 +383,9 @@ export function AvailabilityPollPage() {
         }
       })
 
-      const { error } = await supabase.from('matches').upsert(matchesToCreate, {
-        onConflict: 'match_date,match_time,poll_id',
-        ignoreDuplicates: true,
-      })
-      if (error) throw error
+      const { error } = await supabase.from('matches').insert(matchesToCreate)
+      if (error && error.code !== '23505') throw error
+      if (error?.code === '23505') console.log('[Schedule] some matches already exist, skipping duplicates')
 
       await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
 

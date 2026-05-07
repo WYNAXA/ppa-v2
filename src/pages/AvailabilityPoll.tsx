@@ -326,6 +326,7 @@ export function AvailabilityPollPage() {
     setShowMatchGen(true)
     setMatchSchedules([])
     try {
+      console.log('[GenerateOptions] pollId:', pollId, 'type:', typeof pollId)
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-match-options`,
         {

@@ -180,8 +180,18 @@ export function AvailabilityPollPage() {
   const isClosed = poll ? (isPast(parseISO(poll.closes_at)) || poll.status !== 'open') : false
   const isFormActive = !isClosed && (!myResponse || isEditMode)
 
-  const timeSlots: PollSlot[] = Array.isArray(poll?.time_slots) ? poll.time_slots : []
-  const additionalOptions: string[] = Array.isArray(poll?.additional_options) ? poll.additional_options : []
+  const timeSlots: PollSlot[] = (() => {
+    const ts = poll?.time_slots
+    if (Array.isArray(ts)) return ts
+    if (typeof ts === 'string') { try { return JSON.parse(ts) } catch { return [] } }
+    return []
+  })()
+  const additionalOptions: string[] = (() => {
+    const ao = poll?.additional_options
+    if (Array.isArray(ao)) return ao
+    if (typeof ao === 'string') { try { return JSON.parse(ao) } catch { return [] } }
+    return []
+  })()
 
   // Slots grouped by day (order: Mon-Sun)
   const DAY_ORDER = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday']

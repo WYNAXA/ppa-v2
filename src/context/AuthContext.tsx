@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.warn('[Auth] no session — stopping loading')
             setLoading(false)
           }
-        }, 3000)
+        }, 8000)
       }
     }).catch(() => {
       if (mountedRef.current) setLoading(false)

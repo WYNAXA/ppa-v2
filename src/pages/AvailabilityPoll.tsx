@@ -54,15 +54,17 @@ async function fetchPollDetail(pollId: string, userId: string) {
 
   if (error || !poll) throw error ?? new Error('Poll not found')
 
-  // DB stores time_slots and additional_options as text (JSON string) — parse if needed
-  if (typeof poll.time_slots === 'string') {
-    try { poll.time_slots = JSON.parse(poll.time_slots) } catch { poll.time_slots = [] }
+  // DB stores time_slots and additional_options as text (JSON string) — parse safely
+  const parseJsonField = <T,>(val: unknown, fallback: T): T => {
+    if (Array.isArray(val)) return val as unknown as T
+    if (typeof val === 'string') { try { return JSON.parse(val) } catch { return fallback } }
+    return fallback
   }
-  if (!Array.isArray(poll.time_slots)) poll.time_slots = []
-  if (typeof poll.additional_options === 'string') {
-    try { poll.additional_options = JSON.parse(poll.additional_options) } catch { poll.additional_options = [] }
+  const parsedPoll = {
+    ...poll,
+    time_slots: parseJsonField<PollSlot[]>(poll.time_slots, []),
+    additional_options: parseJsonField<string[]>(poll.additional_options, []),
   }
-  if (!Array.isArray(poll.additional_options)) poll.additional_options = []
 
   const { data: myResponse } = await supabase
     .from('poll_responses')
@@ -75,16 +77,16 @@ async function fetchPollDetail(pollId: string, userId: string) {
   const { data: memberData } = await supabase
     .from('group_members')
     .select('role')
-    .eq('group_id', poll.group_id)
+    .eq('group_id', parsedPoll.group_id)
     .eq('user_id', userId)
     .eq('status', 'approved')
     .maybeSingle()
 
-  const groupAdminId = (poll.groups as any)?.admin_id
+  const groupAdminId = (parsedPoll.groups as any)?.admin_id
   const isAdmin = groupAdminId === userId || memberData?.role === 'admin'
 
   return {
-    poll: poll as Poll,
+    poll: parsedPoll as Poll,
     myResponse: myResponse as MyResponse | null,
     isAdmin,
   }

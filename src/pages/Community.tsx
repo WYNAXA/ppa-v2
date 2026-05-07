@@ -605,6 +605,30 @@ export function CommunityPage() {
       </div>
 
       <div className="px-5 space-y-6">
+        {/* Hero card */}
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #009688 0%, #00796B 100%)' }}>
+          <div className="px-5 py-5 text-white">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-[20px] font-extrabold leading-tight">Your Padel Community</h2>
+                <p className="text-[13px] text-white/80 mt-1">Connect, organise and play</p>
+              </div>
+              <div className="bg-white/15 rounded-xl px-3 py-2 text-center">
+                <p className="text-[22px] font-black leading-none">{myGroups.length}</p>
+                <p className="text-[10px] text-white/80 mt-0.5">groups</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button onClick={() => setShowCreateSheet(true)} className="flex-1 rounded-xl bg-white py-2.5 text-[13px] font-bold text-[#009688]">
+                + Create Group
+              </button>
+              <button onClick={() => setSearch('')} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2.5 text-[13px] font-bold text-white">
+                Discover
+              </button>
+            </div>
+          </div>
+        </div>
+
         {/* My Groups */}
         <section>
           <div className="flex items-center justify-between mb-3">

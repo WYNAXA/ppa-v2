@@ -891,12 +891,13 @@ export function YouPage() {
 
         {/* ── Household ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">
+          <h2 className="text-[16px] font-bold text-gray-900 mb-1">
             <span className="inline-flex items-center gap-2">
               <Home className="h-4 w-4 text-gray-500" />
               {t('you.household')}
             </span>
           </h2>
+          <p className="text-[12px] text-gray-400 mb-3 leading-relaxed">Link with a partner or family member to detect scheduling conflicts and coordinate travel.</p>
           {householdPartner ? (
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
               <div className="flex items-center gap-3 mb-3">
@@ -1183,7 +1184,7 @@ export function YouPage() {
           </div>
 
           {/* App version */}
-          <p className="text-[11px] text-gray-300 text-center mt-3">PPA v1.0.9</p>
+          <p className="text-[11px] text-gray-300 text-center mt-3">{`PPA v${__APP_VERSION__}`}</p>
 
           {/* Sign out */}
           <button

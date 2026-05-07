@@ -57,14 +57,13 @@ export function AuthPage() {
     <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 bg-white">
       {/* Logo / brand */}
       <div className="mb-10 text-center">
-        <div
-          className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
-          style={{ background: '#009688' }}
-        >
-          <span className="text-2xl font-bold text-white">PP</span>
-        </div>
-        <h1 className="text-2xl font-bold text-gray-900">Padel Players</h1>
-        <p className="mt-1 text-sm text-gray-500">Sign in to continue</p>
+        <img
+          src="/PPA_Round_Logo_White_Background.png"
+          alt="Padel Players"
+          className="mx-auto mb-4 h-20 w-20 rounded-2xl shadow-sm"
+        />
+        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Padel Players</h1>
+        <p className="mt-1 text-sm text-gray-500">The social padel app</p>
       </div>
 
       {/* Tab switcher */}

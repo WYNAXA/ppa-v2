@@ -151,7 +151,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
                 y={peakElo}
                 stroke="#D97706"
                 strokeDasharray="3 3"
-                label={{ value: `Peak: ${peakElo}`, fontSize: 10, fill: '#D97706' }}
+                label={{ value: `Peak: ${peakElo}`, position: 'insideTopLeft', offset: 5, fontSize: 10, fill: '#D97706', fontWeight: 600 }}
               />
             )}
             <Area

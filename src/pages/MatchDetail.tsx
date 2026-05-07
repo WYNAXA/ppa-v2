@@ -629,7 +629,7 @@ export function MatchDetailPage() {
               onClick={() => setShowRecordResult(true)}
               className="flex-1 rounded-xl border border-green-200 py-2 text-[12px] font-semibold text-green-700"
             >
-              Play without booking
+              Record result
             </button>
           </div>
         </motion.div>

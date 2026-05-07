@@ -67,19 +67,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(newSession)
         setUser(newSession?.user ?? null)
+        // Unblock UI immediately — don't wait for profile
+        if (mountedRef.current) setLoading(false)
 
         if (newSession?.user) {
+          // Load profile in background
           if (profileLoadedForRef.current !== newSession.user.id) {
             profileLoadedForRef.current = newSession.user.id
-            const p = await fetchProfile(newSession.user.id)
-            if (mountedRef.current && p) setProfile(p)
+            fetchProfile(newSession.user.id).then(p => {
+              if (mountedRef.current && p) setProfile(p)
+            })
           }
         } else {
           profileLoadedForRef.current = ''
           setProfile(null)
         }
-
-        if (mountedRef.current) setLoading(false)
       },
     )
 

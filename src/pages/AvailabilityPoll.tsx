@@ -156,7 +156,7 @@ export function AvailabilityPollPage() {
   const [matchProfiles, setMatchProfiles] = useState<Record<string, any>>({})
   const [generatingMatches, setGeneratingMatches] = useState(false)
   const [creatingMatches, setCreatingMatches] = useState(false)
-  const [reviewSchedule, setReviewSchedule] = useState<any>(null)
+  const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null)
 
   // Populate form from existing response once data loads
   useEffect(() => {
@@ -379,16 +379,20 @@ export function AvailabilityPollPage() {
     }
   }
 
-  function handleSelectSchedule(schedule: any) {
-    setReviewSchedule(schedule)
+  function handleSelectSchedule(scheduleOrIdx: any) {
+    const idx = typeof scheduleOrIdx === 'number' ? scheduleOrIdx
+      : matchSchedules.findIndex((s: any) => s.scheduleNumber === scheduleOrIdx?.scheduleNumber)
+    setSelectedScheduleIdx(selectedScheduleIdx === idx ? null : idx)
   }
 
   async function handleConfirmSchedule() {
-    if (!pollId || !reviewSchedule || creatingMatches) return
+    if (!pollId || selectedScheduleIdx === null || creatingMatches) return
+    const schedule = matchSchedules[selectedScheduleIdx]
+    if (!schedule) return
     setCreatingMatches(true)
     const results = { created: 0, skipped: 0, failed: 0 }
     try {
-      for (const m of reviewSchedule.matches ?? []) {
+      for (const m of schedule.matches ?? []) {
         const timeToUse = m.actualStartTime ?? (m.timeSlot ?? '19:00').split('-')[0].trim()
         const matchTime = timeToUse.includes(':') && timeToUse.split(':').length === 2 ? `${timeToUse}:00` : timeToUse
         const { error } = await supabase.from('matches').insert({
@@ -403,7 +407,7 @@ export function AvailabilityPollPage() {
       }
       await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
       setShowMatchGen(false)
-      setReviewSchedule(null)
+      setSelectedScheduleIdx(null)
       queryClient.invalidateQueries({ queryKey: ['poll', pollId] })
       queryClient.invalidateQueries({ queryKey: ['poll-matches-count', pollId] })
       navigate(`/community/groups/${poll!.group_id}?tab=matches`)
@@ -653,12 +657,23 @@ export function AvailabilityPollPage() {
                 <p className="text-[13px] text-gray-400">Generating options…</p>
               </div>
             ) : matchSchedules.length > 0 ? (
-              <WeeklyScheduleSelector
-                weeklySchedules={matchSchedules}
-                allProfiles={matchProfiles}
-                onSelectSchedule={handleSelectSchedule}
-                loading={creatingMatches}
-              />
+              <>
+                <WeeklyScheduleSelector
+                  weeklySchedules={matchSchedules}
+                  allProfiles={matchProfiles}
+                  onSelectSchedule={handleSelectSchedule}
+                  loading={creatingMatches}
+                />
+                {selectedScheduleIdx !== null && (
+                  <button
+                    onClick={handleConfirmSchedule}
+                    disabled={creatingMatches}
+                    className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 mt-3 mb-24"
+                  >
+                    {creatingMatches ? 'Scheduling...' : `✓ Confirm & schedule ${matchSchedules[selectedScheduleIdx]?.matches?.length ?? 0} matches`}
+                  </button>
+                )}
+              </>
             ) : (
               <p className="text-[13px] text-gray-400 text-center py-4">No match configurations found.</p>
             )}
@@ -966,65 +981,6 @@ export function AvailabilityPollPage() {
         </div>
       )}
 
-      {/* ── Review schedule overlay ── */}
-      {reviewSchedule && (
-        <div className="fixed inset-0 z-50 bg-white overflow-y-auto" style={{ paddingBottom: 180 }}>
-          <div className="px-5 pt-14 pb-4">
-            <div className="flex items-center gap-3 mb-4">
-              <button onClick={() => setReviewSchedule(null)} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <ChevronLeft className="h-5 w-5 text-gray-600" />
-              </button>
-              <div>
-                <h2 className="text-[18px] font-bold text-gray-900">Review matches</h2>
-                <p className="text-[12px] text-gray-400">Review before scheduling. All players will be notified.</p>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {(reviewSchedule.matches ?? []).map((m: any, i: number) => (
-                <div key={i} className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                  <p className="text-[14px] font-bold text-gray-900">{m.dayOfWeek} · {m.date}</p>
-                  <p className="text-[12px] text-gray-500 mt-0.5">🕐 {m.timeSlot}</p>
-                  <p className="text-[13px] text-gray-700 mt-2">
-                    {(m.playerNames ?? []).slice(0, 2).join(' + ')}
-                    <span className="text-gray-400 mx-2">vs</span>
-                    {(m.playerNames ?? []).slice(2, 4).join(' + ') || (m.playersNeeded > 0 ? `+ ${m.playersNeeded} needed` : '')}
-                  </p>
-                  {m.status === 'need_ringer' && (
-                    <p className="text-[11px] text-orange-600 mt-1">⚠️ Ringer needed</p>
-                  )}
-                  {/* Player team display */}
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    <div className="rounded-xl bg-teal-50 px-3 py-2">
-                      <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">Team 1</p>
-                      {(m.playerNames ?? []).slice(0, 2).map((name: string, pi: number) => (
-                        <p key={pi} className="text-[12px] font-medium text-gray-700">{name}</p>
-                      ))}
-                    </div>
-                    <div className="rounded-xl bg-orange-50 px-3 py-2">
-                      <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">Team 2</p>
-                      {(m.playerNames ?? []).slice(2, 4).map((name: string, pi: number) => (
-                        <p key={pi} className="text-[12px] font-medium text-gray-700">{name}</p>
-                      ))}
-                      {(m.playersNeeded ?? 0) > 0 && <p className="text-[11px] text-orange-400 italic">+ {m.playersNeeded} needed</p>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-4" style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom) + 80px)' }}>
-            <button
-              onClick={handleConfirmSchedule}
-              disabled={creatingMatches}
-              className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50"
-            >
-              {creatingMatches ? 'Scheduling...' : `✓ Confirm & notify — ${reviewSchedule.matches?.length ?? 0} matches`}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

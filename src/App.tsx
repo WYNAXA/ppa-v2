@@ -119,10 +119,7 @@ function UpdateBanner() {
   if (!showUpdate) return null
 
   const handleUpdate = () => {
-    navigator.serviceWorker.ready.then((reg) => {
-      reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
-    })
-    setTimeout(() => window.location.reload(), 500)
+    window.location.reload()
   }
 
   return (

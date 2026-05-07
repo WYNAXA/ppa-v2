@@ -9,15 +9,25 @@ export default defineConfig({
     tailwindcss(),
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'PPA_Favicon.png'],
       manifest: false,
       workbox: {
-        skipWaiting: false,
+        skipWaiting: true,
         clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/sw\.js$/, /^\/manifest\.json$/],
+        navigateFallbackDenylist: [/^\/sw\.js$/, /^\/manifest\.json$/, /^\/api/, /^\/functions/],
+        runtimeCaching: [
+          {
+            urlPattern: /\/assets\/.+\.[a-f0-9]+\.(js|css)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'assets-cache',
+              expiration: { maxEntries: 100, maxAgeSeconds: 30 * 24 * 60 * 60 },
+            },
+          },
+        ],
       },
     }),
   ],

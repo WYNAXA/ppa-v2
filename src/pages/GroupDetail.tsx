@@ -1258,7 +1258,7 @@ export function GroupDetailPage() {
   const { data: events,  isLoading: loadingEvents  } = useGroupEvents(groupId)
   const { data: leagues, isLoading: loadingLeagues } = useGroupLeagues(groupId)
 
-  const isAdmin     = group?.admin_id === userId
+  const isAdmin     = group?.admin_id === userId || (members ?? []).some(m => m.id === userId && m.role === 'admin')
   const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
 
   const TABS: Array<{ id: Tab; label: string }> = [

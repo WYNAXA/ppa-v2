@@ -538,9 +538,17 @@ function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
         />
       ) : (
         <div className="space-y-2.5">
-          {filtered.map((match, i) => (
-            <MatchCard key={match.id} match={match} currentUserId={userId} action="view" index={i} />
-          ))}
+          {filtered.map((match, i) => {
+            const isInMatch = match.player_ids.includes(userId)
+            return (
+              <div key={match.id} className={!isInMatch ? 'opacity-75' : ''}>
+                {!isInMatch && (
+                  <p className="text-[10px] text-gray-400 mb-0.5 pl-1">Not in this match</p>
+                )}
+                <MatchCard match={match} currentUserId={userId} action="view" index={i} />
+              </div>
+            )
+          })}
         </div>
       )}
     </div>

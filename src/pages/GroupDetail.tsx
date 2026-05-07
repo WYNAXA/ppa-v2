@@ -556,7 +556,7 @@ function PollsTab({ polls, isLoading, groupId }: {
 }) {
   const navigate = useNavigate()
   const now = new Date()
-  const isStillOpen = (p: Poll) => p.status === 'open' && new Date(p.closes_at) > now
+  const isStillOpen = (p: Poll) => p.status === 'open' && (p.closes_at ? new Date(p.closes_at) > now : true)
   const active   = polls.filter(isStillOpen)
   const past     = polls.filter((p) => !isStillOpen(p))
 

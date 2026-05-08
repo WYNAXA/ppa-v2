@@ -285,7 +285,9 @@ function DiscoverCard({
               <Users className="h-3 w-3 text-gray-400" />
               <span className="font-semibold">{group.memberCount}</span> member{group.memberCount !== 1 ? 's' : ''}
             </span>
-            {group.visibility === 'open' || group.visibility === 'public' ? (
+            {group.join_mode === 'closed' ? (
+              <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">🔒 Closed</span>
+            ) : group.join_mode === 'open' || group.visibility === 'public' ? (
               <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">🟢 Open</span>
             ) : (
               <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">🟡 Request</span>
@@ -555,18 +557,24 @@ export function CommunityPage() {
 
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
-      const group    = discoverGroups.find((g) => g.id === groupId)
-      const isPublic = group?.visibility === 'open' || group?.visibility === 'public'
+      const group = discoverGroups.find((g) => g.id === groupId)
+
+      // Closed groups cannot be joined
+      if (group?.join_mode === 'closed') throw new Error('This group is closed to new members')
+
+      // Auto-approve only if explicitly open join mode or auto_approve
+      const autoApprove = group?.join_mode === 'open' || (group as any)?.auto_approve === true
+      const status = autoApprove ? 'approved' : 'pending'
 
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId,
         user_id:  userId,
         role:     'member',
-        status:   isPublic ? 'approved' : 'pending',
+        status,
       })
       if (error) throw error
 
-      if (isPublic) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
+      if (autoApprove) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
       queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })
     },
   })

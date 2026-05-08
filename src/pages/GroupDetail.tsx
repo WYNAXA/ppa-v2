@@ -165,29 +165,65 @@ function usePendingMembers(groupId: string, isAdmin: boolean) {
 }
 
 function useGroupMatches(groupId: string) {
+  const today = new Date().toISOString().split('T')[0]
   return useQuery({
-    queryKey: ['group-matches', groupId],
+    queryKey: ['group-matches', groupId, Date.now()],
     enabled: !!groupId && groupId.length > 0,
     staleTime: 0,
-    refetchOnMount: true,
+    gcTime: 0,
+    refetchOnMount: 'always' as const,
     refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
     queryFn: async (): Promise<MatchCardData[]> => {
       const { data: matches, error } = await supabase
         .from('matches')
         .select('*')
         .eq('group_id', groupId)
+        .gte('match_date', today)
+        .in('status', ['scheduled', 'pending', 'confirmed', 'open'])
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true })
+        .limit(20)
+
+      console.log('[GroupMatches:upcoming] groupId:', groupId, 'today:', today, 'count:', matches?.length, 'error:', error?.message)
+      if (error) throw error
+      if (!matches || matches.length === 0) return []
+
+      const allPlayerIds = [...new Set(matches.flatMap((m) => m.player_ids ?? []))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', allPlayerIds)
+
+      return matches.map((m) => ({
+        id:                m.id,
+        match_date:        m.match_date,
+        match_time:        m.match_time,
+        booked_venue_name: m.booked_venue_name,
+        player_ids:        m.player_ids ?? [],
+        match_type:        m.match_type,
+        status:            m.status,
+        players:           (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
+      }))
+    },
+  })
+}
+
+function useGroupPastMatches(groupId: string) {
+  return useQuery({
+    queryKey: ['group-past-matches', groupId],
+    enabled: !!groupId && groupId.length > 0,
+    staleTime: 5 * 60 * 1000,
+    queryFn: async (): Promise<MatchCardData[]> => {
+      const today = new Date().toISOString().split('T')[0]
+      const { data: matches, error } = await supabase
+        .from('matches')
+        .select('*')
+        .eq('group_id', groupId)
+        .lt('match_date', today)
+        .order('match_date', { ascending: false })
         .limit(50)
 
-      console.log('[GroupMatches] groupId:', groupId, 'count:', matches?.length, 'error:', error?.message)
-      if (matches?.length) {
-        console.log('[GroupMatches] match dates:', matches.map(m => m.match_date))
-        const today = new Date().toISOString().split('T')[0]
-        console.log('[GroupMatches] today:', today)
-        console.log('[GroupMatches] upcoming:', matches.filter(m => m.match_date >= today).length)
-        console.log('[GroupMatches] past:', matches.filter(m => m.match_date < today).length)
-      }
       if (error) throw error
       if (!matches || matches.length === 0) return []
 
@@ -451,19 +487,16 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
 
 type PastFilter = 'all' | 'competitive' | 'friendly' | 'this_month'
 
-function MatchesTab({ matches, isLoading, userId, onCreateMatch }: {
-  matches: MatchCardData[]
+function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
+  upcoming: MatchCardData[]
+  past: MatchCardData[]
   isLoading: boolean
   userId: string
   onCreateMatch: () => void
 }) {
   const [view, setView] = useState<'upcoming' | 'past'>('upcoming')
   const [pastFilter, setPastFilter] = useState<PastFilter>('all')
-  const today = format(new Date(), 'yyyy-MM-dd')
   const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd')
-
-  const upcoming = matches.filter((m) => m.match_date >= today)
-  const past = [...matches.filter((m) => m.match_date < today)].sort((a, b) => b.match_date.localeCompare(a.match_date))
 
   const filteredPast = past.filter((m) => {
     if (pastFilter === 'competitive') return m.match_type === 'competitive'
@@ -1264,7 +1297,9 @@ export function GroupDetailPage() {
 
   const { data: group,   isLoading: loadingGroup   } = useGroup(groupId)
   const { data: members, isLoading: loadingMembers } = useGroupMembers(groupId)
-  const { data: matches, isLoading: loadingMatches } = useGroupMatches(groupId)
+  const { data: upcomingMatches, isLoading: loadingUpcoming } = useGroupMatches(groupId)
+  const { data: pastMatches, isLoading: loadingPast } = useGroupPastMatches(groupId)
+  const loadingMatches = loadingUpcoming || loadingPast
   const { data: polls,   isLoading: loadingPolls   } = useGroupPolls(groupId)
   const { data: events,  isLoading: loadingEvents  } = useGroupEvents(groupId)
   const { data: leagues, isLoading: loadingLeagues } = useGroupLeagues(groupId)
@@ -1389,7 +1424,8 @@ export function GroupDetailPage() {
           )}
           {activeTab === 'matches' && (
             <MatchesTab
-              matches={matches ?? []}
+              upcoming={upcomingMatches ?? []}
+              past={pastMatches ?? []}
               isLoading={loadingMatches}
               userId={userId}
               onCreateMatch={() => setCreateMatchOpen(true)}

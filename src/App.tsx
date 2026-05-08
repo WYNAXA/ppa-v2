@@ -76,44 +76,9 @@ function UpdateBanner() {
   const [showUpdate, setShowUpdate] = useState(false)
 
   useEffect(() => {
-    if (!('serviceWorker' in navigator)) return
-
-    // Check for updates every 60 seconds + on tab focus
-    const checkForUpdates = async () => {
-      try {
-        const reg = await navigator.serviceWorker.getRegistration()
-        reg?.update().catch(() => {})
-      } catch { /* ignore */ }
-    }
-    const interval = setInterval(checkForUpdates, 60_000)
-    const handleFocus = () => checkForUpdates()
-    window.addEventListener('focus', handleFocus)
-
-    navigator.serviceWorker.ready.then((reg) => {
-      // Already waiting SW
-      if (reg.waiting) setShowUpdate(true)
-
-      reg.addEventListener('updatefound', () => {
-        const newWorker = reg.installing
-        if (!newWorker) return
-        newWorker.addEventListener('statechange', () => {
-          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-            setShowUpdate(true)
-          }
-        })
-      })
-    })
-
-    // Auto-reload when new SW activates
-    let refreshing = false
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) { refreshing = true; window.location.reload() }
-    })
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('focus', handleFocus)
-    }
+    const handleUpdate = () => setShowUpdate(true)
+    window.addEventListener('swUpdate', handleUpdate)
+    return () => window.removeEventListener('swUpdate', handleUpdate)
   }, [])
 
   if (!showUpdate) return null

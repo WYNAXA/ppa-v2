@@ -119,7 +119,11 @@ function UpdateBanner() {
   if (!showUpdate) return null
 
   const handleUpdate = () => {
-    window.location.reload()
+    navigator.serviceWorker.ready.then(reg => {
+      reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
+    })
+    // Fallback reload after 1 second
+    setTimeout(() => window.location.reload(), 1000)
   }
 
   return (

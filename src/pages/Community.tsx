@@ -28,6 +28,7 @@ interface MyGroup extends GroupRow {
   hasActiveLeague: boolean
   recentMembers: Array<{ id: string; name: string; avatar_url?: string | null }>
   userRole: string
+  memberStatus: string
 }
 
 interface DiscoverGroup extends GroupRow {
@@ -44,9 +45,9 @@ function useMyGroups(userId: string) {
     queryFn: async (): Promise<MyGroup[]> => {
       const { data: memberships, error } = await supabase
         .from('group_members')
-        .select('group_id, role, groups(id, name, description, city, visibility, admin_id)')
+        .select('group_id, role, status, groups(id, name, description, city, visibility, admin_id)')
         .eq('user_id', userId)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'ringer'])
 
       if (error) throw error
       if (!memberships || memberships.length === 0) return []
@@ -54,6 +55,7 @@ function useMyGroups(userId: string) {
       const groups = memberships.map((m) => ({
         ...(Array.isArray(m.groups) ? m.groups[0] : m.groups) as GroupRow,
         userRole: m.role as string,
+        memberStatus: m.status as string,
       }))
       const groupIds = groups.map((g) => g.id)
 
@@ -542,9 +544,11 @@ export function CommunityPage() {
 
   const userId = profile?.id ?? ''
   const { data: myConnections = new Set<string>() } = useMyConnections(userId)
-  const { data: myGroups = [], isLoading: loadingMine } = useMyGroups(userId)
+  const { data: allMyGroups = [], isLoading: loadingMine } = useMyGroups(userId)
   const { data: pendingRequests = [] } = usePendingRequests(userId)
-  const myGroupIds = myGroups.map((g) => g.id)
+  const myGroups = allMyGroups.filter(g => g.memberStatus === 'approved')
+  const ringerGroups = allMyGroups.filter(g => g.memberStatus === 'ringer')
+  const myGroupIds = allMyGroups.map((g) => g.id)
 
   const { data: discoverGroups = [], isLoading: loadingDiscover } = useDiscoverGroups(
     userId, search, myGroupIds, activeFilter, profile?.city ?? null, sortBy,
@@ -623,7 +627,7 @@ export function CommunityPage() {
                 <p className="text-[13px] text-white/80 mt-1">Connect, organise and play</p>
               </div>
               <div className="bg-white/15 rounded-xl px-3 py-2 text-center">
-                <p className="text-[22px] font-black leading-none">{myGroups.length}</p>
+                <p className="text-[22px] font-black leading-none">{allMyGroups.length}</p>
                 <p className="text-[10px] text-white/80 mt-0.5">groups</p>
               </div>
             </div>
@@ -678,6 +682,28 @@ export function CommunityPage() {
             </div>
           )}
         </section>
+
+        {/* Ringer groups */}
+        {ringerGroups.length > 0 && (
+          <section>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-[16px] font-bold text-gray-900">Ringer for</h2>
+              <span className="text-[12px] text-gray-400">
+                {ringerGroups.length} group{ringerGroups.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <div className="space-y-3">
+              {ringerGroups.map((group, i) => (
+                <div key={group.id} className="relative">
+                  <MyGroupCard group={group} index={i} />
+                  <span className="absolute top-3 right-3 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-600">
+                    Ringer
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Pending requests */}
         {pendingRequests.length > 0 && (
@@ -867,7 +893,7 @@ export function CommunityPage() {
         </section>
 
         {/* ── Upcoming Events ── */}
-        <UpcomingEventsSection userId={userId} userGroupIds={myGroups.map(g => g.id)} />
+        <UpcomingEventsSection userId={userId} userGroupIds={allMyGroups.map(g => g.id)} />
 
         {/* ── Find a Coach ── */}
         <CoachesSection userCity={profile?.city} />

@@ -167,7 +167,10 @@ function usePendingMembers(groupId: string, isAdmin: boolean) {
 function useGroupMatches(groupId: string) {
   return useQuery({
     queryKey: ['group-matches', groupId],
-    enabled: !!groupId,
+    enabled: !!groupId && groupId.length > 0,
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<MatchCardData[]> => {
       const { data: matches, error } = await supabase
         .from('matches')
@@ -178,6 +181,13 @@ function useGroupMatches(groupId: string) {
         .limit(50)
 
       console.log('[GroupMatches] groupId:', groupId, 'count:', matches?.length, 'error:', error?.message)
+      if (matches?.length) {
+        console.log('[GroupMatches] match dates:', matches.map(m => m.match_date))
+        const today = new Date().toISOString().split('T')[0]
+        console.log('[GroupMatches] today:', today)
+        console.log('[GroupMatches] upcoming:', matches.filter(m => m.match_date >= today).length)
+        console.log('[GroupMatches] past:', matches.filter(m => m.match_date < today).length)
+      }
       if (error) throw error
       if (!matches || matches.length === 0) return []
 

@@ -119,6 +119,7 @@ function UpdateBanner() {
   if (!showUpdate) return null
 
   const handleUpdate = () => {
+    setShowUpdate(false)
     navigator.serviceWorker.ready.then(reg => {
       reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
     })
@@ -141,15 +142,26 @@ function UpdateBanner() {
           <div style={{ fontSize: 12, opacity: 0.85 }}>Tap to get the latest updates</div>
         </div>
       </div>
-      <button
-        onClick={handleUpdate}
-        style={{
-          background: 'white', color: '#009688', border: 'none',
-          borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-        }}
-      >
-        Update
-      </button>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <button
+          onClick={handleUpdate}
+          style={{
+            background: 'white', color: '#009688', border: 'none',
+            borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          Update
+        </button>
+        <button
+          onClick={() => setShowUpdate(false)}
+          style={{
+            background: 'none', border: 'none', color: 'white',
+            fontSize: 20, cursor: 'pointer', padding: '0 4px', opacity: 0.8,
+          }}
+        >
+          ✕
+        </button>
+      </div>
     </div>
   )
 }

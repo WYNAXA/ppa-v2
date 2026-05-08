@@ -68,7 +68,7 @@ export function OnboardingPage() {
   async function saveStep1() {
     if (!name.trim() || !user) return
     setSaving(true)
-    await supabase.from('profiles').update({ name: name.trim() }).eq('id', user.id)
+    await supabase.from('profiles').update({ name: name.trim(), internal_ranking: 1500 }).eq('id', user.id)
     setSaving(false)
     setStep(1)
   }

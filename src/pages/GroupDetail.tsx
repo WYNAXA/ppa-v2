@@ -177,6 +177,7 @@ function useGroupMatches(groupId: string) {
         .order('match_time', { ascending: true })
         .limit(50)
 
+      console.log('[GroupMatches] groupId:', groupId, 'count:', matches?.length, 'error:', error?.message)
       if (error) throw error
       if (!matches || matches.length === 0) return []
 

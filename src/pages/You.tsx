@@ -343,11 +343,12 @@ function LinkPartnerSheet({
 
   const linkMutation = useMutation({
     mutationFn: async (partnerId: string) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ household_partner_id: partnerId })
-        .eq('id', currentUserId)
-      if (error) throw error
+      // Link both directions
+      const { error: e1 } = await supabase.from('profiles')
+        .update({ household_partner_id: partnerId }).eq('id', currentUserId)
+      if (e1) throw e1
+      await supabase.from('profiles')
+        .update({ household_partner_id: currentUserId }).eq('id', partnerId)
       // Notify partner
       await supabase.from('notifications').insert({
         user_id:    partnerId,
@@ -910,6 +911,9 @@ export function YouPage() {
               <button
                 onClick={async () => {
                   await supabase.from('profiles').update({ household_partner_id: null }).eq('id', userId)
+                  if (householdPartner?.id) {
+                    await supabase.from('profiles').update({ household_partner_id: null }).eq('id', householdPartner.id)
+                  }
                   queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                 }}
                 className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-100 py-2.5 text-[13px] font-semibold text-red-500 hover:bg-red-50 transition-colors"

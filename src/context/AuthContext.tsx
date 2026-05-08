@@ -1,6 +1,7 @@
 import { createContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { Sentry } from '@/lib/sentry'
 
 interface Profile {
   id: string
@@ -71,6 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (mountedRef.current) setLoading(false)
 
         if (newSession?.user) {
+          // Set Sentry user context (ID only — no PII)
+          Sentry.setUser({ id: newSession.user.id })
           // Load profile in background
           if (profileLoadedForRef.current !== newSession.user.id) {
             profileLoadedForRef.current = newSession.user.id
@@ -79,6 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             })
           }
         } else {
+          Sentry.setUser(null)
           profileLoadedForRef.current = ''
           setProfile(null)
         }
@@ -110,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut()
+    Sentry.setUser(null)
     setSession(null)
     setUser(null)
     setProfile(null)

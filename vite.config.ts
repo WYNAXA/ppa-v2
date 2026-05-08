@@ -26,7 +26,7 @@ function stripConsole(): Plugin {
           break
         }
         result += code.slice(i, i + match.index)
-        let parenStart = i + match.index + match[0].length
+        const parenStart = i + match.index + match[0].length
         let depth = 1
         let j = parenStart
         while (j < code.length && depth > 0) {

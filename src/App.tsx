@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState, lazy, Suspense } from 'react'
+import { useRegisterSW } from 'virtual:pwa-register/react'
 import { useTranslation } from 'react-i18next'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -73,24 +74,23 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
 }
 
 function UpdateBanner() {
-  const [showUpdate, setShowUpdate] = useState(false)
+  const {
+    needRefresh: [needRefresh, setNeedRefresh],
+    updateServiceWorker,
+  } = useRegisterSW({
+    onRegisteredSW(swUrl, registration) {
+      if (import.meta.env.DEV) console.log('[SW] registered:', swUrl)
+      if (registration) {
+        // Check for updates every 60 seconds
+        setInterval(() => { registration.update() }, 60_000)
+      }
+    },
+    onRegisterError(error) {
+      if (import.meta.env.DEV) console.error('[SW] registration error:', error)
+    },
+  })
 
-  useEffect(() => {
-    const handleUpdate = () => setShowUpdate(true)
-    window.addEventListener('swUpdate', handleUpdate)
-    return () => window.removeEventListener('swUpdate', handleUpdate)
-  }, [])
-
-  if (!showUpdate) return null
-
-  const handleUpdate = () => {
-    setShowUpdate(false)
-    navigator.serviceWorker.ready.then(reg => {
-      reg.waiting?.postMessage({ type: 'SKIP_WAITING' })
-    })
-    // Fallback reload after 1 second
-    setTimeout(() => window.location.reload(), 1000)
-  }
+  if (!needRefresh) return null
 
   return (
     <div style={{
@@ -103,22 +103,22 @@ function UpdateBanner() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontSize: 20 }}>🚀</span>
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>New version available</div>
-          <div style={{ fontSize: 12, opacity: 0.85 }}>Tap to get the latest updates</div>
+          <div style={{ fontWeight: 600, fontSize: 14 }}>A new version is available</div>
+          <div style={{ fontSize: 12, opacity: 0.85 }}>Tap Refresh to get the latest updates</div>
         </div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <button
-          onClick={handleUpdate}
+          onClick={() => updateServiceWorker(true)}
           style={{
             background: 'white', color: '#009688', border: 'none',
             borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
           }}
         >
-          Update
+          Refresh
         </button>
         <button
-          onClick={() => setShowUpdate(false)}
+          onClick={() => setNeedRefresh(false)}
           style={{
             background: 'none', border: 'none', color: 'white',
             fontSize: 20, cursor: 'pointer', padding: '0 4px', opacity: 0.8,

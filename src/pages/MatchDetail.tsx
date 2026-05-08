@@ -485,7 +485,7 @@ export function MatchDetailPage() {
   const handleLeave = async () => {
     if (!data) return
     setLeaving(true)
-    const newPlayerIds = data.match.player_ids.filter((pid) => pid !== currentUserId)
+    const newPlayerIds = (data.match.player_ids ?? []).filter((pid) => pid !== currentUserId)
     const { error } = await supabase
       .from('matches')
       .update({
@@ -512,9 +512,9 @@ export function MatchDetailPage() {
 
   const SLOT_COUNT = 4
   const slots = Array.from({ length: SLOT_COUNT }, (_, i) => {
-    const pid = match.player_ids[i]
+    const pid = playerIds[i]
     if (pid) return players.find((p) => p.id === pid) ?? { id: pid, name: 'Unknown', email: '' }
-    const guestIndex = i - match.player_ids.length
+    const guestIndex = i - playerIds.length
     if (guestIndex >= 0 && guestIndex < guestNames.length) {
       return { id: `guest_${i}`, name: guestNames[guestIndex], email: '', isGuest: true as const }
     }
@@ -606,7 +606,7 @@ export function MatchDetailPage() {
       {result && <ResultBanner result={result} players={players} />}
 
       {/* 4-players-ready banner (creator, not yet booked, no result) */}
-      {isCreator && match.player_ids.length === 4 && !result && match.status !== 'completed' && match.status !== 'cancelled' && (
+      {isCreator && playerIds.length === 4 && !result && match.status !== 'completed' && match.status !== 'cancelled' && (
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}

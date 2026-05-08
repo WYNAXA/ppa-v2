@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'path'
 import { readFileSync } from 'fs'
 
@@ -71,7 +72,17 @@ export default defineConfig({
         ],
       },
     }),
+    ...(process.env.SENTRY_AUTH_TOKEN ? [sentryVitePlugin({
+      org: process.env.SENTRY_ORG ?? 'wynaxa',
+      project: process.env.SENTRY_PROJECT ?? 'javascript-react',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      sourcemaps: { filesToDeleteAfterUpload: ['./dist/**/*.map'] },
+      release: { name: process.env.VERCEL_GIT_COMMIT_SHA },
+    })] : []),
   ],
+  build: {
+    sourcemap: true,
+  },
   server: { port: 5173 },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),

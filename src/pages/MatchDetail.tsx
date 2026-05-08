@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -13,6 +13,7 @@ import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
 import type { Match, MatchResult, Profile } from '@/lib/types'
+import { calculateMatchPrediction, PAIRINGS, pairingToTeams, findPairingIndex } from '@/lib/predictions'
 import {
   getMatchTravelInfo,
   calculateDistance,
@@ -94,35 +95,6 @@ async function fetchMatchDetail(id: string): Promise<{
   }
 
   return { match, players, result: result ?? null, confirmVoteCount, myVote }
-}
-
-// ── ELO helpers ───────────────────────────────────────────────────────────────
-
-function calcWinProb(avgA: number, avgB: number): number {
-  return 1 / (1 + Math.pow(10, (avgB - avgA) / 400))
-}
-
-interface EloPrediction {
-  probA: number
-  probB: number
-  pointsIfAWins: number
-  pointsIfBWins: number
-}
-
-function getEloPrediction(players: Profile[], team1Ids: string[], team2Ids: string[]): EloPrediction | null {
-  const getElo = (id: string) => (players.find((p) => p.id === id) as Profile & { internal_ranking?: number })?.internal_ranking ?? 1500
-  if (team1Ids.length < 2 || team2Ids.length < 2) return null
-  const avgA = (getElo(team1Ids[0]) + getElo(team1Ids[1])) / 2
-  const avgB = (getElo(team2Ids[0]) + getElo(team2Ids[1])) / 2
-  const probA = calcWinProb(avgA, avgB)
-  const probB = 1 - probA
-  const K = 32
-  return {
-    probA,
-    probB,
-    pointsIfAWins: Math.round(K * probB),
-    pointsIfBWins: Math.round(K * probA),
-  }
 }
 
 function ResultBanner({ result, players }: { result: MatchResult; players: Profile[] }) {
@@ -314,6 +286,21 @@ export function MatchDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['match-travel', id] }),
   })
 
+  // Group admin status (for team-switching permission)
+  const { data: isGroupAdmin = false } = useQuery<boolean>({
+    queryKey: ['match-group-admin', data?.match?.group_id, profile?.id],
+    enabled: !!data?.match?.group_id && !!profile?.id,
+    queryFn: async () => {
+      const { data: row } = await supabase
+        .from('group_members')
+        .select('role')
+        .eq('group_id', data!.match.group_id!)
+        .eq('user_id', profile!.id)
+        .maybeSingle()
+      return row?.role === 'admin'
+    },
+  })
+
   // Incoming lift requests (driver's view)
   const { data: incomingRequests = [] } = useQuery<Array<{ id: string; requester_id: string; status: string; requesterName?: string }>>({
     queryKey: ['incoming-travel-requests', id, profile?.id],
@@ -445,6 +432,7 @@ export function MatchDetailPage() {
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result
+  const canSwitchTeams = isParticipant || isGroupAdmin
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }
@@ -723,80 +711,20 @@ export function MatchDetailPage() {
         </div>
       </div>
 
-      {/* ELO Prediction */}
-      {!result && playerIds.length === 4 && (() => {
-        const team1Ids = playerIds.slice(0, 2)
-        const team2Ids = playerIds.slice(2, 4)
-        const pred = getEloPrediction(players, team1Ids, team2Ids)
-        if (!pred) return null
-        const getEloFor = (id: string) => (players.find((p) => p.id === id) as any)?.internal_ranking ?? 1500
-        const avgA = Math.round((getEloFor(team1Ids[0]) + getEloFor(team1Ids[1])) / 2)
-        const avgB = Math.round((getEloFor(team2Ids[0]) + getEloFor(team2Ids[1])) / 2)
-        const meOnTeam1 = team1Ids.includes(currentUserId)
-        const pointsIfWin  = meOnTeam1 ? pred.pointsIfAWins  : pred.pointsIfBWins
-        const pointsIfLose = meOnTeam1 ? pred.pointsIfBWins  : pred.pointsIfAWins
-        const isEven = Math.abs(pred.probA - 0.5) < 0.03
-        const t1Names = team1Ids.map(id => players.find(p => p.id === id)?.name?.split(' ')[0] ?? '?').join(' + ')
-        const t2Names = team2Ids.map(id => players.find(p => p.id === id)?.name?.split(' ')[0] ?? '?').join(' + ')
-        return (
-          <div className="px-5 mb-4">
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <BarChart2 className="h-4 w-4 text-[#009688]" />
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Match Prediction</p>
-              </div>
-              {isEven ? (
-                <div className="text-center py-1">
-                  <p className="text-[22px] font-black text-gray-600">50% — 50%</p>
-                  <p className="text-[12px] font-semibold text-gray-500 mt-1">Equal teams</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">Both teams have similar ELO ratings. This will be a closely contested match!</p>
-                  <div className="flex justify-center gap-3 mt-2 text-[11px] text-gray-500">
-                    <span>{t1Names}: <strong>{avgA.toLocaleString()} ELO</strong></span>
-                    <span>·</span>
-                    <span>{t2Names}: <strong>{avgB.toLocaleString()} ELO</strong></span>
-                  </div>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 text-center">
-                    <p className="text-[24px] font-black text-teal-600">{Math.round(pred.probA * 100)}%</p>
-                    <p className="text-[10px] text-gray-500 font-semibold mb-0.5">{t1Names}</p>
-                    <p className="text-[11px] text-teal-700 font-semibold">avg {avgA.toLocaleString()} ELO</p>
-                    <p className="text-[10px] text-teal-500">+{pred.pointsIfAWins} if win</p>
-                  </div>
-                  <div className="text-center px-1">
-                    <p className="text-[12px] text-gray-300 font-bold">vs</p>
-                  </div>
-                  <div className="flex-1 text-center">
-                    <p className="text-[24px] font-black text-orange-500">{Math.round(pred.probB * 100)}%</p>
-                    <p className="text-[10px] text-gray-500 font-semibold mb-0.5">{t2Names}</p>
-                    <p className="text-[11px] text-orange-600 font-semibold">avg {avgB.toLocaleString()} ELO</p>
-                    <p className="text-[10px] text-orange-400">+{pred.pointsIfBWins} if win</p>
-                  </div>
-                </div>
-              )}
-              {!isEven && (
-                <div className="mt-3 h-2 rounded-full bg-gray-200 overflow-hidden">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-teal-500 to-orange-400 transition-all"
-                    style={{ width: `${Math.round(pred.probA * 100)}%` }}
-                  />
-                </div>
-              )}
-              {(meOnTeam1 || team2Ids.includes(currentUserId)) && (
-                <div className="mt-2 flex gap-2 justify-center">
-                  <span className="text-[10px] font-semibold text-green-600 bg-green-50 rounded-full px-2 py-0.5">
-                    Win: +{pointsIfWin} ELO
-                  </span>
-                  <span className="text-[10px] font-semibold text-red-500 bg-red-50 rounded-full px-2 py-0.5">
-                    Lose: −{pointsIfLose} ELO
-                  </span>
-                </div>
-              )}
-            </div>
-          </div>
-        )
-      })()}
+      {/* Teams & Prediction (scheduled/pending only) */}
+      {!result &&
+        playerIds.length === 4 &&
+        match.status !== 'completed' &&
+        match.status !== 'cancelled' && (
+          <TeamsAndPrediction
+            matchId={match.id}
+            playerIds={playerIds}
+            players={players}
+            savedTeam1={match.team1_player_ids ?? null}
+            savedTeam2={match.team2_player_ids ?? null}
+            canSwitch={canSwitchTeams}
+          />
+        )}
 
       {/* Verification card */}
       {result && (result.verification_status === 'pending' || result.verification_status === 'disputed') && isParticipant && (() => {
@@ -1180,3 +1108,183 @@ export function MatchDetailPage() {
     </div>
   )
 }
+
+// ── Teams & Prediction ────────────────────────────────────────────────────────
+
+interface TeamsAndPredictionProps {
+  matchId: string
+  playerIds: string[]
+  players: Profile[]
+  savedTeam1: string[] | null
+  savedTeam2: string[] | null
+  canSwitch: boolean
+}
+
+function TeamsAndPrediction({
+  matchId,
+  playerIds,
+  players,
+  savedTeam1,
+  savedTeam2,
+  canSwitch,
+}: TeamsAndPredictionProps) {
+  const queryClient = useQueryClient()
+
+  const serverIndex = useMemo(
+    () => findPairingIndex(playerIds, savedTeam1, savedTeam2),
+    [playerIds, savedTeam1, savedTeam2],
+  )
+
+  // Local override when the user clicks Switch; cleared once save confirms.
+  const [override, setOverride] = useState<number | null>(null)
+  const [savedTick, setSavedTick] = useState(false)
+  const [saveError, setSaveError] = useState(false)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const pairingIndex = override ?? serverIndex
+
+  const teams = useMemo(
+    () => pairingToTeams(playerIds, pairingIndex),
+    [playerIds, pairingIndex],
+  )
+
+  const team1Players = teams.team1.map(
+    (id) => players.find((p) => p.id === id),
+  ).filter((p): p is Profile => !!p)
+  const team2Players = teams.team2.map(
+    (id) => players.find((p) => p.id === id),
+  ).filter((p): p is Profile => !!p)
+
+  const prediction = calculateMatchPrediction(team1Players, team2Players)
+
+  const handleSwitch = () => {
+    if (!canSwitch) return
+    const next = (pairingIndex + 1) % PAIRINGS.length
+    setOverride(next)
+    setSaveError(false)
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      const { team1, team2 } = pairingToTeams(playerIds, next)
+      const { error } = await supabase
+        .from('matches')
+        .update({ team1_player_ids: team1, team2_player_ids: team2 })
+        .eq('id', matchId)
+      if (error) {
+        setSaveError(true)
+        setOverride(null)
+        return
+      }
+      setSavedTick(true)
+      queryClient.invalidateQueries({ queryKey: ['match', matchId] })
+      // Clear override once the server is the source of truth again.
+      setOverride(null)
+      setTimeout(() => setSavedTick(false), 2000)
+    }, 1000)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+    }
+  }, [])
+
+  const team1Higher = prediction.team1WinProb >= prediction.team2WinProb
+
+  return (
+    <div className="px-5 mb-4">
+      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <BarChart2 className="h-4 w-4 text-[#009688]" />
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Teams &amp; Prediction</p>
+          <AnimatePresence>
+            {savedTick && (
+              <motion.span
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-green-600"
+              >
+                <CheckCircle className="h-3 w-3" />
+                Teams saved
+              </motion.span>
+            )}
+            {saveError && !savedTick && (
+              <span className="ml-auto text-[10px] font-semibold text-red-500">Couldn't save — reverted</span>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <TeamRow
+          label="Team 1"
+          players={team1Players}
+          winProb={prediction.team1WinProb}
+          highlight={team1Higher && prediction.hasRankings}
+        />
+        <div className="h-2" />
+        <TeamRow
+          label="Team 2"
+          players={team2Players}
+          winProb={prediction.team2WinProb}
+          highlight={!team1Higher && prediction.hasRankings}
+        />
+
+        {!prediction.hasRankings && (
+          <p className="text-[10px] text-gray-400 mt-2 text-center italic">Predictions unavailable</p>
+        )}
+
+        {canSwitch && (
+          <button
+            onClick={handleSwitch}
+            className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2 text-[12px] font-semibold text-gray-700 active:scale-[0.98] transition-transform"
+          >
+            <Shuffle className="h-3.5 w-3.5" />
+            Switch teams
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function TeamRow({
+  label,
+  players,
+  winProb,
+  highlight,
+}: {
+  label: string
+  players: Profile[]
+  winProb: number
+  highlight: boolean
+}) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-3 rounded-xl border px-3 py-2.5',
+        highlight ? 'border-teal-200 bg-teal-50/60' : 'border-gray-100 bg-white',
+      )}
+    >
+      <div className="flex-shrink-0">
+        <p className={cn('text-[10px] font-bold uppercase tracking-wide', highlight ? 'text-[#009688]' : 'text-gray-400')}>
+          {label}
+        </p>
+      </div>
+      <div className="flex-1 flex items-center gap-2 min-w-0">
+        {players.map((p) => (
+          <div key={p.id} className="flex items-center gap-1.5 min-w-0">
+            <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+            <p className="text-[12px] font-semibold text-gray-800 truncate">{p.name.split(' ')[0]}</p>
+          </div>
+        ))}
+      </div>
+      <div className="flex-shrink-0 text-right">
+        <p className={cn('text-[16px] font-black leading-none', highlight ? 'text-[#009688]' : 'text-gray-500')}>
+          {winProb}%
+        </p>
+        <p className="text-[9px] text-gray-400 mt-0.5">to win</p>
+      </div>
+    </div>
+  )
+}
+

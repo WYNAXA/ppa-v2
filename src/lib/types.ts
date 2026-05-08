@@ -16,6 +16,8 @@ export interface Match {
   match_type: string | null
   status: string
   player_ids: string[]
+  team1_player_ids: string[] | null
+  team2_player_ids: string[] | null
   context_type: string | null
   booked_venue_name: string | null
   booked_court_number: number | null

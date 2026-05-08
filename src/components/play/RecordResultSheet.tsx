@@ -57,8 +57,21 @@ function countSetWins(sets: SetScore[]): [number, number] {
   return [t1Wins, t2Wins]
 }
 
-function initTeams(playerIds: string[] | undefined): [string[], string[]] {
+function initTeams(
+  playerIds: string[] | undefined,
+  savedTeam1?: string[] | null,
+  savedTeam2?: string[] | null,
+): [string[], string[]] {
   const ids = playerIds ?? []
+  // Honour saved pairing if it's a valid 2v2 split of the current player set.
+  if (
+    savedTeam1 && savedTeam2 &&
+    savedTeam1.length === 2 && savedTeam2.length === 2
+  ) {
+    const idSet = new Set(ids)
+    const allInRoster = [...savedTeam1, ...savedTeam2].every((id) => idSet.has(id))
+    if (allInRoster) return [savedTeam1, savedTeam2]
+  }
   return [ids.slice(0, 2), ids.slice(2, 4)]
 }
 
@@ -79,7 +92,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const initialisedRef = useRef(false)
   useEffect(() => {
     if (open && !initialisedRef.current) {
-      const [t1, t2] = initTeams(match.player_ids)
+      const [t1, t2] = initTeams(match.player_ids, match.team1_player_ids, match.team2_player_ids)
       setTeam1(t1)
       setTeam2(t2)
       setStep(1)
@@ -91,7 +104,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     if (!open) {
       initialisedRef.current = false
     }
-  }, [open, match.player_ids])
+  }, [open, match.player_ids, match.team1_player_ids, match.team2_player_ids])
 
   const queryClient = useQueryClient()
 

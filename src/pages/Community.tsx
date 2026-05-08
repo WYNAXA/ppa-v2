@@ -19,6 +19,7 @@ interface GroupRow {
   description: string | null
   city: string | null
   visibility: string | null
+  join_mode: string | null
   admin_id: string
 }
 

@@ -30,3 +30,17 @@ Retire `groups.admin_id`. `group_members.role` becomes the single source of trut
 - RLS policies reference `admin_id` and cannot be changed in a code-only PR
 - DB triggers may depend on `admin_id` for ownership checks
 - The dual-check approach in `useIsGroupAdmin` is safe and correct for both models
+
+## Enforcement
+
+An ESLint `no-restricted-syntax` rule in `eslint.config.js` blocks any `MemberExpression[property.name='admin_id']` — i.e. any `.admin_id` property access in TypeScript/TSX files.
+
+**Adding a new admin check:**
+- In React components: `const { isAdmin } = useIsGroupAdmin(groupId)`
+- In async/non-React code: `const isAdmin = await checkIsGroupAdmin(groupId, userId)`
+- Never access `.admin_id` directly on a group object
+
+**Legitimate exceptions** (marked with `eslint-disable-next-line`):
+- `src/hooks/useIsGroupAdmin.ts:33` — canonical reader, checks legacy admin_id
+- `src/components/community/CreateGroupSheet.tsx:75` — sets admin_id on creation (object literal, doesn't trigger)
+- `src/pages/GroupDetail.tsx:321` — ownership transfer mutation (object literal, doesn't trigger)

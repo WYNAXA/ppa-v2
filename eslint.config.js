@@ -19,5 +19,14 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "MemberExpression[property.name='admin_id']",
+          message: 'Use useIsGroupAdmin() or checkIsGroupAdmin() instead of direct admin_id access.',
+        },
+      ],
+    },
   },
 ])

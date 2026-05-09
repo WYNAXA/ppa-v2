@@ -30,6 +30,7 @@ export async function checkIsGroupAdmin(groupId: string, userId: string): Promis
     supabase.from('group_members').select('role').eq('group_id', groupId).eq('user_id', userId).maybeSingle(),
   ])
 
+  // eslint-disable-next-line no-restricted-syntax -- canonical admin check reads both sources
   const isLegacyAdmin = groupResult.data?.admin_id === userId
   const isRoleAdmin = memberResult.data?.role === 'admin'
   return isLegacyAdmin || isRoleAdmin

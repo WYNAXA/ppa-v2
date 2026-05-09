@@ -91,10 +91,9 @@ async function checkVersionFloor() {
   }
 }
 
-// Run version check on every page load (fetches ~50 bytes)
-if (import.meta.env.PROD) {
-  checkVersionFloor()
-}
+// Run version check on every page load (fetches ~50 bytes).
+// No PROD gate — the function handles missing version.json gracefully.
+checkVersionFloor()
 
 // ── Render ───────────────────────────────────────────────────────────────────
 

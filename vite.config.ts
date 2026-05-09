@@ -9,6 +9,8 @@ import { execSync } from 'child_process'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
+// TODO: investigate whether this plugin's enforce:'pre' is interfering with
+// import.meta.env replacement — see issues with PROD gating in main.tsx and sentry-init.ts.
 function stripConsole(): Plugin {
   return {
     name: 'strip-console',

@@ -1,15 +1,13 @@
 import * as Sentry from '@sentry/react'
 
 export function initSentry() {
-  if (!import.meta.env.PROD) return
-
   const dsn = import.meta.env.VITE_SENTRY_DSN
   if (!dsn) return
 
   Sentry.init({
     dsn,
     environment: import.meta.env.MODE,
-    enabled: import.meta.env.PROD,
+    enabled: true,
     tracesSampleRate: 0.1,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: 0.1,

@@ -250,7 +250,7 @@ function useGroupPastMatches(groupId: string) {
 
 function useGroupPolls(groupId: string) {
   return useQuery({
-    queryKey: ['group-polls', groupId],
+    queryKey: ['polls', 'group', groupId],
     enabled: !!groupId,
     queryFn: async (): Promise<Poll[]> => {
       const { data, error } = await supabase

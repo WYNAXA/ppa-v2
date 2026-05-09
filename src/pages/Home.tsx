@@ -147,7 +147,7 @@ function useHomeRanking(userId: string, currentRanking: number | undefined) {
 
 function useActivePoll(userId: string) {
   return useQuery<ActivePoll | null>({
-    queryKey: ['home-active-poll', userId],
+    queryKey: ['polls', 'mine', userId],
     enabled: !!userId,
     queryFn: async () => {
       const { data: memberships } = await supabase

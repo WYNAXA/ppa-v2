@@ -107,13 +107,13 @@ export function AvailabilityPollPage() {
 
   // ── Query ──
   const { data, isLoading } = useQuery({
-    queryKey: ['poll', pollId, userId],
+    queryKey: ['polls', 'detail', pollId, userId],
     queryFn: () => fetchPollDetail(pollId!, userId),
     enabled: !!pollId && !!userId,
   })
 
   const { data: existingMatchCount = 0 } = useQuery({
-    queryKey: ['poll-matches-count', pollId],
+    queryKey: ['polls', 'detail', pollId, 'match-count'],
     enabled: !!pollId,
     queryFn: async () => {
       const { count } = await supabase.from('matches').select('*', { count: 'exact', head: true })
@@ -308,7 +308,7 @@ export function AvailabilityPollPage() {
       setSubmitted(true)
       setSubmittedUnavailable(cantDoWeek)
       setIsEditMode(false)
-      queryClient.invalidateQueries({ queryKey: ['poll', pollId] })
+      queryClient.invalidateQueries({ queryKey: ['polls', 'detail', pollId] })
       queryClient.invalidateQueries({ queryKey: ['availability-home'] })
     },
   })
@@ -399,8 +399,7 @@ export function AvailabilityPollPage() {
       await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
       setShowMatchGen(false)
       setSelectedScheduleIdx(null)
-      queryClient.invalidateQueries({ queryKey: ['poll', pollId] })
-      queryClient.invalidateQueries({ queryKey: ['poll-matches-count', pollId] })
+      queryClient.invalidateQueries({ queryKey: ['polls', 'detail', pollId] })
       navigate(`/community/groups/${poll!.group_id}?tab=matches`)
     } catch (e) {
       console.error('[Schedule] error:', e)
@@ -547,7 +546,7 @@ export function AvailabilityPollPage() {
             isAdmin={data.isAdmin}
             currentUserId={userId}
             currentUserName={profile?.name ?? 'Admin'}
-            onRefetch={() => queryClient.invalidateQueries({ queryKey: ['poll', pollId] })}
+            onRefetch={() => queryClient.invalidateQueries({ queryKey: ['polls', 'detail', pollId] })}
           />
         )}
 

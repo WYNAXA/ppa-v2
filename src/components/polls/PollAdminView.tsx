@@ -153,7 +153,7 @@ export function PollAdminView({
 
   // ── Data Fetching ──
   const { data: responses = [] } = useQuery<ResponseWithProfile[]>({
-    queryKey: ['poll-responses', pollId],
+    queryKey: ['polls', 'detail', pollId, 'responses'],
     queryFn: async () => {
       const { data } = await supabase
         .from('poll_responses')
@@ -169,7 +169,7 @@ export function PollAdminView({
   })
 
   const { data: groupMembers = [] } = useQuery({
-    queryKey: ['poll-group-members', groupId],
+    queryKey: ['polls', 'detail', pollId, 'group-members'],
     queryFn: async () => {
       const { data: memberships } = await supabase
         .from('group_members')

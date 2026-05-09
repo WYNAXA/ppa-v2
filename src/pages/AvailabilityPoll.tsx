@@ -6,6 +6,7 @@ import { ChevronLeft, CheckCircle, Clock, Trophy, AlertTriangle, Star, Users, Sh
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { checkIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { cn } from '@/lib/utils'
 import { generateHalfHourSlots, getTimePeriod, getSlotDate } from '@/lib/pollUtils'
 import { WeeklyScheduleSelector } from '@/components/polls/WeeklyScheduleSelector'
@@ -30,7 +31,7 @@ interface Poll {
   week_start_date: string
   time_slots: PollSlot[]
   additional_options: string[]
-  groups?: { id: string; name: string; admin_id: string } | null
+  groups?: { id: string; name: string } | null
 }
 
 interface MyResponse {
@@ -48,7 +49,7 @@ interface MyResponse {
 async function fetchPollDetail(pollId: string, userId: string) {
   const { data: poll, error } = await supabase
     .from('polls')
-    .select('*, groups:group_id(id, name, admin_id)')
+    .select('*, groups:group_id(id, name)')
     .eq('id', pollId)
     .single()
 
@@ -73,17 +74,7 @@ async function fetchPollDetail(pollId: string, userId: string) {
     .eq('user_id', userId)
     .maybeSingle()
 
-  // Check if user is admin of this group
-  const { data: memberData } = await supabase
-    .from('group_members')
-    .select('role')
-    .eq('group_id', parsedPoll.group_id)
-    .eq('user_id', userId)
-    .eq('status', 'approved')
-    .maybeSingle()
-
-  const groupAdminId = (parsedPoll.groups as any)?.admin_id
-  const isAdmin = groupAdminId === userId || memberData?.role === 'admin'
+  const isAdmin = await checkIsGroupAdmin(parsedPoll.group_id, userId)
 
   return {
     poll: parsedPoll as Poll,

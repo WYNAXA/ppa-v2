@@ -6,6 +6,7 @@ import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star }
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateEventSheet } from '@/components/community/CreateEventSheet'
@@ -1304,7 +1305,7 @@ export function GroupDetailPage() {
   const { data: events,  isLoading: loadingEvents  } = useGroupEvents(groupId)
   const { data: leagues, isLoading: loadingLeagues } = useGroupLeagues(groupId)
 
-  const isAdmin     = group?.admin_id === userId || (members ?? []).some(m => m.id === userId && m.role === 'admin')
+  const { isAdmin } = useIsGroupAdmin(groupId)
   const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
 
   const TABS: Array<{ id: Tab; label: string }> = [

@@ -6,6 +6,7 @@ import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, 
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
@@ -287,19 +288,7 @@ export function MatchDetailPage() {
   })
 
   // Group admin status (for team-switching permission)
-  const { data: isGroupAdmin = false } = useQuery<boolean>({
-    queryKey: ['match-group-admin', data?.match?.group_id, profile?.id],
-    enabled: !!data?.match?.group_id && !!profile?.id,
-    queryFn: async () => {
-      const { data: row } = await supabase
-        .from('group_members')
-        .select('role')
-        .eq('group_id', data!.match.group_id!)
-        .eq('user_id', profile!.id)
-        .maybeSingle()
-      return row?.role === 'admin'
-    },
-  })
+  const { isAdmin: isGroupAdmin } = useIsGroupAdmin(data?.match?.group_id)
 
   // Incoming lift requests (driver's view)
   const { data: incomingRequests = [] } = useQuery<Array<{ id: string; requester_id: string; status: string; requesterName?: string }>>({

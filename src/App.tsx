@@ -73,59 +73,78 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+const SW_DISMISS_KEY = 'sw-update-dismissed-' + (__APP_VERSION__ ?? 'unknown')
+
 function UpdateBanner() {
+  const [dismissed, setDismissed] = useState(() => {
+    try { return sessionStorage.getItem(SW_DISMISS_KEY) === '1' } catch { return false }
+  })
+
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
   } = useRegisterSW({
-    onRegisteredSW(swUrl, registration) {
-      if (import.meta.env.DEV) console.log('[SW] registered:', swUrl)
+    onRegisteredSW(_swUrl, registration) {
       if (registration) {
-        // Check for updates every 60 seconds
         setInterval(() => { registration.update() }, 60_000)
       }
     },
-    onRegisterError(error) {
-      if (import.meta.env.DEV) console.error('[SW] registration error:', error)
-    },
   })
 
-  if (!needRefresh) return null
+  if (!needRefresh || dismissed) return null
+
+  const handleDismiss = () => {
+    setDismissed(true)
+    setNeedRefresh(false)
+    try { sessionStorage.setItem(SW_DISMISS_KEY, '1') } catch { /* ignore */ }
+  }
+
+  const handleRefresh = () => {
+    setNeedRefresh(false)
+    updateServiceWorker(true)
+    // Fallback: if updateServiceWorker doesn't reload within 3s, force it
+    setTimeout(() => window.location.reload(), 3000)
+  }
 
   return (
     <div style={{
-      position: 'fixed', bottom: 90, left: 16, right: 16,
-      background: '#009688', color: 'white',
-      borderRadius: 16, padding: '14px 16px', zIndex: 9999,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+      position: 'fixed', bottom: 0, left: 0, right: 0,
+      paddingBottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
+      pointerEvents: 'none', zIndex: 60,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 20 }}>🚀</span>
-        <div>
-          <div style={{ fontWeight: 600, fontSize: 14 }}>A new version is available</div>
-          <div style={{ fontSize: 12, opacity: 0.85 }}>Tap Refresh to get the latest updates</div>
+      <div style={{
+        margin: '0 16px 12px', background: '#009688', color: 'white',
+        borderRadius: 16, padding: '14px 16px',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+        pointerEvents: 'auto',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div>
+            <div style={{ fontWeight: 600, fontSize: 14 }}>New version available</div>
+            <div style={{ fontSize: 12, opacity: 0.85 }}>Tap Refresh to update</div>
+          </div>
         </div>
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button
-          onClick={() => updateServiceWorker(true)}
-          style={{
-            background: 'white', color: '#009688', border: 'none',
-            borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-          }}
-        >
-          Refresh
-        </button>
-        <button
-          onClick={() => setNeedRefresh(false)}
-          style={{
-            background: 'none', border: 'none', color: 'white',
-            fontSize: 20, cursor: 'pointer', padding: '0 4px', opacity: 0.8,
-          }}
-        >
-          ✕
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={handleDismiss}
+            style={{
+              background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none',
+              borderRadius: 20, padding: '6px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            Later
+          </button>
+          <button
+            onClick={handleRefresh}
+            style={{
+              background: 'white', color: '#009688', border: 'none',
+              borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            }}
+          >
+            Refresh
+          </button>
+        </div>
       </div>
     </div>
   )

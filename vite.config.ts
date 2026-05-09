@@ -107,6 +107,9 @@ export default defineConfig({
   server: { port: 5173 },
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
+    'import.meta.env.VITE_GIT_COMMIT_SHA': JSON.stringify(
+      process.env.VERCEL_GIT_COMMIT_SHA || 'dev'
+    ),
   },
   resolve: {
     alias: {

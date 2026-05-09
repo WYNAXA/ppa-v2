@@ -61,18 +61,20 @@ async function checkVersionFloor() {
     // Extract the hash from the script filename
     const match = scriptSrc.match(/index-([^.]+)\.js/)
     if (!match) return
-    // We can't compare git SHAs to chunk hashes directly.
-    // Instead, store the "current" version in sessionStorage on first success.
-    // If it changes between loads, we know a new deploy happened.
-    const storedVersion = sessionStorage.getItem('ppa-build-version')
+    // Migrate from sessionStorage to localStorage (one-time)
+    const ssVal = sessionStorage.getItem('ppa-build-version')
+    if (ssVal) {
+      if (!localStorage.getItem('ppa-build-version')) localStorage.setItem('ppa-build-version', ssVal)
+      sessionStorage.removeItem('ppa-build-version')
+    }
+    // Store version in localStorage so it persists across tab closes.
+    const storedVersion = localStorage.getItem('ppa-build-version')
     if (!storedVersion) {
-      // First visit or cleared storage — record current version
-      sessionStorage.setItem('ppa-build-version', current)
+      localStorage.setItem('ppa-build-version', current)
       return
     }
     if (storedVersion !== current) {
-      // Server has a newer build than what we last recorded — force refresh
-      sessionStorage.setItem('ppa-build-version', current)
+      localStorage.setItem('ppa-build-version', current)
       // Clear all caches to break out of stale SW
       if ('caches' in window) {
         const keys = await caches.keys()

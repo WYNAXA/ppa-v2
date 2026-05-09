@@ -15,6 +15,7 @@ import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
 import type { Match, MatchResult, Profile } from '@/lib/types'
 import { calculateMatchPrediction, PAIRINGS, pairingToTeams, findPairingIndex } from '@/lib/predictions'
+import { previewMatchOutcomes } from '@/lib/eloPreview'
 import {
   getMatchTravelInfo,
   calculateDistance,
@@ -61,7 +62,7 @@ async function fetchMatchDetail(id: string): Promise<{
   if (playerIds.length > 0) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking')
+      .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, matches_played')
       .in('id', playerIds)
     players = data ?? []
   }
@@ -712,6 +713,8 @@ export function MatchDetailPage() {
             savedTeam1={match.team1_player_ids ?? null}
             savedTeam2={match.team2_player_ids ?? null}
             canSwitch={canSwitchTeams}
+            isFriendly={match.match_type === 'friendly'}
+            currentUserId={currentUserId}
           />
         )}
 
@@ -1107,6 +1110,8 @@ interface TeamsAndPredictionProps {
   savedTeam1: string[] | null
   savedTeam2: string[] | null
   canSwitch: boolean
+  isFriendly: boolean
+  currentUserId: string
 }
 
 function TeamsAndPrediction({
@@ -1116,6 +1121,8 @@ function TeamsAndPrediction({
   savedTeam1,
   savedTeam2,
   canSwitch,
+  isFriendly,
+  currentUserId,
 }: TeamsAndPredictionProps) {
   const queryClient = useQueryClient()
 
@@ -1222,6 +1229,16 @@ function TeamsAndPrediction({
           <p className="text-[10px] text-gray-400 mt-2 text-center italic">Predictions unavailable</p>
         )}
 
+        {/* Points at stake */}
+        {prediction.hasRankings && (
+          <PointsAtStakeSection
+            team1Players={team1Players}
+            team2Players={team2Players}
+            isFriendly={isFriendly}
+            currentUserId={currentUserId}
+          />
+        )}
+
         {canSwitch && (
           <button
             onClick={handleSwitch}
@@ -1272,6 +1289,103 @@ function TeamRow({
           {winProb}%
         </p>
         <p className="text-[9px] text-gray-400 mt-0.5">to win</p>
+      </div>
+    </div>
+  )
+}
+
+function PointsAtStakeSection({
+  team1Players,
+  team2Players,
+  isFriendly,
+  currentUserId,
+}: {
+  team1Players: Profile[]
+  team2Players: Profile[]
+  isFriendly: boolean
+  currentUserId: string
+}) {
+  if (isFriendly) {
+    return (
+      <p className="text-[10px] text-gray-400 mt-3 text-center italic">
+        Friendly match — no points at stake. Career ratings will not be affected.
+      </p>
+    )
+  }
+
+  const preview = useMemo(
+    () => previewMatchOutcomes(
+      team1Players.map(p => ({ id: p.id, internal_ranking: (p as any).internal_ranking, matches_played: (p as any).matches_played })),
+      team2Players.map(p => ({ id: p.id, internal_ranking: (p as any).internal_ranking, matches_played: (p as any).matches_played })),
+    ),
+    [team1Players, team2Players],
+  )
+
+  if (!preview) return null
+  const stakes = preview // non-null alias for closure
+
+  const isInTeam1 = team1Players.some(p => p.id === currentUserId)
+  const isInTeam2 = team2Players.some(p => p.id === currentUserId)
+  const isParticipant = isInTeam1 || isInTeam2
+
+  function getDelta(outcome: typeof stakes.team1Wins, teamNum: 1 | 2): number {
+    const deltas = teamNum === 1 ? outcome.team1Deltas : outcome.team2Deltas
+    const teamPlayers = teamNum === 1 ? team1Players : team2Players
+    if (isParticipant) {
+      const idx = teamPlayers.findIndex(p => p.id === currentUserId)
+      if (idx >= 0) return deltas[idx]
+    }
+    return Math.round(deltas.reduce((s, d) => s + d, 0) / deltas.length)
+  }
+
+  const formatDelta = (d: number) => d > 0 ? `+${d}` : `${d}`
+  const deltaColor = (d: number) => d > 0 ? 'text-green-700' : d < 0 ? 'text-red-500' : 'text-gray-500'
+
+  if (isParticipant) {
+    const myTeam: 1 | 2 = isInTeam1 ? 1 : 2
+    const winD = getDelta(myTeam === 1 ? stakes.team1Wins : stakes.team2Wins, myTeam)
+    const drawD = getDelta(stakes.draw, myTeam)
+    const loseD = getDelta(myTeam === 1 ? stakes.team2Wins : stakes.team1Wins, myTeam)
+
+    return (
+      <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
+        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Points at stake</p>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] text-gray-600">If you win</span>
+            <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] text-gray-600">If you draw</span>
+            <span className={cn('text-[13px] font-bold', deltaColor(drawD))}>{formatDelta(drawD)} ELO</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-[12px] text-gray-600">If you lose</span>
+            <span className={cn('text-[13px] font-bold', deltaColor(loseD))}>{formatDelta(loseD)} ELO</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Spectator view
+  const t1Win = Math.round(stakes.team1Wins.team1Deltas.reduce((s, d) => s + d, 0) / stakes.team1Wins.team1Deltas.length)
+  const t2Win = Math.round(stakes.team2Wins.team2Deltas.reduce((s, d) => s + d, 0) / stakes.team2Wins.team2Deltas.length)
+
+  return (
+    <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Points at stake</p>
+      <div className="flex justify-between text-[11px]">
+        <div>
+          <span className="text-gray-500">Team 1 wins: </span>
+          <span className={cn('font-bold', deltaColor(t1Win))}>{formatDelta(t1Win)}</span>
+          <span className="text-gray-400"> per player</span>
+        </div>
+        <div>
+          <span className="text-gray-500">Team 2 wins: </span>
+          <span className={cn('font-bold', deltaColor(t2Win))}>{formatDelta(t2Win)}</span>
+          <span className="text-gray-400"> per player</span>
+        </div>
       </div>
     </div>
   )

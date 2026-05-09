@@ -1,7 +1,7 @@
 import { createContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
-import { Sentry } from '@/lib/sentry'
+import * as Sentry from '@sentry/react'
 
 interface Profile {
   id: string

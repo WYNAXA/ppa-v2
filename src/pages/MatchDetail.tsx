@@ -714,6 +714,7 @@ export function MatchDetailPage() {
             savedTeam2={match.team2_player_ids ?? null}
             canSwitch={canSwitchTeams}
             isFriendly={match.match_type === 'friendly'}
+            isLeagueMatch={!!(match as any).league_id && match.match_type !== 'friendly'}
             currentUserId={currentUserId}
           />
         )}
@@ -1111,6 +1112,7 @@ interface TeamsAndPredictionProps {
   savedTeam2: string[] | null
   canSwitch: boolean
   isFriendly: boolean
+  isLeagueMatch: boolean
   currentUserId: string
 }
 
@@ -1122,6 +1124,7 @@ function TeamsAndPrediction({
   savedTeam2,
   canSwitch,
   isFriendly,
+  isLeagueMatch,
   currentUserId,
 }: TeamsAndPredictionProps) {
   const queryClient = useQueryClient()
@@ -1235,6 +1238,7 @@ function TeamsAndPrediction({
             team1Players={team1Players}
             team2Players={team2Players}
             isFriendly={isFriendly}
+            isLeagueMatch={isLeagueMatch}
             currentUserId={currentUserId}
           />
         )}
@@ -1298,11 +1302,13 @@ function PointsAtStakeSection({
   team1Players,
   team2Players,
   isFriendly,
+  isLeagueMatch,
   currentUserId,
 }: {
   team1Players: Profile[]
   team2Players: Profile[]
   isFriendly: boolean
+  isLeagueMatch: boolean
   currentUserId: string
 }) {
   if (isFriendly) {
@@ -1317,12 +1323,13 @@ function PointsAtStakeSection({
     () => previewMatchOutcomes(
       team1Players.map(p => ({ id: p.id, internal_ranking: (p as any).internal_ranking, matches_played: (p as any).matches_played })),
       team2Players.map(p => ({ id: p.id, internal_ranking: (p as any).internal_ranking, matches_played: (p as any).matches_played })),
+      isLeagueMatch,
     ),
-    [team1Players, team2Players],
+    [team1Players, team2Players, isLeagueMatch],
   )
 
   if (!preview) return null
-  const stakes = preview // non-null alias for closure
+  const stakes = preview
 
   const isInTeam1 = team1Players.some(p => p.id === currentUserId)
   const isInTeam2 = team2Players.some(p => p.id === currentUserId)
@@ -1338,14 +1345,27 @@ function PointsAtStakeSection({
     return Math.round(deltas.reduce((s, d) => s + d, 0) / deltas.length)
   }
 
+  function getLeaguePts(outcome: typeof stakes.team1Wins, teamNum: 1 | 2): number | null {
+    return teamNum === 1 ? outcome.team1LeaguePts : outcome.team2LeaguePts
+  }
+
   const formatDelta = (d: number) => d > 0 ? `+${d}` : `${d}`
   const deltaColor = (d: number) => d > 0 ? 'text-green-700' : d < 0 ? 'text-red-500' : 'text-gray-500'
+  const formatLp = (lp: number | null) => {
+    if (lp === null) return null
+    return `+${lp} league pt${lp !== 1 ? 's' : ''}`
+  }
 
   if (isParticipant) {
     const myTeam: 1 | 2 = isInTeam1 ? 1 : 2
-    const winD = getDelta(myTeam === 1 ? stakes.team1Wins : stakes.team2Wins, myTeam)
+    const winOutcome = myTeam === 1 ? stakes.team1Wins : stakes.team2Wins
+    const loseOutcome = myTeam === 1 ? stakes.team2Wins : stakes.team1Wins
+    const winD = getDelta(winOutcome, myTeam)
     const drawD = getDelta(stakes.draw, myTeam)
-    const loseD = getDelta(myTeam === 1 ? stakes.team2Wins : stakes.team1Wins, myTeam)
+    const loseD = getDelta(loseOutcome, myTeam)
+    const winLp = getLeaguePts(winOutcome, myTeam)
+    const drawLp = getLeaguePts(stakes.draw, myTeam)
+    const loseLp = getLeaguePts(loseOutcome, myTeam)
 
     return (
       <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
@@ -1353,17 +1373,29 @@ function PointsAtStakeSection({
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-gray-600">If you win</span>
-            <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
+            <div className="flex items-center gap-3">
+              <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
+              {winLp !== null && <span className="text-[11px] font-semibold text-[#009688]">{formatLp(winLp)}</span>}
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-gray-600">If you draw</span>
-            <span className={cn('text-[13px] font-bold', deltaColor(drawD))}>{formatDelta(drawD)} ELO</span>
+            <div className="flex items-center gap-3">
+              <span className={cn('text-[13px] font-bold', deltaColor(drawD))}>{formatDelta(drawD)} ELO</span>
+              {drawLp !== null && <span className="text-[11px] font-semibold text-gray-500">{formatLp(drawLp)}</span>}
+            </div>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-gray-600">If you lose</span>
-            <span className={cn('text-[13px] font-bold', deltaColor(loseD))}>{formatDelta(loseD)} ELO</span>
+            <div className="flex items-center gap-3">
+              <span className={cn('text-[13px] font-bold', deltaColor(loseD))}>{formatDelta(loseD)} ELO</span>
+              {loseLp !== null && <span className="text-[11px] font-semibold text-gray-400">{formatLp(loseLp)}</span>}
+            </div>
           </div>
         </div>
+        {!isLeagueMatch && (
+          <p className="text-[10px] text-gray-400 mt-2 text-center italic">No league points — not in a league</p>
+        )}
       </div>
     )
   }
@@ -1371,6 +1403,8 @@ function PointsAtStakeSection({
   // Spectator view
   const t1Win = Math.round(stakes.team1Wins.team1Deltas.reduce((s, d) => s + d, 0) / stakes.team1Wins.team1Deltas.length)
   const t2Win = Math.round(stakes.team2Wins.team2Deltas.reduce((s, d) => s + d, 0) / stakes.team2Wins.team2Deltas.length)
+  const t1Lp = stakes.team1Wins.team1LeaguePts
+  const t2Lp = stakes.team2Wins.team2LeaguePts
 
   return (
     <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
@@ -1378,15 +1412,18 @@ function PointsAtStakeSection({
       <div className="flex justify-between text-[11px]">
         <div>
           <span className="text-gray-500">Team 1 wins: </span>
-          <span className={cn('font-bold', deltaColor(t1Win))}>{formatDelta(t1Win)}</span>
-          <span className="text-gray-400"> per player</span>
+          <span className={cn('font-bold', deltaColor(t1Win))}>{formatDelta(t1Win)} ELO</span>
+          {t1Lp !== null && <span className="text-[#009688] font-semibold ml-1">+{t1Lp} pts</span>}
         </div>
         <div>
           <span className="text-gray-500">Team 2 wins: </span>
-          <span className={cn('font-bold', deltaColor(t2Win))}>{formatDelta(t2Win)}</span>
-          <span className="text-gray-400"> per player</span>
+          <span className={cn('font-bold', deltaColor(t2Win))}>{formatDelta(t2Win)} ELO</span>
+          {t2Lp !== null && <span className="text-[#009688] font-semibold ml-1">+{t2Lp} pts</span>}
         </div>
       </div>
+      {!isLeagueMatch && (
+        <p className="text-[10px] text-gray-400 mt-2 text-center italic">No league points — not in a league</p>
+      )}
     </div>
   )
 }

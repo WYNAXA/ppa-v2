@@ -49,21 +49,28 @@ export interface OutcomePreview {
   /** Per-player career rating delta (same order as input array) */
   team1Deltas: number[]
   team2Deltas: number[]
+  /** League points for this outcome (null = not a league match) */
+  team1LeaguePts: number | null
+  team2LeaguePts: number | null
 }
 
 export interface PointsAtStake {
   team1Wins: OutcomePreview
   draw: OutcomePreview
   team2Wins: OutcomePreview
+  /** Whether league points apply to this match */
+  isLeagueMatch: boolean
 }
 
 /**
  * Preview rating deltas for all three outcomes (team1 wins, draw, team2 wins).
  * Returns null if any player lacks a rating.
+ * @param isLeagueMatch - true if the match has a league_id and is competitive
  */
 export function previewMatchOutcomes(
   team1: PlayerForPreview[],
   team2: PlayerForPreview[],
+  isLeagueMatch = false,
 ): PointsAtStake | null {
   // All players must have rankings for preview to work
   if (team1.some(p => p.internal_ranking == null) || team2.some(p => p.internal_ranking == null)) {
@@ -88,18 +95,24 @@ export function previewMatchOutcomes(
     ))
   }
 
+  const lp = (win: number, loss: number) => isLeagueMatch ? { team1LeaguePts: win, team2LeaguePts: loss } : { team1LeaguePts: null, team2LeaguePts: null }
+
   return {
     team1Wins: {
       team1Deltas: computeTeamDeltas(team1, t2AvgRating, 1),
       team2Deltas: computeTeamDeltas(team2, t1AvgRating, 0),
+      ...lp(3, 0),
     },
     draw: {
       team1Deltas: computeTeamDeltas(team1, t2AvgRating, 0.5),
       team2Deltas: computeTeamDeltas(team2, t1AvgRating, 0.5),
+      ...lp(1, 1),
     },
     team2Wins: {
       team1Deltas: computeTeamDeltas(team1, t2AvgRating, 0),
       team2Deltas: computeTeamDeltas(team2, t1AvgRating, 1),
+      ...lp(0, 3),
     },
+    isLeagueMatch,
   }
 }

@@ -4,7 +4,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { sentryVitePlugin } from '@sentry/vite-plugin'
 import path from 'path'
-import { readFileSync } from 'fs'
+import { readFileSync, writeFileSync } from 'fs'
+import { execSync } from 'child_process'
 
 const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'))
 
@@ -44,22 +45,39 @@ function stripConsole(): Plugin {
   }
 }
 
+function generateVersionJson(): Plugin {
+  return {
+    name: 'generate-version-json',
+    apply: 'build',
+    closeBundle() {
+      let sha = process.env.VERCEL_GIT_COMMIT_SHA || ''
+      if (!sha) {
+        try { sha = execSync('git rev-parse HEAD', { encoding: 'utf-8' }).trim() } catch { sha = 'unknown' }
+      }
+      writeFileSync(
+        path.resolve(__dirname, 'dist/version.json'),
+        JSON.stringify({ current: sha, minimum: sha }, null, 2),
+      )
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
     react(),
     stripConsole(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'PPA_Favicon.png'],
       manifest: false,
       workbox: {
         clientsClaim: true,
-        skipWaiting: false,
+        skipWaiting: true,
         cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/sw\.js$/, /^\/manifest\.json$/],
+        navigateFallbackDenylist: [/^\/sw\.js$/, /^\/manifest\.json$/, /^\/version\.json$/],
         runtimeCaching: [
           {
             urlPattern: /supabase\.co/,
@@ -72,6 +90,7 @@ export default defineConfig({
         ],
       },
     }),
+    generateVersionJson(),
     ...(process.env.SENTRY_AUTH_TOKEN ? [sentryVitePlugin({
       org: process.env.SENTRY_ORG ?? 'wynaxa',
       project: process.env.SENTRY_PROJECT ?? 'javascript-react',

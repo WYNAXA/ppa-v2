@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/workbox-:hash.js", "destination": "/workbox-:hash.js" },
+    { "source": "/version.json", "destination": "/version.json" },
     { "source": "/(.*)", "destination": "/index.html" }
   ],
   "headers": [
@@ -10,6 +11,12 @@
       "headers": [
         { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
         { "key": "Service-Worker-Allowed", "value": "/" }
+      ]
+    },
+    {
+      "source": "/version.json",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
       ]
     },
     {

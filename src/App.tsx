@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState, lazy, Suspense } from 'react'
-import { useRegisterSW } from 'virtual:pwa-register/react'
 import { useTranslation } from 'react-i18next'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
@@ -73,82 +72,6 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
-const SW_DISMISS_KEY = 'sw-update-dismissed-' + (__APP_VERSION__ ?? 'unknown')
-
-function UpdateBanner() {
-  const [dismissed, setDismissed] = useState(() => {
-    try { return sessionStorage.getItem(SW_DISMISS_KEY) === '1' } catch { return false }
-  })
-
-  const {
-    needRefresh: [needRefresh, setNeedRefresh],
-    updateServiceWorker,
-  } = useRegisterSW({
-    onRegisteredSW(_swUrl, registration) {
-      if (registration) {
-        setInterval(() => { registration.update() }, 60_000)
-      }
-    },
-  })
-
-  if (!needRefresh || dismissed) return null
-
-  const handleDismiss = () => {
-    setDismissed(true)
-    setNeedRefresh(false)
-    try { sessionStorage.setItem(SW_DISMISS_KEY, '1') } catch { /* ignore */ }
-  }
-
-  const handleRefresh = () => {
-    setNeedRefresh(false)
-    updateServiceWorker(true)
-    // Fallback: if updateServiceWorker doesn't reload within 3s, force it
-    setTimeout(() => window.location.reload(), 3000)
-  }
-
-  return (
-    <div style={{
-      position: 'fixed', bottom: 0, left: 0, right: 0,
-      paddingBottom: 'calc(76px + env(safe-area-inset-bottom, 0px))',
-      pointerEvents: 'none', zIndex: 60,
-    }}>
-      <div style={{
-        margin: '0 16px 12px', background: '#009688', color: 'white',
-        borderRadius: 16, padding: '14px 16px',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
-        pointerEvents: 'auto',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div>
-            <div style={{ fontWeight: 600, fontSize: 14 }}>New version available</div>
-            <div style={{ fontSize: 12, opacity: 0.85 }}>Tap Refresh to update</div>
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <button
-            onClick={handleDismiss}
-            style={{
-              background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none',
-              borderRadius: 20, padding: '6px 14px', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-            }}
-          >
-            Later
-          </button>
-          <button
-            onClick={handleRefresh}
-            style={{
-              background: 'white', color: '#009688', border: 'none',
-              borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-            }}
-          >
-            Refresh
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 function TranslationBanner() {
   const { i18n } = useTranslation()
@@ -192,7 +115,6 @@ function AppShell() {
   return (
     <OnboardingGuard>
       <ScrollToTop />
-      <UpdateBanner />
       <TranslationBanner />
       <div className="flex h-full flex-col">
         <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>

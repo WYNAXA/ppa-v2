@@ -8,7 +8,7 @@ export interface MatchPrediction {
 
 type PlayerWithRanking = Pick<Profile, 'id'> & { internal_ranking?: number | null }
 
-const FALLBACK_RANKING = 50
+const FALLBACK_RANKING = 1300
 
 function avg(values: number[]): number {
   if (values.length === 0) return FALLBACK_RANKING
@@ -28,12 +28,11 @@ export function calculateMatchPrediction(
   const t1Avg = avg(t1Raw.map((v) => v ?? FALLBACK_RANKING))
   const t2Avg = avg(t2Raw.map((v) => v ?? FALLBACK_RANKING))
 
-  const total = t1Avg + t2Avg
-  if (total <= 0) {
-    return { team1WinProb: 50, team2WinProb: 50, hasRankings }
-  }
+  // ELO expected score: E = 1 / (1 + 10^((opp - self) / 400))
+  const team1WinProb = Math.round(
+    (1 / (1 + Math.pow(10, (t2Avg - t1Avg) / 400))) * 100
+  )
 
-  const team1WinProb = Math.round((t1Avg / total) * 100)
   return {
     team1WinProb,
     team2WinProb: 100 - team1WinProb,

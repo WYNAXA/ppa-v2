@@ -120,7 +120,7 @@ async function fetchPlayerProfile(playerId: string, currentUserId: string) {
 
   return {
     player: player as PlayerProfileData,
-    myElo: (myProfile as any)?.internal_ranking ?? 1000,
+    myElo: (myProfile as any)?.internal_ranking ?? 1300,
     h2h,
     commonMatches: commonMatches.slice(0, 10),
   }
@@ -160,7 +160,7 @@ export function PlayerProfilePage() {
   }
 
   const { player, myElo, h2h, commonMatches } = data
-  const theirElo = player.internal_ranking ?? 1000
+  const theirElo = player.internal_ranking ?? 1300
   const myWinProb = calcWinProb(myElo, theirElo)
   const theirWinProb = 1 - myWinProb
 

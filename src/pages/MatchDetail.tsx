@@ -355,12 +355,7 @@ export function MatchDetailPage() {
             .from('match_results')
             .update({ verification_status: 'verified' })
             .eq('id', result.id)
-          // Trigger ELO processing
-          try {
-            await supabase.functions.invoke('process-elo', {
-              body: { match_result_id: result.id },
-            })
-          } catch { /* non-blocking */ }
+          // ELO processing is handled by the Database Webhook automatically
         }
       } else {
         await supabase

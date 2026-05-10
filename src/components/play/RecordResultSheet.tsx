@@ -1,20 +1,14 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, Trophy, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { X, ChevronLeft, Trophy } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { checkAndAwardBadges, type BadgeAward } from '@/lib/achievements'
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
-import type { Match, RankingChange } from '@/lib/types'
-
-interface EloChange {
-  ratingBefore: number
-  ratingAfter: number
-  ratingChange: number
-}
+import type { Match } from '@/lib/types'
 
 interface Player {
   id: string
@@ -83,8 +77,6 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [team2, setTeam2] = useState<string[]>([])
   const [sets, setSets] = useState<SetScore[]>([{ team1: '', team2: '' }])
   const [resultType, setResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
-  const [rankingChanges, setRankingChanges] = useState<RankingChange[]>([])
-  const [eloChanges, setEloChanges] = useState<Record<string, EloChange>>({})
   const [newBadges, setNewBadges] = useState<BadgeAward[]>([])
   const [showPeerVoting, setShowPeerVoting] = useState(false)
 
@@ -98,7 +90,6 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       setStep(1)
       setSets([{ team1: '', team2: '' }])
       setResultType(null)
-      setRankingChanges([])
       initialisedRef.current = true
     }
     if (!open) {
@@ -161,41 +152,22 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       console.log('[RecordResult] match update error:', matchError)
       if (matchError) throw matchError
 
-      // Auto-confirm both submitting team members (they know their score)
-      const submittingTeam = team1.includes(currentUserId) ? team1 : team2
-      const autoVotes = submittingTeam
-        .filter(pid => UUID_RE.test(pid))
-        .map(pid => ({ match_result_id: result.id, voter_id: pid, vote: 'confirm' }))
-      if (autoVotes.length > 0) {
-        const { error: voteErr } = await supabase.from('match_result_votes').insert(autoVotes)
+      // Auto-confirm the submitter (they know their score)
+      // Only vote for current user — RLS requires auth.uid() = voter_id
+      if (UUID_RE.test(currentUserId)) {
+        const { error: voteErr } = await supabase.from('match_result_votes').insert({
+          match_result_id: result.id,
+          voter_id: currentUserId,
+          vote: 'confirm',
+        })
         if (voteErr) console.warn('[RecordResult] auto-vote error:', voteErr)
       }
 
-      // Fetch legacy ranking changes after insert
-      const { data: changes } = await supabase
-        .from('ranking_changes')
-        .select('*')
-        .eq('match_result_id', result.id)
-
-      // Call process-elo edge function (non-blocking — best effort)
-      let eloResult: Record<string, EloChange> = {}
-      try {
-        const { data: eloData } = await supabase.functions.invoke('process-elo', {
-          body: { match_result_id: result.id },
-        })
-        if (eloData?.changes) {
-          eloResult = eloData.changes
-        }
-      } catch (e) {
-        console.warn('[RecordResult] process-elo non-fatal error:', e)
-      }
-
-      console.log('[RecordResult] ranking changes:', changes)
-      return { changes: changes ?? [], eloResult }
+      // ELO processing is handled asynchronously by the Database Webhook
+      // when verification_status changes to 'verified' — no frontend call needed.
+      return {}
     },
-    onSuccess: async ({ changes, eloResult }) => {
-      setRankingChanges(changes)
-      if (Object.keys(eloResult).length > 0) setEloChanges(eloResult)
+    onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['match', match.id] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['achievements', currentUserId] })
@@ -630,80 +602,8 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     </div>
                     <h3 className="text-[18px] font-bold text-gray-900 mb-1">{t('match.result_submitted')}</h3>
                     <p className="text-[13px] text-gray-500 mb-6 text-center">
-                      {Object.keys(eloChanges).length > 0
-                        ? t('record_result.elo_updated')
-                        : t('record_result.waiting_verify')}
+                      {t('record_result.waiting_verify')}
                     </p>
-
-                    {/* ELO changes from process-elo function (preferred) */}
-                    {Object.keys(eloChanges).length > 0 && (
-                      <div className="w-full bg-gray-50 rounded-2xl p-4 mb-5">
-                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">{t('record_result.elo_changes')}</p>
-                        {Object.entries(eloChanges).map(([playerId, data]) => {
-                          const p = getPlayer(playerId)
-                          const delta = data.ratingChange
-                          return (
-                            <div key={playerId} className="flex items-center justify-between mb-2 last:mb-0">
-                              <div className="flex items-center gap-2">
-                                <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
-                                <span className="text-[13px] font-medium text-gray-800">{p?.name ?? 'Player'}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                {delta > 0 ? (
-                                  <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                                ) : delta < 0 ? (
-                                  <TrendingDown className="h-3.5 w-3.5 text-red-400" />
-                                ) : (
-                                  <Minus className="h-3.5 w-3.5 text-gray-400" />
-                                )}
-                                <span className={cn(
-                                  'text-[13px] font-bold',
-                                  delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400'
-                                )}>
-                                  {delta > 0 ? '+' : ''}{delta} ELO
-                                </span>
-                                <span className="text-[11px] text-gray-400">→ {data.ratingAfter.toLocaleString()}</span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-
-                    {/* Fallback: legacy ranking_changes */}
-                    {Object.keys(eloChanges).length === 0 && rankingChanges.length > 0 && (
-                      <div className="w-full bg-gray-50 rounded-2xl p-4 mb-5">
-                        <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-3">{t('record_result.elo_changes')}</p>
-                        {rankingChanges.map((rc) => {
-                          const p = getPlayer(rc.player_id)
-                          const delta = rc.points_change
-                          return (
-                            <div key={rc.id} className="flex items-center justify-between mb-2 last:mb-0">
-                              <div className="flex items-center gap-2">
-                                <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
-                                <span className="text-[13px] font-medium text-gray-800">{p?.name ?? 'Player'}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                {delta > 0 ? (
-                                  <TrendingUp className="h-3.5 w-3.5 text-green-500" />
-                                ) : delta < 0 ? (
-                                  <TrendingDown className="h-3.5 w-3.5 text-red-400" />
-                                ) : (
-                                  <Minus className="h-3.5 w-3.5 text-gray-400" />
-                                )}
-                                <span className={cn(
-                                  'text-[13px] font-bold',
-                                  delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400'
-                                )}>
-                                  {delta > 0 ? '+' : ''}{delta}
-                                </span>
-                                <span className="text-[11px] text-gray-400">→ {rc.new_ranking}</span>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
 
                     {newBadges.length > 0 && (
                       <motion.div

@@ -34,6 +34,9 @@ const PayBookingPage = lazy(() => import('@/pages/PayBooking').then(m => ({ defa
 const VenueDetailPage = lazy(() => import('@/pages/VenueDetail').then(m => ({ default: m.VenueDetailPage })))
 const TournamentModePage = lazy(() => import('@/pages/TournamentMode').then(m => ({ default: m.TournamentModePage })))
 const LeagueDiscoveryPage = lazy(() => import('@/pages/LeagueDiscovery').then(m => ({ default: m.LeagueDiscoveryPage })))
+const AllGroupsPage = lazy(() => import('@/pages/community/AllGroupsPage').then(m => ({ default: m.AllGroupsPage })))
+const AllPlayersPage = lazy(() => import('@/pages/community/AllPlayersPage').then(m => ({ default: m.AllPlayersPage })))
+const MyConnectionsPage = lazy(() => import('@/pages/community/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
 
 
 const queryClient = new QueryClient({
@@ -142,6 +145,9 @@ function AppShell() {
             <Route path="/play"      element={<Guard><PlayPage /></Guard>} />
             <Route path="/compete"   element={<Guard><CompetePage /></Guard>} />
             <Route path="/community"             element={<Guard><CommunityPage /></Guard>} />
+            <Route path="/community/groups"      element={<Guard><AllGroupsPage /></Guard>} />
+            <Route path="/community/players"     element={<Guard><AllPlayersPage /></Guard>} />
+            <Route path="/community/connections"  element={<Guard><MyConnectionsPage /></Guard>} />
             <Route path="/community/groups/:id"  element={<Guard><GroupDetailPage /></Guard>} />
             <Route path="/community/events/:id"  element={<Guard><EventDetailPage /></Guard>} />
             <Route path="/you"       element={<Guard><YouPage /></Guard>} />

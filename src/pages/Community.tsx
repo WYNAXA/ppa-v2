@@ -1,14 +1,19 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check } from 'lucide-react'
+import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateGroupSheet } from '@/components/community/CreateGroupSheet'
+import { QuickLinksRow } from '@/components/community/QuickLinksRow'
+import { ConnectionRequestCard } from '@/components/community/ConnectionRequestCard'
+import { ConnectionCard } from '@/components/community/ConnectionCard'
+import { InviteToMatchSheet } from '@/components/community/InviteToMatchSheet'
+import { InviteToGroupSheet } from '@/components/community/InviteToGroupSheet'
 import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -36,6 +41,21 @@ interface DiscoverGroup extends GroupRow {
   membershipStatus: 'none' | 'pending' | 'approved'
 }
 
+interface ConnectionProfile {
+  user_id: string
+  name: string
+  avatar_url?: string | null
+  city?: string | null
+  internal_ranking?: number | null
+}
+
+interface ConnectionsData {
+  accepted: Set<string>
+  acceptedProfiles: ConnectionProfile[]
+  pendingOutgoing: Set<string>
+  incomingRequests: ConnectionProfile[]
+}
+
 // ── My Groups query ───────────────────────────────────────────────────────────
 
 function useMyGroups(userId: string) {
@@ -59,14 +79,12 @@ function useMyGroups(userId: string) {
       }))
       const groupIds = groups.map((g) => g.id)
 
-      // Step 1: Fetch member user_ids per group (avoid unreliable implicit FK join)
       const { data: memberRows } = await supabase
         .from('group_members')
         .select('group_id, user_id')
         .in('group_id', groupIds)
         .eq('status', 'approved')
 
-      // Step 2: Fetch profiles for all those user_ids
       const allUserIds = [...new Set((memberRows ?? []).map((m) => m.user_id))]
       const { data: profileRows } = await supabase
         .from('profiles')
@@ -82,7 +100,6 @@ function useMyGroups(userId: string) {
         if (p) membersByGroup[m.group_id].push(p)
       }
 
-      // Check active leagues
       const { data: activeLeagues } = await supabase
         .from('leagues')
         .select('linked_group_ids')
@@ -146,16 +163,13 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
         .or('visibility.in.(public,open),visibility.is.null')
         .limit(40)
 
-      // Sort server-side
       if (sortBy === 'newest') query = query.order('created_at', { ascending: false })
       else query = query.order('name')
 
-      // Search
       if (search.trim()) {
         query = query.or(`name.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%,city.ilike.%${search.trim()}%`)
       }
 
-      // Filters
       if (activeFilter === 'near_me' && userCity) {
         const cityName = userCity.split(',')[0].split(' ')[0].trim()
         if (cityName.length >= 3) query = query.ilike('city', `%${cityName}%`)
@@ -172,14 +186,12 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       if (filtered.length === 0) return []
       const filteredIds = filtered.map((g) => g.id)
 
-      // Count members
       const { data: memberRows } = await supabase
         .from('group_members').select('group_id')
         .in('group_id', filteredIds).eq('status', 'approved')
       const countMap: Record<string, number> = {}
       for (const m of memberRows ?? []) countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
 
-      // User's membership status
       const { data: membershipRows } = await supabase
         .from('group_members').select('group_id, status')
         .in('group_id', filteredIds).eq('user_id', userId)
@@ -192,7 +204,6 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
         ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: membershipStatusMap[g.id] ?? 'none',
       }))
 
-      // Client-side sorts
       if (sortBy === 'most_members') {
         result.sort((a, b) => b.memberCount - a.memberCount)
       }
@@ -202,9 +213,83 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
   })
 }
 
+// ── Bidirectional Connections query ───────────────────────────────────────────
+
+function useMyConnections(userId: string) {
+  return useQuery<ConnectionsData>({
+    queryKey: ['my-connections', userId],
+    enabled: !!userId,
+    queryFn: async (): Promise<ConnectionsData> => {
+      const [{ data: outgoing }, { data: incoming }] = await Promise.all([
+        supabase.from('player_connections').select('connected_user_id, status').eq('user_id', userId),
+        supabase.from('player_connections').select('user_id, status').eq('connected_user_id', userId),
+      ])
+
+      const accepted = new Set<string>()
+      const pendingOutgoing = new Set<string>()
+      const incomingPendingIds: string[] = []
+
+      for (const row of outgoing ?? []) {
+        if (row.status === 'accepted') accepted.add(row.connected_user_id)
+        else if (row.status === 'pending') pendingOutgoing.add(row.connected_user_id)
+      }
+      for (const row of incoming ?? []) {
+        if (row.status === 'accepted') accepted.add(row.user_id)
+        else if (row.status === 'pending') incomingPendingIds.push(row.user_id)
+      }
+
+      // Fetch profiles for accepted connections and incoming requests
+      const allProfileIds = [...accepted, ...incomingPendingIds]
+      let profiles: any[] = []
+      if (allProfileIds.length > 0) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, name, avatar_url, city, internal_ranking')
+          .in('id', allProfileIds)
+        profiles = data ?? []
+      }
+
+      const profileMap = new Map(profiles.map((p: any) => [p.id, p]))
+
+      const acceptedProfiles: ConnectionProfile[] = [...accepted]
+        .map((id) => profileMap.get(id))
+        .filter(Boolean)
+        .map((p: any) => ({ user_id: p.id, name: p.name, avatar_url: p.avatar_url, city: p.city, internal_ranking: p.internal_ranking }))
+
+      const incomingRequests: ConnectionProfile[] = incomingPendingIds
+        .map((id) => profileMap.get(id))
+        .filter(Boolean)
+        .map((p: any) => ({ user_id: p.id, name: p.name, avatar_url: p.avatar_url, city: p.city, internal_ranking: p.internal_ranking }))
+
+      return { accepted, acceptedProfiles, pendingOutgoing, incomingRequests }
+    },
+  })
+}
+
+// ── Find Players query ────────────────────────────────────────────────────────
+
+function useFindPlayers(userId: string, query: string, city: string | null) {
+  return useQuery({
+    queryKey: ['find-players', userId, query, city],
+    enabled: !!userId,
+    queryFn: async () => {
+      let q = supabase
+        .from('profiles')
+        .select('id, name, avatar_url, city, internal_ranking')
+        .neq('id', userId)
+        .order('internal_ranking', { ascending: false })
+        .limit(30)
+      if (query.trim()) q = q.ilike('name', `%${query.trim()}%`)
+      if (city && !query.trim()) q = q.ilike('city', `%${city}%`)
+      const { data } = await q
+      return data ?? []
+    },
+  })
+}
+
 // ── My Group Card ─────────────────────────────────────────────────────────────
 
-function MyGroupCard({ group, index }: { group: MyGroup; index: number }) {
+function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; badge?: string }) {
   const navigate = useNavigate()
   return (
     <motion.button
@@ -213,7 +298,7 @@ function MyGroupCard({ group, index }: { group: MyGroup; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       whileTap={{ scale: 0.985 }}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-teal-200 transition-colors"
+      className="w-full text-left bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-teal-200 transition-colors relative"
     >
       <div className="flex">
         <div className="w-1 bg-[#009688] flex-shrink-0" />
@@ -225,6 +310,14 @@ function MyGroupCard({ group, index }: { group: MyGroup; index: number }) {
                 {group.hasActiveLeague && (
                   <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-600">
                     Active League
+                  </span>
+                )}
+                {badge && (
+                  <span className={cn(
+                    'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold',
+                    badge === 'Ringer' ? 'bg-orange-100 text-orange-600' : 'bg-amber-100 text-amber-700'
+                  )}>
+                    {badge}
                   </span>
                 )}
               </div>
@@ -257,15 +350,7 @@ function MyGroupCard({ group, index }: { group: MyGroup; index: number }) {
 
 // ── Discover Card ─────────────────────────────────────────────────────────────
 
-function DiscoverCard({
-  group,
-  index,
-  onJoin,
-}: {
-  group: DiscoverGroup
-  index: number
-  onJoin: (id: string) => void
-}) {
+function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void }) {
   const navigate = useNavigate()
   return (
     <motion.div
@@ -289,11 +374,11 @@ function DiscoverCard({
               <span className="font-semibold">{group.memberCount}</span> member{group.memberCount !== 1 ? 's' : ''}
             </span>
             {group.join_mode === 'closed' ? (
-              <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">🔒 Closed</span>
+              <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">Closed</span>
             ) : group.join_mode === 'open' || group.visibility === 'public' ? (
-              <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">🟢 Open</span>
+              <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">Open</span>
             ) : (
-              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">🟡 Request</span>
+              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">Request</span>
             )}
           </div>
           {group.description && (
@@ -325,11 +410,7 @@ function DiscoverCard({
   )
 }
 
-// ── Find Players query ────────────────────────────────────────────────────────
-
-// ── Nearby Venues ────────────────────────────────────────────────────────────
-
-// ── Upcoming Events (group + official + own) ─────────────────────────────────
+// ── Upcoming Events ─────────────────────────────────────────────────────────
 
 function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userGroupIds: string[] }) {
   const navigate = useNavigate()
@@ -339,7 +420,6 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
     queryKey: ['upcoming-events-community', userId, userGroupIds],
     enabled: !!userId,
     queryFn: async () => {
-      // Fetch events in user's groups + official + created by user
       const filters = ['is_official.eq.true', `created_by.eq.${userId}`]
       if (userGroupIds.length > 0) filters.push(`group_id.in.(${userGroupIds.join(',')})`)
 
@@ -373,18 +453,18 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
           >
             <div className="flex items-center gap-2 mb-1">
               {e.is_official && (
-                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">🏟️ OFFICIAL</span>
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">OFFICIAL</span>
               )}
               {(e.entry_fee_pence ?? 0) > 0 ? (
-                <span className="text-[10px] font-semibold text-gray-500">£{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
+                <span className="text-[10px] font-semibold text-gray-500">{'\u00A3'}{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
               ) : (
                 <span className="text-[10px] font-semibold text-green-600">Free</span>
               )}
             </div>
             <p className="text-[14px] font-bold text-gray-900">{e.title}</p>
             <p className="text-[12px] text-gray-500 mt-0.5">
-              {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM · HH:mm') } catch { return e.start_time } })()}
-              {e.location && ` · ${e.location}`}
+              {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM \u00B7 HH:mm') } catch { return e.start_time } })()}
+              {e.location && ` \u00B7 ${e.location}`}
             </p>
           </button>
         ))}
@@ -426,7 +506,7 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
           >
             <PlayerAvatar name={c.name} avatarUrl={c.avatar_url} size="lg" />
             <p className="text-[12px] font-bold text-gray-900 mt-2 truncate w-full">{c.name}</p>
-            <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-2 py-0.5 mt-1">🎾 Coach</span>
+            <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-2 py-0.5 mt-1">Coach</span>
             {c.city && <p className="text-[10px] text-gray-400 mt-0.5">{c.city}</p>}
           </button>
         ))}
@@ -472,13 +552,13 @@ function NearbyVenuesSection({ userCity }: { userCity?: string | null }) {
               </div>
               <div className="px-3 py-2.5">
                 <p className="text-[13px] font-bold text-gray-900 truncate">{v.venue_name}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{v.city}{courts > 0 ? ` · ${courts} courts` : ''}</p>
+                <p className="text-[11px] text-gray-400 mt-0.5">{v.city}{courts > 0 ? ` \u00B7 ${courts} courts` : ''}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   {v.ppa_bookable && (
                     <span className="text-[9px] font-bold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">PPA</span>
                   )}
                   {(v.rating as number) > 0 && (
-                    <span className="text-[10px] text-gray-500">⭐ {Number(v.rating).toFixed(1)}</span>
+                    <span className="text-[10px] text-gray-500">{'\u2B50'} {Number(v.rating).toFixed(1)}</span>
                   )}
                 </div>
               </div>
@@ -490,45 +570,12 @@ function NearbyVenuesSection({ userCity }: { userCity?: string | null }) {
   )
 }
 
-function useMyConnections(userId: string) {
-  return useQuery<Set<string>>({
-    queryKey: ['my-connections', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('player_connections')
-        .select('connected_user_id, status')
-        .eq('user_id', userId)
-      const connected = new Set((data ?? []).map((c: any) => c.connected_user_id))
-      return connected
-    },
-  })
-}
-
-function useFindPlayers(userId: string, query: string, city: string | null) {
-  return useQuery({
-    queryKey: ['find-players', userId, query, city],
-    enabled: !!userId,
-    queryFn: async () => {
-      let q = supabase
-        .from('profiles')
-        .select('id, name, avatar_url, city, internal_ranking')
-        .neq('id', userId)
-        .order('internal_ranking', { ascending: false })
-        .limit(30)
-      if (query.trim()) q = q.ilike('name', `%${query.trim()}%`)
-      if (city && !query.trim()) q = q.ilike('city', `%${city}%`)
-      const { data } = await q
-      return data ?? []
-    },
-  })
-}
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function CommunityPage() {
   const { profile } = useAuth()
   const navigate     = useNavigate()
+  const location     = useLocation()
   const queryClient  = useQueryClient()
   const { t }        = useTranslation()
   const [search, setSearch]                   = useState('')
@@ -537,13 +584,25 @@ export function CommunityPage() {
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [playerSearch, setPlayerSearch]       = useState('')
   const [playerCityFilter, setPlayerCityFilter] = useState(false)
-  // Auto-enable city filter once profile city is known
+  const [inviteMatchTarget, setInviteMatchTarget] = useState<{ id: string; name: string } | null>(null)
+  const [inviteGroupTarget, setInviteGroupTarget] = useState<{ id: string; name: string } | null>(null)
+
   useEffect(() => {
     if (profile?.city) setPlayerCityFilter(true)
   }, [profile?.city])
 
   const userId = profile?.id ?? ''
-  const { data: myConnections = new Set<string>() } = useMyConnections(userId)
+
+  // Section refs for QuickLinks + hash scroll
+  const groupsRef = useRef<HTMLElement>(null)
+  const playersRef = useRef<HTMLElement>(null)
+  const coachesRef = useRef<HTMLElement>(null)
+  const venuesRef = useRef<HTMLElement>(null)
+  const connectionsRef = useRef<HTMLElement>(null)
+
+  // Queries
+  const { data: connectionsData } = useMyConnections(userId)
+  const connections = connectionsData ?? { accepted: new Set<string>(), acceptedProfiles: [], pendingOutgoing: new Set<string>(), incomingRequests: [] }
   const { data: allMyGroups = [], isLoading: loadingMine } = useMyGroups(userId)
   const { data: pendingRequests = [] } = usePendingRequests(userId)
   const myGroups = allMyGroups.filter(g => g.memberStatus === 'approved')
@@ -560,25 +619,36 @@ export function CommunityPage() {
     playerCityFilter ? (profile?.city ?? null) : null,
   )
 
+  // Quick links config
+  const quickLinks = useMemo(() => [
+    { key: 'groups',  emoji: '👥', label: 'Groups',  ref: groupsRef },
+    { key: 'players', emoji: '🤝', label: 'Players', ref: playersRef },
+    { key: 'coaches', emoji: '🎾', label: 'Coaches', ref: coachesRef },
+    { key: 'venues',  emoji: '📍', label: 'Venues',  ref: venuesRef },
+  ], [])
+
+  // Hash scroll for notification deep links (/community#connections)
+  useEffect(() => {
+    if (location.hash !== '#connections') return
+    if (!connectionsData) return
+    const timer = setTimeout(() => {
+      connectionsRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 150)
+    return () => clearTimeout(timer)
+  }, [location.hash, connectionsData])
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
+
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const group = discoverGroups.find((g) => g.id === groupId)
-
-      // Closed groups cannot be joined
       if (group?.join_mode === 'closed') throw new Error('This group is closed to new members')
-
-      // Auto-approve only if explicitly open join mode or auto_approve
       const autoApprove = group?.join_mode === 'open' || (group as any)?.auto_approve === true
       const status = autoApprove ? 'approved' : 'pending'
-
       const { error } = await supabase.from('group_members').insert({
-        group_id: groupId,
-        user_id:  userId,
-        role:     'member',
-        status,
+        group_id: groupId, user_id: userId, role: 'member', status,
       })
       if (error) throw error
-
       if (autoApprove) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
       queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })
     },
@@ -599,16 +669,58 @@ export function CommunityPage() {
   const connectMutation = useMutation({
     mutationFn: async (targetId: string) => {
       const { error } = await supabase.from('player_connections').insert({
-        user_id:           userId,
-        connected_user_id: targetId,
-        status:            'pending',
+        user_id: userId, connected_user_id: targetId, status: 'pending',
       })
       if (error) throw error
+
+      await supabase.from('notifications').insert({
+        user_id: targetId,
+        type: 'connection_request',
+        title: 'Connection request',
+        message: `${profile?.name ?? 'A player'} wants to connect with you.`,
+        related_id: userId,
+        read: false,
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
     },
   })
+
+  const acceptInlineMutation = useMutation({
+    mutationFn: async (requesterId: string) => {
+      const { error } = await supabase.rpc('accept_connection_request', { p_requester_id: requesterId })
+      if (error) throw error
+      await supabase.from('notifications').insert({
+        user_id: requesterId,
+        type: 'connection_accepted',
+        title: 'Connection accepted',
+        message: `${profile?.name ?? 'A player'} accepted your connection request.`,
+        related_id: userId,
+        read: false,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
+    },
+  })
+
+  // Merged groups list: approved + ringer (with badge)
+  const mergedGroups = [
+    ...myGroups.map(g => ({ ...g, badge: undefined as string | undefined })),
+    ...ringerGroups.map(g => ({ ...g, badge: 'Ringer' as string | undefined })),
+  ]
+
+  // Connect button state helper
+  function getConnectState(playerId: string): 'none' | 'pending_out' | 'pending_in' | 'accepted' {
+    if (connections.accepted.has(playerId)) return 'accepted'
+    if (connections.pendingOutgoing.has(playerId)) return 'pending_out'
+    if (connections.incomingRequests.some(r => r.user_id === playerId)) return 'pending_in'
+    return 'none'
+  }
+
+  const inlineDiscoverGroups = discoverGroups.slice(0, 6)
+  const inlinePlayers = foundPlayers.slice(0, 8)
 
   return (
     <div className="min-h-full bg-white pb-32">
@@ -635,20 +747,23 @@ export function CommunityPage() {
               <button onClick={() => setShowCreateSheet(true)} className="flex-1 rounded-xl bg-white py-2.5 text-[13px] font-bold text-[#009688]">
                 + Create Group
               </button>
-              <button onClick={() => setSearch('')} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2.5 text-[13px] font-bold text-white">
-                Discover
+              <button onClick={() => playersRef.current?.scrollIntoView({ behavior: 'smooth' })} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2.5 text-[13px] font-bold text-white">
+                Find Players
               </button>
             </div>
           </div>
         </div>
 
-        {/* My Groups */}
-        <section>
+        {/* Quick links */}
+        <QuickLinksRow sections={quickLinks} />
+
+        {/* ── My Groups (merged: approved + ringer + pending) ── */}
+        <section ref={groupsRef} id="groups">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[16px] font-bold text-gray-900">{t('community.my_groups')}</h2>
-            {myGroups.length > 0 && (
+            {mergedGroups.length > 0 && (
               <span className="text-[12px] text-gray-400">
-                {myGroups.length} group{myGroups.length !== 1 ? 's' : ''}
+                {mergedGroups.length} group{mergedGroups.length !== 1 ? 's' : ''}
               </span>
             )}
           </div>
@@ -659,7 +774,7 @@ export function CommunityPage() {
                 <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />
               ))}
             </div>
-          ) : myGroups.length === 0 ? (
+          ) : mergedGroups.length === 0 && pendingRequests.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
               <div className="h-10 w-10 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
                 <Users className="h-5 w-5 text-gray-400" />
@@ -676,42 +791,10 @@ export function CommunityPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {myGroups.map((group, i) => (
-                <MyGroupCard key={group.id} group={group} index={i} />
+              {mergedGroups.map((group, i) => (
+                <MyGroupCard key={group.id} group={group} index={i} badge={group.badge} />
               ))}
-            </div>
-          )}
-        </section>
-
-        {/* Ringer groups */}
-        {ringerGroups.length > 0 && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[16px] font-bold text-gray-900">Ringer for</h2>
-              <span className="text-[12px] text-gray-400">
-                {ringerGroups.length} group{ringerGroups.length !== 1 ? 's' : ''}
-              </span>
-            </div>
-            <div className="space-y-3">
-              {ringerGroups.map((group, i) => (
-                <div key={group.id} className="relative">
-                  <MyGroupCard group={group} index={i} />
-                  <span className="absolute top-3 right-3 rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold text-orange-600">
-                    Ringer
-                  </span>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* Pending requests */}
-        {pendingRequests.length > 0 && (
-          <section>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">
-              Pending requests ({pendingRequests.length})
-            </h2>
-            <div className="space-y-2">
+              {/* Pending group requests inline */}
               {pendingRequests.map((req) => (
                 <div key={req.id} className="flex items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
                   <div className="flex-1 min-w-0">
@@ -726,17 +809,17 @@ export function CommunityPage() {
                     disabled={cancelRequestMutation.isPending}
                     className="flex-shrink-0 rounded-xl border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500 active:scale-95 transition-transform"
                   >
-                    Cancel request
+                    Cancel
                   </button>
                 </div>
               ))}
             </div>
-          </section>
-        )}
+          )}
+        </section>
 
-        {/* Discover */}
+        {/* ── Find Groups (was "Discover") ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.discover')}</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Groups</h2>
 
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -750,7 +833,6 @@ export function CommunityPage() {
             />
           </div>
 
-          {/* Filter chips */}
           <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-0.5">
             {[
               { key: 'near_me',      label: 'Near me'       },
@@ -802,29 +884,94 @@ export function CommunityPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {discoverGroups.map((group, i) => (
-                <DiscoverCard
-                  key={group.id}
-                  group={group}
-                  index={i}
-                  onJoin={(id) => joinMutation.mutate(id)}
-                />
+              {inlineDiscoverGroups.map((group, i) => (
+                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} />
               ))}
+              {discoverGroups.length > 6 && (
+                <button
+                  onClick={() => navigate('/community/groups')}
+                  className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
+                >
+                  Show all ({discoverGroups.length} groups) →
+                </button>
+              )}
             </div>
           )}
         </section>
 
-        {/* Find Players */}
-        <section>
+        {/* ── Connections ── */}
+        <section ref={connectionsRef} id="connections">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[16px] font-bold text-gray-900">Connections</h2>
+            {connections.accepted.size > 0 && (
+              <span className="text-[12px] text-gray-400">
+                {connections.accepted.size} connection{connections.accepted.size !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
+
+          {/* Incoming requests */}
+          {connections.incomingRequests.length > 0 && (
+            <div className="mb-4">
+              <p className="text-[12px] font-bold text-gray-500 mb-2">
+                Connection requests ({connections.incomingRequests.length})
+              </p>
+              <div className="space-y-2">
+                {connections.incomingRequests.map((req) => (
+                  <ConnectionRequestCard key={req.user_id} request={req} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* My connections */}
+          {connections.acceptedProfiles.length > 0 ? (
+            <div className="space-y-2">
+              {connections.acceptedProfiles.slice(0, 4).map((conn) => (
+                <ConnectionCard key={conn.user_id} player={conn}>
+                  <button
+                    onClick={() => setInviteMatchTarget({ id: conn.user_id, name: conn.name })}
+                    className="rounded-lg bg-teal-50 border border-teal-200 px-2 py-1 text-[10px] font-bold text-teal-700"
+                  >
+                    <Calendar className="h-3 w-3 inline mr-0.5" />
+                    Match
+                  </button>
+                  <button
+                    onClick={() => setInviteGroupTarget({ id: conn.user_id, name: conn.name })}
+                    className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-1 text-[10px] font-bold text-blue-700"
+                  >
+                    <Users className="h-3 w-3 inline mr-0.5" />
+                    Group
+                  </button>
+                </ConnectionCard>
+              ))}
+              {connections.acceptedProfiles.length > 4 && (
+                <button
+                  onClick={() => navigate('/community/connections')}
+                  className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
+                >
+                  Show all ({connections.acceptedProfiles.length} connections) →
+                </button>
+              )}
+            </div>
+          ) : connections.incomingRequests.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
+              <p className="text-[13px] font-semibold text-gray-500">No connections yet</p>
+              <p className="text-[12px] text-gray-400 mt-1">Connect with players below to invite them to matches and groups.</p>
+            </div>
+          ) : null}
+        </section>
+
+        {/* ── Find Players ── */}
+        <section ref={playersRef} id="players">
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Players</h2>
-          {/* Find Players section uses English intentionally — no i18n key yet */}
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={playerSearch}
               onChange={(e) => setPlayerSearch(e.target.value)}
-              placeholder="Search players by name…"
+              placeholder="Search players by name\u2026"
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
@@ -849,13 +996,10 @@ export function CommunityPage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {foundPlayers.map((p) => {
-                const isConnected = myConnections.has(p.id) || p.id === userId
+              {inlinePlayers.map((p) => {
+                const state = getConnectState(p.id)
                 return (
-                  <div
-                    key={p.id}
-                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-transparent"
-                  >
+                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-transparent">
                     <button
                       onClick={() => navigate(`/players/${p.id}`)}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left"
@@ -872,22 +1016,48 @@ export function CommunityPage() {
                       </span>
                     )}
                     {p.id !== userId && (
-                      <button
-                        onClick={() => !isConnected && connectMutation.mutate(p.id)}
-                        disabled={isConnected || connectMutation.isPending}
-                        className={`flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold transition-colors ${
-                          isConnected
-                            ? 'bg-gray-100 text-gray-400'
-                            : 'bg-[#009688] text-white hover:bg-teal-700'
-                        }`}
-                      >
-                        {isConnected ? <Check className="h-3 w-3" /> : <UserPlus className="h-3 w-3" />}
-                        {isConnected ? 'Added' : 'Connect'}
-                      </button>
+                      <>
+                        {state === 'none' && (
+                          <button
+                            onClick={() => connectMutation.mutate(p.id)}
+                            disabled={connectMutation.isPending}
+                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white hover:bg-teal-700 transition-colors"
+                          >
+                            <UserPlus className="h-3 w-3" /> Connect
+                          </button>
+                        )}
+                        {state === 'pending_out' && (
+                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
+                            <Clock className="h-3 w-3" /> Pending
+                          </span>
+                        )}
+                        {state === 'pending_in' && (
+                          <button
+                            onClick={() => acceptInlineMutation.mutate(p.id)}
+                            disabled={acceptInlineMutation.isPending}
+                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white transition-colors"
+                          >
+                            <Check className="h-3 w-3" /> Accept
+                          </button>
+                        )}
+                        {state === 'accepted' && (
+                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
+                            <Check className="h-3 w-3" /> Connected
+                          </span>
+                        )}
+                      </>
                     )}
                   </div>
                 )
               })}
+              {foundPlayers.length > 8 && (
+                <button
+                  onClick={() => navigate('/community/players')}
+                  className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
+                >
+                  Show all ({foundPlayers.length} players) →
+                </button>
+              )}
             </div>
           )}
         </section>
@@ -896,10 +1066,14 @@ export function CommunityPage() {
         <UpcomingEventsSection userId={userId} userGroupIds={allMyGroups.map(g => g.id)} />
 
         {/* ── Find a Coach ── */}
-        <CoachesSection userCity={profile?.city} />
+        <section ref={coachesRef} id="coaches">
+          <CoachesSection userCity={profile?.city} />
+        </section>
 
         {/* ── Nearby Venues ── */}
-        <NearbyVenuesSection userCity={profile?.city} />
+        <section ref={venuesRef} id="venues">
+          <NearbyVenuesSection userCity={profile?.city} />
+        </section>
       </div>
 
       {/* Floating + button */}
@@ -917,6 +1091,20 @@ export function CommunityPage() {
           setShowCreateSheet(false)
           queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
         }}
+      />
+
+      <InviteToMatchSheet
+        open={!!inviteMatchTarget}
+        onClose={() => setInviteMatchTarget(null)}
+        playerId={inviteMatchTarget?.id ?? ''}
+        playerName={inviteMatchTarget?.name ?? ''}
+      />
+
+      <InviteToGroupSheet
+        open={!!inviteGroupTarget}
+        onClose={() => setInviteGroupTarget(null)}
+        playerId={inviteGroupTarget?.id ?? ''}
+        playerName={inviteGroupTarget?.name ?? ''}
       />
     </div>
   )

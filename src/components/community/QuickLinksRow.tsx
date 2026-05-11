@@ -45,13 +45,13 @@ export function QuickLinksRow({ sections }: QuickLinksRowProps) {
   }, [])
 
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
       {sections.map((s) => (
         <button
           key={s.key}
           onClick={() => handleTap(s)}
           className={cn(
-            'flex-1 flex items-center justify-center gap-1.5 rounded-xl py-3 text-[12px] font-semibold border transition-colors',
+            'flex-shrink-0 flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2.5 text-[12px] font-semibold border transition-colors min-h-[44px]',
             activeKey === s.key
               ? 'bg-teal-50 text-teal-700 border-teal-200'
               : 'bg-gray-50 text-gray-600 border-gray-100'

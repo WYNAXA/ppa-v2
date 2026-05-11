@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -197,6 +197,10 @@ export function MatchDetailPage() {
   const [copied, setCopied]                   = useState(false)
   const [confirmLeave, setConfirmLeave]       = useState(false)
   const [leaving, setLeaving]                 = useState(false)
+  const [confirmCancel, setConfirmCancel]     = useState(false)
+  const [cancelling, setCancelling]           = useState(false)
+  const [confirmDelete, setConfirmDelete]     = useState(false)
+  const [deleting, setDeleting]               = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
   const [showDisputeInput, setShowDisputeInput] = useState(false)
   const [disputeReason, setDisputeReason]     = useState('')
@@ -437,9 +441,12 @@ export function MatchDetailPage() {
   const isCreator     = match.created_by
     ? match.created_by === currentUserId
     : playerIds[0] === currentUserId
-  // Any participant can edit, regardless of how they navigated here
-  const canEdit       = (isParticipant || playerIds.length === 0) &&
+  // Any participant or group admin can edit
+  const canEdit       = (isParticipant || isGroupAdmin || playerIds.length === 0) &&
                         match.status !== 'completed' && match.status !== 'cancelled'
+  const canCancel     = (isParticipant || isGroupAdmin) &&
+                        ['scheduled', 'pending', 'confirmed', 'open'].includes(match.status)
+  const canDelete     = isGroupAdmin
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result
@@ -501,6 +508,75 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-matches'] })
       navigate('/home')
+    }
+  }
+
+  const handleCancelMatch = async () => {
+    if (!data) return
+    setCancelling(true)
+    const { error: cancelErr } = await supabase
+      .from('matches')
+      .update({ status: 'cancelled' })
+      .eq('id', data.match.id)
+    if (!cancelErr) {
+      // Notify real participants (skip guest UUIDs)
+      const realPlayerIds = (data.match.player_ids ?? []).filter((pid: string) => pid !== currentUserId)
+      if (realPlayerIds.length > 0) {
+        const { data: realProfiles } = await supabase.from('profiles').select('id').in('id', realPlayerIds)
+        const validIds = (realProfiles ?? []).map((p: any) => p.id)
+        const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM') } catch { return data.match.match_date } })()
+        if (validIds.length > 0) {
+          await supabase.from('notifications').insert(
+            validIds.map((pid: string) => ({
+              user_id: pid,
+              type: 'match_cancelled',
+              title: 'Match cancelled',
+              message: `${profile?.name ?? 'A player'} cancelled the match on ${dateStr}`,
+              related_id: data.match.id,
+              read: false,
+            }))
+          )
+        }
+      }
+      if (navigator.vibrate) navigator.vibrate(10)
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+      queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+    }
+    setCancelling(false)
+    setConfirmCancel(false)
+  }
+
+  const handleDeleteMatch = async () => {
+    if (!data) return
+    setDeleting(true)
+    // Notify real participants BEFORE the delete
+    const realPlayerIds = (data.match.player_ids ?? []).filter((pid: string) => pid !== currentUserId)
+    if (realPlayerIds.length > 0) {
+      const { data: realProfiles } = await supabase.from('profiles').select('id').in('id', realPlayerIds)
+      const validIds = (realProfiles ?? []).map((p: any) => p.id)
+      const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM') } catch { return data.match.match_date } })()
+      if (validIds.length > 0) {
+        await supabase.from('notifications').insert(
+          validIds.map((pid: string) => ({
+            user_id: pid,
+            type: 'match_deleted',
+            title: 'Match deleted',
+            message: `${profile?.name ?? 'A player'} deleted the match on ${dateStr}`,
+            read: false,
+          }))
+        )
+      }
+    }
+    // Hard delete via RPC (cascades all child rows)
+    const { error: delErr } = await supabase.rpc('delete_match_cascade', { p_match_id: data.match.id })
+    setDeleting(false)
+    setConfirmDelete(false)
+    if (!delErr) {
+      if (navigator.vibrate) navigator.vibrate(10)
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+      queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+      navigate(data.match.group_id ? `/community/groups/${data.match.group_id}` : '/home')
     }
   }
 
@@ -1028,6 +1104,24 @@ export function MatchDetailPage() {
             <Share2 className="h-4 w-4" />
             Share
           </button>
+          {canCancel && (
+            <button
+              onClick={() => setConfirmCancel(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-3 text-[13px] font-semibold text-amber-600"
+            >
+              <Ban className="h-4 w-4" />
+              Cancel
+            </button>
+          )}
+          {canDelete && (
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 py-3 text-[13px] font-semibold text-red-500"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete
+            </button>
+          )}
         </div>
       </div>
 
@@ -1102,6 +1196,92 @@ export function MatchDetailPage() {
                   className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
                   {leaving ? 'Leaving…' : 'Leave Match'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Cancel match confirm dialog */}
+      <AnimatePresence>
+        {confirmCancel && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmCancel(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+            >
+              <h3 className="text-[16px] font-bold text-gray-900 mb-2">Cancel this match?</h3>
+              <p className="text-[13px] text-gray-500 mb-5">
+                All players will be notified. The match record will be kept but marked as cancelled.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmCancel(false)}
+                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                >
+                  Go back
+                </button>
+                <button
+                  onClick={handleCancelMatch}
+                  disabled={cancelling}
+                  className="flex-1 rounded-2xl bg-amber-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                >
+                  {cancelling ? 'Cancelling\u2026' : 'Cancel Match'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Delete match confirm dialog */}
+      <AnimatePresence>
+        {confirmDelete && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmDelete(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+            >
+              <h3 className="text-[16px] font-bold text-red-600 mb-2">Delete this match permanently?</h3>
+              <p className="text-[13px] text-gray-500 mb-5">
+                This cannot be undone. All results, votes, and history will be deleted.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmDelete(false)}
+                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                >
+                  Go back
+                </button>
+                <button
+                  onClick={handleDeleteMatch}
+                  disabled={deleting}
+                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                >
+                  {deleting ? 'Deleting\u2026' : 'Delete Forever'}
                 </button>
               </div>
             </motion.div>

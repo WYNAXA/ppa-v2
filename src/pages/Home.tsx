@@ -56,6 +56,7 @@ interface NextMatch {
   player_ids: string[]
   booked_venue_name: string | null
   players: Array<{ id: string; name: string; avatar_url: string | null }>
+  has_result: boolean
 }
 
 interface ActivePoll {
@@ -117,7 +118,12 @@ function useNextMatch(userId: string) {
         players = data ?? []
       }
 
-      return { ...match, players }
+      const { count: resultCount } = await supabase
+        .from('match_results')
+        .select('id', { count: 'exact', head: true })
+        .eq('match_id', match.id)
+
+      return { ...match, players, has_result: (resultCount ?? 0) > 0 }
     },
   })
 }
@@ -292,7 +298,7 @@ function NextMatchCard({
   const navigate   = useNavigate()
   const countdown  = getCountdown(match.match_date, match.match_time)
   const isToday    = match.match_date === todayStr()
-  const canRecord  = isToday && match.status === 'scheduled' && match.player_ids.length === 4
+  const canRecord  = isToday && match.status === 'scheduled' && match.player_ids.length === 4 && !match.has_result
   const typeStyle  = TYPE_BADGE[match.match_type ?? 'group'] ?? TYPE_BADGE.group
 
   return (

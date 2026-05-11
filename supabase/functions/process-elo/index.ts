@@ -109,14 +109,40 @@ Deno.serve(async (req) => {
   )
 
   let match_result_id: string | undefined
+  let payload: any
   try {
-    const body = await req.json()
-    match_result_id = body.match_result_id
+    payload = await req.json()
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
       status: 400,
       headers: corsHeaders,
     })
+  }
+
+  // Supabase Database Webhook payload: { type, record, old_record }
+  if (payload?.type && payload?.record) {
+    if (payload.type !== 'UPDATE') {
+      return new Response(
+        JSON.stringify({ message: 'Skipping non-UPDATE event', skipped: true }),
+        { headers: corsHeaders }
+      )
+    }
+    if (payload.record?.verification_status !== 'verified') {
+      return new Response(
+        JSON.stringify({ message: 'Not transitioning to verified', skipped: true }),
+        { headers: corsHeaders }
+      )
+    }
+    if (payload.old_record?.verification_status === 'verified') {
+      return new Response(
+        JSON.stringify({ message: 'Already verified, skipping', skipped: true }),
+        { headers: corsHeaders }
+      )
+    }
+    match_result_id = payload.record?.id
+  } else {
+    // Legacy direct-invoke: { match_result_id }
+    match_result_id = payload?.match_result_id
   }
 
   if (!match_result_id) {

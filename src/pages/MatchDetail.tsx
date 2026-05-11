@@ -415,7 +415,7 @@ export function MatchDetailPage() {
     )
   }
 
-  const { match, players, result, confirmVoteCount, myVote } = data
+  const { match, players, result, myVote } = data
 
   // Venue distance from user's location
   const venueDistance = (() => {

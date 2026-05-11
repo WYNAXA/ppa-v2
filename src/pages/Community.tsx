@@ -314,8 +314,8 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
                 )}
                 {badge && (
                   <span className={cn(
-                    'inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold',
-                    badge === 'Ringer' ? 'bg-orange-100 text-orange-600' : 'bg-amber-100 text-amber-700'
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold',
+                    badge === 'Ringer' ? 'bg-orange-500 text-white' : 'bg-amber-500 text-white'
                   )}>
                     {badge}
                   </span>
@@ -397,6 +397,10 @@ function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: n
           >
             Member
           </button>
+        ) : group.join_mode === 'closed' ? (
+          <span className="inline-flex items-center rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0 self-start mt-0.5">
+            Closed
+          </span>
         ) : (
           <button
             onClick={() => onJoin(group.id)}
@@ -434,13 +438,16 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
     },
   })
 
-  if (events.length === 0) return null
-
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-[16px] font-bold text-gray-900">Upcoming Events</h2>
       </div>
+      {events.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
+          <p className="text-[13px] text-gray-400">No upcoming events</p>
+        </div>
+      ) : (
       <div className="space-y-2">
         {events.map((e) => (
           <button
@@ -469,6 +476,7 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
           </button>
         ))}
       </div>
+      )}
     </section>
   )
 }
@@ -492,11 +500,14 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
     },
   })
 
-  if (coaches.length === 0) return null
-
   return (
     <section>
       <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find a Coach</h2>
+      {coaches.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
+          <p className="text-[13px] text-gray-400">No coaches yet — coming soon</p>
+        </div>
+      ) : (
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
         {coaches.map((c) => (
           <button
@@ -511,6 +522,7 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
           </button>
         ))}
       </div>
+      )}
     </section>
   )
 }
@@ -1063,15 +1075,17 @@ export function CommunityPage() {
         </section>
 
         {/* ── Upcoming Events ── */}
-        <UpcomingEventsSection userId={userId} userGroupIds={allMyGroups.map(g => g.id)} />
+        <div id="events">
+          <UpcomingEventsSection userId={userId} userGroupIds={allMyGroups.map(g => g.id)} />
+        </div>
 
         {/* ── Find a Coach ── */}
-        <section ref={coachesRef} id="coaches">
+        <section ref={coachesRef as React.RefObject<HTMLElement>} id="coaches">
           <CoachesSection userCity={profile?.city} />
         </section>
 
         {/* ── Nearby Venues ── */}
-        <section ref={venuesRef} id="venues">
+        <section ref={venuesRef as React.RefObject<HTMLElement>} id="venues">
           <NearbyVenuesSection userCity={profile?.city} />
         </section>
       </div>

@@ -125,9 +125,13 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
           'ml-auto text-[10px] font-semibold rounded-full px-2 py-0.5 border',
           result.verification_status === 'verified'
             ? 'bg-green-50 text-green-700 border-green-100'
+            : result.verification_status === 'disputed'
+            ? 'bg-red-50 text-red-700 border-red-100'
             : 'bg-yellow-50 text-yellow-700 border-yellow-100'
         )}>
-          {result.verification_status === 'verified' ? 'Verified' : 'Pending'}
+          {result.verification_status === 'verified' ? 'Verified'
+            : result.verification_status === 'disputed' ? 'Disputed'
+            : 'Pending'}
         </span>
       </div>
 
@@ -340,28 +344,50 @@ export function MatchDetailPage() {
         ...(reason ? { dispute_reason: reason } : {}),
       })
       if (vote === 'confirm') {
-        // Check if opposing team has now fully confirmed
-        const submittedBy = result.submitted_by ?? ''
-        const opposingTeam = result.team1_players?.includes(submittedBy)
-          ? result.team2_players : result.team1_players
-        const { count } = await supabase
-          .from('match_result_votes')
-          .select('id', { count: 'exact', head: true })
-          .eq('match_result_id', result.id)
-          .in('voter_id', opposingTeam ?? [])
-          .eq('vote', 'confirm')
-        if ((count ?? 0) >= (opposingTeam ?? []).length) {
-          await supabase
-            .from('match_results')
-            .update({ verification_status: 'verified' })
-            .eq('id', result.id)
-          // ELO processing is handled by the Database Webhook automatically
+        // Single opposing-team confirmation is sufficient to verify
+        await supabase
+          .from('match_results')
+          .update({ verification_status: 'verified' })
+          .eq('id', result.id)
+        // ELO processing is handled by the Database Webhook automatically
+
+        // Notify all players that the result is verified
+        const allPlayerIds = [
+          ...(result.team1_players ?? []),
+          ...(result.team2_players ?? []),
+        ].filter((pid: string) => pid !== profile.id)
+        if (allPlayerIds.length > 0) {
+          const score = `${result.team1_score}–${result.team2_score}`
+          await supabase.from('notifications').insert(
+            allPlayerIds.map((pid: string) => ({
+              user_id: pid,
+              type: 'result_verified',
+              title: 'Match result verified',
+              message: `Final: ${score}. ELO updated.`,
+              related_id: result.match_id,
+              read: false,
+            }))
+          )
         }
       } else {
         await supabase
           .from('match_results')
           .update({ verification_status: 'disputed' })
           .eq('id', result.id)
+
+        // Notify submitter that the result was disputed
+        const submittedBy = result.submitted_by
+        if (submittedBy && submittedBy !== profile.id) {
+          const voterName = profile.name ?? 'A player'
+          await supabase.from('notifications').insert({
+            user_id: submittedBy,
+            type: 'result_disputed',
+            title: 'Match result disputed',
+            message: `${voterName} disputed the result.${reason ? ` Reason: ${reason}` : ''}`,
+            related_id: result.match_id,
+            read: false,
+          })
+        }
       }
     },
     onSuccess: () => {
@@ -718,19 +744,26 @@ export function MatchDetailPage() {
       {result && (result.verification_status === 'pending' || result.verification_status === 'disputed') && isParticipant && (() => {
         const submittedBy = result.submitted_by ?? ''
         const submittingTeam = result.team1_players?.includes(submittedBy) ? result.team1_players : result.team2_players
-        const opposingTeam = result.team1_players?.includes(submittedBy) ? result.team2_players : result.team1_players
         const isOnSubmittingTeam = submittingTeam?.includes(currentUserId)
-        const opposingNeeded = (opposingTeam ?? []).length
-        // confirmVoteCount already fetched from server
-        const opposingConfirmed = Math.max(0, confirmVoteCount - (submittingTeam ?? []).length)
+        // Auto-verify countdown
+        const createdAt = result.created_at ? new Date(result.created_at).getTime() : 0
+        const msUntilAutoVerify = createdAt + 24 * 60 * 60 * 1000 - Date.now()
+        const hoursUntilAutoVerify = Math.max(0, Math.ceil(msUntilAutoVerify / (60 * 60 * 1000)))
         return (
         <div className="px-5 mb-4">
-          {isOnSubmittingTeam ? (
+          {result.verification_status === 'disputed' ? (
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-center">
+              <p className="text-[13px] font-semibold text-red-700">Disputed — awaiting admin review</p>
+            </div>
+          ) : isOnSubmittingTeam ? (
             <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
               <p className="text-[13px] font-semibold text-green-700">You submitted this result</p>
               <p className="text-[11px] text-gray-400 mt-1">
-                Waiting for opponents to verify ({opposingConfirmed}/{opposingNeeded})
+                Awaiting verification from opposing team
               </p>
+              {hoursUntilAutoVerify > 0 && (
+                <p className="text-[11px] text-gray-400 mt-0.5">Auto-verifies in {hoursUntilAutoVerify}h</p>
+              )}
             </div>
           ) : voteSubmitted || myVote ? (
             <div className={cn(
@@ -738,19 +771,15 @@ export function MatchDetailPage() {
               myVote === 'dispute' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
             )}>
               <p className={cn('text-[13px] font-semibold', myVote === 'dispute' ? 'text-red-700' : 'text-green-700')}>
-                {myVote === 'dispute' ? 'You disputed this result' : 'Vote submitted · thank you'}
+                {myVote === 'dispute' ? 'Result disputed' : 'Result confirmed'}
               </p>
-              <p className="text-[11px] text-gray-400 mt-1">{opposingConfirmed}/{opposingNeeded} opponents verified</p>
             </div>
           ) : (
             <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-[13px] font-bold text-gray-800">Verify this result?</p>
-                <span className="text-[11px] text-gray-500">{opposingConfirmed}/{opposingNeeded} opponents</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-yellow-200 mb-3 overflow-hidden">
-                <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${(opposingConfirmed / Math.max(opposingNeeded, 1)) * 100}%` }} />
-              </div>
+              <p className="text-[13px] font-bold text-gray-800 mb-1">Verify this result?</p>
+              {hoursUntilAutoVerify > 0 && (
+                <p className="text-[11px] text-gray-400 mb-2">Auto-verifies in {hoursUntilAutoVerify}h if no response</p>
+              )}
               <p className="text-[12px] text-gray-500 mb-3">
                 {result.team1_score}–{result.team2_score} ·{' '}
                 {result.result_type === 'team1_win'

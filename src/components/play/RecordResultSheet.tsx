@@ -163,6 +163,22 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
         if (voteErr) console.warn('[RecordResult] auto-vote error:', voteErr)
       }
 
+      // Notify opposing team to verify
+      const opposingTeam = cleanTeam1.includes(currentUserId) ? cleanTeam2 : cleanTeam1
+      const submitterName = players.find(p => p.id === currentUserId)?.name ?? 'Your opponent'
+      if (opposingTeam.length > 0) {
+        await supabase.from('notifications').insert(
+          opposingTeam.map(pid => ({
+            user_id: pid,
+            type: 'result_pending_verification',
+            title: 'Confirm match result',
+            message: `${submitterName} recorded the result. Tap to confirm or dispute.`,
+            related_id: match.id,
+            read: false,
+          }))
+        )
+      }
+
       // ELO processing is handled asynchronously by the Database Webhook
       // when verification_status changes to 'verified' — no frontend call needed.
       return {}

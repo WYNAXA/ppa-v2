@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useNotificationsSubscription } from '@/hooks/useRealtimeSubscription'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { ChevronLeft, Bell, Trophy, Users, Calendar, Star, CheckCheck, Activity, BookOpen } from 'lucide-react'
 
@@ -101,6 +102,9 @@ export function NotificationsPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { t } = useTranslation()
+
+  // Realtime: auto-refresh when notifications change
+  useNotificationsSubscription(userId ?? null)
   const [markingAll, setMarkingAll] = useState(false)
 
   const { data: notifications = [], isLoading } = useQuery({

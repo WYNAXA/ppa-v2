@@ -12,6 +12,7 @@ import { NotificationBell } from '@/components/shared/NotificationBell'
 import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useUserMatchesSubscription, useNotificationsSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 import { cn } from '@/lib/utils'
@@ -644,6 +645,10 @@ export function HomePage() {
   const { t } = useTranslation()
 
   const [createMatchOpen, setCreateMatchOpen] = useState(false)
+
+  // Realtime: auto-refresh when matches or notifications change
+  useUserMatchesSubscription(userId)
+  useNotificationsSubscription(userId)
 
   const { data: nextMatch,  isLoading: loadingMatch    } = useNextMatch(userId)
   const { data: ranking,    isLoading: loadingRanking  } = useHomeRanking(userId, profile?.internal_ranking)

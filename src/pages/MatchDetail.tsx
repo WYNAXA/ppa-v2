@@ -7,6 +7,7 @@ import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
+import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
@@ -201,6 +202,9 @@ export function MatchDetailPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useAuth()
+
+  // Realtime: auto-refresh when match/results/votes change
+  useMatchSubscription(id ?? null)
   const queryClient = useQueryClient()
   const [showRecordResult, setShowRecordResult] = useState(false)
   const [showEdit, setShowEdit]               = useState(false)

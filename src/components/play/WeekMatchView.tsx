@@ -13,6 +13,7 @@ import {
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useUserMatchesSubscription } from '@/hooks/useRealtimeSubscription'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -206,6 +207,9 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   const { profile } = useAuth()
   const queryClient = useQueryClient()
   const userId = profile?.id ?? ''
+
+  // Realtime: auto-refresh when matches change
+  useUserMatchesSubscription(userId)
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [viewTab, setViewTab] = useState<ViewTab>('mine')

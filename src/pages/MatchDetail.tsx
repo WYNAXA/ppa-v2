@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2 } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -10,6 +10,7 @@ import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
+import { PlayAnotherSheet } from '@/components/match/PlayAnotherSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
@@ -219,6 +220,7 @@ export function MatchDetailPage() {
   const [deleting, setDeleting]               = useState(false)
   const [deleteError, setDeleteError]         = useState<string | null>(null)
   const [cancelError, setCancelError]         = useState<string | null>(null)
+  const [showPlayAnother, setShowPlayAnother] = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
   const [showDisputeInput, setShowDisputeInput] = useState(false)
   const [disputeReason, setDisputeReason]     = useState('')
@@ -470,6 +472,8 @@ export function MatchDetailPage() {
   const canCancel     = (isParticipant || isGroupAdmin) &&
                         ['scheduled', 'pending', 'confirmed', 'open'].includes(match.status)
   const canDelete     = isGroupAdmin
+  const canPlayAnother = isParticipant && playerIds.length === 4 &&
+    (result?.verification_status === 'verified' || match.status === 'cancelled')
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result
@@ -1188,6 +1192,15 @@ export function MatchDetailPage() {
               Delete
             </button>
           )}
+          {canPlayAnother && (
+            <button
+              onClick={() => setShowPlayAnother(true)}
+              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white"
+            >
+              <Play className="h-4 w-4" />
+              Play Another
+            </button>
+          )}
         </div>
       </div>
 
@@ -1220,6 +1233,14 @@ export function MatchDetailPage() {
           event={calendarEvent}
         />
       )}
+
+      <PlayAnotherSheet
+        open={showPlayAnother}
+        onClose={() => setShowPlayAnother(false)}
+        match={match}
+        players={players}
+        currentUserId={currentUserId}
+      />
 
       {/* Leave confirm dialog */}
       <AnimatePresence>
@@ -1666,35 +1687,15 @@ function PointsAtStakeSection({
     const loseLp = getLeaguePts(loseOutcome, myTeam)
 
     return (
-      <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
-        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Points at stake</p>
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] text-gray-600">If you win</span>
-            <div className="flex items-center gap-3">
-              <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
-              {winLp !== null && <span className="text-[11px] font-semibold text-[#009688]">{formatLp(winLp)}</span>}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] text-gray-600">If you draw</span>
-            <div className="flex items-center gap-3">
-              <span className={cn('text-[13px] font-bold', deltaColor(drawD))}>{formatDelta(drawD)} ELO</span>
-              {drawLp !== null && <span className="text-[11px] font-semibold text-gray-500">{formatLp(drawLp)}</span>}
-            </div>
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-[12px] text-gray-600">If you lose</span>
-            <div className="flex items-center gap-3">
-              <span className={cn('text-[13px] font-bold', deltaColor(loseD))}>{formatDelta(loseD)} ELO</span>
-              {loseLp !== null && <span className="text-[11px] font-semibold text-gray-400">{formatLp(loseLp)}</span>}
-            </div>
-          </div>
-        </div>
-        {!isLeagueMatch && (
-          <p className="text-[10px] text-gray-400 mt-2 text-center italic">No league points — not in a league</p>
-        )}
-      </div>
+      <PointsAtStakeParticipant
+        winD={winD} drawD={drawD} loseD={loseD}
+        winLp={winLp} drawLp={drawLp} loseLp={loseLp}
+        isLeagueMatch={isLeagueMatch}
+        stakes={stakes}
+        team1Players={team1Players} team2Players={team2Players}
+        formatDelta={formatDelta} deltaColor={deltaColor}
+        formatLp={formatLp}
+      />
     )
   }
 
@@ -1719,6 +1720,99 @@ function PointsAtStakeSection({
           {t2Lp !== null && <span className="text-[#009688] font-semibold ml-1">+{t2Lp} pts</span>}
         </div>
       </div>
+      {!isLeagueMatch && (
+        <p className="text-[10px] text-gray-400 mt-2 text-center italic">No league points — not in a league</p>
+      )}
+    </div>
+  )
+}
+
+function PointsAtStakeParticipant({
+  winD, drawD, loseD, winLp, drawLp, loseLp,
+  isLeagueMatch, stakes, team1Players, team2Players,
+  formatDelta, deltaColor, formatLp,
+}: {
+  winD: number; drawD: number; loseD: number
+  winLp: number | null; drawLp: number | null; loseLp: number | null
+  isLeagueMatch: boolean
+  stakes: any
+  team1Players: Profile[]; team2Players: Profile[]
+  formatDelta: (d: number) => string; deltaColor: (d: number) => string
+  formatLp: (lp: number | null) => string | null
+}) {
+  const [showAll, setShowAll] = useState(false)
+
+  return (
+    <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Points at stake</p>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-gray-600">If you win</span>
+          <div className="flex items-center gap-3">
+            <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
+            {winLp !== null && <span className="text-[11px] font-semibold text-[#009688]">{formatLp(winLp)}</span>}
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-gray-600">If you draw</span>
+          <div className="flex items-center gap-3">
+            <span className={cn('text-[13px] font-bold', deltaColor(drawD))}>{formatDelta(drawD)} ELO</span>
+            {drawLp !== null && <span className="text-[11px] font-semibold text-gray-500">{formatLp(drawLp)}</span>}
+          </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-[12px] text-gray-600">If you lose</span>
+          <div className="flex items-center gap-3">
+            <span className={cn('text-[13px] font-bold', deltaColor(loseD))}>{formatDelta(loseD)} ELO</span>
+            {loseLp !== null && <span className="text-[11px] font-semibold text-gray-400">{formatLp(loseLp)}</span>}
+          </div>
+        </div>
+      </div>
+
+      {/* View all players expansion */}
+      <button
+        onClick={() => setShowAll(v => !v)}
+        className="w-full text-center text-[11px] font-semibold text-[#009688] mt-2 py-1"
+      >
+        {showAll ? 'Hide all players' : 'View all players'}
+      </button>
+
+      <AnimatePresence>
+        {showAll && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden"
+          >
+            <div className="border-t border-gray-100 mt-1 pt-2 space-y-2">
+              <div>
+                <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">Team 1 — if they win</p>
+                {team1Players.map((p, i) => (
+                  <div key={p.id} className="flex items-center justify-between py-0.5">
+                    <span className="text-[12px] text-gray-700">{p.name?.split(' ')[0]}</span>
+                    <span className={cn('text-[12px] font-bold', deltaColor(stakes.team1Wins.team1Deltas[i]))}>
+                      {formatDelta(stakes.team1Wins.team1Deltas[i])} ELO
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div>
+                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">Team 2 — if they win</p>
+                {team2Players.map((p, i) => (
+                  <div key={p.id} className="flex items-center justify-between py-0.5">
+                    <span className="text-[12px] text-gray-700">{p.name?.split(' ')[0]}</span>
+                    <span className={cn('text-[12px] font-bold', deltaColor(stakes.team2Wins.team2Deltas[i]))}>
+                      {formatDelta(stakes.team2Wins.team2Deltas[i])} ELO
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {!isLeagueMatch && (
         <p className="text-[10px] text-gray-400 mt-2 text-center italic">No league points — not in a league</p>
       )}

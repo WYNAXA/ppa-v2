@@ -610,6 +610,7 @@ export function CommunityPage() {
   const playersRef = useRef<HTMLElement>(null)
   const coachesRef = useRef<HTMLElement>(null)
   const venuesRef = useRef<HTMLElement>(null)
+  const eventsRef = useRef<HTMLElement>(null)
   const connectionsRef = useRef<HTMLElement>(null)
 
   // Queries
@@ -637,6 +638,7 @@ export function CommunityPage() {
     { key: 'players', emoji: '🤝', label: 'Players', ref: playersRef },
     { key: 'coaches', emoji: '🎾', label: 'Coaches', ref: coachesRef },
     { key: 'venues',  emoji: '📍', label: 'Venues',  ref: venuesRef },
+    { key: 'events',  emoji: '📅', label: 'Events',  ref: eventsRef },
   ], [])
 
   // Hash scroll for notification deep links (/community#connections)
@@ -975,7 +977,7 @@ export function CommunityPage() {
         </section>
 
         {/* ── Find Players ── */}
-        <section ref={playersRef} id="players">
+        <section ref={playersRef} id="players" style={{ scrollMarginTop: '80px' }}>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Players</h2>
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1075,9 +1077,9 @@ export function CommunityPage() {
         </section>
 
         {/* ── Upcoming Events ── */}
-        <div id="events">
+        <section ref={eventsRef} id="events" style={{ scrollMarginTop: '80px' }}>
           <UpcomingEventsSection userId={userId} userGroupIds={allMyGroups.map(g => g.id)} />
-        </div>
+        </section>
 
         {/* ── Find a Coach ── */}
         <section ref={coachesRef as React.RefObject<HTMLElement>} id="coaches">

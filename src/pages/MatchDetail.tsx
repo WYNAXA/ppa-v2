@@ -73,17 +73,10 @@ async function fetchMatchDetail(id: string): Promise<{
     .eq('match_id', id)
     .maybeSingle()
 
-  let confirmVoteCount = 0
   let myVote: string | null = null
+  let disputeInfo: { voterName: string; reason: string | null } | null = null
 
   if (result) {
-    const { count } = await supabase
-      .from('match_result_votes')
-      .select('id', { count: 'exact', head: true })
-      .eq('match_result_id', result.id)
-      .eq('vote', 'confirm')
-    confirmVoteCount = count ?? 0
-
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       const { data: myVoteRow } = await supabase
@@ -94,9 +87,28 @@ async function fetchMatchDetail(id: string): Promise<{
         .maybeSingle()
       myVote = myVoteRow?.vote ?? null
     }
+
+    // Fetch dispute details if disputed
+    if (result.verification_status === 'disputed') {
+      const { data: disputeVote } = await supabase
+        .from('match_result_votes')
+        .select('voter_id, dispute_reason')
+        .eq('match_result_id', result.id)
+        .eq('vote', 'dispute')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (disputeVote) {
+        const voter = players.find(p => p.id === disputeVote.voter_id)
+        disputeInfo = {
+          voterName: voter?.name ?? 'A player',
+          reason: disputeVote.dispute_reason ?? null,
+        }
+      }
+    }
   }
 
-  return { match, players, result: result ?? null, confirmVoteCount, myVote }
+  return { match, players, result: result ?? null, myVote, disputeInfo }
 }
 
 function ResultBanner({ result, players }: { result: MatchResult; players: Profile[] }) {
@@ -421,7 +433,7 @@ export function MatchDetailPage() {
     )
   }
 
-  const { match, players, result, myVote } = data
+  const { match, players, result, myVote, disputeInfo } = data
 
   // Venue distance from user's location
   const venueDistance = (() => {
@@ -863,8 +875,18 @@ export function MatchDetailPage() {
         return (
         <div className="px-5 mb-4">
           {result.verification_status === 'disputed' ? (
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-3 text-center">
-              <p className="text-[13px] font-semibold text-red-700">Disputed — awaiting admin review</p>
+            <div className="rounded-2xl border border-red-100 bg-red-50 p-3">
+              <p className="text-[13px] font-semibold text-red-700 text-center">Disputed — awaiting admin review</p>
+              {disputeInfo && (isParticipant || isGroupAdmin) && (
+                <div className="mt-2 pt-2 border-t border-red-100">
+                  <p className="text-[12px] text-red-600">
+                    <span className="font-semibold">{disputeInfo.voterName}</span>
+                    {disputeInfo.reason
+                      ? `: "${disputeInfo.reason}"`
+                      : ' disputed this result'}
+                  </p>
+                </div>
+              )}
             </div>
           ) : isOnSubmittingTeam ? (
             <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">

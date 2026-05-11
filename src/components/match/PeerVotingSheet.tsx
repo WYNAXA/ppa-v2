@@ -26,7 +26,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
         match_id: matchId,
         voter_id: currentUserId,
         voted_for_id: votedForId,
-        category,
+        vote_category: category,
       }))
       if (rows.length === 0) return
       const { error } = await supabase.from('match_peer_votes').insert(rows)

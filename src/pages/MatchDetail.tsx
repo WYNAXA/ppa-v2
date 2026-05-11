@@ -45,8 +45,8 @@ async function fetchMatchDetail(id: string): Promise<{
   match: Match
   players: Profile[]
   result: MatchResult | null
-  confirmVoteCount: number
   myVote: string | null
+  disputeInfo: { voterName: string; reason: string | null } | null
 }> {
   const { data: match, error } = await supabase
     .from('matches')

@@ -413,6 +413,11 @@ export function MatchDetailPage() {
       setVoteSubmitted(true)
       setShowDisputeInput(false)
       queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+      queryClient.invalidateQueries({ queryKey: ['home-quick-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['home-activity'] })
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+      queryClient.invalidateQueries({ queryKey: ['play-matches'] })
     },
   })
 

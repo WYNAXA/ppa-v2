@@ -7,7 +7,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import type { Match } from '@/lib/types'
 
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
-interface Court { id: string; court_name: string | null; court_number: number | null }
+interface Court { id: string; court_name: string | null }
 interface PlayerProfile { id: string; name: string; avatar_url: string | null }
 
 function useDebounce<T>(value: T, delay: number) {
@@ -115,9 +115,9 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       if (!selectedVenue?.venue_id) return []
       const { data } = await supabase
         .from('courts')
-        .select('id, court_name, court_number')
+        .select('id, court_name')
         .eq('venue_id', selectedVenue.venue_id)
-        .order('court_number', { ascending: true })
+        .order('court_name', { ascending: true })
       return data ?? []
     },
     enabled: !!selectedVenue?.venue_id,
@@ -129,10 +129,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       const savedNotes = [notes.trim(), guestsLine].filter(Boolean).join('\n') || null
 
       let resolvedCourtNumber: number | null = null
-      if (selectedCourtId) {
-        const court = courts.find((c) => c.id === selectedCourtId)
-        resolvedCourtNumber = court?.court_number ?? null
-      } else if (courtNumber) {
+      if (courtNumber) {
         resolvedCourtNumber = parseInt(courtNumber) || null
       }
 
@@ -307,7 +304,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                       <option value="">Select a court…</option>
                       {courts.map((c) => (
                         <option key={c.id} value={c.id}>
-                          {c.court_name ?? `Court ${c.court_number}`}
+                          {c.court_name ?? 'Court'}
                         </option>
                       ))}
                     </select>

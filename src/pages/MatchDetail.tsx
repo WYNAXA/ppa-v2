@@ -201,6 +201,8 @@ export function MatchDetailPage() {
   const [cancelling, setCancelling]           = useState(false)
   const [confirmDelete, setConfirmDelete]     = useState(false)
   const [deleting, setDeleting]               = useState(false)
+  const [deleteError, setDeleteError]         = useState<string | null>(null)
+  const [cancelError, setCancelError]         = useState<string | null>(null)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
   const [showDisputeInput, setShowDisputeInput] = useState(false)
   const [disputeReason, setDisputeReason]     = useState('')
@@ -514,11 +516,14 @@ export function MatchDetailPage() {
   const handleCancelMatch = async () => {
     if (!data) return
     setCancelling(true)
-    const { error: cancelErr } = await supabase
-      .from('matches')
-      .update({ status: 'cancelled' })
-      .eq('id', data.match.id)
-    if (!cancelErr) {
+    setCancelError(null)
+    try {
+      const { error: cancelErr } = await supabase
+        .from('matches')
+        .update({ status: 'cancelled' })
+        .eq('id', data.match.id)
+      if (cancelErr) throw cancelErr
+
       // Notify real participants (skip guest UUIDs)
       const realPlayerIds = (data.match.player_ids ?? []).filter((pid: string) => pid !== currentUserId)
       if (realPlayerIds.length > 0) {
@@ -542,41 +547,66 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+    } catch (err: any) {
+      setCancelError(err?.message ?? 'Failed to cancel match. Please try again.')
+    } finally {
+      setCancelling(false)
+      setConfirmCancel(false)
     }
-    setCancelling(false)
-    setConfirmCancel(false)
   }
 
   const handleDeleteMatch = async () => {
     if (!data) return
     setDeleting(true)
-    // Notify real participants BEFORE the delete
-    const realPlayerIds = (data.match.player_ids ?? []).filter((pid: string) => pid !== currentUserId)
-    if (realPlayerIds.length > 0) {
-      const { data: realProfiles } = await supabase.from('profiles').select('id').in('id', realPlayerIds)
-      const validIds = (realProfiles ?? []).map((p: any) => p.id)
-      const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM') } catch { return data.match.match_date } })()
-      if (validIds.length > 0) {
-        await supabase.from('notifications').insert(
-          validIds.map((pid: string) => ({
-            user_id: pid,
-            type: 'match_deleted',
-            title: 'Match deleted',
-            message: `${profile?.name ?? 'A player'} deleted the match on ${dateStr}`,
-            read: false,
-          }))
-        )
+    setDeleteError(null)
+    const matchId = data.match.id
+
+    try {
+      // 1. Fetch match_result IDs for child-row cleanup
+      const { data: results } = await supabase
+        .from('match_results').select('id').eq('match_id', matchId)
+      const resultIds = (results ?? []).map((r: any) => r.id)
+
+      // 2. Cascade delete child rows in dependency order
+      if (resultIds.length > 0) {
+        await supabase.from('rating_history').delete().in('match_result_id', resultIds)
+        await supabase.from('match_result_votes').delete().in('match_result_id', resultIds)
       }
-    }
-    // Hard delete via RPC (cascades all child rows)
-    const { error: delErr } = await supabase.rpc('delete_match_cascade', { p_match_id: data.match.id })
-    setDeleting(false)
-    setConfirmDelete(false)
-    if (!delErr) {
+      await supabase.from('match_peer_votes').delete().eq('match_id', matchId)
+      await supabase.from('match_results').delete().eq('match_id', matchId)
+      await supabase.from('travel_requests').delete().eq('match_id', matchId)
+      // Clean up old notifications referencing this match
+      await supabase.from('notifications').delete().eq('related_id', matchId)
+      // Delete the match itself
+      const { error: matchDelErr } = await supabase.from('matches').delete().eq('id', matchId)
+      if (matchDelErr) throw matchDelErr
+
+      // 3. Notify real participants AFTER cascade (so notifications don't get nuked)
+      const allPlayerIds = (data.match.player_ids ?? []).filter((pid: string) => pid !== currentUserId)
+      if (allPlayerIds.length > 0) {
+        const { data: realProfiles } = await supabase.from('profiles').select('id').in('id', allPlayerIds)
+        const validIds = (realProfiles ?? []).map((p: any) => p.id)
+        const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM') } catch { return data.match.match_date } })()
+        if (validIds.length > 0) {
+          await supabase.from('notifications').insert(
+            validIds.map((pid: string) => ({
+              user_id: pid, type: 'match_deleted', title: 'Match deleted',
+              message: `${profile?.name ?? 'A player'} deleted the match on ${dateStr}`,
+              read: false,
+            }))
+          )
+        }
+      }
+
       if (navigator.vibrate) navigator.vibrate(10)
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-matches'] })
       navigate(data.match.group_id ? `/community/groups/${data.match.group_id}` : '/home')
+    } catch (err: any) {
+      setDeleteError(err?.message ?? 'Delete failed. Please try again or contact support.')
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
     }
   }
 
@@ -1286,6 +1316,34 @@ export function MatchDetailPage() {
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Error toasts */}
+      <AnimatePresence>
+        {deleteError && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            onClick={() => setDeleteError(null)}
+            className="fixed bottom-28 left-4 right-4 z-[70] bg-red-600 text-white text-[13px] font-medium px-4 py-3 rounded-2xl shadow-lg text-center"
+          >
+            {deleteError}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {cancelError && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 16 }}
+            onClick={() => setCancelError(null)}
+            className="fixed bottom-28 left-4 right-4 z-[70] bg-red-600 text-white text-[13px] font-medium px-4 py-3 rounded-2xl shadow-lg text-center"
+          >
+            {cancelError}
+          </motion.div>
         )}
       </AnimatePresence>
 

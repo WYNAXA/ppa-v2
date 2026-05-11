@@ -772,7 +772,7 @@ export function CommunityPage() {
         <QuickLinksRow sections={quickLinks} />
 
         {/* ── My Groups (merged: approved + ringer + pending) ── */}
-        <section ref={groupsRef} id="groups">
+        <section ref={groupsRef} id="groups" style={{ scrollMarginTop: '120px' }}>
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[16px] font-bold text-gray-900">{t('community.my_groups')}</h2>
             {mergedGroups.length > 0 && (
@@ -977,7 +977,7 @@ export function CommunityPage() {
         </section>
 
         {/* ── Find Players ── */}
-        <section ref={playersRef} id="players" style={{ scrollMarginTop: '80px' }}>
+        <section ref={playersRef} id="players" style={{ scrollMarginTop: '120px' }}>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Players</h2>
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1077,17 +1077,17 @@ export function CommunityPage() {
         </section>
 
         {/* ── Upcoming Events ── */}
-        <section ref={eventsRef} id="events" style={{ scrollMarginTop: '80px' }}>
+        <section ref={eventsRef} id="events" style={{ scrollMarginTop: '120px' }}>
           <UpcomingEventsSection userId={userId} userGroupIds={allMyGroups.map(g => g.id)} />
         </section>
 
         {/* ── Find a Coach ── */}
-        <section ref={coachesRef as React.RefObject<HTMLElement>} id="coaches">
+        <section ref={coachesRef as React.RefObject<HTMLElement>} id="coaches" style={{ scrollMarginTop: '120px' }}>
           <CoachesSection userCity={profile?.city} />
         </section>
 
         {/* ── Nearby Venues ── */}
-        <section ref={venuesRef as React.RefObject<HTMLElement>} id="venues">
+        <section ref={venuesRef as React.RefObject<HTMLElement>} id="venues" style={{ scrollMarginTop: '120px' }}>
           <NearbyVenuesSection userCity={profile?.city} />
         </section>
       </div>

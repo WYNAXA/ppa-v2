@@ -601,7 +601,12 @@ export function MatchDetailPage() {
       if (navigator.vibrate) navigator.vibrate(10)
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-matches'] })
-      navigate(data.match.group_id ? `/community/groups/${data.match.group_id}` : '/home')
+      // Return to where the user came from; fall back to /play for deep links
+      if (window.history.length > 1) {
+        navigate(-1)
+      } else {
+        navigate('/play')
+      }
     } catch (err: any) {
       setDeleteError(err?.message ?? 'Delete failed. Please try again or contact support.')
     } finally {

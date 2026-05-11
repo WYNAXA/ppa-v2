@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -7,6 +8,7 @@ import {
   isSameDay,
   startOfWeek as dateFnsStartOfWeek,
   parseISO,
+  isValid,
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -207,9 +209,23 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [viewTab, setViewTab] = useState<ViewTab>('mine')
-  const [weekStart, setWeekStart] = useState(() =>
-    dateFnsStartOfWeek(new Date(), { weekStartsOn: 1 }),
-  )
+  const [searchParams, setSearchParams] = useSearchParams()
+  const weekStart = useMemo(() => {
+    const weekParam = searchParams.get('week')
+    if (weekParam) {
+      const parsed = parseISO(weekParam)
+      if (isValid(parsed)) return dateFnsStartOfWeek(parsed, { weekStartsOn: 1 })
+    }
+    return dateFnsStartOfWeek(new Date(), { weekStartsOn: 1 })
+  }, [searchParams])
+  const setWeekStart = useCallback((newWeek: Date | ((prev: Date) => Date)) => {
+    const actual = typeof newWeek === 'function' ? newWeek(weekStart) : newWeek
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      next.set('week', format(actual, 'yyyy-MM-dd'))
+      return next
+    }, { replace: true })
+  }, [weekStart, setSearchParams])
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
   const [direction, setDirection] = useState<'next' | 'prev'>('next')

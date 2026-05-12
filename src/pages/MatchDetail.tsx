@@ -10,7 +10,6 @@ import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
-import { PlayAnotherSheet } from '@/components/match/PlayAnotherSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
@@ -220,7 +219,7 @@ export function MatchDetailPage() {
   const [deleting, setDeleting]               = useState(false)
   const [deleteError, setDeleteError]         = useState<string | null>(null)
   const [cancelError, setCancelError]         = useState<string | null>(null)
-  const [showPlayAnother, setShowPlayAnother] = useState(false)
+  const [creatingNext, setCreatingNext] = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
   const [showDisputeInput, setShowDisputeInput] = useState(false)
   const [disputeReason, setDisputeReason]     = useState('')
@@ -472,8 +471,7 @@ export function MatchDetailPage() {
   const canCancel     = (isParticipant || isGroupAdmin) &&
                         ['scheduled', 'pending', 'confirmed', 'open'].includes(match.status)
   const canDelete     = isGroupAdmin
-  const canPlayAnother = isParticipant && playerIds.length === 4 &&
-    (result?.verification_status === 'verified' || match.status === 'cancelled')
+  const canPlayAnother = isParticipant && playerIds.length === 4 && !!result
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result
@@ -637,6 +635,34 @@ export function MatchDetailPage() {
     } finally {
       setDeleting(false)
       setConfirmDelete(false)
+    }
+  }
+
+  const handlePlayAnother = async () => {
+    if (!data) return
+    setCreatingNext(true)
+    const m = data.match
+    const { data: newMatch, error } = await supabase
+      .from('matches')
+      .insert({
+        match_date: m.match_date,
+        match_time: m.match_time,
+        match_type: m.match_type,
+        status: 'scheduled',
+        player_ids: m.player_ids,
+        team1_player_ids: m.team1_player_ids ?? null,
+        team2_player_ids: m.team2_player_ids ?? null,
+        group_id: m.group_id ?? null,
+        booked_venue_name: m.booked_venue_name ?? null,
+        created_by: currentUserId,
+        created_manually: true,
+        context_type: 'open' as const,
+      })
+      .select('id')
+      .single()
+    setCreatingNext(false)
+    if (!error && newMatch) {
+      navigate(`/matches/${newMatch.id}`, { state: { openResult: true } })
     }
   }
 
@@ -1194,11 +1220,12 @@ export function MatchDetailPage() {
           )}
           {canPlayAnother && (
             <button
-              onClick={() => setShowPlayAnother(true)}
-              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white"
+              onClick={handlePlayAnother}
+              disabled={creatingNext}
+              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
-              Play Another
+              {creatingNext ? 'Creating\u2026' : 'Play Another'}
             </button>
           )}
         </div>
@@ -1233,14 +1260,6 @@ export function MatchDetailPage() {
           event={calendarEvent}
         />
       )}
-
-      <PlayAnotherSheet
-        open={showPlayAnother}
-        onClose={() => setShowPlayAnother(false)}
-        match={match}
-        players={players}
-        currentUserId={currentUserId}
-      />
 
       {/* Leave confirm dialog */}
       <AnimatePresence>

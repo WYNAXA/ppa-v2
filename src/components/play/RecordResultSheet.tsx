@@ -266,6 +266,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       if (i !== index) return s
       return { ...s, tiebreak: { ...(s.tiebreak ?? { team1: '', team2: '' }), [side]: val } }
     }))
+    if (raw !== '' && side === 'team1') {
+      setTimeout(() => inputRefs.current[`tb-${index}-team2`]?.focus(), 0)
+    }
   }
 
   function setTiebreakMode(index: number, mode: 'tiebreak' | 'time_limit') {
@@ -470,28 +473,24 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               <div className="flex items-center gap-2 pl-2">
                                 <span className="text-[11px] text-gray-400">Tie-break:</span>
                                 <input
+                                  ref={(el) => { inputRefs.current[`tb-${i}-team1`] = el }}
                                   type="number"
                                   inputMode="numeric"
                                   min={0}
                                   max={99}
                                   value={s.tiebreak?.team1 ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value === '' ? '' : Math.min(99, Math.max(0, parseInt(e.target.value, 10)))
-                                    setSets(prev => prev.map((ss, j) => j === i ? { ...ss, tiebreak: { team1: val as any, team2: ss.tiebreak?.team2 ?? '' as any } } : ss))
-                                  }}
+                                  onChange={(e) => updateTiebreak(i, 'team1', e.target.value)}
                                   className="w-[48px] rounded-lg border border-gray-200 bg-teal-50 py-1.5 text-center text-[14px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
                                 />
                                 <span className="text-gray-300 text-sm">—</span>
                                 <input
+                                  ref={(el) => { inputRefs.current[`tb-${i}-team2`] = el }}
                                   type="number"
                                   inputMode="numeric"
                                   min={0}
                                   max={99}
                                   value={s.tiebreak?.team2 ?? ''}
-                                  onChange={(e) => {
-                                    const val = e.target.value === '' ? '' : Math.min(99, Math.max(0, parseInt(e.target.value, 10)))
-                                    setSets(prev => prev.map((ss, j) => j === i ? { ...ss, tiebreak: { team1: ss.tiebreak?.team1 ?? '' as any, team2: val as any } } : ss))
-                                  }}
+                                  onChange={(e) => updateTiebreak(i, 'team2', e.target.value)}
                                   className="w-[48px] rounded-lg border border-gray-200 bg-orange-50 py-1.5 text-center text-[14px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
                                 />
                               </div>
@@ -530,6 +529,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 <div className="flex items-center gap-2 pl-2">
                                   <span className="text-[11px] text-gray-400">TB:</span>
                                   <input
+                                    ref={(el) => { inputRefs.current[`tb-${i}-team1`] = el }}
                                     type="number"
                                     inputMode="numeric"
                                     min={0}
@@ -540,6 +540,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                   />
                                   <span className="text-gray-300 text-sm">—</span>
                                   <input
+                                    ref={(el) => { inputRefs.current[`tb-${i}-team2`] = el }}
                                     type="number"
                                     inputMode="numeric"
                                     min={0}

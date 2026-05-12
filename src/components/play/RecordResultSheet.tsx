@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, Trophy } from 'lucide-react'
+import { X, ChevronLeft, Trophy, Play } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { checkAndAwardBadges, type BadgeAward } from '@/lib/achievements'
@@ -30,6 +31,7 @@ interface SetScore {
   team2: number | ''
   tiebreak?: { team1: number | ''; team2: number | '' } | null
   time_limit?: boolean
+  note?: string
 }
 
 function countSetWins(sets: SetScore[]): [number, number] {
@@ -72,6 +74,7 @@ function initTeams(
 
 export function RecordResultSheet({ open, onClose, match, players, currentUserId }: RecordResultSheetProps) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const [step, setStep] = useState(1)
   const [team1, setTeam1] = useState<string[]>([])
   const [team2, setTeam2] = useState<string[]>([])
@@ -79,6 +82,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [resultType, setResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
   const [newBadges, setNewBadges] = useState<BadgeAward[]>([])
   const [showPeerVoting, setShowPeerVoting] = useState(false)
+  const [creatingNext, setCreatingNext] = useState(false)
 
   // Guard: initialise teams ONCE on open, never re-derived
   const initialisedRef = useRef(false)
@@ -118,6 +122,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
         team2: Number(s.team2),
         ...(s.tiebreak ? { tiebreak: { team1: Number(s.tiebreak.team1), team2: Number(s.tiebreak.team2) } } : {}),
         ...(s.time_limit ? { time_limit: true } : {}),
+        ...(s.note?.trim() ? { note: s.note.trim() } : {}),
       }))
 
       const payload = {
@@ -442,6 +447,18 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               className="w-[60px] rounded-xl border border-gray-200 bg-orange-50 py-2.5 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
                             />
                           </div>
+                          {/* Unusual score: neither team reaches 6 */}
+                          {s.team1 !== '' && s.team2 !== '' && Number(s.team1) < 6 && Number(s.team2) < 6 && (
+                            <div className="mt-2 ml-1">
+                              <input
+                                type="text"
+                                value={s.note ?? ''}
+                                onChange={(e) => setSets(prev => prev.map((ss, j) => j === i ? { ...ss, note: e.target.value } : ss))}
+                                placeholder="Match didn't finish? Add a note (optional)"
+                                className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-gray-700 placeholder:text-amber-400 focus:outline-none focus:border-amber-300"
+                              />
+                            </div>
+                          )}
                           {isTied66 && (
                             <div className="mt-2 ml-1">
                               <div className="rounded-lg bg-teal-50 border border-teal-100 px-3 py-2 mb-2">
@@ -613,11 +630,27 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     animate={{ opacity: 1, scale: 1 }}
                     className="flex flex-col items-center py-6"
                   >
-                    <div className="h-16 w-16 rounded-full bg-teal-50 flex items-center justify-center mb-4">
-                      <Trophy className="h-8 w-8 text-[#009688]" />
+                    <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center mb-3">
+                      <Trophy className="h-7 w-7 text-[#009688]" />
                     </div>
-                    <h3 className="text-[18px] font-bold text-gray-900 mb-1">{t('match.result_submitted')}</h3>
-                    <p className="text-[13px] text-gray-500 mb-6 text-center">
+                    <h3 className="text-[18px] font-bold text-gray-900 mb-1">Result recorded!</h3>
+
+                    {/* Score summary */}
+                    <div className="flex gap-3 justify-center mb-4">
+                      {sets.filter(s => s.team1 !== '' && s.team2 !== '').map((s, i) => (
+                        <div key={i} className="text-center">
+                          <p className="text-[10px] text-gray-400 mb-0.5">Set {i + 1}</p>
+                          <p className="text-[16px] font-bold text-gray-900">
+                            {s.team1}–{s.team2}
+                            {s.tiebreak && !s.time_limit && (
+                              <span className="text-[11px] text-gray-400 font-normal"> ({s.tiebreak.team1}-{s.tiebreak.team2})</span>
+                            )}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="text-[12px] text-gray-400 mb-5 text-center">
                       {t('record_result.waiting_verify')}
                     </p>
 
@@ -626,10 +659,10 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
-                        className="w-full bg-amber-50 rounded-2xl p-4 mb-5 border border-amber-100"
+                        className="w-full bg-amber-50 rounded-2xl p-4 mb-4 border border-amber-100"
                       >
                         <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide mb-2">
-                          🎉 New Badge{newBadges.length > 1 ? 's' : ''} Earned!
+                          New Badge{newBadges.length > 1 ? 's' : ''} Earned!
                         </p>
                         <div className="flex flex-wrap gap-2">
                           {newBadges.map((b) => (
@@ -651,17 +684,54 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     {!showPeerVoting && (
                       <button
                         onClick={() => setShowPeerVoting(true)}
-                        className="w-full rounded-2xl bg-purple-50 border border-purple-100 py-3 text-[13px] font-bold text-purple-700 mt-3"
+                        className="w-full rounded-2xl bg-purple-50 border border-purple-100 py-2.5 text-[12px] font-bold text-purple-700"
                       >
-                        🎾 Rate your teammates
+                        Rate your teammates
+                      </button>
+                    )}
+
+                    {/* Play Another / Finish actions */}
+                    {match.player_ids.length === 4 && (
+                      <button
+                        onClick={async () => {
+                          setCreatingNext(true)
+                          const { data: newMatch, error } = await supabase
+                            .from('matches')
+                            .insert({
+                              match_date: match.match_date,
+                              match_time: match.match_time,
+                              match_type: match.match_type,
+                              status: 'scheduled',
+                              player_ids: match.player_ids,
+                              team1_player_ids: (match as any).team1_player_ids ?? null,
+                              team2_player_ids: (match as any).team2_player_ids ?? null,
+                              group_id: match.group_id ?? null,
+                              booked_venue_name: match.booked_venue_name ?? null,
+                              created_by: currentUserId,
+                              created_manually: true,
+                              context_type: 'open' as const,
+                            })
+                            .select('id')
+                            .single()
+                          setCreatingNext(false)
+                          if (!error && newMatch) {
+                            onClose()
+                            navigate(`/matches/${newMatch.id}`, { state: { openResult: true } })
+                          }
+                        }}
+                        disabled={creatingNext}
+                        className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white mt-3 disabled:opacity-50"
+                      >
+                        <Play className="h-4 w-4" />
+                        {creatingNext ? 'Creating\u2026' : 'Play another set'}
                       </button>
                     )}
 
                     <button
                       onClick={onClose}
-                      className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white mt-3"
+                      className="w-full rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-600 mt-2"
                     >
-                      {t('common.done')}
+                      Finish
                     </button>
 
                     <PeerVotingSheet

@@ -794,22 +794,14 @@ export function MatchDetailPage() {
             <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
             <p className="text-[13px] font-bold text-green-800">All 4 players confirmed!</p>
           </div>
-          <div className="flex gap-2">
-            {!match.booked_venue_name && (
-              <button
-                onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
-                className="flex-1 rounded-xl bg-green-600 py-2 text-[12px] font-bold text-white"
-              >
-                Book a Court
-              </button>
-            )}
+          {!match.booked_venue_name && (
             <button
-              onClick={() => setShowRecordResult(true)}
-              className="flex-1 rounded-xl border border-green-200 py-2 text-[12px] font-semibold text-green-700"
+              onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
+              className="w-full rounded-xl bg-green-600 py-2 text-[12px] font-bold text-white mt-2"
             >
-              Record result
+              Book a Court
             </button>
-          </div>
+          )}
         </motion.div>
       )}
 

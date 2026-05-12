@@ -487,10 +487,10 @@ export function MatchDetailPage() {
   const isWithinResultWindow = isBefore(new Date(), resultDeadline)
   const isPastMatchTime = new Date() > matchStartTime
 
-  const canPlayAnother = isParticipant && playerIds.length === 4 && !!result && isWithinResultWindow
+  const canPlayAnother = isParticipant && playerIds.length === 4 && !!result && isPastMatchTime && isWithinResultWindow
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
-  const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isWithinResultWindow
+  const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isPastMatchTime && isWithinResultWindow
   const resultEntryClosed = isPastMatchTime && !isWithinResultWindow && !result
   const canSwitchTeams = isParticipant || isGroupAdmin
 

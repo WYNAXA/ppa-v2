@@ -301,8 +301,10 @@ function NextMatchCard({
   const matchStart = match.match_time
     ? new Date(`${match.match_date}T${match.match_time}`)
     : new Date(`${match.match_date}T00:00:00`)
-  const withinWindow = new Date() < new Date(matchStart.getTime() + 24 * 60 * 60 * 1000)
-  const canRecord  = withinWindow && match.status === 'scheduled' && match.player_ids.length === 4 && !match.has_result
+  const now = new Date()
+  const isPastMatchTime = now > matchStart
+  const withinWindow = now < new Date(matchStart.getTime() + 24 * 60 * 60 * 1000)
+  const canRecord  = isPastMatchTime && withinWindow && match.status === 'scheduled' && match.player_ids.length === 4 && !match.has_result
   const typeStyle  = TYPE_BADGE[match.match_type ?? 'group'] ?? TYPE_BADGE.group
 
   return (

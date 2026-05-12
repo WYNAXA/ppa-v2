@@ -70,26 +70,14 @@ export default defineConfig({
     react(),
     stripConsole(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'PPA_Favicon.png'],
       manifest: false,
-      workbox: {
-        clientsClaim: true,
-        skipWaiting: true,
-        cleanupOutdatedCaches: true,
+      injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/sw\.js$/, /^\/manifest\.json$/, /^\/version\.json$/],
-        runtimeCaching: [
-          {
-            urlPattern: /supabase\.co/,
-            handler: 'NetworkOnly',
-          },
-          {
-            urlPattern: /padelplayersapp\.com\/api/,
-            handler: 'NetworkOnly',
-          },
-        ],
       },
     }),
     generateVersionJson(),

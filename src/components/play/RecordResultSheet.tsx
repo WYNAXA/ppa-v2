@@ -288,7 +288,11 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   }
 
   const canAdvanceStep1 = team1.length >= 1 && team2.length >= 1
-  const canAdvanceStep2 = sets.some((s) => s.team1 !== '' && s.team2 !== '')
+  const canAdvanceStep2 = sets.some((s) => s.team1 !== '' && s.team2 !== '') &&
+    !sets.some((s) => {
+      const is76 = (s.team1 === 7 && s.team2 === 6) || (s.team1 === 6 && s.team2 === 7)
+      return is76 && (!s.tiebreak || s.tiebreak.team1 === '' || s.tiebreak.team2 === '')
+    })
 
   return (
     <AnimatePresence>
@@ -411,6 +415,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
 
                     {sets.map((s, i) => {
                       const isTied66 = s.team1 === 6 && s.team2 === 6
+                      const is76 = (s.team1 === 7 && s.team2 === 6) || (s.team1 === 6 && s.team2 === 7)
                       return (
                         <div key={i} className="mb-3">
                           <div className="flex items-center gap-2">
@@ -457,6 +462,39 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 placeholder="Match didn't finish? Add a note (optional)"
                                 className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-gray-700 placeholder:text-amber-400 focus:outline-none focus:border-amber-300"
                               />
+                            </div>
+                          )}
+                          {/* 7-6 or 6-7: tiebreak score required */}
+                          {is76 && (
+                            <div className="mt-2 ml-1">
+                              <div className="flex items-center gap-2 pl-2">
+                                <span className="text-[11px] text-gray-400">Tie-break:</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={99}
+                                  value={s.tiebreak?.team1 ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? '' : Math.min(99, Math.max(0, parseInt(e.target.value, 10)))
+                                    setSets(prev => prev.map((ss, j) => j === i ? { ...ss, tiebreak: { team1: val as any, team2: ss.tiebreak?.team2 ?? '' as any } } : ss))
+                                  }}
+                                  className="w-[48px] rounded-lg border border-gray-200 bg-teal-50 py-1.5 text-center text-[14px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                                />
+                                <span className="text-gray-300 text-sm">—</span>
+                                <input
+                                  type="number"
+                                  inputMode="numeric"
+                                  min={0}
+                                  max={99}
+                                  value={s.tiebreak?.team2 ?? ''}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '' ? '' : Math.min(99, Math.max(0, parseInt(e.target.value, 10)))
+                                    setSets(prev => prev.map((ss, j) => j === i ? { ...ss, tiebreak: { team1: ss.tiebreak?.team1 ?? '' as any, team2: val as any } } : ss))
+                                  }}
+                                  className="w-[48px] rounded-lg border border-gray-200 bg-orange-50 py-1.5 text-center text-[14px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                                />
+                              </div>
                             </div>
                           )}
                           {isTied66 && (

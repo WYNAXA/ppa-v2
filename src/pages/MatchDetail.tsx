@@ -182,7 +182,7 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
               </p>
               {completedSets.some(s => s.note) && (
                 <p className="text-[10px] text-gray-400 italic mt-0.5">
-                  {completedSets.filter(s => s.note).map((s, i) => s.note).join(' · ')}
+                  {completedSets.filter(s => s.note).map(s => s.note).join(' · ')}
                 </p>
               )}
             </div>

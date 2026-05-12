@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, addHours, isBefore } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
@@ -479,10 +479,19 @@ export function MatchDetailPage() {
   const canCancel     = (isParticipant || isGroupAdmin) &&
                         ['scheduled', 'pending', 'confirmed', 'open'].includes(match.status)
   const canDelete     = isGroupAdmin
-  const canPlayAnother = isParticipant && playerIds.length === 4 && !!result
+  // 24h result-entry window
+  const matchStartTime = match.match_time
+    ? new Date(`${match.match_date}T${match.match_time}`)
+    : new Date(`${match.match_date}T00:00:00`)
+  const resultDeadline = addHours(matchStartTime, 24)
+  const isWithinResultWindow = isBefore(new Date(), resultDeadline)
+  const isPastMatchTime = new Date() > matchStartTime
+
+  const canPlayAnother = isParticipant && playerIds.length === 4 && !!result && isWithinResultWindow
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
-  const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result
+  const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isWithinResultWindow
+  const resultEntryClosed = isPastMatchTime && !isWithinResultWindow && !result
   const canSwitchTeams = isParticipant || isGroupAdmin
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
@@ -1147,6 +1156,19 @@ export function MatchDetailPage() {
              (travelInfo?.needsLift.length ?? 0) === 0 &&
              travelInfo?.hasLocationData && (
               <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Result entry closed banner */}
+      {resultEntryClosed && (
+        <div className="px-5 mb-4">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center">
+            <p className="text-[13px] font-semibold text-gray-600">Result entry closed</p>
+            <p className="text-[11px] text-gray-400 mt-1">No result entered within 24 hours of match time.</p>
+            {canEdit && (
+              <p className="text-[11px] text-[#009688] mt-1">Played at a different time? Edit the match to update.</p>
             )}
           </div>
         </div>

@@ -8,6 +8,9 @@
   "theme_color": "#009688",
   "background_color": "#ffffff",
   "id": "com.wynaxa.padelplayers",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["sports", "social", "lifestyle"],
   "icons": [
     { "src": "/icons/icon-72x72.png", "sizes": "72x72", "type": "image/png" },
     { "src": "/icons/icon-96x96.png", "sizes": "96x96", "type": "image/png" },

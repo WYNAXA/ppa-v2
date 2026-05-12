@@ -295,7 +295,8 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     !sets.some((s) => {
       const is76 = (s.team1 === 7 && s.team2 === 6) || (s.team1 === 6 && s.team2 === 7)
       return is76 && (!s.tiebreak || s.tiebreak.team1 === '' || s.tiebreak.team2 === '')
-    })
+    }) &&
+    !sets.some((s) => s.tiebreak && s.tiebreak.team1 === 0 && s.tiebreak.team2 === 0)
 
   return (
     <AnimatePresence>
@@ -494,6 +495,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                   className="w-[48px] rounded-lg border border-gray-200 bg-orange-50 py-1.5 text-center text-[14px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
                                 />
                               </div>
+                              {s.tiebreak && s.tiebreak.team1 === 0 && s.tiebreak.team2 === 0 && (
+                                <p className="text-[11px] text-red-500 mt-1 pl-2">Tie-break can't be 0-0</p>
+                              )}
                             </div>
                           )}
                           {isTied66 && (
@@ -580,14 +584,21 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                 )}
 
                 {/* Step 3: Confirm result */}
-                {step === 3 && (
+                {step === 3 && (() => {
+                  const t1Names = team1.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
+                  const t2Names = team2.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
+                  const outcomeOptions: Array<{ value: 'team1_win' | 'team2_win' | 'draw'; label: string; color: string; border: string; bg: string }> = [
+                    { value: 'team1_win', label: `${t1Names} win`, color: 'text-teal-700', border: 'border-teal-300', bg: 'bg-teal-50' },
+                    { value: 'team2_win', label: `${t2Names} win`, color: 'text-orange-600', border: 'border-orange-300', bg: 'bg-orange-50' },
+                    { value: 'draw', label: 'Draw / unfinished', color: 'text-gray-600', border: 'border-gray-300', bg: 'bg-gray-50' },
+                  ]
+                  return (
                   <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                     <p className="text-[13px] text-gray-500 mb-4 text-center">{t('record_result.confirm_result')}</p>
 
                     {/* Score summary */}
                     <div className="bg-gray-50 rounded-2xl p-4 mb-4">
                       {sets.filter((s) => s.team1 !== '' && s.team2 !== '').map((s, i) => {
-                        // Determine set winner considering tiebreaks
                         const t1 = Number(s.team1), t2 = Number(s.team2)
                         let t1Wins = t1 > t2
                         let t2Wins = t2 > t1
@@ -596,55 +607,52 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           t2Wins = Number(s.tiebreak.team2) > Number(s.tiebreak.team1)
                         }
                         return (
-                          <div key={i} className="flex items-center justify-between mb-1 last:mb-0">
-                            <span className="text-[12px] text-gray-500">Set {i + 1}</span>
-                            <div className="flex items-center gap-3">
-                              <span className={cn('text-[16px] font-bold', t1Wins ? 'text-teal-700' : 'text-gray-400')}>
-                                {s.team1}
-                              </span>
-                              <span className="text-gray-300">–</span>
-                              <span className={cn('text-[16px] font-bold', t2Wins ? 'text-orange-600' : 'text-gray-400')}>
-                                {s.team2}
-                              </span>
-                              {s.tiebreak && (
-                                <span className="text-[11px] text-gray-400">({s.tiebreak.team1}-{s.tiebreak.team2})</span>
-                              )}
-                              {s.time_limit && (
-                                <span className="text-[10px] text-gray-400 italic">time</span>
-                              )}
+                          <div key={i} className="mb-1.5 last:mb-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[12px] text-gray-500">Set {i + 1}</span>
+                              <div className="flex items-center gap-3">
+                                <span className={cn('text-[16px] font-bold', t1Wins ? 'text-teal-700' : 'text-gray-400')}>
+                                  {s.team1}
+                                </span>
+                                <span className="text-gray-300">{'\u2013'}</span>
+                                <span className={cn('text-[16px] font-bold', t2Wins ? 'text-orange-600' : 'text-gray-400')}>
+                                  {s.team2}
+                                </span>
+                                {s.tiebreak && (
+                                  <span className="text-[11px] text-gray-400">({s.tiebreak.team1}-{s.tiebreak.team2})</span>
+                                )}
+                                {s.time_limit && (
+                                  <span className="text-[10px] text-gray-400 italic">time</span>
+                                )}
+                              </div>
                             </div>
+                            {s.note && (
+                              <p className="text-[11px] text-gray-400 italic text-right">{s.note}</p>
+                            )}
                           </div>
                         )
                       })}
                     </div>
 
-                    {/* Winner display */}
-                    <div className="text-center mb-5">
-                      {resultType === 'draw' ? (
-                        <p className="text-[15px] font-bold text-gray-700">{t('matches.draw')}</p>
-                      ) : resultType === 'team1_win' ? (
-                        <div>
-                          <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">{t('record_result.winner')}</p>
-                          <div className="flex items-center justify-center gap-2">
-                            {team1.map((pid) => {
-                              const p = getPlayer(pid)
-                              return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
-                            })}
-                            <span className="text-[14px] font-bold text-teal-700">{t('record_result.team1')}</span>
-                          </div>
-                        </div>
-                      ) : resultType === 'team2_win' ? (
-                        <div>
-                          <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-1">{t('record_result.winner')}</p>
-                          <div className="flex items-center justify-center gap-2">
-                            {team2.map((pid) => {
-                              const p = getPlayer(pid)
-                              return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
-                            })}
-                            <span className="text-[14px] font-bold text-orange-600">{t('record_result.team2')}</span>
-                          </div>
-                        </div>
-                      ) : null}
+                    {/* Outcome selection */}
+                    <p className="text-[11px] text-gray-400 text-center mb-2">
+                      If players agreed a different outcome, change it here.
+                    </p>
+                    <div className="space-y-2 mb-5">
+                      {outcomeOptions.map(opt => (
+                        <button
+                          key={opt.value}
+                          onClick={() => setResultType(opt.value)}
+                          className={cn(
+                            'w-full rounded-xl border-2 py-3 px-4 text-left text-[13px] font-semibold transition-colors',
+                            resultType === opt.value
+                              ? `${opt.bg} ${opt.border} ${opt.color}`
+                              : 'border-gray-100 bg-white text-gray-400'
+                          )}
+                        >
+                          {resultType === opt.value ? '\u25CF ' : '\u25CB '}{opt.label}
+                        </button>
+                      ))}
                     </div>
 
                     {submitMutation.isError && (
@@ -659,7 +667,8 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       {submitMutation.isPending ? t('record_result.submitting') : t('record_result.submit')}
                     </button>
                   </motion.div>
-                )}
+                  )
+                })()}
 
                 {/* Step 4: Success */}
                 {step === 4 && (

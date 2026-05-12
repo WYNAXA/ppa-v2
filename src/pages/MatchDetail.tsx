@@ -126,6 +126,7 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
       team1: Number(s.team1 ?? s.team1_score ?? ''),
       team2: Number(s.team2 ?? s.team2_score ?? ''),
       tiebreak: s.tiebreak as { team1: number; team2: number } | undefined,
+      note: (s.note as string) || undefined,
     }))
     .filter((s) => !isNaN(s.team1) && !isNaN(s.team2))
 
@@ -172,12 +173,19 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
             </span>
           </div>
           {completedSets.length > 0 && (
-            <p className="text-[10px] text-gray-400">
-              {completedSets.map((s) => {
-                const base = `${s.team1}-${s.team2}`
-                return s.tiebreak ? `${base} (${s.tiebreak.team1}-${s.tiebreak.team2})` : base
-              }).join('  ')}
-            </p>
+            <div>
+              <p className="text-[10px] text-gray-400">
+                {completedSets.map((s) => {
+                  const base = `${s.team1}-${s.team2}`
+                  return s.tiebreak ? `${base} (${s.tiebreak.team1}-${s.tiebreak.team2})` : base
+                }).join('  ')}
+              </p>
+              {completedSets.some(s => s.note) && (
+                <p className="text-[10px] text-gray-400 italic mt-0.5">
+                  {completedSets.filter(s => s.note).map((s, i) => s.note).join(' · ')}
+                </p>
+              )}
+            </div>
           )}
         </div>
 

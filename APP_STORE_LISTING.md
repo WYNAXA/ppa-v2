@@ -1,6 +1,7 @@
 # App Store Listing — Padel Players
 
-**Status:** Ready for submission (icon + screenshots pending)
+**Status:** Copy ready for submission (icon + screenshots pending)
+**Last updated:** 13 May 2026
 
 ## App Name
 Padel Players
@@ -70,4 +71,30 @@ Free (no in-app purchases at launch)
 com.wynaxa.padelplayers
 
 ## Developer
-Christian Shanahan (Individual) — to transfer to Wynaxa Sports Tech Ltd once D-U-N-S issued
+Christian Shanahan (Individual account)
+→ to transfer to Wynaxa Sports Tech Ltd once D-U-N-S issued
+
+## App Privacy Disclosures (Apple's Nutrition Labels)
+
+**Data collected and linked to user identity:**
+- Contact info: Email, Phone (optional)
+- User content: Photos (profile photo, optional), Messages (group chat)
+- Identifiers: User ID
+- Usage data: Product interaction
+- Diagnostics: Crash data, performance data
+
+**Data NOT collected:**
+- Financial info
+- Health/fitness
+- Sensitive info
+- Browsing history
+- Search history
+- Precise location
+
+**Used for:**
+- App Functionality (primary)
+- Analytics
+
+**NOT used for:**
+- Tracking across other companies' apps
+- Advertising

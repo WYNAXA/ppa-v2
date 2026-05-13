@@ -33,7 +33,7 @@ const PLATFORM_LABELS: Record<string, { label: string; appScheme?: string }> = {
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-type BookingStep = 'venue' | 'date-slot' | 'players' | 'payment' | 'confirmation'
+type BookingStep = 'venue' | 'date-slot' | 'players' | 'match-details' | 'payment' | 'confirmation'
 
 interface Venue {
   venue_id: string
@@ -334,6 +334,11 @@ export function BookCourtPage() {
   const [paymentError, setPaymentError] = useState('')
   const [fetchingPayment, setFetchingPayment] = useState(false)
 
+  // ── Match details step (standalone bookings only) ───────────────────────────
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
+  const [matchType, setMatchType] = useState<'friendly' | 'casual' | 'competitive'>('casual')
+  const [createdMatchId, setCreatedMatchId] = useState<string | null>(null)
+
   // ── Confirmation ────────────────────────────────────────────────────────────
   const [createdBooking, setCreatedBooking] = useState<CourtBooking | null>(null)
   const [copiedId, setCopiedId] = useState<string | null>(null)
@@ -341,6 +346,30 @@ export function BookCourtPage() {
   const dateRange = generateDateRange()
 
   // ── Queries ─────────────────────────────────────────────────────────────────
+
+  // User's groups (for match-details step in standalone bookings)
+  const { data: userGroups = [] } = useQuery({
+    queryKey: ['user-groups-for-booking', userId],
+    enabled: !!userId && !matchId,
+    queryFn: async () => {
+      const { data: memberships } = await supabase
+        .from('group_members')
+        .select('group_id, groups(id, name)')
+        .eq('user_id', userId)
+        .in('status', ['approved', 'ringer'])
+      return (memberships ?? []).map((m: any) => {
+        const g = Array.isArray(m.groups) ? m.groups[0] : m.groups
+        return { id: g?.id as string, name: g?.name as string }
+      }).filter((g: any) => g.id)
+    },
+  })
+
+  // Pre-select first group when data loads
+  useEffect(() => {
+    if (userGroups.length > 0 && selectedGroupId === null) {
+      setSelectedGroupId(userGroups[0].id)
+    }
+  }, [userGroups, selectedGroupId])
 
   const { data: userLocation } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
     queryKey: ['my-location-bookcourt', userId],
@@ -591,6 +620,36 @@ export function BookCourtPage() {
           .from('matches')
           .update({ booked_venue_name: selectedVenue.venue_name })
           .eq('id', matchId)
+      } else if (!matchId && booking) {
+        // Standalone booking — create a linked match
+        try {
+          const { data: newMatch } = await supabase
+            .from('matches')
+            .insert({
+              match_date: selectedDate,
+              match_time: normalizedStartTime,
+              match_type: matchType,
+              status: userPlayers.length >= 4 ? 'scheduled' : 'pending',
+              player_ids: userPlayers,
+              group_id: selectedGroupId,
+              context_type: selectedGroupId ? 'group' : 'open',
+              booked_venue_name: selectedVenue.venue_name,
+              created_manually: false,
+              created_by: userId,
+            })
+            .select('id')
+            .single()
+
+          if (newMatch) {
+            await supabase.from('court_bookings')
+              .update({ match_id: newMatch.id })
+              .eq('id', booking.id)
+            setCreatedMatchId(newMatch.id)
+          }
+        } catch {
+          // Booking succeeded but match creation failed — non-fatal
+          console.warn('[BookCourt] Match creation failed for standalone booking')
+        }
       }
 
       setCreatedBooking(booking as CourtBooking)
@@ -618,8 +677,10 @@ export function BookCourtPage() {
     } else if (step === 'players') {
       setStep('date-slot')
       setSelectedSlot(null)
-    } else if (step === 'payment') {
+    } else if (step === 'match-details') {
       setStep('players')
+    } else if (step === 'payment') {
+      setStep(matchId ? 'players' : 'match-details')
       setClientSecret(null)
     } else if (step === 'confirmation') {
       navigate(matchId ? `/matches/${matchId}` : '/play')
@@ -630,6 +691,7 @@ export function BookCourtPage() {
     venue: 'Find a Venue',
     'date-slot': 'Choose Date & Time',
     players: 'Add Players',
+    'match-details': 'Match Details',
     payment: 'Secure Your Court',
     confirmation: 'Booking Confirmed',
   }
@@ -1288,6 +1350,78 @@ export function BookCourtPage() {
 
               <button
                 onClick={() => {
+                  if (matchId) {
+                    setStep('payment')
+                    initPayment()
+                  } else {
+                    setStep('match-details')
+                  }
+                }}
+                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+              >
+                {matchId ? 'Continue to payment' : 'Next'}
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {/* ════════════════ STEP 3.5 — MATCH DETAILS (standalone only) ════════════════ */}
+          {step === 'match-details' && !matchId && (
+            <motion.div
+              key="match-details"
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -40 }}
+              className="space-y-5"
+            >
+              <p className="text-[13px] text-gray-500 text-center">This booking will create a match so it appears in your match history and rankings.</p>
+
+              {/* Group selector */}
+              {userGroups.length > 0 && (
+                <div>
+                  <label className="text-[13px] font-semibold text-gray-700 block mb-2">Is this match part of a group?</label>
+                  <select
+                    value={selectedGroupId ?? ''}
+                    onChange={(e) => setSelectedGroupId(e.target.value || null)}
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[14px] text-gray-800 bg-white focus:outline-none focus:border-teal-500"
+                  >
+                    <option value="">None — standalone match</option>
+                    {userGroups.map((g) => (
+                      <option key={g.id} value={g.id}>{g.name}</option>
+                    ))}
+                  </select>
+                  <p className="text-[11px] text-gray-400 mt-1">Group matches count toward your group's league points and standings.</p>
+                </div>
+              )}
+
+              {/* Match type */}
+              <div>
+                <label className="text-[13px] font-semibold text-gray-700 block mb-2">Match type</label>
+                <div className="flex gap-2">
+                  {([
+                    { value: 'casual' as const, label: 'Casual' },
+                    { value: 'friendly' as const, label: 'Friendly' },
+                    { value: 'competitive' as const, label: 'Competitive' },
+                  ]).map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setMatchType(opt.value)}
+                      className={cn(
+                        'flex-1 rounded-xl py-3 text-[13px] font-semibold border-2 transition-colors',
+                        matchType === opt.value
+                          ? 'bg-teal-50 border-[#009688] text-[#009688]'
+                          : 'border-gray-100 text-gray-500'
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-gray-400 mt-1">Affects how this match impacts your ranking.</p>
+              </div>
+
+              <button
+                onClick={() => {
                   setStep('payment')
                   initPayment()
                 }}
@@ -1537,11 +1671,25 @@ export function BookCourtPage() {
                 Share booking
               </button>
 
+              {(matchId || createdMatchId) && (
+                <button
+                  onClick={() => navigate(`/matches/${matchId || createdMatchId}`)}
+                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+                >
+                  View match
+                </button>
+              )}
+
               <button
-                onClick={() => navigate(matchId ? `/matches/${matchId}` : '/play')}
-                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+                onClick={() => navigate('/play')}
+                className={cn(
+                  'w-full rounded-2xl py-4 text-[15px] font-bold',
+                  matchId || createdMatchId
+                    ? 'border-2 border-gray-200 text-gray-600'
+                    : 'bg-[#009688] text-white'
+                )}
               >
-                {matchId ? 'Back to match' : 'Back to Play'}
+                Back to Play
               </button>
             </motion.div>
           )}

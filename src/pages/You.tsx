@@ -753,6 +753,7 @@ export function YouPage() {
   const [showEdit, setShowEdit]             = useState(false)
   const [notifEnabled, setNotifEnabled]     = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [iosHint, setIosHint] = useState(false)
   const [resetSent, setResetSent]           = useState(false)
 
   const [showLinkPartner, setShowLinkPartner] = useState(false)
@@ -1062,6 +1063,15 @@ export function YouPage() {
                     setNotifEnabled(false)
                     return
                   }
+                  // iOS Safari only supports push when installed as PWA
+                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
+                  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+                    || (window.navigator as any).standalone === true
+                  if (isIOS && !isStandalone) {
+                    setIosHint(true)
+                    setTimeout(() => setIosHint(false), 6000)
+                    return
+                  }
                   if (typeof Notification === 'undefined') return
                   const permission = await Notification.requestPermission()
                   if (permission !== 'granted') return
@@ -1100,6 +1110,13 @@ export function YouPage() {
                 )} />
               </button>
             </div>
+            {iosHint && (
+              <div className="px-4 pb-3">
+                <p className="text-[12px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                  To enable notifications on iPhone, first add this app to your home screen: tap the Share button → Add to Home Screen.
+                </p>
+              </div>
+            )}
 
             {/* Language */}
             <div className="px-4 py-3.5">

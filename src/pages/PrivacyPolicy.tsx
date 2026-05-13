@@ -109,7 +109,7 @@ export function PrivacyPolicyPage() {
         </Section>
 
         <Section title="9. Children\u2019s Privacy">
-          <P>The App is not directed at children under the age of 16. We do not knowingly collect personal data from children. If you believe a child has provided us with personal data, contact us immediately at <a href="mailto:privacy@padelplayersapp.com" className="text-[#009688] underline">privacy@padelplayersapp.com</a>.</P>
+          <P>The App is not directed at children under the age of 13. We do not knowingly collect personal data from children. If you believe a child has provided us with personal data, contact us immediately at <a href="mailto:privacy@padelplayersapp.com" className="text-[#009688] underline">privacy@padelplayersapp.com</a>.</P>
         </Section>
 
         <Section title="10. Changes to This Policy">

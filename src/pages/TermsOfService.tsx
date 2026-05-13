@@ -43,7 +43,7 @@ export function TermsOfServicePage() {
         <P>These Terms of Service ({'"'}Terms{'"'}) govern your use of the Padel Players application ({'"'}the App{'"'}) operated by Wynaxa Sports Tech Ltd (part of Wynaxa Limited), a company incorporated in Ireland with registered office at 26 Fitzwilliam Square West, Dublin, D02 HX82. By creating an account or using the App, you agree to these Terms in full.</P>
 
         <Section title="1. Eligibility">
-          <P>You must be at least 16 years of age to use the App. By registering, you confirm that you meet this requirement. If you are under 18, you confirm that you have obtained parental or guardian consent.</P>
+          <P>You must be at least 13 years of age to use the App. By registering, you confirm that you meet this requirement. If you are under 18, you confirm that you have obtained parental or guardian consent.</P>
         </Section>
 
         <Section title="2. Your Account">

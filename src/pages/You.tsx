@@ -32,6 +32,7 @@ interface FullProfile {
   public_history: boolean | null
   account_type: string | null
   is_verified: boolean | null
+  push_token: string | null
 }
 
 interface MatchHistoryItem {
@@ -68,7 +69,7 @@ function useFullProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history, account_type, is_verified')
+        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history, account_type, is_verified, push_token')
         .eq('id', userId)
         .single()
       if (error) return null
@@ -758,6 +759,14 @@ export function YouPage() {
   const queryClient = useQueryClient()
 
   const { data: fullProfile }           = useFullProfile(userId)
+
+  // Persist push notification toggle from actual state
+  useEffect(() => {
+    if (!fullProfile) return
+    const hasBrowserPermission = typeof Notification !== 'undefined' && Notification.permission === 'granted'
+    const hasToken = !!fullProfile.push_token
+    setNotifEnabled(hasBrowserPermission && hasToken)
+  }, [fullProfile])
   const { data: stats, isLoading: loadingStats } = useYouStats(userId)
   const { data: history = [], isLoading: loadingHistory } = useMatchHistory(userId, historyLimit)
   const { data: achievements = [] }     = useAchievements(userId)
@@ -1043,6 +1052,13 @@ export function YouPage() {
               <button
                 onClick={async () => {
                   if (notifEnabled) {
+                    // Unsubscribe from push + clear DB token
+                    try {
+                      const reg = await navigator.serviceWorker.ready
+                      const sub = await reg.pushManager.getSubscription()
+                      if (sub) await sub.unsubscribe()
+                    } catch { /* best effort */ }
+                    await supabase.from('profiles').update({ push_token: null }).eq('id', userId)
                     setNotifEnabled(false)
                     return
                   }

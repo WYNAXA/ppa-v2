@@ -1559,7 +1559,7 @@ export function BookCourtPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={closeModal}
-              className="fixed inset-0 bg-black/40 z-40"
+              className="fixed inset-0 bg-black/40 z-[60]"
             />
 
             {/* Sheet */}
@@ -1568,8 +1568,8 @@ export function BookCourtPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-white shadow-2xl max-h-[80vh] flex flex-col"
-              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+              className="fixed bottom-0 left-0 right-0 z-[70] rounded-t-3xl bg-white shadow-2xl max-h-[80vh] flex flex-col"
+              style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 88px)' }}
             >
               {/* Handle + title */}
               <div className="flex-shrink-0 px-5 pt-4 pb-3">

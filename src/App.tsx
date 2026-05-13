@@ -10,6 +10,7 @@ import { AuthPage } from '@/pages/Auth'
 import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
+import { SupportPage } from '@/pages/Support'
 
 // v1.0.9 — bump this comment to force service worker cache invalidation
 
@@ -132,6 +133,7 @@ function AppShell() {
             {/* Public pages (no auth required) */}
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsOfServicePage />} />
+            <Route path="/support" element={<SupportPage />} />
             <Route path="/pay/booking/:bookingId/player/:playerId" element={<PayBookingPage />} />
 
             {/* Onboarding */}

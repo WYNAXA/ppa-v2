@@ -289,10 +289,18 @@ export function MatchDetailPage() {
         status:       'pending',
       })
       if (error) throw error
+      // Notify the driver
+      await supabase.from('notifications').insert({
+        user_id: driverId,
+        type: 'lift_requested',
+        title: 'Lift request',
+        message: `${profile?.name ?? 'A player'} asked for a lift to the match.`,
+        related_id: id,
+        read: false,
+      }).then(() => {}, () => {}) // non-blocking
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
-      queryClient.invalidateQueries({ queryKey: ['travel-requests', id] })
+      queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
     },
   })
 
@@ -320,6 +328,20 @@ export function MatchDetailPage() {
         .eq('requester_id', requesterId)
         .eq('driver_id', profile.id)
       if (error) throw error
+      // Notify the requester
+      const notifType = status === 'accepted' ? 'lift_accepted' : 'lift_declined'
+      const notifTitle = status === 'accepted' ? 'Lift confirmed' : 'Lift declined'
+      const notifMsg = status === 'accepted'
+        ? `${profile.name ?? 'A driver'} accepted your lift request.`
+        : `${profile.name ?? 'A driver'} can't give you a lift this time.`
+      await supabase.from('notifications').insert({
+        user_id: requesterId,
+        type: notifType,
+        title: notifTitle,
+        message: notifMsg,
+        related_id: id,
+        read: false,
+      }).then(() => {}, () => {}) // non-blocking
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incoming-travel-requests', id, profile?.id] })

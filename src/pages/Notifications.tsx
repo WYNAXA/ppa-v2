@@ -53,6 +53,9 @@ function getNavTarget(n: Notification): string | null {
     case 'match_result_prompt':
     case 'match_deadline_approaching':
     case 'match_auto_cancelled':
+    case 'lift_requested':
+    case 'lift_accepted':
+    case 'lift_declined':
       return `/matches/${n.related_id}`
     default:
       break

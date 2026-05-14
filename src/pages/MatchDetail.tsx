@@ -560,24 +560,23 @@ export function MatchDetailPage() {
   const handleLeave = async () => {
     if (!data) return
     setLeaving(true)
-    const newPlayerIds = (data.match.player_ids ?? []).filter((pid) => pid !== currentUserId)
-    const { error } = await supabase
-      .from('matches')
-      .update({
-        player_ids: newPlayerIds,
-        ...(newPlayerIds.length < 4 ? { status: 'pending' } : {}),
-      })
-      .eq('id', data.match.id)
+    const { error } = await supabase.rpc('leave_match', {
+      p_match_id: data.match.id,
+    })
     setLeaving(false)
     setConfirmLeave(false)
-    if (!error) {
-      if (navigator.vibrate) navigator.vibrate(10)
-      queryClient.invalidateQueries({ queryKey: ['match', id] })
-      queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
-      queryClient.invalidateQueries({ queryKey: ['matches'] })
-      queryClient.invalidateQueries({ queryKey: ['play-matches'] })
-      navigate('/home')
+    if (error) {
+      console.error('Leave match failed:', error)
+      return
     }
+    if (navigator.vibrate) navigator.vibrate(10)
+    queryClient.invalidateQueries({ queryKey: ['match', id] })
+    queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+    queryClient.invalidateQueries({ queryKey: ['matches'] })
+    queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+    queryClient.invalidateQueries({ queryKey: ['travel-requests'] })
+    queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    navigate('/home')
   }
 
   const handleCancelMatch = async () => {

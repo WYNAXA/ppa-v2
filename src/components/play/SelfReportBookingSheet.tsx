@@ -161,6 +161,12 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
                 </div>
               ) : manualMode ? (
                 <div className="mb-4">
+                  <button
+                    onClick={() => { setManualMode(false); setManualVenueName('') }}
+                    className="text-[12px] text-teal-700 font-semibold mb-2 inline-flex items-center gap-1"
+                  >
+                    {'\u2190'} Back to search
+                  </button>
                   <label className="text-[12px] font-semibold text-gray-700 block mb-1">Venue name</label>
                   <input
                     type="text"
@@ -170,9 +176,6 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
                     style={{ fontSize: '16px' }}
                     className="w-full rounded-xl border border-gray-200 px-4 py-2.5 outline-none focus:border-teal-500"
                   />
-                  <button onClick={() => { setManualMode(false); setManualVenueName('') }} className="text-[12px] text-gray-400 mt-1">
-                    Search venues instead
-                  </button>
                 </div>
               ) : (
                 <div className="mb-4 rounded-xl bg-teal-50 border border-teal-100 px-3 py-2.5 flex items-center justify-between">

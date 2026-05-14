@@ -603,17 +603,22 @@ export function BookCourtPage() {
           ? `${selectedSlot.start_time}:00`
           : selectedSlot.start_time
 
+      const startAt = `${selectedDate}T${normalizedStartTime}+00:00`
+      const endAtDate = new Date(startAt)
+      endAtDate.setMinutes(endAtDate.getMinutes() + selectedDuration)
+      const endAt = endAtDate.toISOString()
+
       const { data: booking } = await supabase
         .from('court_bookings')
         .insert({
           venue_id: selectedVenue.venue_id,
           court_id: selectedCourtId || null,
           match_id: matchId || null,
-          booker_id: userId,
-          match_date: selectedDate,
-          start_time: normalizedStartTime,
+          booked_by: userId,
+          start_at: startAt,
+          end_at: endAt,
           duration_minutes: selectedDuration,
-          status: 'deposit_paid',
+          status: 'confirmed',
           player_ids: userPlayers,
           guest_players: guestPlayers,
           paid_player_ids: [userId],
@@ -628,7 +633,15 @@ export function BookCourtPage() {
       if (matchId && booking) {
         await supabase
           .from('matches')
-          .update({ booked_venue_name: selectedVenue.venue_name })
+          .update({
+            booked_venue_name: selectedVenue.venue_name,
+            booked_venue_id: selectedVenue.venue_id,
+            booked_court_number: null,
+            booked_at: new Date().toISOString(),
+            booked_by: userId,
+            booking_reference: (booking as any).booking_reference ?? null,
+            booking_status: 'booked',
+          })
           .eq('id', matchId)
       } else if (!matchId && booking) {
         // Standalone booking — create a linked match

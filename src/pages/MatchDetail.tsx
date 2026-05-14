@@ -11,6 +11,7 @@ import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
+import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
@@ -227,6 +228,9 @@ export function MatchDetailPage() {
   const [deleting, setDeleting]               = useState(false)
   const [deleteError, setDeleteError]         = useState<string | null>(null)
   const [cancelError, setCancelError]         = useState<string | null>(null)
+  const [showSelfReportSheet, setShowSelfReportSheet] = useState(false)
+  const [confirmCancelBooking, setConfirmCancelBooking] = useState(false)
+  const [cancellingBooking, setCancellingBooking] = useState(false)
   const [creatingNext, setCreatingNext] = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
   const [showDisputeInput, setShowDisputeInput] = useState(false)
@@ -580,6 +584,22 @@ export function MatchDetailPage() {
     navigate('/home')
   }
 
+  const handleCancelBooking = async () => {
+    if (!data) return
+    setCancellingBooking(true)
+    const { error } = await supabase.rpc('cancel_booking', { p_match_id: data.match.id })
+    setCancellingBooking(false)
+    setConfirmCancelBooking(false)
+    if (error) {
+      console.error('Cancel booking failed:', error)
+      return
+    }
+    if (navigator.vibrate) navigator.vibrate(10)
+    queryClient.invalidateQueries({ queryKey: ['match', id] })
+    queryClient.invalidateQueries({ queryKey: ['matches'] })
+    queryClient.invalidateQueries({ queryKey: ['notifications'] })
+  }
+
   const handleCancelMatch = async () => {
     if (!data) return
     setCancelling(true)
@@ -821,13 +841,21 @@ export function MatchDetailPage() {
             <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
             <p className="text-[13px] font-bold text-green-800">All 4 players confirmed!</p>
           </div>
-          {!match.booked_venue_name && (
-            <button
-              onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
-              className="w-full rounded-xl bg-green-600 py-2 text-[12px] font-bold text-white mt-2"
-            >
-              Book a Court
-            </button>
+          {(match as any).booking_status !== 'booked' && (
+            <div className="mt-2 space-y-1.5">
+              <button
+                onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
+                className="w-full rounded-xl bg-green-600 py-2 text-[12px] font-bold text-white"
+              >
+                Book a Court
+              </button>
+              <button
+                onClick={() => setShowSelfReportSheet(true)}
+                className="w-full rounded-xl border border-gray-200 py-2 text-[12px] font-medium text-gray-600"
+              >
+                I've booked a court
+              </button>
+            </div>
           )}
         </motion.div>
       )}
@@ -1206,15 +1234,46 @@ export function MatchDetailPage() {
         )}
 
         <div className="grid grid-cols-2 gap-2">
-          {!match.booked_venue_name && match.status !== 'completed' && match.status !== 'cancelled' && isParticipant && (
-            <button
-              onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
-            >
-              <BookOpen className="h-4 w-4" />
-              Book Court
-            </button>
-          )}
+          {(match as any).booking_status === 'booked' ? (
+            <div className="col-span-2 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-[14px] font-bold text-teal-800">{match.booked_venue_name}</p>
+                  {match.booked_court_number != null && (
+                    <p className="text-[12px] text-teal-600">Court {match.booked_court_number}</p>
+                  )}
+                  {(match as any).booking_reference && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">Ref: {(match as any).booking_reference}</p>
+                  )}
+                </div>
+                <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">Booked</span>
+              </div>
+              {(match as any).booked_by === currentUserId && (
+                <button
+                  onClick={() => setConfirmCancelBooking(true)}
+                  className="text-[11px] text-red-500 font-semibold mt-2"
+                >
+                  Cancel booking
+                </button>
+              )}
+            </div>
+          ) : match.status !== 'completed' && match.status !== 'cancelled' && isParticipant ? (
+            <>
+              <button
+                onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
+              >
+                <BookOpen className="h-4 w-4" />
+                Book Court
+              </button>
+              <button
+                onClick={() => setShowSelfReportSheet(true)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-medium text-gray-600"
+              >
+                I booked elsewhere
+              </button>
+            </>
+          ) : null}
           {canEdit && (
             <button
               onClick={() => setShowEdit(true)}
@@ -1481,6 +1540,62 @@ export function MatchDetailPage() {
           </>
         )}
       </AnimatePresence>
+
+      {/* Cancel booking confirm dialog */}
+      <AnimatePresence>
+        {confirmCancelBooking && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setConfirmCancelBooking(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+            >
+              <h3 className="text-[16px] font-bold text-gray-900 mb-2">Cancel this booking?</h3>
+              <p className="text-[13px] text-gray-500 mb-5">
+                All players will be notified. You'll need to book a new court.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setConfirmCancelBooking(false)}
+                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                >
+                  Go back
+                </button>
+                <button
+                  onClick={handleCancelBooking}
+                  disabled={cancellingBooking}
+                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                >
+                  {cancellingBooking ? 'Cancelling\u2026' : 'Cancel booking'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Self-report booking sheet */}
+      <SelfReportBookingSheet
+        open={showSelfReportSheet}
+        onClose={() => setShowSelfReportSheet(false)}
+        matchId={data?.match.id ?? ''}
+        playerCount={data?.match.player_ids?.length ?? 4}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['match', id] })
+          queryClient.invalidateQueries({ queryKey: ['matches'] })
+          queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        }}
+      />
 
       {/* Delete match confirm dialog */}
       <AnimatePresence>

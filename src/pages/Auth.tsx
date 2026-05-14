@@ -5,9 +5,10 @@ import { useAuth } from '@/hooks/useAuth'
 
 export function AuthPage() {
   const { session, loading } = useAuth()
-  const [mode, setMode] = useState<'magic' | 'password'>('magic')
+  const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -35,7 +36,7 @@ export function AuthPage() {
     if (error) {
       setMessage({ type: 'error', text: error.message })
     } else {
-      setMessage({ type: 'success', text: 'Check your email — magic link sent.' })
+      setMessage({ type: 'success', text: 'Check your email \u2014 magic link sent.' })
     }
   }
 
@@ -53,6 +54,52 @@ export function AuthPage() {
     // on success AuthContext handles the redirect via session change
   }
 
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setMessage(null)
+
+    const trimmedName = name.trim()
+    if (trimmedName.length < 2) {
+      setMessage({ type: 'error', text: 'Please enter your name (at least 2 characters).' })
+      return
+    }
+    if (password.length < 8) {
+      setMessage({ type: 'error', text: 'Password must be at least 8 characters.' })
+      return
+    }
+
+    setSubmitting(true)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name: trimmedName },
+        emailRedirectTo: `${window.location.origin}/auth`,
+      },
+    })
+    setSubmitting(false)
+
+    if (error) {
+      setMessage({ type: 'error', text: error.message })
+      return
+    }
+
+    if (data.session) {
+      // Email confirmation disabled \u2014 user is logged in immediately
+      setMessage({ type: 'success', text: 'Account created. Redirecting\u2026' })
+      return
+    }
+
+    // Email confirmation pending
+    setMessage({
+      type: 'success',
+      text: 'Check your email to confirm your account, then come back here to sign in.',
+    })
+    setMode('signin')
+    setPassword('')
+    setName('')
+  }
+
   return (
     <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 bg-white">
       {/* Logo / brand */}
@@ -68,29 +115,48 @@ export function AuthPage() {
 
       {/* Tab switcher */}
       <div className="mb-6 flex w-full max-w-sm gap-1 rounded-xl bg-gray-100 p-1">
-        <button
-          onClick={() => { setMode('magic'); setMessage(null) }}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-            mode === 'magic' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-          }`}
-        >
-          Magic Link
-        </button>
-        <button
-          onClick={() => { setMode('password'); setMessage(null) }}
-          className={`flex-1 rounded-lg py-2 text-sm font-medium transition-colors ${
-            mode === 'password' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
-          }`}
-        >
-          Password
-        </button>
+        {([
+          { key: 'signin' as const, label: 'Sign In' },
+          { key: 'signup' as const, label: 'Sign Up' },
+          { key: 'magic' as const, label: 'Magic Link' },
+        ]).map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => { setMode(key); setMessage(null) }}
+            className={`flex-1 rounded-lg py-2 text-[12px] font-medium transition-colors ${
+              mode === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Form */}
       <form
-        onSubmit={mode === 'magic' ? handleMagicLink : handlePassword}
+        onSubmit={
+          mode === 'magic' ? handleMagicLink :
+          mode === 'signup' ? handleSignUp :
+          handlePassword
+        }
         className="w-full max-w-sm space-y-4"
       >
+        {mode === 'signup' && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-gray-700">Your name</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Christian Shanahan"
+              autoComplete="name"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            />
+          </div>
+        )}
+
         <div>
           <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
           <input
@@ -103,7 +169,7 @@ export function AuthPage() {
           />
         </div>
 
-        {mode === 'password' && (
+        {(mode === 'signin' || mode === 'signup') && (
           <div>
             <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
             <input
@@ -111,22 +177,24 @@ export function AuthPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder={mode === 'signup' ? 'Min 8 characters' : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
               className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
-            <button
-              type="button"
-              onClick={async () => {
-                if (!email.trim()) return
-                await supabase.auth.resetPasswordForEmail(email, {
-                  redirectTo: `${window.location.origin}/auth`,
-                })
-                setMessage({ type: 'success', text: 'Password reset link sent — check your email' })
-              }}
-              className="mt-2 text-[13px] text-[#009688] font-medium hover:underline"
-            >
-              Forgot password?
-            </button>
+            {mode === 'signin' && (
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!email.trim()) return
+                  await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/auth`,
+                  })
+                  setMessage({ type: 'success', text: 'Password reset link sent \u2014 check your email' })
+                }}
+                className="mt-2 text-[13px] text-[#009688] font-medium hover:underline"
+              >
+                Forgot password?
+              </button>
+            )}
           </div>
         )}
 
@@ -149,11 +217,19 @@ export function AuthPage() {
           style={{ background: '#009688' }}
         >
           {submitting
-            ? 'Sending…'
+            ? 'Loading\u2026'
             : mode === 'magic'
             ? 'Send magic link'
+            : mode === 'signup'
+            ? 'Create account'
             : 'Sign in'}
         </button>
+
+        {mode === 'signup' && (
+          <p className="text-[11px] text-gray-500 text-center mt-3">
+            After signing up you'll need to confirm your email. We'll then help you set up your padel profile.
+          </p>
+        )}
       </form>
     </div>
   )

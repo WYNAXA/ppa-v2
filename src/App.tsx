@@ -64,12 +64,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (!session || !profile) return
     if (location.pathname === '/onboarding') return
     if (!isOnboardingComplete()) {
-      // Check if profile looks incomplete
-      const name = profile.name ?? ''
-      const isNameDefault = !name || name === 'Player' || name === profile.email?.split('@')[0]
-      if (isNameDefault) {
-        navigate('/onboarding', { replace: true })
-      }
+      navigate('/onboarding', { replace: true })
     }
   }, [session, profile, loading, location.pathname, navigate])
 

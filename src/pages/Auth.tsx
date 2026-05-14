@@ -9,6 +9,7 @@ export function AuthPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -63,6 +64,10 @@ export function AuthPage() {
       setMessage({ type: 'error', text: 'Please enter your name (at least 2 characters).' })
       return
     }
+    if (password !== confirmPassword) {
+      setMessage({ type: 'error', text: 'Passwords do not match.' })
+      return
+    }
     if (password.length < 8) {
       setMessage({ type: 'error', text: 'Password must be at least 8 characters.' })
       return
@@ -97,6 +102,7 @@ export function AuthPage() {
     })
     setMode('signin')
     setPassword('')
+    setConfirmPassword('')
     setName('')
   }
 
@@ -178,8 +184,20 @@ export function AuthPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder={mode === 'signup' ? 'Min 8 characters' : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
+            {mode === 'signup' && (
+              <input
+                type="password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm password"
+                autoComplete="new-password"
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 mt-3"
+              />
+            )}
             {mode === 'signin' && (
               <button
                 type="button"

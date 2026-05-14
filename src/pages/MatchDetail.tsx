@@ -312,15 +312,19 @@ export function MatchDetailPage() {
 
   const updateTravelRequestMutation = useMutation({
     mutationFn: async ({ requesterId, status }: { requesterId: string; status: 'accepted' | 'declined' }) => {
+      if (!profile?.id || !id) throw new Error('Not signed in')
       const { error } = await supabase
         .from('travel_requests')
         .update({ status, updated_at: new Date().toISOString() })
         .eq('match_id', id)
         .eq('requester_id', requesterId)
-        .eq('driver_id', profile?.id)
+        .eq('driver_id', profile.id)
       if (error) throw error
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['match-travel', id] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incoming-travel-requests', id, profile?.id] })
+      queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
+    },
   })
 
   // Group admin status (for team-switching permission)

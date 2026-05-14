@@ -1748,10 +1748,11 @@ function TeamsAndPrediction({
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(async () => {
       const { team1, team2 } = pairingToTeams(playerIds, next)
-      const { error } = await supabase
-        .from('matches')
-        .update({ team1_player_ids: team1, team2_player_ids: team2 })
-        .eq('id', matchId)
+      const { error } = await supabase.rpc('switch_teams', {
+        p_match_id: matchId,
+        p_team1: team1,
+        p_team2: team2,
+      })
       if (error) {
         setSaveError(true)
         setOverride(null)

@@ -570,7 +570,8 @@ export function MatchDetailPage() {
       return
     }
     if (navigator.vibrate) navigator.vibrate(10)
-    queryClient.invalidateQueries({ queryKey: ['match', id] })
+    // Don't invalidate ['match', id] — user is no longer in player_ids,
+    // RLS blocks the refetch (.single() → 406). We navigate away immediately.
     queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
     queryClient.invalidateQueries({ queryKey: ['matches'] })
     queryClient.invalidateQueries({ queryKey: ['play-matches'] })

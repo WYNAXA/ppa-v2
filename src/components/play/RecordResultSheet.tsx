@@ -83,6 +83,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [newBadges, setNewBadges] = useState<BadgeAward[]>([])
   const [showPeerVoting, setShowPeerVoting] = useState(false)
   const [creatingNext, setCreatingNext] = useState(false)
+  const [selectedForSwap, setSelectedForSwap] = useState<string | null>(null)
 
   // Guard: initialise teams ONCE on open, never re-derived
   const initialisedRef = useRef(false)
@@ -98,6 +99,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     }
     if (!open) {
       initialisedRef.current = false
+      setSelectedForSwap(null)
     }
   }, [open, match.player_ids, match.team1_player_ids, match.team2_player_ids])
 
@@ -226,18 +228,22 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     return players.find((p) => p.id === id)
   }
 
-  function swapPlayerBetweenTeams(playerId: string, fromTeam: 1 | 2) {
-    if (fromTeam === 1) {
-      const otherInTeam1 = team1.find((id) => id !== playerId) ?? ''
-      const firstInTeam2 = team2[0] ?? ''
-      setTeam1([playerId, firstInTeam2].filter(Boolean))
-      setTeam2([team2[1] ?? '', otherInTeam1].filter(Boolean))
+  function handlePlayerTap(pid: string, teamNumber: 1 | 2) {
+    if (!selectedForSwap) { setSelectedForSwap(pid); return }
+    if (selectedForSwap === pid) { setSelectedForSwap(null); return }
+    const selectedInTeam1 = team1.includes(selectedForSwap)
+    const tappedInTeam1 = teamNumber === 1
+    if (selectedInTeam1 === tappedInTeam1) { setSelectedForSwap(pid); return }
+    // Different team — swap
+    if (selectedInTeam1) {
+      setTeam1(team1.map(id => id === selectedForSwap ? pid : id))
+      setTeam2(team2.map(id => id === pid ? selectedForSwap : id))
     } else {
-      const otherInTeam2 = team2.find((id) => id !== playerId) ?? ''
-      const firstInTeam1 = team1[0] ?? ''
-      setTeam2([playerId, firstInTeam1].filter(Boolean))
-      setTeam1([team1[1] ?? '', otherInTeam2].filter(Boolean))
+      setTeam2(team2.map(id => id === selectedForSwap ? pid : id))
+      setTeam1(team1.map(id => id === pid ? selectedForSwap : id))
     }
+    if (navigator.vibrate) navigator.vibrate(10)
+    setSelectedForSwap(null)
   }
 
   // Refs for auto-focus/auto-advance in score entry
@@ -362,8 +368,14 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           return (
                             <button
                               key={pid}
-                              onClick={() => swapPlayerBetweenTeams(pid, 1)}
-                              className="flex items-center gap-2 w-full rounded-xl bg-white px-2.5 py-2 mb-1.5 last:mb-0"
+                              onClick={() => handlePlayerTap(pid, 1)}
+                              className={`flex items-center gap-2 w-full rounded-xl px-2.5 py-2 mb-1.5 last:mb-0 transition-all ${
+                                selectedForSwap === pid
+                                  ? 'bg-teal-100 ring-2 ring-teal-600 scale-[1.02]'
+                                  : selectedForSwap && team2.includes(selectedForSwap)
+                                    ? 'bg-white ring-2 ring-orange-300'
+                                    : 'bg-white'
+                              }`}
                             >
                               <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
                               <span className="text-[12px] font-medium text-gray-800 truncate">{p?.name ?? 'Player'}</span>
@@ -379,8 +391,14 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           return (
                             <button
                               key={pid}
-                              onClick={() => swapPlayerBetweenTeams(pid, 2)}
-                              className="flex items-center gap-2 w-full rounded-xl bg-white px-2.5 py-2 mb-1.5 last:mb-0"
+                              onClick={() => handlePlayerTap(pid, 2)}
+                              className={`flex items-center gap-2 w-full rounded-xl px-2.5 py-2 mb-1.5 last:mb-0 transition-all ${
+                                selectedForSwap === pid
+                                  ? 'bg-orange-100 ring-2 ring-orange-600 scale-[1.02]'
+                                  : selectedForSwap && team1.includes(selectedForSwap)
+                                    ? 'bg-white ring-2 ring-teal-300'
+                                    : 'bg-white'
+                              }`}
                             >
                               <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
                               <span className="text-[12px] font-medium text-gray-800 truncate">{p?.name ?? 'Player'}</span>
@@ -389,7 +407,11 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         })}
                       </div>
                     </div>
-                    <p className="text-[11px] text-gray-400 text-center mt-3">{t('record_result.tap_to_swap')}</p>
+                    {selectedForSwap ? (
+                      <p className="text-[12px] text-teal-700 text-center mt-3 font-medium">Tap a player on the other team to swap</p>
+                    ) : (
+                      <p className="text-[11px] text-gray-400 text-center mt-3">Tap a player to start a swap</p>
+                    )}
                     <button
                       onClick={() => setStep(2)}
                       disabled={!canAdvanceStep1}

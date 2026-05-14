@@ -230,6 +230,7 @@ export function MatchDetailPage() {
   const [creatingNext, setCreatingNext] = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
   const [showDisputeInput, setShowDisputeInput] = useState(false)
+  const [showLiftChooser, setShowLiftChooser] = useState(false)
   const [disputeReason, setDisputeReason]     = useState('')
 
   const { data, isLoading, error } = useQuery({
@@ -1106,38 +1107,38 @@ export function MatchDetailPage() {
                 <p className="text-[11px] font-semibold text-gray-500 mb-2">Need a lift</p>
                 <div className="space-y-1.5">
                   {travelInfo!.needsLift.map((passenger) => {
-                    const suggestion = travelInfo!.suggestions.find((s) => s.passenger.id === passenger.id)
-                    const existingRequest = myTravelRequests.find((r) => r.driver_id === suggestion?.driver.id)
                     const isMe = passenger.id === profile?.id
+                    const acceptedRequest = myTravelRequests.find((r) => r.status === 'accepted')
+                    const pendingRequests = myTravelRequests.filter((r) => r.status === 'pending')
+                    const acceptedDriver = acceptedRequest
+                      ? travelInfo!.drivers.find((d) => d.id === acceptedRequest.driver_id)
+                      : null
 
                     return (
                       <div key={passenger.id} className="flex items-center gap-2.5">
                         <PlayerAvatar name={passenger.name} avatarUrl={passenger.avatar_url} size="sm" />
                         <div className="flex-1 min-w-0">
                           <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
-                          {suggestion && travelInfo?.hasLocationData && (
-                            <p className="text-[11px] text-gray-400">
-                              {formatDistance(suggestion.distanceMiles)} from {suggestion.driver.name.split(' ')[0]}
-                            </p>
+                          {isMe && acceptedDriver && (
+                            <p className="text-[11px] text-green-600">Riding with {acceptedDriver.name.split(' ')[0]}</p>
+                          )}
+                          {isMe && !acceptedDriver && pendingRequests.length > 0 && (
+                            <p className="text-[11px] text-gray-400">Waiting for response</p>
                           )}
                         </div>
-                        {isMe && suggestion && (
+                        {isMe && !acceptedDriver && (travelInfo!.drivers.length > 0) && (
                           <button
-                            onClick={() => { if (!existingRequest) requestLiftMutation.mutate({ driverId: suggestion.driver.id }) }}
-                            disabled={!!existingRequest || requestLiftMutation.isPending}
-                            className={cn(
-                              'flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold transition-colors',
-                              existingRequest?.status === 'accepted'
-                                ? 'bg-green-50 border border-green-100 text-green-600'
-                                : existingRequest?.status === 'pending'
-                                ? 'bg-gray-100 text-gray-400'
-                                : 'bg-[#009688] text-white hover:bg-teal-700',
-                            )}
+                            onClick={() => setShowLiftChooser(true)}
+                            className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white"
                           >
-                            {existingRequest?.status === 'accepted' ? 'Lift confirmed' :
-                             existingRequest?.status === 'pending' ? 'Requested' :
-                             `Ask ${suggestion.driver.name.split(' ')[0]}`}
+                            <Car className="h-3 w-3 inline mr-1" />
+                            Ask for a lift
                           </button>
+                        )}
+                        {isMe && acceptedDriver && (
+                          <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">
+                            Lift confirmed
+                          </span>
                         )}
                       </div>
                     )
@@ -1308,6 +1309,87 @@ export function MatchDetailPage() {
           event={calendarEvent}
         />
       )}
+
+      {/* Lift chooser sheet */}
+      <AnimatePresence>
+        {showLiftChooser && travelInfo && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[60] bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowLiftChooser(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="h-1 w-10 rounded-full bg-gray-200" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3">
+                <h2 className="text-[15px] font-bold text-gray-900">Choose a driver</h2>
+                <button onClick={() => setShowLiftChooser(false)} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-gray-500" />
+                </button>
+              </div>
+              <div className="px-5 pb-6 space-y-2" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
+                {travelInfo.drivers.map((driver) => {
+                  const myReq = myTravelRequests.find((r) => r.driver_id === driver.id)
+                  const suggestion = travelInfo.suggestions.find((s) => s.driver.id === driver.id && s.passenger.id === profile?.id)
+                  const hasActiveRequest = myReq && (myReq.status === 'pending' || myReq.status === 'accepted')
+
+                  return (
+                    <div key={driver.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                      <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-gray-800">{driver.name}</p>
+                        {suggestion && travelInfo.hasLocationData && (
+                          <p className="text-[11px] text-gray-400">{formatDistance(suggestion.distanceMiles)} away</p>
+                        )}
+                        {driver.max_passengers > 0 && (
+                          <p className="text-[10px] text-gray-400">{driver.max_passengers} seat{driver.max_passengers !== 1 ? 's' : ''} available</p>
+                        )}
+                      </div>
+                      {myReq?.status === 'accepted' ? (
+                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">Accepted</span>
+                      ) : myReq?.status === 'pending' ? (
+                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-gray-100 text-gray-400">Requested</span>
+                      ) : myReq?.status === 'declined' ? (
+                        <button
+                          onClick={() => {
+                            requestLiftMutation.mutate({ driverId: driver.id })
+                            setShowLiftChooser(false)
+                          }}
+                          disabled={requestLiftMutation.isPending}
+                          className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-500"
+                        >
+                          Ask again
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            requestLiftMutation.mutate({ driverId: driver.id })
+                            setShowLiftChooser(false)
+                          }}
+                          disabled={!!hasActiveRequest || requestLiftMutation.isPending}
+                          className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white disabled:opacity-50"
+                        >
+                          Ask
+                        </button>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Leave confirm dialog */}
       <AnimatePresence>

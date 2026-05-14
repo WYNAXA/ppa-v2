@@ -426,9 +426,19 @@ export function BookCourtPage() {
 
   // ── Effects ─────────────────────────────────────────────────────────────────
 
-  // Init player list with current user
+  // Init player list: from match if matchId, else current user only
   useEffect(() => {
-    if (myProfile && selectedPlayers.length === 0) {
+    if (matchId && matchProfiles.length > 0 && selectedPlayers.length === 0) {
+      const players: BookingPlayer[] = matchProfiles.map((p) => ({
+        type: 'user' as const,
+        id: p.id,
+        name: p.name,
+        avatar_url: p.avatar_url ?? null,
+      }))
+      setSelectedPlayers(players)
+      return
+    }
+    if (!matchId && myProfile && selectedPlayers.length === 0) {
       setSelectedPlayers([
         {
           type: 'user',
@@ -438,7 +448,7 @@ export function BookCourtPage() {
         },
       ])
     }
-  }, [myProfile])
+  }, [matchId, matchProfiles, myProfile])
 
   // Venue search
   useEffect(() => {
@@ -1253,9 +1263,16 @@ export function BookCourtPage() {
                 </div>
               )}
 
-              <p className="text-[13px] text-gray-500">
-                Fill all 4 player slots, or continue with fewer — open spots can be filled later.
-              </p>
+              {matchId ? (
+                <div className="rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3">
+                  <p className="text-[13px] text-teal-900 font-medium">Players locked from your match</p>
+                  <p className="text-[12px] text-teal-800 mt-0.5">To change players, edit them on the match. Updates sync automatically.</p>
+                </div>
+              ) : (
+                <p className="text-[13px] text-gray-500">
+                  Fill all 4 player slots, or continue with fewer — open spots can be filled later.
+                </p>
+              )}
 
               {/* Player slots */}
               <div className="space-y-2">
@@ -1301,7 +1318,7 @@ export function BookCourtPage() {
                             </p>
                           )}
                         </div>
-                        {!isBooker && (
+                        {!isBooker && !matchId && (
                           <button
                             onClick={() =>
                               setSelectedPlayers((prev) => prev.filter((_, idx) => idx !== i))
@@ -1314,6 +1331,8 @@ export function BookCourtPage() {
                       </motion.div>
                     )
                   }
+
+                  if (matchId) return null // Match context: don't show empty add slots
 
                   return (
                     <button

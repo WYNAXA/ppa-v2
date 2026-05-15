@@ -33,6 +33,8 @@ interface FullProfile {
   account_type: string | null
   is_verified: boolean | null
   push_token: string | null
+  is_provisional: boolean | null
+  matches_played: number | null
 }
 
 interface MatchHistoryItem {
@@ -825,7 +827,7 @@ export function YouPage() {
                 {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
                   <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">
                     {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
-                    {(fullProfile as any)?.is_provisional && (
+                    {fullProfile?.is_provisional && (
                       <span className="ml-1 text-teal-500 font-normal">(provisional)</span>
                     )}
                   </span>

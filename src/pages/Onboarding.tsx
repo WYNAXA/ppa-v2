@@ -20,11 +20,16 @@ export function useOnboardingRequired(): boolean {
   return false // Controlled externally by the flow below
 }
 
-export function markOnboardingComplete() {
+export async function markOnboardingComplete(userId: string) {
+  await supabase
+    .from('profiles')
+    .update({ onboarding_completed_at: new Date().toISOString() })
+    .eq('id', userId)
   localStorage.setItem(ONBOARDING_KEY, 'true')
 }
 
-export function isOnboardingComplete(): boolean {
+export function isOnboardingComplete(profile?: { onboarding_completed_at?: string | null } | null): boolean {
+  if (profile?.onboarding_completed_at) return true
   return localStorage.getItem(ONBOARDING_KEY) === 'true'
 }
 
@@ -51,6 +56,26 @@ export function OnboardingPage() {
   const [joinedGroups, setJoinedGroups] = useState<Group[]>([])
   const [saving, setSaving]         = useState(false)
   const debouncedGroupQ = useDebounce(groupQuery, 300)
+
+  // Seed joinedGroups from existing memberships
+  useEffect(() => {
+    if (!user) return
+    let active = true
+    ;(async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('group_id, groups(id, name, city)')
+        .eq('user_id', user.id)
+        .eq('status', 'approved')
+      if (!active || !data) return
+      const existing = data
+        .map((row: any) => row.groups)
+        .filter(Boolean)
+        .map((g: any) => ({ id: g.id, name: g.name, city: g.city ?? null }))
+      if (existing.length > 0) setJoinedGroups(existing)
+    })()
+    return () => { active = false }
+  }, [user])
 
   // Fetch top groups on step 2
   useEffect(() => {
@@ -94,13 +119,14 @@ export function OnboardingPage() {
         { onConflict: 'group_id,user_id' }
       )
     }
-    markOnboardingComplete()
+    await markOnboardingComplete(user.id)
     setSaving(false)
     navigate('/home', { replace: true })
   }
 
-  function skipOnboarding() {
-    markOnboardingComplete()
+  async function skipOnboarding() {
+    if (!user) { navigate('/home', { replace: true }); return }
+    await markOnboardingComplete(user.id)
     navigate('/home', { replace: true })
   }
 

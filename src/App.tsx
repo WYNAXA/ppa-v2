@@ -63,7 +63,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (loading) return
     if (!session || !profile) return
     if (location.pathname === '/onboarding') return
-    if (!isOnboardingComplete()) {
+    if (!isOnboardingComplete(profile)) {
       navigate('/onboarding', { replace: true })
     }
   }, [session, profile, loading, location.pathname, navigate])

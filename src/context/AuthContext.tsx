@@ -12,6 +12,7 @@ interface Profile {
   ranking_points?: number
   internal_ranking?: number
   city?: string | null
+  onboarding_completed_at?: string | null
 }
 
 interface AuthContextValue {
@@ -27,7 +28,7 @@ export const AuthContext = createContext<AuthContextValue | null>(null)
 async function fetchProfile(userId: string): Promise<Profile | null> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city')
+    .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city, onboarding_completed_at')
     .eq('id', userId)
     .single()
 
@@ -40,7 +41,7 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
     const { data: created } = await supabase
       .from('profiles')
       .insert({ id: userId, name, email: user?.email ?? '' })
-      .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city')
+      .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, city, onboarding_completed_at')
       .single()
     return created
   } catch {

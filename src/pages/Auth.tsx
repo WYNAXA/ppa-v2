@@ -202,11 +202,21 @@ export function AuthPage() {
               <button
                 type="button"
                 onClick={async () => {
-                  if (!email.trim()) return
-                  await supabase.auth.resetPasswordForEmail(email, {
-                    redirectTo: `${window.location.origin}/auth`,
+                  setMessage(null)
+                  if (!email.trim()) {
+                    setMessage({ type: 'error', text: 'Enter your email above first, then tap Forgot password again.' })
+                    return
+                  }
+                  setSubmitting(true)
+                  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/auth/reset`,
                   })
-                  setMessage({ type: 'success', text: 'Password reset link sent \u2014 check your email' })
+                  setSubmitting(false)
+                  if (error) {
+                    setMessage({ type: 'error', text: error.message })
+                    return
+                  }
+                  setMessage({ type: 'success', text: 'Password reset link sent \u2014 check your email.' })
                 }}
                 className="mt-2 text-[13px] text-[#009688] font-medium hover:underline"
               >

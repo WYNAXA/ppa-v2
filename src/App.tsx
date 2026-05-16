@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { BottomNav } from '@/components/shared/BottomNav'
 import { SplashScreen } from '@/components/shared/SplashScreen'
 import { AuthPage } from '@/pages/Auth'
+import ResetPasswordPage from '@/pages/ResetPassword'
 import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
@@ -63,6 +64,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
     if (loading) return
     if (!session || !profile) return
     if (location.pathname === '/onboarding') return
+    if (location.pathname.startsWith('/auth')) return
     if (!isOnboardingComplete(profile)) {
       navigate('/onboarding', { replace: true })
     }
@@ -124,6 +126,7 @@ function AppShell() {
 
             {/* Auth */}
             <Route path="/auth" element={<AuthPage />} />
+            <Route path="/auth/reset" element={<ResetPasswordPage />} />
 
             {/* Public pages (no auth required) */}
             <Route path="/privacy" element={<PrivacyPolicyPage />} />

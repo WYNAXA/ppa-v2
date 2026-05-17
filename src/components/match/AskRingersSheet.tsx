@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 
@@ -32,7 +31,6 @@ interface RingerRequest {
 }
 
 export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime, currentPlayerIds, onSent }: AskRingersSheetProps) {
-  const { profile } = useAuth()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())

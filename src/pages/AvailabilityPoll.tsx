@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, CheckCircle, Clock, Trophy, AlertTriangle, Star, Users, Shuffle, RefreshCw } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { checkIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
@@ -102,6 +103,7 @@ export function AvailabilityPollPage() {
   const { pollId } = useParams<{ pollId: string }>()
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const userId = profile?.id ?? ''
 
@@ -111,6 +113,22 @@ export function AvailabilityPollPage() {
     queryFn: () => fetchPollDetail(pollId!, userId),
     enabled: !!pollId && !!userId,
   })
+
+  // Check if user is a ringer (read-only view)
+  const { data: membershipStatus } = useQuery({
+    queryKey: ['poll-membership-status', data?.poll?.group_id, userId],
+    enabled: !!data?.poll?.group_id && !!userId,
+    queryFn: async () => {
+      const { data: row } = await supabase
+        .from('group_members')
+        .select('status')
+        .eq('group_id', data!.poll.group_id)
+        .eq('user_id', userId)
+        .maybeSingle()
+      return row?.status ?? null
+    },
+  })
+  const isRinger = membershipStatus === 'ringer'
 
   const { data: existingMatchCount = 0 } = useQuery({
     queryKey: ['polls', 'detail', pollId, 'match-count'],
@@ -186,7 +204,7 @@ export function AvailabilityPollPage() {
     if (poll.closes_at.length <= 10) closeDate.setHours(23, 59, 59, 999)
     return closeDate < new Date()
   })() : false
-  const isFormActive = !isClosed && (!myResponse || isEditMode)
+  const isFormActive = !isClosed && (!myResponse || isEditMode) && !isRinger
 
   const timeSlots: PollSlot[] = (() => {
     const ts = poll?.time_slots
@@ -265,6 +283,7 @@ export function AvailabilityPollPage() {
   // ── Submit ──
   const submitMutation = useMutation({
     mutationFn: async () => {
+      if (isRinger) return // Ringers cannot submit votes
       const responseData = {
         poll_id: pollId!,
         user_id: userId,
@@ -550,8 +569,16 @@ export function AvailabilityPollPage() {
           />
         )}
 
+        {/* ── Ringer read-only view ── */}
+        {isRinger && (
+          <div className="rounded-2xl bg-teal-50 border border-teal-200 px-5 py-4">
+            <p className="text-[14px] font-bold text-teal-800 mb-1">{t('polls.ringer_view_title')}</p>
+            <p className="text-[13px] text-teal-700 leading-relaxed">{t('polls.ringer_view_message')}</p>
+          </div>
+        )}
+
         {/* ── Existing response summary (not in edit mode) ── */}
-        {myResponse && !isEditMode && (
+        {myResponse && !isEditMode && !isRinger && (
           <div className="rounded-2xl bg-teal-50 border border-teal-100 px-5 py-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[14px] font-semibold text-teal-800">Your Availability</p>

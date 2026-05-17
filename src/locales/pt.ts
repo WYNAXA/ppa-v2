@@ -399,6 +399,10 @@ export default {
     have_account: 'Já tem conta?',
     magic_link: 'Usar link mágico',
   },
+  polls: {
+    ringer_view_title: 'Os membros estão votando',
+    ringer_view_message: 'Você é um suplente para este grupo. Os membros do grupo estão votando sua disponibilidade. Se precisarem de um jogador extra para algum jogo, um administrador entrará em contato diretamente.',
+  },
   onboarding: {
     welcome_title: 'Bem-vindo, {{name}}',
     welcome_subtitle: 'Vamos configurá-lo na app PADEL PLAYERS.',

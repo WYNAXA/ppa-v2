@@ -175,7 +175,7 @@ export function PollAdminView({
         .from('group_members')
         .select('user_id')
         .eq('group_id', groupId)
-        .in('status', ['approved', 'ringer'])
+        .eq('status', 'approved')
       if (!memberships) return []
       const ids = memberships.map((m) => m.user_id)
       const { data: profiles } = await supabase

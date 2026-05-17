@@ -33,20 +33,9 @@ export function isOnboardingComplete(profile?: { onboarding_completed_at?: strin
 
 // ── Playtomic → ELO conversion ──────────────────────────────────────────────
 
-const PLAYTOMIC_TO_ELO: Record<string, { elo: number; labelKey: string }> = {
-  '1.0': { elo: 1100, labelKey: 'onboarding.level_label_1' },
-  '1.5': { elo: 1300, labelKey: 'onboarding.level_label_1_5' },
-  '2.0': { elo: 1400, labelKey: 'onboarding.level_label_2' },
-  '2.5': { elo: 1500, labelKey: 'onboarding.level_label_2_5' },
-  '3.0': { elo: 1650, labelKey: 'onboarding.level_label_3' },
-  '3.5': { elo: 1800, labelKey: 'onboarding.level_label_3_5' },
-  '4.0': { elo: 1950, labelKey: 'onboarding.level_label_4' },
-  '4.5': { elo: 2100, labelKey: 'onboarding.level_label_4_5' },
-  '5.0': { elo: 2250, labelKey: 'onboarding.level_label_5' },
-  '5.5': { elo: 2400, labelKey: 'onboarding.level_label_5_5' },
+function playtomicToElo(level: number): number {
+  return Math.max(600, Math.min(2500, Math.round(1500 + (level - 2.5) * 270)))
 }
-
-const PLAYTOMIC_OPTIONS = ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5']
 
 const LANG_OPTIONS = [
   { code: 'en', flag: '\uD83C\uDDEC\uD83C\uDDE7', key: 'onboarding.language_english' },
@@ -154,15 +143,16 @@ export function OnboardingPage() {
     if (!user) return
     setSaving(true)
     if (levelBranch === 'playtomic') {
-      const entry = PLAYTOMIC_TO_ELO[playtomicLevel]
+      const parsed = parseFloat(playtomicLevel)
+      const elo = isNaN(parsed) ? 1230 : playtomicToElo(parsed)
       await supabase.from('profiles').update({
-        internal_ranking: entry?.elo ?? 1300,
+        internal_ranking: elo,
         is_provisional: true,
-        playtomic_level: parseFloat(playtomicLevel),
+        playtomic_level: isNaN(parsed) ? null : parsed,
       }).eq('id', user.id)
     } else {
       await supabase.from('profiles').update({
-        internal_ranking: 1300,
+        internal_ranking: 1230,
         is_provisional: true,
         playtomic_level: null,
       }).eq('id', user.id)
@@ -332,20 +322,23 @@ export function OnboardingPage() {
                 {levelBranch === 'playtomic' && (
                   <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
                     <label className="block text-[12px] font-medium text-gray-700 mb-2">{t('onboarding.level_playtomic_label')}</label>
-                    <select
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.01"
+                      min="0"
+                      max="7"
                       value={playtomicLevel}
                       onChange={(e) => setPlaytomicLevel(e.target.value)}
+                      placeholder={t('onboarding.level_playtomic_placeholder')}
                       className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] bg-white outline-none focus:border-teal-500"
-                    >
-                      {PLAYTOMIC_OPTIONS.map(val => (
-                        <option key={val} value={val}>{val}</option>
-                      ))}
-                    </select>
-                    {PLAYTOMIC_TO_ELO[playtomicLevel] && (
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">{t('onboarding.level_playtomic_help')}</p>
+                    {playtomicLevel && !isNaN(parseFloat(playtomicLevel)) && (
                       <p className="text-[12px] text-teal-700 mt-2">
                         {t('onboarding.level_playtomic_estimate', {
-                          rating: PLAYTOMIC_TO_ELO[playtomicLevel].elo,
-                          label: t(PLAYTOMIC_TO_ELO[playtomicLevel].labelKey),
+                          rating: playtomicToElo(parseFloat(playtomicLevel)),
+                          level: playtomicLevel,
                         })}
                       </p>
                     )}

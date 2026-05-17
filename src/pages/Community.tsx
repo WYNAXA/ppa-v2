@@ -771,6 +771,21 @@ export function CommunityPage() {
         {/* Quick links */}
         <QuickLinksRow sections={quickLinks} />
 
+        {/* Open Matches link */}
+        <button
+          onClick={() => navigate('/open-matches')}
+          className="w-full flex items-center gap-3 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
+        >
+          <div className="h-9 w-9 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+            <span className="text-lg">🎾</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-gray-800">Open Matches</p>
+            <p className="text-[11px] text-gray-500">Matches looking for players near your level</p>
+          </div>
+          <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+        </button>
+
         {/* ── My Groups (merged: approved + ringer + pending) ── */}
         <section ref={groupsRef} id="groups" style={{ scrollMarginTop: '120px' }}>
           <div className="flex items-center justify-between mb-3">

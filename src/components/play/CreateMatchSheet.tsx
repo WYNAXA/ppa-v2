@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, UserPlus } from 'lucide-react'
@@ -17,8 +18,11 @@ interface Venue { venue_id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name?: string | null }
 interface Profile { id: string; name: string; email: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
 
+interface GroupOption { id: string; name: string }
+
 interface FormState {
   matchType: MatchType | null
+  group: GroupOption | null
   date: string
   time: string
   duration: Duration
@@ -78,7 +82,7 @@ const MATCH_TYPES: Array<{ type: MatchType; label: string; desc: string; Icon: t
   { type: 'casual',      label: 'Casual',      desc: 'Informal — anyone can join',        Icon: Users,       accent: '#009688', bg: '#f0fdfb' },
 ]
 
-function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: FormState) => void; userGroups: GroupOption[] }) {
   const { t } = useTranslation()
   return (
     <div>
@@ -113,6 +117,42 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
           )
         })}
       </div>
+
+      {userGroups.length > 0 && (
+        <div className="mt-6">
+          <h3 className="text-[14px] font-bold text-gray-900 mb-1">Which group?</h3>
+          <p className="text-[12px] text-gray-500 mb-3">Match will be visible to this group's members</p>
+          <div className="space-y-2">
+            {userGroups.map((g) => (
+              <button
+                key={g.id}
+                onClick={() => setForm({ ...form, group: form.group?.id === g.id ? null : g })}
+                className={cn(
+                  'w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-colors',
+                  form.group?.id === g.id ? 'border-[#009688] bg-teal-50' : 'border-gray-100'
+                )}
+              >
+                <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <span className="text-[13px] font-medium text-gray-800 truncate">{g.name}</span>
+                {form.group?.id === g.id && (
+                  <div className="ml-auto h-4 w-4 rounded-full bg-[#009688] flex items-center justify-center flex-shrink-0">
+                    <Check className="h-2.5 w-2.5 text-white" />
+                  </div>
+                )}
+              </button>
+            ))}
+            <button
+              onClick={() => setForm({ ...form, group: null })}
+              className={cn(
+                'w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-colors',
+                !form.group ? 'border-gray-300 bg-gray-50' : 'border-gray-100'
+              )}
+            >
+              <span className="text-[13px] text-gray-500">No group (open match)</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -561,6 +601,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
   const [conflictWarning, setConflictWarning] = useState<{ match_time: string | null; venue: string | null } | null>(null)
   const [form, setForm]       = useState<FormState>({
     matchType: null,
+    group: null,
     date: todayStr(),
     time: nextCleanTime(),
     duration: 90,
@@ -579,6 +620,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       setConflictWarning(null)
       setForm({
         matchType: null,
+        group: null,
         date: todayStr(),
         time: nextCleanTime(),
         duration: 90,
@@ -590,6 +632,31 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Fetch user's groups for group picker
+  const { data: userGroups = [] } = useQuery<GroupOption[]>({
+    queryKey: ['user-groups-for-create', user?.id],
+    enabled: open && !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('group_id, groups(id, name)')
+        .eq('user_id', user!.id)
+        .eq('status', 'approved')
+      return (data ?? []).map((m: any) => {
+        const g = Array.isArray(m.groups) ? m.groups[0] : m.groups
+        return { id: g?.id, name: g?.name }
+      }).filter((g: any) => g.id)
+    },
+  })
+
+  // Pre-select group from prop
+  useEffect(() => {
+    if (open && defaultGroupId && userGroups.length > 0 && !form.group) {
+      const match = userGroups.find(g => g.id === defaultGroupId)
+      if (match) setForm(f => ({ ...f, group: match }))
+    }
+  }, [open, defaultGroupId, userGroups])
 
   // Defensive: creator is always in the player list even if removed
   const safePlayers = creatorProfile && !form.players.some((p) => p.id === creatorProfile.id)
@@ -629,7 +696,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       match_type:          form.matchType!,
       status:              playerIds.length >= 4 ? 'scheduled' : 'pending',
       player_ids:          playerIds,
-      group_id:            defaultGroupId ?? null,
+      group_id:            form.group?.id ?? defaultGroupId ?? null,
       booked_venue_name:   form.venue?.venue_name ?? null,
       created_manually:    true,
       created_by:          user.id,
@@ -738,7 +805,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
                   exit={{ opacity: 0, x: -24 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {step === 1 && <Step1 form={form} setForm={setForm} />}
+                  {step === 1 && <Step1 form={form} setForm={setForm} userGroups={userGroups} />}
                   {step === 2 && <Step2 form={form} setForm={setForm} />}
                   {step === 3 && <Step3 form={form} setForm={setForm} creatorProfile={creatorProfile} />}
                   {step === 4 && <Step4 form={form} safePlayers={safePlayers} />}

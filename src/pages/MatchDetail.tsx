@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play, Users } from 'lucide-react'
 import { format, parseISO, addHours, isBefore } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -12,6 +12,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
+import { AskRingersSheet } from '@/components/match/AskRingersSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
@@ -230,6 +231,7 @@ export function MatchDetailPage() {
   const [cancelError, setCancelError]         = useState<string | null>(null)
   const [showSelfReportSheet, setShowSelfReportSheet] = useState(false)
   const [confirmCancelBooking, setConfirmCancelBooking] = useState(false)
+  const [showAskRingers, setShowAskRingers] = useState(false)
   const [cancellingBooking, setCancellingBooking] = useState(false)
   const [creatingNext, setCreatingNext] = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
@@ -1274,6 +1276,15 @@ export function MatchDetailPage() {
               </button>
             </>
           ) : null}
+          {match.group_id && playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
+            <button
+              onClick={() => setShowAskRingers(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 py-3 text-[13px] font-semibold text-orange-700"
+            >
+              <Users className="h-4 w-4" />
+              Ask ringers
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={() => setShowEdit(true)}
@@ -1594,6 +1605,19 @@ export function MatchDetailPage() {
           queryClient.invalidateQueries({ queryKey: ['match', id] })
           queryClient.invalidateQueries({ queryKey: ['matches'] })
           queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        }}
+      />
+
+      <AskRingersSheet
+        open={showAskRingers}
+        onClose={() => setShowAskRingers(false)}
+        matchId={match.id}
+        groupId={match.group_id ?? null}
+        matchDateTime={`${match.match_date}T${match.match_time ?? '00:00'}`}
+        currentPlayerIds={match.player_ids ?? []}
+        onSent={() => {
+          queryClient.invalidateQueries({ queryKey: ['match', id] })
+          queryClient.invalidateQueries({ queryKey: ['ringer-requests', match.id] })
         }}
       />
 

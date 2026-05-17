@@ -351,21 +351,11 @@ Deno.serve(async (req) => {
       });
     });
 
-    const availableRingers = playerVotes
-      .filter(vote => !allScheduledPlayerIds.has(vote.userId))
-      .map(vote => ({
-        userId: vote.userId,
-        userName: vote.userName,
-        skillLevel: vote.preferredSkillLevel,
-        availableSlots: vote.selectedSlots,
-      }));
-
     return new Response(
       JSON.stringify({
         success: true,
         weeklySchedules,
         profiles: profilesMap,
-        availableRingers,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

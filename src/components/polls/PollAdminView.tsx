@@ -292,7 +292,6 @@ export function PollAdminView({
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null)
   const [confirming, setConfirming] = useState(false)
-  const [availableRingers, setAvailableRingers] = useState<any[]>([])
 
   async function handleGenerateMatches() {
     setGenerating(true)
@@ -319,7 +318,6 @@ export function PollAdminView({
       const schedules = data?.weeklySchedules ?? []
       if (schedules.length === 0) setGenerateError('No match options returned. Ensure enough players have voted.')
       setMatchSchedules(schedules)
-      setAvailableRingers(data?.availableRingers ?? [])
     } catch (e: any) {
       console.error('[GenerateOptions] error:', e)
       setGenerateError(e?.message ?? 'Unknown error')
@@ -839,15 +837,6 @@ export function PollAdminView({
                 </button>
               )}
 
-              {/* Available ringers */}
-              {availableRingers.length > 0 && (
-                <div className="rounded-xl bg-blue-50 border border-blue-100 px-4 py-3 mt-2">
-                  <p className="text-[12px] font-semibold text-blue-700 mb-1">Available ringers:</p>
-                  {availableRingers.map((r: any) => (
-                    <p key={r.userId} className="text-[11px] text-blue-600">👤 {r.userName}</p>
-                  ))}
-                </div>
-              )}
             </div>
           )}
         </div>

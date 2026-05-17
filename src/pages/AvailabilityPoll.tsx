@@ -283,7 +283,7 @@ export function AvailabilityPollPage() {
   // ── Submit ──
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (isRinger) return // Ringers cannot submit votes
+      if (isRinger) return { newMatchId: null } // Ringers cannot submit votes
       const responseData = {
         poll_id: pollId!,
         user_id: userId,

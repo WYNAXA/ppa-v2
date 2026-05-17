@@ -29,7 +29,11 @@ export async function markOnboardingComplete(userId: string) {
 }
 
 export function isOnboardingComplete(profile?: { onboarding_completed_at?: string | null } | null): boolean {
-  if (profile?.onboarding_completed_at) return true
+  // If profile is loaded, the DB field is the source of truth
+  if (profile !== undefined && profile !== null) {
+    return !!profile.onboarding_completed_at
+  }
+  // Profile still loading — fall back to localStorage as fast-path cache
   return localStorage.getItem(ONBOARDING_KEY) === 'true'
 }
 

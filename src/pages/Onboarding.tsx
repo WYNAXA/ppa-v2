@@ -63,7 +63,7 @@ type Step = (typeof STEPS)[number]
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const { profile, user } = useAuth()
+  const { profile, user, refreshProfile } = useAuth()
   const { t, i18n } = useTranslation()
 
   const [step, setStep] = useState<Step>('welcome')
@@ -175,6 +175,7 @@ export function OnboardingPage() {
     if (!user) { navigate('/home', { replace: true }); return }
     setSaving(true)
     await markOnboardingComplete(user.id)
+    await refreshProfile()
     setSaving(false)
     navigate('/home', { replace: true })
   }

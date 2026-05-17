@@ -21,6 +21,7 @@ interface AuthContextValue {
   profile: Profile | null
   loading: boolean
   signOut: () => Promise<void>
+  refreshProfile: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)
@@ -122,8 +123,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profileLoadedForRef.current = ''
   }
 
+  const refreshProfile = async () => {
+    if (!session?.user?.id) return
+    const fresh = await fetchProfile(session.user.id)
+    if (mountedRef.current && fresh) setProfile(fresh)
+  }
+
   return (
-    <AuthContext.Provider value={{ session, user, profile, loading, signOut }}>
+    <AuthContext.Provider value={{ session, user, profile, loading, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )

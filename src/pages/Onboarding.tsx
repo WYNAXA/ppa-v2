@@ -1,23 +1,19 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, MapPin, Users, Search, X } from 'lucide-react'
+import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy, Heart } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { setLanguage } from '@/i18n'
+import { reverseGeocode } from '@/lib/geocode'
+
+// ── Preserved exports (DB-backed + localStorage fast-path) ──────────────────
 
 const ONBOARDING_KEY = 'ppa_onboarding_complete'
 
 export function useOnboardingRequired(): boolean {
-  const { profile } = useAuth()
-  if (!profile) return false
-  if (localStorage.getItem(ONBOARDING_KEY) === 'true') return false
-  // Require onboarding if name looks auto-generated (= email prefix or "Player")
-  const name = profile.name ?? ''
-  if (!name || name === 'Player' || !name.includes(' ') === false) {
-    // If name has no space it might be auto-set — but we don't want to block everyone
-    // Only show onboarding once per session based on localStorage flag
-  }
-  return false // Controlled externally by the flow below
+  return false // Controlled by OnboardingGuard in App.tsx
 }
 
 export async function markOnboardingComplete(userId: string) {
@@ -29,152 +25,179 @@ export async function markOnboardingComplete(userId: string) {
 }
 
 export function isOnboardingComplete(profile?: { onboarding_completed_at?: string | null } | null): boolean {
-  // If profile is loaded, the DB field is the source of truth
   if (profile !== undefined && profile !== null) {
     return !!profile.onboarding_completed_at
   }
-  // Profile still loading — fall back to localStorage as fast-path cache
   return localStorage.getItem(ONBOARDING_KEY) === 'true'
 }
 
-interface Group { id: string; name: string; city: string | null; member_count?: number }
+// ── Playtomic → ELO conversion ──────────────────────────────────────────────
 
-function useDebounce<T>(value: T, delay: number) {
-  const [dv, setDv] = useState(value)
-  useEffect(() => {
-    const t = setTimeout(() => setDv(value), delay)
-    return () => clearTimeout(t)
-  }, [value, delay])
-  return dv
+const PLAYTOMIC_TO_ELO: Record<string, { elo: number; labelKey: string }> = {
+  '1.0': { elo: 1100, labelKey: 'onboarding.level_label_1' },
+  '1.5': { elo: 1300, labelKey: 'onboarding.level_label_1_5' },
+  '2.0': { elo: 1400, labelKey: 'onboarding.level_label_2' },
+  '2.5': { elo: 1500, labelKey: 'onboarding.level_label_2_5' },
+  '3.0': { elo: 1650, labelKey: 'onboarding.level_label_3' },
+  '3.5': { elo: 1800, labelKey: 'onboarding.level_label_3_5' },
+  '4.0': { elo: 1950, labelKey: 'onboarding.level_label_4' },
+  '4.5': { elo: 2100, labelKey: 'onboarding.level_label_4_5' },
+  '5.0': { elo: 2250, labelKey: 'onboarding.level_label_5' },
+  '5.5': { elo: 2400, labelKey: 'onboarding.level_label_5_5' },
 }
 
+const PLAYTOMIC_OPTIONS = ['1.0', '1.5', '2.0', '2.5', '3.0', '3.5', '4.0', '4.5', '5.0', '5.5']
+
+const LANG_OPTIONS = [
+  { code: 'en', flag: '\uD83C\uDDEC\uD83C\uDDE7', key: 'onboarding.language_english' },
+  { code: 'es', flag: '\uD83C\uDDEA\uD83C\uDDF8', key: 'onboarding.language_spanish' },
+  { code: 'pt', flag: '\uD83C\uDDF5\uD83C\uDDF9', key: 'onboarding.language_portuguese' },
+]
+
+// ── Steps ───────────────────────────────────────────────────────────────────
+
+const STEPS = ['welcome', 'language', 'location', 'level', 'tour'] as const
+type Step = (typeof STEPS)[number]
+
+// ── Component ───────────────────────────────────────────────────────────────
+
 export function OnboardingPage() {
-  const navigate          = useNavigate()
+  const navigate = useNavigate()
   const { profile, user } = useAuth()
-  const [step, setStep]   = useState(0)
-  const [name, setName]   = useState(profile?.name ?? '')
-  const [city, setCity]   = useState(profile?.city ?? '')
-  const [postcode, setPostcode] = useState('')
-  const [groupQuery, setGroupQuery] = useState('')
-  const [groups, setGroups]         = useState<Group[]>([])
-  const [joinedGroups, setJoinedGroups] = useState<Group[]>([])
-  const [saving, setSaving]         = useState(false)
-  const debouncedGroupQ = useDebounce(groupQuery, 300)
+  const { t, i18n } = useTranslation()
 
-  // Seed joinedGroups from existing memberships
-  useEffect(() => {
+  const [step, setStep] = useState<Step>('welcome')
+  const [saving, setSaving] = useState(false)
+
+  // Language
+  const [selectedLang, setSelectedLang] = useState(i18n.language?.slice(0, 2) ?? 'en')
+
+  // Location
+  const [locationLoading, setLocationLoading] = useState(false)
+  const [locationCity, setLocationCity] = useState('')
+  const [locationPostcode, setLocationPostcode] = useState('')
+  const [locationLat, setLocationLat] = useState<number | null>(null)
+  const [locationLng, setLocationLng] = useState<number | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+  const [locationDetected, setLocationDetected] = useState(false)
+
+  // Level
+  const [levelBranch, setLevelBranch] = useState<'new' | 'playtomic' | 'skip' | null>(null)
+  const [playtomicLevel, setPlaytomicLevel] = useState('2.5')
+
+  const stepIndex = STEPS.indexOf(step)
+
+  function goNext() {
+    const next = STEPS[stepIndex + 1]
+    if (next) setStep(next)
+  }
+  function goBack() {
+    const prev = STEPS[stepIndex - 1]
+    if (prev) setStep(prev)
+  }
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+
+  async function handleLanguageContinue() {
     if (!user) return
-    let active = true
-    ;(async () => {
-      const { data } = await supabase
-        .from('group_members')
-        .select('group_id, groups(id, name, city)')
-        .eq('user_id', user.id)
-        .eq('status', 'approved')
-      if (!active || !data) return
-      const existing = data
-        .map((row: any) => row.groups)
-        .filter(Boolean)
-        .map((g: any) => ({ id: g.id, name: g.name, city: g.city ?? null }))
-      if (existing.length > 0) setJoinedGroups(existing)
-    })()
-    return () => { active = false }
-  }, [user])
+    setSaving(true)
+    setLanguage(selectedLang)
+    await supabase.from('profiles').update({ preferred_language: selectedLang }).eq('id', user.id)
+    setSaving(false)
+    goNext()
+  }
 
-  // Fetch top groups on step 2
-  useEffect(() => {
-    if (step !== 2) return
-    const fetchGroups = async () => {
-      const query = debouncedGroupQ.length >= 2
-        ? supabase.from('groups').select('id, name, city').ilike('name', `%${debouncedGroupQ}%`).limit(5)
-        : supabase.from('groups').select('id, name, city').order('created_at', { ascending: false }).limit(5)
-      const { data } = await query
-      setGroups(data ?? [])
+  function handleDetectLocation() {
+    if (!navigator.geolocation) {
+      setLocationError(t('onboarding.location_unavailable'))
+      return
     }
-    fetchGroups()
-  }, [step, debouncedGroupQ])
-
-  async function saveStep1() {
-    if (!name.trim() || !user) return
-    setSaving(true)
-    await supabase.from('profiles').update({ name: name.trim(), internal_ranking: 1300 }).eq('id', user.id)
-    setSaving(false)
-    setStep(1)
-  }
-
-  async function saveStep2() {
-    if (!user) return
-    setSaving(true)
-    await supabase.from('profiles').update({
-      city: city.trim() || null,
-      postal_code: postcode.trim() || null,
-    }).eq('id', user.id)
-    setSaving(false)
-    setStep(2)
-  }
-
-  async function finishOnboarding() {
-    if (!user) return
-    setSaving(true)
-    // Join selected groups
-    for (const g of joinedGroups) {
-      await supabase.from('group_members').upsert(
-        { group_id: g.id, user_id: user.id, status: 'approved' },
-        { onConflict: 'group_id,user_id' }
-      )
-    }
-    await markOnboardingComplete(user.id)
-    setSaving(false)
-    navigate('/home', { replace: true })
-  }
-
-  async function skipOnboarding() {
-    if (!user) { navigate('/home', { replace: true }); return }
-    await markOnboardingComplete(user.id)
-    navigate('/home', { replace: true })
-  }
-
-  function toggleGroup(g: Group) {
-    setJoinedGroups((prev) =>
-      prev.find((x) => x.id === g.id)
-        ? prev.filter((x) => x.id !== g.id)
-        : [...prev, g]
+    setLocationLoading(true)
+    setLocationError(null)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const { latitude, longitude } = pos.coords
+        setLocationLat(latitude)
+        setLocationLng(longitude)
+        const geo = await reverseGeocode(latitude, longitude)
+        if (geo.city) setLocationCity(geo.city)
+        if (geo.postcode) setLocationPostcode(geo.postcode)
+        setLocationDetected(true)
+        setLocationLoading(false)
+      },
+      (err) => {
+        setLocationLoading(false)
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError(t('onboarding.location_permission_denied'))
+        } else {
+          setLocationError(t('onboarding.location_unavailable'))
+        }
+      },
+      { enableHighAccuracy: false, timeout: 10000 },
     )
   }
 
-  const steps = [
-    {
-      title:    'Welcome to Padel Players',
-      subtitle: "Let's set up your profile",
-      icon:     '🎾',
-    },
-    {
-      title:    'Where do you play?',
-      subtitle: 'This helps find local groups and venues',
-      icon:     <MapPin className="h-8 w-8 text-[#009688]" />,
-    },
-    {
-      title:    'Find your group',
-      subtitle: 'Join your padel group to get started',
-      icon:     <Users className="h-8 w-8 text-[#009688]" />,
-    },
-  ]
+  async function handleLocationContinue() {
+    if (!user) return
+    setSaving(true)
+    await supabase.from('profiles').update({
+      city: locationCity.trim() || null,
+      postal_code: locationPostcode.trim() || null,
+      latitude: locationLat,
+      longitude: locationLng,
+    }).eq('id', user.id)
+    setSaving(false)
+    goNext()
+  }
 
-  const current = steps[step]
+  async function handleLevelContinue() {
+    if (!user) return
+    setSaving(true)
+    if (levelBranch === 'playtomic') {
+      const entry = PLAYTOMIC_TO_ELO[playtomicLevel]
+      await supabase.from('profiles').update({
+        internal_ranking: entry?.elo ?? 1300,
+        is_provisional: true,
+        playtomic_level: parseFloat(playtomicLevel),
+      }).eq('id', user.id)
+    } else {
+      await supabase.from('profiles').update({
+        internal_ranking: 1300,
+        is_provisional: true,
+        playtomic_level: null,
+      }).eq('id', user.id)
+    }
+    setSaving(false)
+    goNext()
+  }
+
+  async function handleFinish() {
+    if (!user) { navigate('/home', { replace: true }); return }
+    setSaving(true)
+    await markOnboardingComplete(user.id)
+    setSaving(false)
+    navigate('/home', { replace: true })
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  const currentLangName = LANG_OPTIONS.find(l => l.code === selectedLang)?.key
+    ? t(LANG_OPTIONS.find(l => l.code === selectedLang)!.key)
+    : 'English'
 
   return (
     <div className="min-h-full bg-white flex flex-col">
-      {/* Progress bar */}
-      <div className="flex gap-1.5 px-5 pt-14 pb-4">
-        {steps.map((_, i) => (
+      {/* Progress dots */}
+      <div className="flex gap-1.5 px-5 pt-14 pb-4 justify-center">
+        {STEPS.map((s, i) => (
           <div
-            key={i}
-            className={`h-1 flex-1 rounded-full transition-colors ${i <= step ? 'bg-[#009688]' : 'bg-gray-200'}`}
+            key={s}
+            className={`h-2 w-2 rounded-full transition-colors ${i <= stepIndex ? 'bg-[#009688]' : 'bg-gray-200'}`}
           />
         ))}
       </div>
 
-      <div className="flex-1 px-6 flex flex-col">
+      <div className="flex-1 px-6 flex flex-col overflow-y-auto">
         <AnimatePresence mode="wait">
           <motion.div
             key={step}
@@ -184,165 +207,239 @@ export function OnboardingPage() {
             transition={{ duration: 0.2 }}
             className="flex-1 flex flex-col"
           >
-            {/* Icon */}
-            <div className="flex justify-center mb-6 mt-6">
-              <div className="h-20 w-20 rounded-3xl bg-teal-50 flex items-center justify-center text-4xl">
-                {typeof current.icon === 'string' ? current.icon : current.icon}
-              </div>
-            </div>
-
-            <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2 leading-tight">
-              {current.title}
-            </h1>
-            <p className="text-[14px] text-gray-500 text-center mb-8">{current.subtitle}</p>
-
-            {/* Step 0 — Name */}
-            {step === 0 && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Your name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your full name"
-                    autoFocus
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                  />
+            {/* ═══ WELCOME ═══ */}
+            {step === 'welcome' && (
+              <>
+                <div className="flex justify-center mb-6 mt-8">
+                  <div className="h-20 w-20 rounded-3xl bg-teal-50 flex items-center justify-center text-4xl">🎾</div>
                 </div>
-              </div>
+                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">
+                  {t('onboarding.welcome_title', { name: profile?.name?.split(' ')[0] ?? '' })}
+                </h1>
+                <p className="text-[14px] text-gray-500 text-center mb-8">{t('onboarding.welcome_subtitle')}</p>
+              </>
             )}
 
-            {/* Step 1 — Location */}
-            {step === 1 && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">City</label>
-                  <input
-                    type="text"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g. London"
-                    autoFocus
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                  />
+            {/* ═══ LANGUAGE ═══ */}
+            {step === 'language' && (
+              <>
+                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2 mt-8">{t('onboarding.language_title')}</h1>
+                <p className="text-[14px] text-gray-500 text-center mb-6">
+                  {t('onboarding.language_subtitle', { language: currentLangName })}
+                </p>
+                <div className="space-y-2">
+                  {LANG_OPTIONS.map(({ code, flag, key }) => (
+                    <button
+                      key={code}
+                      onClick={() => { setSelectedLang(code); setLanguage(code) }}
+                      className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
+                        selectedLang === code
+                          ? 'border-[#009688] bg-teal-50'
+                          : 'border-gray-100 bg-white'
+                      }`}
+                    >
+                      <span className="text-2xl">{flag}</span>
+                      <span className="text-[15px] font-semibold text-gray-800">{t(key)}</span>
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Postcode</label>
-                  <input
-                    type="text"
-                    value={postcode}
-                    onChange={(e) => setPostcode(e.target.value.toUpperCase())}
-                    placeholder="e.g. SW1A 1AA"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                  />
-                </div>
-              </div>
+              </>
             )}
 
-            {/* Step 2 — Find group */}
-            {step === 2 && (
-              <div className="space-y-3">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={groupQuery}
-                    onChange={(e) => setGroupQuery(e.target.value)}
-                    placeholder="Search groups by name or city…"
-                    className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
-                  />
+            {/* ═══ LOCATION ═══ */}
+            {step === 'location' && (
+              <>
+                <div className="flex justify-center mb-6 mt-6">
+                  <div className="h-16 w-16 rounded-2xl bg-teal-50 flex items-center justify-center">
+                    <MapPin className="h-7 w-7 text-[#009688]" />
+                  </div>
                 </div>
+                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">{t('onboarding.location_title')}</h1>
+                <p className="text-[14px] text-gray-500 text-center mb-6">{t('onboarding.location_subtitle')}</p>
 
-                {joinedGroups.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    {joinedGroups.map((g) => (
-                      <span key={g.id} className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 border border-teal-200 px-3 py-1 text-[12px] font-semibold text-teal-700">
-                        {g.name}
-                        <button onClick={() => toggleGroup(g)}><X className="h-3 w-3" /></button>
-                      </span>
-                    ))}
+                {!locationDetected && (
+                  <button
+                    onClick={handleDetectLocation}
+                    disabled={locationLoading}
+                    className="w-full rounded-2xl border-2 border-[#009688] bg-teal-50 py-3.5 text-[14px] font-semibold text-[#009688] mb-4 disabled:opacity-50"
+                  >
+                    {locationLoading ? t('onboarding.saving') : t('onboarding.location_use_my_location')}
+                  </button>
+                )}
+
+                {locationDetected && locationCity && (
+                  <div className="rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3 mb-4">
+                    <p className="text-[13px] text-teal-800 font-medium">{t('onboarding.location_detected', { city: locationCity })}</p>
+                    <p className="text-[12px] text-teal-600 mt-0.5">{t('onboarding.location_detected_change')}</p>
                   </div>
                 )}
 
-                <div className="space-y-1">
-                  {groups.map((g) => {
-                    const joined = !!joinedGroups.find((x) => x.id === g.id)
-                    return (
-                      <button
-                        key={g.id}
-                        onClick={() => toggleGroup(g)}
-                        className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl border transition-colors text-left ${
-                          joined
-                            ? 'border-[#009688] bg-teal-50'
-                            : 'border-gray-100 bg-white hover:border-teal-200'
-                        }`}
-                      >
-                        <div className="h-9 w-9 rounded-xl bg-blue-50 flex items-center justify-center flex-shrink-0">
-                          <Users className="h-4 w-4 text-blue-500" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold text-gray-800 truncate">{g.name}</p>
-                          {g.city && <p className="text-[11px] text-gray-400">{g.city}</p>}
-                        </div>
-                        {joined && (
-                          <span className="text-[10px] font-bold text-[#009688] bg-teal-100 px-2 py-0.5 rounded-full">Joined</span>
-                        )}
-                      </button>
-                    )
-                  })}
+                {locationError && (
+                  <p className="text-[12px] text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-4">{locationError}</p>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-[12px] font-medium text-gray-700 mb-1">{t('onboarding.location_manual_city_label')}</label>
+                    <input
+                      type="text"
+                      value={locationCity}
+                      onChange={(e) => setLocationCity(e.target.value)}
+                      placeholder={t('onboarding.location_manual_city_placeholder')}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[12px] font-medium text-gray-700 mb-1">{t('onboarding.location_manual_postcode_label')}</label>
+                    <input
+                      type="text"
+                      value={locationPostcode}
+                      onChange={(e) => setLocationPostcode(e.target.value.toUpperCase())}
+                      placeholder={t('onboarding.location_manual_postcode_placeholder')}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    />
+                  </div>
                 </div>
-              </div>
+              </>
+            )}
+
+            {/* ═══ LEVEL ═══ */}
+            {step === 'level' && (
+              <>
+                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2 mt-6">{t('onboarding.level_title')}</h1>
+                <p className="text-[14px] text-gray-500 text-center mb-6">{t('onboarding.level_subtitle')}</p>
+
+                <div className="space-y-2">
+                  {([
+                    { key: 'new' as const, title: t('onboarding.level_branch_new'), desc: t('onboarding.level_branch_new_desc') },
+                    { key: 'playtomic' as const, title: t('onboarding.level_branch_playtomic'), desc: t('onboarding.level_branch_playtomic_desc') },
+                    { key: 'skip' as const, title: t('onboarding.level_branch_skip'), desc: t('onboarding.level_branch_skip_desc') },
+                  ]).map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => setLevelBranch(opt.key)}
+                      className={`w-full rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
+                        levelBranch === opt.key ? 'border-[#009688] bg-teal-50' : 'border-gray-100 bg-white'
+                      }`}
+                    >
+                      <p className="text-[14px] font-semibold text-gray-800">{opt.title}</p>
+                      <p className="text-[12px] text-gray-500 mt-0.5">{opt.desc}</p>
+                    </button>
+                  ))}
+                </div>
+
+                {levelBranch === 'playtomic' && (
+                  <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                    <label className="block text-[12px] font-medium text-gray-700 mb-2">{t('onboarding.level_playtomic_label')}</label>
+                    <select
+                      value={playtomicLevel}
+                      onChange={(e) => setPlaytomicLevel(e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] bg-white outline-none focus:border-teal-500"
+                    >
+                      {PLAYTOMIC_OPTIONS.map(val => (
+                        <option key={val} value={val}>{val}</option>
+                      ))}
+                    </select>
+                    {PLAYTOMIC_TO_ELO[playtomicLevel] && (
+                      <p className="text-[12px] text-teal-700 mt-2">
+                        {t('onboarding.level_playtomic_estimate', {
+                          rating: PLAYTOMIC_TO_ELO[playtomicLevel].elo,
+                          label: t(PLAYTOMIC_TO_ELO[playtomicLevel].labelKey),
+                        })}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* ═══ TOUR ═══ */}
+            {step === 'tour' && (
+              <>
+                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2 mt-6">{t('onboarding.tour_title')}</h1>
+                <p className="text-[14px] text-gray-500 text-center mb-5">{t('onboarding.tour_subtitle')}</p>
+
+                <div className="space-y-3 flex-1 overflow-y-auto">
+                  {([
+                    { icon: <Calendar className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card1_title', descKey: 'onboarding.tour_card1_desc' },
+                    { icon: <TrendingUp className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card2_title', descKey: 'onboarding.tour_card2_desc' },
+                    { icon: <Users className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card3_title', descKey: 'onboarding.tour_card3_desc' },
+                    { icon: <Trophy className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card4_title', descKey: 'onboarding.tour_card4_desc' },
+                    { icon: <Heart className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card5_title', descKey: 'onboarding.tour_card5_desc' },
+                  ]).map(card => (
+                    <div key={card.titleKey} className="flex items-start gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3">
+                      <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                        {card.icon}
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-bold text-gray-800">{t(card.titleKey)}</p>
+                        <p className="text-[12px] text-gray-500 mt-0.5">{t(card.descKey)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
             )}
           </motion.div>
         </AnimatePresence>
       </div>
 
       {/* Footer actions */}
-      <div
-        className="px-6 pb-10 space-y-3"
-        style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom))' }}
-      >
-        {step === 0 && (
-          <button
-            onClick={saveStep1}
-            disabled={!name.trim() || saving}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
-          >
-            {saving ? 'Saving…' : 'Continue'}
+      <div className="px-6 pb-10 space-y-3" style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom))' }}>
+        {step === 'welcome' && (
+          <button onClick={goNext} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white">
+            {t('onboarding.welcome_continue')}
             <ChevronRight className="h-5 w-5" />
           </button>
         )}
 
-        {step === 1 && (
+        {step === 'language' && (
           <>
-            <button
-              onClick={saveStep2}
-              disabled={saving}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
-            >
-              {saving ? 'Saving…' : 'Continue'}
+            <button onClick={handleLanguageContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+              {saving ? t('onboarding.saving') : t('onboarding.language_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
-            <button onClick={() => setStep(2)} className="w-full text-center text-[13px] text-gray-400">
-              Skip for now
+            <button onClick={goBack} className="w-full text-center text-[13px] text-gray-400 flex items-center justify-center gap-1">
+              <ChevronLeft className="h-4 w-4" /> {t('onboarding.back')}
             </button>
           </>
         )}
 
-        {step === 2 && (
+        {step === 'location' && (
           <>
-            <button
-              onClick={finishOnboarding}
-              disabled={saving}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
-            >
-              {saving ? 'Setting up…' : joinedGroups.length > 0 ? `Join ${joinedGroups.length} group${joinedGroups.length > 1 ? 's' : ''} & Continue` : 'Get Started'}
+            <button onClick={handleLocationContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+              {saving ? t('onboarding.saving') : t('onboarding.location_continue')}
+              <ChevronRight className="h-5 w-5" />
             </button>
-            <button onClick={skipOnboarding} className="w-full text-center text-[13px] text-gray-400">
-              Skip for now
+            <button onClick={goNext} className="w-full text-center text-[13px] text-gray-400">
+              {t('onboarding.location_skip')}
+            </button>
+            <button onClick={goBack} className="w-full text-center text-[13px] text-gray-400 flex items-center justify-center gap-1">
+              <ChevronLeft className="h-4 w-4" /> {t('onboarding.back')}
             </button>
           </>
+        )}
+
+        {step === 'level' && (
+          <>
+            <button
+              onClick={handleLevelContinue}
+              disabled={saving || !levelBranch}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+            >
+              {saving ? t('onboarding.saving') : t('onboarding.level_continue')}
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <button onClick={goBack} className="w-full text-center text-[13px] text-gray-400 flex items-center justify-center gap-1">
+              <ChevronLeft className="h-4 w-4" /> {t('onboarding.back')}
+            </button>
+          </>
+        )}
+
+        {step === 'tour' && (
+          <button onClick={handleFinish} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+            {saving ? t('onboarding.saving') : t('onboarding.tour_finish')}
+          </button>
         )}
       </div>
     </div>

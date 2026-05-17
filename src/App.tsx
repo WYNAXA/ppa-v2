@@ -39,6 +39,7 @@ const LeagueDiscoveryPage = lazy(() => import('@/pages/LeagueDiscovery').then(m 
 const AllGroupsPage = lazy(() => import('@/pages/community/AllGroupsPage').then(m => ({ default: m.AllGroupsPage })))
 const AllPlayersPage = lazy(() => import('@/pages/community/AllPlayersPage').then(m => ({ default: m.AllPlayersPage })))
 const MyConnectionsPage = lazy(() => import('@/pages/community/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
+const OpenMatchesPage = lazy(() => import('@/pages/OpenMatches').then(m => ({ default: m.OpenMatchesPage })))
 
 
 const queryClient = new QueryClient({
@@ -151,6 +152,9 @@ function AppShell() {
             <Route path="/community/groups/:id"  element={<Guard><GroupDetailPage /></Guard>} />
             <Route path="/community/events/:id"  element={<Guard><EventDetailPage /></Guard>} />
             <Route path="/you"       element={<Guard><YouPage /></Guard>} />
+
+            {/* Open matches */}
+            <Route path="/open-matches" element={<Guard><OpenMatchesPage /></Guard>} />
 
             {/* Matches */}
             <Route path="/matches"     element={<Guard><MatchesPage /></Guard>} />

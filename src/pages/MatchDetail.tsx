@@ -13,6 +13,7 @@ import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
+import { PushToOpenSheet } from '@/components/match/PushToOpenSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
@@ -232,6 +233,7 @@ export function MatchDetailPage() {
   const [showSelfReportSheet, setShowSelfReportSheet] = useState(false)
   const [confirmCancelBooking, setConfirmCancelBooking] = useState(false)
   const [showAskRingers, setShowAskRingers] = useState(false)
+  const [showPushToOpen, setShowPushToOpen] = useState(false)
   const [cancellingBooking, setCancellingBooking] = useState(false)
   const [creatingNext, setCreatingNext] = useState(false)
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
@@ -1285,6 +1287,14 @@ export function MatchDetailPage() {
               Ask ringers
             </button>
           )}
+          {playerIds.length < 4 && !(match as any).is_open && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
+            <button
+              onClick={() => setShowPushToOpen(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
+            >
+              Push to Open
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={() => setShowEdit(true)}
@@ -1618,6 +1628,16 @@ export function MatchDetailPage() {
         onSent={() => {
           queryClient.invalidateQueries({ queryKey: ['match', id] })
           queryClient.invalidateQueries({ queryKey: ['ringer-requests', match.id] })
+        }}
+      />
+
+      <PushToOpenSheet
+        open={showPushToOpen}
+        onClose={() => setShowPushToOpen(false)}
+        matchId={match.id}
+        currentPlayerIds={match.player_ids ?? []}
+        onSent={() => {
+          queryClient.invalidateQueries({ queryKey: ['match', id] })
         }}
       />
 

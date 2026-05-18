@@ -439,6 +439,10 @@ export default {
     push_elo_max: 'ELO máximo',
     push_audience: 'Aproximadamente {{count}} jugadores verán este partido',
     push_confirm: 'Publicar en Partidos Abiertos',
+    claim_banner_title: 'Plaza abierta en este partido',
+    claim_banner_subtitle: 'Reclámala antes de que alguien más lo haga.',
+    claim_button: 'Reclamar plaza',
+    claim_elo_out_of_range: 'Tu ELO ({{your_elo}}) está fuera del rango del partido ({{min}}\u2013{{max}})',
   },
   onboarding: {
     welcome_title: 'Bienvenido, {{name}}',

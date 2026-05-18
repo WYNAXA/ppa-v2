@@ -576,6 +576,12 @@ export function MatchDetailPage() {
   const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isPastMatchTime && isWithinResultWindow
   const resultEntryClosed = isPastMatchTime && !isWithinResultWindow && !result
   const canSwitchTeams = isParticipant || isGroupAdmin
+  const userElo = (profile as any)?.internal_ranking ?? null
+  const canClaim = !!(match && profile && (match as any).is_open && !isParticipant && playerIds.length < 4
+    && match.status !== 'completed' && match.status !== 'cancelled'
+    && userElo != null
+    && ((match as any).open_elo_min == null || userElo >= (match as any).open_elo_min)
+    && ((match as any).open_elo_max == null || userElo <= (match as any).open_elo_max))
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }
@@ -638,6 +644,26 @@ export function MatchDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['notifications'] })
     navigate('/home')
   }
+
+  const claimOpenMutation = useMutation({
+    mutationFn: async () => {
+      const { data: res, error } = await supabase.rpc('claim_open_match', { p_match_id: match!.id })
+      if (error) throw error
+      if (!(res as any)?.success) throw new Error('Claim failed')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['join-open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['week-open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
+      queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+    },
+    onError: (err: any) => {
+      console.error('Claim failed:', err)
+      alert(err?.message ?? 'Failed to claim match. Try again.')
+    },
+  })
 
   const handleCancelBooking = async () => {
     if (!data) return
@@ -1298,6 +1324,32 @@ export function MatchDetailPage() {
       {myRingerRequest?.status === 'declined' && (
         <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
           <p className="text-[13px] font-semibold text-gray-700">{t('ringers.ringer_request_responded_no')}</p>
+        </div>
+      )}
+
+      {/* Claim open match banner */}
+      {canClaim && (
+        <div className="mx-5 mb-4 rounded-2xl border border-purple-200 bg-purple-50 p-4">
+          <p className="text-[14px] font-bold text-purple-900 mb-1">{t('open_matches.claim_banner_title')}</p>
+          <p className="text-[12px] text-purple-700 mb-3">{t('open_matches.claim_banner_subtitle')}</p>
+          <button
+            onClick={() => claimOpenMutation.mutate()}
+            disabled={claimOpenMutation.isPending}
+            className="w-full rounded-xl bg-purple-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+          >
+            {claimOpenMutation.isPending ? 'Claiming\u2026' : t('open_matches.claim_button')}
+          </button>
+        </div>
+      )}
+      {!canClaim && (match as any).is_open && !isParticipant && playerIds.length < 4 && userElo != null && (
+        <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
+          <p className="text-[13px] text-gray-600">
+            {t('open_matches.claim_elo_out_of_range', {
+              your_elo: userElo,
+              min: (match as any).open_elo_min ?? '?',
+              max: (match as any).open_elo_max ?? '?',
+            })}
+          </p>
         </div>
       )}
 

@@ -439,6 +439,10 @@ export default {
     push_elo_max: 'ELO m\u00E1ximo',
     push_audience: 'Aproximadamente {{count}} jogadores ver\u00E3o este jogo',
     push_confirm: 'Publicar em Jogos Abertos',
+    claim_banner_title: 'Vaga aberta neste jogo',
+    claim_banner_subtitle: 'Garanta antes que algu\u00E9m mais o fa\u00E7a.',
+    claim_button: 'Reclamar vaga',
+    claim_elo_out_of_range: 'Seu ELO ({{your_elo}}) est\u00E1 fora do intervalo do jogo ({{min}}\u2013{{max}})',
   },
   onboarding: {
     welcome_title: 'Bem-vindo, {{name}}',

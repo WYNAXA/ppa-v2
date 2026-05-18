@@ -439,6 +439,10 @@ export default {
     push_elo_max: 'Max ELO',
     push_audience: 'Approximately {{count}} players will see this match',
     push_confirm: 'Push to Open Matches',
+    claim_banner_title: 'Open spot in this match',
+    claim_banner_subtitle: 'Claim it before someone else does.',
+    claim_button: 'Claim spot',
+    claim_elo_out_of_range: 'Your ELO ({{your_elo}}) is outside the match range ({{min}}\u2013{{max}})',
   },
   onboarding: {
     welcome_title: 'Welcome, {{name}}',

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play, Users } from 'lucide-react'
 import { format, parseISO, addHours, isBefore } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
@@ -213,6 +214,7 @@ export function MatchDetailPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { profile } = useAuth()
+  const { t } = useTranslation()
 
   // Realtime: auto-refresh when match/results/votes change
   useMatchSubscription(id ?? null)
@@ -300,6 +302,37 @@ export function MatchDetailPage() {
         .eq('id', profile!.id)
         .single()
       return p ?? null
+    },
+  })
+
+  // Ringer request for current user (if they've been asked to fill in)
+  const { data: myRingerRequest } = useQuery({
+    queryKey: ['my-ringer-request', id, profile?.id],
+    enabled: !!id && !!profile?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('ringer_requests')
+        .select('id, status, expires_at, requested_by')
+        .eq('match_id', id!)
+        .eq('ringer_id', profile!.id)
+        .maybeSingle()
+      return data
+    },
+  })
+
+  const respondRingerMutation = useMutation({
+    mutationFn: async (accept: boolean) => {
+      const { error } = await supabase.rpc('respond_ringer_request', {
+        p_match_id: id!,
+        p_accept: accept,
+      })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-ringer-request', id] })
+      queryClient.invalidateQueries({ queryKey: ['ringer-requests', id] })
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
     },
   })
 
@@ -598,6 +631,9 @@ export function MatchDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
     queryClient.invalidateQueries({ queryKey: ['matches'] })
     queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+    queryClient.invalidateQueries({ queryKey: ['join-open-matches'] })
+    queryClient.invalidateQueries({ queryKey: ['week-open-matches'] })
+    queryClient.invalidateQueries({ queryKey: ['open-matches'] })
     queryClient.invalidateQueries({ queryKey: ['travel-requests'] })
     queryClient.invalidateQueries({ queryKey: ['notifications'] })
     navigate('/home')
@@ -1224,6 +1260,44 @@ export function MatchDetailPage() {
               <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Ringer response banner */}
+      {myRingerRequest?.status === 'pending' && new Date(myRingerRequest.expires_at) > new Date() && (
+        <div className="mx-5 mb-4 rounded-2xl border border-teal-200 bg-teal-50 p-4">
+          <p className="text-[14px] font-bold text-teal-900 mb-1">{t('ringers.ringer_request_banner_title')}</p>
+          <p className="text-[12px] text-teal-700 mb-3">
+            {t('ringers.ringer_request_banner_subtitle', {
+              expiry: format(parseISO(myRingerRequest.expires_at), 'EEE d MMM, HH:mm')
+            })}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => respondRingerMutation.mutate(true)}
+              disabled={respondRingerMutation.isPending}
+              className="flex-1 rounded-xl bg-teal-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+            >
+              {t('ringers.ringer_request_yes')}
+            </button>
+            <button
+              onClick={() => respondRingerMutation.mutate(false)}
+              disabled={respondRingerMutation.isPending}
+              className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
+            >
+              {t('ringers.ringer_request_no')}
+            </button>
+          </div>
+        </div>
+      )}
+      {myRingerRequest?.status === 'accepted' && (
+        <div className="mx-5 mb-4 rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3">
+          <p className="text-[13px] font-semibold text-teal-800">{t('ringers.ringer_request_responded_yes', { name: '' })}</p>
+        </div>
+      )}
+      {myRingerRequest?.status === 'declined' && (
+        <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
+          <p className="text-[13px] font-semibold text-gray-700">{t('ringers.ringer_request_responded_no')}</p>
         </div>
       )}
 

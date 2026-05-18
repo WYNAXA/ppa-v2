@@ -14,6 +14,7 @@ import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
+import { AskNetworkSheet } from '@/components/match/AskNetworkSheet'
 import { PushToOpenSheet } from '@/components/match/PushToOpenSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
@@ -235,6 +236,7 @@ export function MatchDetailPage() {
   const [showSelfReportSheet, setShowSelfReportSheet] = useState(false)
   const [confirmCancelBooking, setConfirmCancelBooking] = useState(false)
   const [showAskRingers, setShowAskRingers] = useState(false)
+  const [showAskNetwork, setShowAskNetwork] = useState(false)
   const [showPushToOpen, setShowPushToOpen] = useState(false)
   const [cancellingBooking, setCancellingBooking] = useState(false)
   const [creatingNext, setCreatingNext] = useState(false)
@@ -353,6 +355,37 @@ export function MatchDetailPage() {
     onError: (err: any) => {
       console.error('Claim failed:', err)
       alert(err?.message ?? 'Failed to claim match. Try again.')
+    },
+  })
+
+  // Match invitation for current user
+  const { data: myInvitation } = useQuery({
+    queryKey: ['my-invitation', id, profile?.id],
+    enabled: !!id && !!profile?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('match_invitations')
+        .select('id, status, expires_at, is_broadcast')
+        .eq('match_id', id!)
+        .eq('invitee_id', profile!.id)
+        .maybeSingle()
+      return data
+    },
+  })
+
+  const respondInvitationMutation = useMutation({
+    mutationFn: async (accept: boolean) => {
+      const { error } = await supabase.rpc('respond_match_invitation', { p_match_id: id, p_accept: accept })
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-invitation', id] })
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    },
+    onError: (err: any) => {
+      console.error('Invitation response failed:', err)
+      alert(err?.message ?? 'Failed to respond. Try again.')
     },
   })
 
@@ -1329,6 +1362,29 @@ export function MatchDetailPage() {
         </div>
       )}
 
+      {/* Invitation response banner */}
+      {myInvitation?.status === 'pending' && new Date(myInvitation.expires_at) > new Date() && (
+        <div className="mx-5 mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <p className="text-[14px] font-bold text-blue-900 mb-1">You've been invited to this match</p>
+          <p className="text-[12px] text-blue-700 mb-3">Reply by {format(parseISO(myInvitation.expires_at), 'EEE d MMM, HH:mm')}</p>
+          <div className="flex gap-2">
+            <button onClick={() => respondInvitationMutation.mutate(true)} disabled={respondInvitationMutation.isPending}
+              className="flex-1 rounded-xl bg-blue-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
+              Yes, I can play
+            </button>
+            <button onClick={() => respondInvitationMutation.mutate(false)} disabled={respondInvitationMutation.isPending}
+              className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 disabled:opacity-50">
+              Can't make it
+            </button>
+          </div>
+        </div>
+      )}
+      {myInvitation?.status === 'accepted' && (
+        <div className="mx-5 mb-4 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3">
+          <p className="text-[13px] font-semibold text-blue-800">You accepted this invitation.</p>
+        </div>
+      )}
+
       {/* Claim open match banner */}
       {canClaim && (
         <div className="mx-5 mb-4 rounded-2xl border border-purple-200 bg-purple-50 p-4">
@@ -1428,6 +1484,15 @@ export function MatchDetailPage() {
             >
               <Users className="h-4 w-4" />
               Ask ringers
+            </button>
+          )}
+          {playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
+            <button
+              onClick={() => setShowAskNetwork(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 py-3 text-[13px] font-semibold text-blue-700"
+            >
+              <Users className="h-4 w-4" />
+              Ask network
             </button>
           )}
           {playerIds.length < 4 && !(match as any).is_open && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
@@ -1793,6 +1858,20 @@ export function MatchDetailPage() {
         anchorLat={venueLatLng?.latitude ?? creatorLatLng?.latitude ?? null}
         anchorLng={venueLatLng?.longitude ?? creatorLatLng?.longitude ?? null}
         onSent={() => {
+          queryClient.invalidateQueries({ queryKey: ['match', id] })
+        }}
+      />
+
+      <AskNetworkSheet
+        open={showAskNetwork}
+        onClose={() => setShowAskNetwork(false)}
+        matchId={match.id}
+        groupId={match.group_id ?? null}
+        matchDateTime={`${match.match_date}T${match.match_time ?? '00:00'}`}
+        currentPlayerIds={match.player_ids ?? []}
+        onSent={() => {
+          setShowAskNetwork(false)
+          queryClient.invalidateQueries({ queryKey: ['match-invitations', match.id] })
           queryClient.invalidateQueries({ queryKey: ['match', id] })
         }}
       />

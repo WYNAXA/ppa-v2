@@ -62,6 +62,7 @@ function getNavTarget(n: Notification): string | null {
   }
   if (n.type.startsWith('ringer_'))     return `/matches/${n.related_id}`
   if (n.type.startsWith('open_match_')) return `/matches/${n.related_id}`
+  if (n.type.startsWith('invitation_') || n.type.startsWith('invitee_') || n.type === 'match_invitation') return `/matches/${n.related_id}`
   if (n.type.includes('match'))  return `/matches/${n.related_id}`
   if (n.type.includes('league')) return `/compete/leagues/${n.related_id}`
   if (n.type.includes('group'))  return `/community/groups/${n.related_id}`

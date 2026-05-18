@@ -153,7 +153,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
 
       const { error: matchError } = await supabase
         .from('matches')
-        .update({ status: 'completed' })
+        .update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
         .eq('id', match.id)
 
       console.log('[RecordResult] match update error:', matchError)

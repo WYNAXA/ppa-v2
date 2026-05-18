@@ -729,7 +729,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId }: {
       if (resultError) throw resultError
 
       // 2. Update match status
-      const { error: matchError } = await supabase.from('matches').update({ status: 'completed' }).eq('id', match.id)
+      const { error: matchError } = await supabase.from('matches').update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
       if (matchError) throw matchError
 
       // 3. Update league_standings via RPC
@@ -1425,7 +1425,7 @@ export function LeagueDetailPage() {
                         )}
                         <button
                           onClick={async () => {
-                            await supabase.from('matches').update({ status: 'cancelled' }).eq('id', match.id)
+                            await supabase.from('matches').update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
                             queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
                           }}
                           className="rounded-lg border border-red-200 px-3 py-1 text-[11px] font-semibold text-red-500"

@@ -611,7 +611,7 @@ export function MatchDetailPage() {
     try {
       const { error: cancelErr } = await supabase
         .from('matches')
-        .update({ status: 'cancelled' })
+        .update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null })
         .eq('id', data.match.id)
       if (cancelErr) throw cancelErr
 
@@ -1647,8 +1647,8 @@ export function MatchDetailPage() {
         isEditing={(match as any).is_open === true}
         existingMin={(match as any).open_elo_min ?? null}
         existingMax={(match as any).open_elo_max ?? null}
-        anchorLat={(match as any).venue_lat ?? null}
-        anchorLng={(match as any).venue_lng ?? null}
+        anchorLat={venueLatLng?.latitude ?? null}
+        anchorLng={venueLatLng?.longitude ?? null}
         onSent={() => {
           queryClient.invalidateQueries({ queryKey: ['match', id] })
         }}

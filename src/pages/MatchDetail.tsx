@@ -1367,7 +1367,7 @@ export function MatchDetailPage() {
               </button>
             </>
           ) : null}
-          {match.group_id && playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
+          {playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
               onClick={() => setShowAskRingers(true)}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 py-3 text-[13px] font-semibold text-orange-700"

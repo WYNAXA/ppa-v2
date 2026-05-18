@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -205,6 +205,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
 
 export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   const { profile } = useAuth()
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const userId = profile?.id ?? ''
 
@@ -360,13 +361,14 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       if (error) throw error
       if (!(data as any)?.success) throw new Error('Claim failed')
     },
-    onSuccess: () => {
+    onSuccess: (_: any, matchId: string) => {
       queryClient.invalidateQueries({ queryKey: ['week-my-matches'] })
       queryClient.invalidateQueries({ queryKey: ['week-group-matches'] })
       queryClient.invalidateQueries({ queryKey: ['week-open-matches'] })
       queryClient.invalidateQueries({ queryKey: ['join-open-matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
       queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+      navigate(`/matches/${matchId}`)
     },
     onError: (err: any) => {
       console.error('Join match failed:', err)

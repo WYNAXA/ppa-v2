@@ -354,21 +354,22 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   // ── Join match mutation ────────────────────────────────────────────────────
   const joinMutation = useMutation({
     mutationFn: async (matchId: string) => {
-      const { data: match } = await supabase
-        .from('matches').select('player_ids').eq('id', matchId).single()
-      if (!match) throw new Error('Match not found')
-      const ids = (match.player_ids as string[]) ?? []
-      if (ids.length >= 4) throw new Error('Match is full')
-      if (ids.includes(userId)) throw new Error('Already in match')
-      await supabase.from('matches').update({
-        player_ids: [...ids, userId],
-        ...(ids.length + 1 >= 4 ? { status: 'scheduled' } : {}),
-      }).eq('id', matchId)
+      const { data, error } = await supabase.rpc('claim_open_match', {
+        p_match_id: matchId,
+      })
+      if (error) throw error
+      if (!(data as any)?.success) throw new Error('Claim failed')
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['week-my-matches'] })
       queryClient.invalidateQueries({ queryKey: ['week-group-matches'] })
       queryClient.invalidateQueries({ queryKey: ['week-open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['join-open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
+      queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+    },
+    onError: (err: any) => {
+      console.error('Join match failed:', err)
     },
   })
 

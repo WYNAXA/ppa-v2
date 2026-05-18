@@ -61,9 +61,18 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
 
   const inviteMutation = useMutation({
     mutationFn: async (player: PlayerResult) => {
+      const newPlayerIds = [...currentPlayerIds, player.id]
+      const willBeFull = newPlayerIds.length >= 4
+      const updates: Record<string, any> = { player_ids: newPlayerIds }
+      if (willBeFull) {
+        updates.is_open = false
+        updates.open_elo_min = null
+        updates.open_elo_max = null
+        updates.status = 'scheduled'
+      }
       const { error } = await supabase
         .from('matches')
-        .update({ player_ids: [...currentPlayerIds, player.id] })
+        .update(updates)
         .eq('id', matchId)
       if (error) throw error
 

@@ -8,6 +8,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { isUserAvailableForSlot, getSlotDate } from '@/lib/pollUtils'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
+import { AskRingersSheet } from '@/components/match/AskRingersSheet'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -150,6 +151,25 @@ export function PollAdminView({
   const [matchSchedules, setMatchSchedules] = useState<any[]>([])
   const [createMatchOpen, setCreateMatchOpen] = useState(false)
   const [scheduleDefaults, setScheduleDefaults] = useState<{ date?: string; groupId?: string }>({})
+  const [askRingersMatchId, setAskRingersMatchId] = useState<string | null>(null)
+
+  // ── Matches needing ringers (actual DB matches for this group) ──
+  const today = new Date().toISOString().split('T')[0]
+  const { data: matchesNeedingRingers = [] } = useQuery({
+    queryKey: ['matches-needing-ringers', groupId, today],
+    enabled: isAdmin && !!groupId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('matches')
+        .select('id, match_date, match_time, player_ids, status')
+        .eq('group_id', groupId)
+        .gte('match_date', today)
+        .in('status', ['scheduled', 'pending', 'confirmed', 'open'])
+        .order('match_date', { ascending: true })
+        .limit(10)
+      return (data ?? []).filter((m: any) => (m.player_ids?.length ?? 0) < 4)
+    },
+  })
 
   // ── Data Fetching ──
   const { data: responses = [] } = useQuery<ResponseWithProfile[]>({
@@ -841,6 +861,44 @@ export function PollAdminView({
           )}
         </div>
       )}
+
+      {/* Matches needing ringers */}
+      {isAdmin && matchesNeedingRingers.length > 0 && (
+        <div className="rounded-2xl border border-orange-100 bg-orange-50/30 px-4 py-3 mt-3 space-y-2">
+          <p className="text-[12px] font-bold text-orange-700">Matches needing ringers</p>
+          {matchesNeedingRingers.map((m: any) => (
+            <div key={m.id} className="flex items-center justify-between rounded-xl bg-white border border-orange-100 px-3 py-2">
+              <div>
+                <p className="text-[12px] font-medium text-gray-800">{m.match_date} {m.match_time?.slice(0, 5) ?? ''}</p>
+                <p className="text-[10px] text-gray-400">{m.player_ids?.length ?? 0}/4 players</p>
+              </div>
+              <button
+                onClick={() => setAskRingersMatchId(m.id)}
+                className="rounded-lg border border-teal-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-teal-700"
+              >
+                Ask ringers
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* AskRingersSheet */}
+      {askRingersMatchId && (() => {
+        const m = matchesNeedingRingers.find((x: any) => x.id === askRingersMatchId)
+        if (!m) return null
+        return (
+          <AskRingersSheet
+            open={true}
+            onClose={() => setAskRingersMatchId(null)}
+            matchId={askRingersMatchId}
+            groupId={groupId}
+            matchDateTime={`${m.match_date}T${m.match_time ?? '00:00'}`}
+            currentPlayerIds={m.player_ids ?? []}
+            onSent={() => { setAskRingersMatchId(null); onRefetch() }}
+          />
+        )
+      })()}
 
       {/* CreateMatchSheet for schedule match */}
       <CreateMatchSheet

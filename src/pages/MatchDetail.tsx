@@ -634,7 +634,8 @@ export function MatchDetailPage() {
     && match.status !== 'completed' && match.status !== 'cancelled'
     && userElo != null
     && ((match as any).open_elo_min == null || userElo >= (match as any).open_elo_min)
-    && ((match as any).open_elo_max == null || userElo <= (match as any).open_elo_max))
+    && ((match as any).open_elo_max == null || userElo <= (match as any).open_elo_max)
+    && myInvitation?.status !== 'pending')
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }

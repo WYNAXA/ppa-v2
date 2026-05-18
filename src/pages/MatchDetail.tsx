@@ -1295,6 +1295,14 @@ export function MatchDetailPage() {
               Push to Open
             </button>
           )}
+          {(match as any).is_open && (isParticipant || isGroupAdmin) && (
+            <button
+              onClick={() => setShowPushToOpen(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
+            >
+              Edit ELO range
+            </button>
+          )}
           {canEdit && (
             <button
               onClick={() => setShowEdit(true)}
@@ -1636,6 +1644,11 @@ export function MatchDetailPage() {
         onClose={() => setShowPushToOpen(false)}
         matchId={match.id}
         currentPlayerIds={match.player_ids ?? []}
+        isEditing={(match as any).is_open === true}
+        existingMin={(match as any).open_elo_min ?? null}
+        existingMax={(match as any).open_elo_max ?? null}
+        anchorLat={(match as any).venue_lat ?? null}
+        anchorLng={(match as any).venue_lng ?? null}
         onSent={() => {
           queryClient.invalidateQueries({ queryKey: ['match', id] })
         }}

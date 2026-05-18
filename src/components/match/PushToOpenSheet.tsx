@@ -11,9 +11,14 @@ interface PushToOpenSheetProps {
   matchId: string
   currentPlayerIds: string[]
   onSent: () => void
+  isEditing?: boolean
+  existingMin?: number | null
+  existingMax?: number | null
+  anchorLat?: number | null
+  anchorLng?: number | null
 }
 
-export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSent }: PushToOpenSheetProps) {
+export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSent, isEditing = false, existingMin, existingMax, anchorLat, anchorLng }: PushToOpenSheetProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
@@ -33,32 +38,41 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
   const [eloMin, setEloMin] = useState<number | null>(null)
   const [eloMax, setEloMax] = useState<number | null>(null)
 
-  const min = eloMin ?? Math.max(600, teamAvg - 200)
-  const max = eloMax ?? Math.min(2500, teamAvg + 200)
+  const min = eloMin ?? existingMin ?? Math.max(600, teamAvg - 200)
+  const max = eloMax ?? existingMax ?? Math.min(2500, teamAvg + 200)
 
-  // Audience estimate
-  const { data: audienceCount = 0 } = useQuery({
-    queryKey: ['open-match-audience', min, max, currentPlayerIds.join(',')],
-    enabled: open,
+  const hasGeo = anchorLat != null && anchorLng != null
+
+  // Geo-scoped audience count
+  const { data: audienceCount } = useQuery({
+    queryKey: ['open-match-audience', min, max, anchorLat, anchorLng, currentPlayerIds.join(',')],
+    enabled: open && hasGeo,
     queryFn: async () => {
-      const { count } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .gte('internal_ranking', min)
-        .lte('internal_ranking', max)
-        .not('id', 'in', `(${currentPlayerIds.join(',')})`)
-      return count ?? 0
+      const { data, error } = await supabase.rpc('count_open_match_audience', {
+        p_lat: anchorLat!,
+        p_lng: anchorLng!,
+        p_elo_min: min,
+        p_elo_max: max,
+        p_exclude_player_ids: currentPlayerIds,
+      })
+      if (error) return null
+      return data as number
     },
   })
 
   const pushMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.rpc('push_match_to_open', {
-        p_match_id: matchId,
-        p_elo_min: min,
-        p_elo_max: max,
-      })
-      if (error) throw error
+      if (isEditing) {
+        const { error } = await supabase.rpc('update_open_match_range', {
+          p_match_id: matchId, p_elo_min: min, p_elo_max: max,
+        })
+        if (error) throw error
+      } else {
+        const { error } = await supabase.rpc('push_match_to_open', {
+          p_match_id: matchId, p_elo_min: min, p_elo_max: max,
+        })
+        if (error) throw error
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match', matchId] })
@@ -107,7 +121,11 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
               </div>
 
               <p className="text-[12px] text-gray-500 mb-4">
-                {t('open_matches.push_audience', { count: audienceCount })}
+                {hasGeo && audienceCount != null
+                  ? t('open_matches.push_audience', { count: audienceCount })
+                  : !hasGeo
+                    ? 'Audience count not available \u2014 no location set'
+                    : '...'}
               </p>
 
               <button
@@ -115,11 +133,11 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
                 disabled={pushMutation.isPending || min >= max}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
-                {pushMutation.isPending ? 'Pushing\u2026' : t('open_matches.push_confirm')}
+                {pushMutation.isPending ? 'Saving\u2026' : isEditing ? 'Update ELO range' : t('open_matches.push_confirm')}
               </button>
 
               {pushMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mt-2">Failed to open match. Try again.</p>
+                <p className="text-[12px] text-red-500 text-center mt-2">Failed. Try again.</p>
               )}
             </div>
           </motion.div>

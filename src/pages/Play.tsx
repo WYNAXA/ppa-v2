@@ -19,11 +19,12 @@ const item = {
 
 // ── Join Match Sheet ──────────────────────────────────────────────────────────
 
-function JoinMatchSheet({ open, onClose, userId, queryClient }: {
+function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
   open: boolean
   onClose: () => void
   userId: string
   queryClient: ReturnType<typeof useQueryClient>
+  onCreateMatch?: () => void
 }) {
   const navigate = useNavigate()
   const today = new Date().toISOString().split('T')[0]
@@ -109,7 +110,12 @@ function JoinMatchSheet({ open, onClose, userId, queryClient }: {
               ) : openMatches.length === 0 ? (
                 <div className="text-center py-12 px-4">
                   <p className="text-[15px] font-bold text-gray-700 mb-1">No open matches</p>
-                  <p className="text-[13px] text-gray-400">Create one and invite players</p>
+                  <p className="text-[13px] text-gray-400 mb-4">Create one and invite players</p>
+                  {onCreateMatch && (
+                    <button onClick={() => { onClose(); onCreateMatch() }} className="rounded-2xl bg-[#009688] px-5 py-2.5 text-[13px] font-semibold text-white">
+                      Create match
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="space-y-2.5 pt-1">
@@ -255,7 +261,7 @@ export function PlayPage() {
       <CreateMatchSheet open={createOpen} onClose={() => setCreateOpen(false)} />
 
       {/* Join Match sheet */}
-      <JoinMatchSheet open={joinSheetOpen} onClose={() => setJoinSheetOpen(false)} userId={user?.id ?? ''} queryClient={queryClient} />
+      <JoinMatchSheet open={joinSheetOpen} onClose={() => setJoinSheetOpen(false)} userId={user?.id ?? ''} queryClient={queryClient} onCreateMatch={() => setCreateOpen(true)} />
     </>
   )
 }

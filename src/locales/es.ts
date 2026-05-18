@@ -474,7 +474,7 @@ export default {
     level_playtomic_label: 'Tu nivel de Playtomic',
     level_playtomic_placeholder: 'ej. 2.58',
     level_playtomic_help: 'Introduce tu nivel actual de Playtomic (0.0 a 7.0).',
-    level_playtomic_estimate: 'Te iniciaremos en ELO {{rating}}, equivalente a tu Playtomic {{level}}. Puedes ajustarlo después en tu perfil.',
+    level_playtomic_estimate: 'Te iniciaremos en ELO {{rating}}, equivalente a tu Playtomic {{level}}. Tu nivel cambiará a medida que juegues partidos.',
     level_continue: 'Continuar',
     tour_title: 'Esto es lo que puedes hacer',
     tour_subtitle: 'Un recorrido rápido por la app PADEL PLAYERS.',

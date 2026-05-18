@@ -4,6 +4,7 @@ import { X, Check } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -172,6 +173,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['ringer-requests', matchId] })
       setSelected(new Set())
+      toast.success('Ringer requests sent')
       onSent()
       onClose()
     },

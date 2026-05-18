@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useEffect, useState, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Toaster } from 'sonner'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
 import { BottomNav } from '@/components/shared/BottomNav'
@@ -198,6 +199,7 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
+          <Toaster position="top-center" toastOptions={{ style: { background: 'white', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '0.75rem' } }} />
           <AppShell />
         </AuthProvider>
       </BrowserRouter>

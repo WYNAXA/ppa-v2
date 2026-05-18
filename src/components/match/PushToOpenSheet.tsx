@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 
 interface PushToOpenSheetProps {
@@ -76,6 +77,7 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match', matchId] })
+      toast.success(isEditing ? 'ELO range updated' : 'Match pushed to Open')
       onSent()
       onClose()
     },

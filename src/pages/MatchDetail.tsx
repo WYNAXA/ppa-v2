@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play, Users } from 'lucide-react'
+import { toast } from 'sonner'
 import { format, parseISO, addHours, isBefore } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
@@ -335,6 +336,7 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['ringer-requests', id] })
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      toast.success('Response sent')
     },
   })
 
@@ -351,10 +353,11 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['open-matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
       queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+      toast.success('You\'ve claimed the open spot')
     },
     onError: (err: any) => {
       console.error('Claim failed:', err)
-      alert(err?.message ?? 'Failed to claim match. Try again.')
+      toast.error(err?.message ?? 'Failed to claim match. Try again.')
     },
   })
 
@@ -382,10 +385,11 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['my-invitation', id] })
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      toast.success('Response sent')
     },
     onError: (err: any) => {
       console.error('Invitation response failed:', err)
-      alert(err?.message ?? 'Failed to respond. Try again.')
+      toast.error(err?.message ?? 'Failed to respond. Try again.')
     },
   })
 
@@ -683,6 +687,7 @@ export function MatchDetailPage() {
     setConfirmLeave(false)
     if (error) {
       console.error('Leave match failed:', error)
+      toast.error(error.message ?? 'Failed to leave match')
       return
     }
     if (navigator.vibrate) navigator.vibrate(10)
@@ -696,6 +701,7 @@ export function MatchDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['open-matches'] })
     queryClient.invalidateQueries({ queryKey: ['travel-requests'] })
     queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    toast.success('Left the match')
     navigate('/home')
   }
 

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Bell, Plus, Search, BookOpen, ArrowRight, X, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
@@ -77,10 +78,11 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
       queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
       onClose()
       navigate(`/matches/${matchId}`)
+      toast.success('Joined the match')
     },
     onError: (err: any) => {
       console.error('Join match failed:', err)
-      alert(err?.message ?? 'Failed to join match. Try again.')
+      toast.error(err?.message ?? 'Failed to join match. Try again.')
     },
   })
 

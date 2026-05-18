@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Search } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -117,12 +118,13 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match-invitations', matchId] })
       setSelected(new Set())
+      toast.success('Invitations sent')
       onSent()
       onClose()
     },
     onError: (err: any) => {
       console.error('Send invitations failed:', err)
-      alert(err?.message ?? 'Failed to send. Try again.')
+      toast.error(err?.message ?? 'Failed to send. Try again.')
     },
   })
 

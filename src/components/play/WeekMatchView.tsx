@@ -11,6 +11,7 @@ import {
   isValid,
 } from 'date-fns'
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserMatchesSubscription } from '@/hooks/useRealtimeSubscription'
@@ -369,10 +370,11 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
       queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
       navigate(`/matches/${matchId}`)
+      toast.success('Joined the match')
     },
     onError: (err: any) => {
       console.error('Join match failed:', err)
-      alert(err?.message ?? 'Failed to join match. Try again.')
+      toast.error(err?.message ?? 'Failed to join match. Try again.')
     },
   })
 

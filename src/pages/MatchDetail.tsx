@@ -336,6 +336,26 @@ export function MatchDetailPage() {
     },
   })
 
+  const claimOpenMutation = useMutation({
+    mutationFn: async () => {
+      const { data: res, error } = await supabase.rpc('claim_open_match', { p_match_id: id })
+      if (error) throw error
+      if (!(res as any)?.success) throw new Error('Claim failed')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['join-open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['week-open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['open-matches'] })
+      queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
+      queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
+    },
+    onError: (err: any) => {
+      console.error('Claim failed:', err)
+      alert(err?.message ?? 'Failed to claim match. Try again.')
+    },
+  })
+
   // Travel request mutation
   const requestLiftMutation = useMutation({
     mutationFn: async ({ driverId }: { driverId: string }) => {
@@ -645,25 +665,7 @@ export function MatchDetailPage() {
     navigate('/home')
   }
 
-  const claimOpenMutation = useMutation({
-    mutationFn: async () => {
-      const { data: res, error } = await supabase.rpc('claim_open_match', { p_match_id: match!.id })
-      if (error) throw error
-      if (!(res as any)?.success) throw new Error('Claim failed')
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['match', id] })
-      queryClient.invalidateQueries({ queryKey: ['join-open-matches'] })
-      queryClient.invalidateQueries({ queryKey: ['week-open-matches'] })
-      queryClient.invalidateQueries({ queryKey: ['open-matches'] })
-      queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
-      queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
-    },
-    onError: (err: any) => {
-      console.error('Claim failed:', err)
-      alert(err?.message ?? 'Failed to claim match. Try again.')
-    },
-  })
+
 
   const handleCancelBooking = async () => {
     if (!data) return

@@ -370,6 +370,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     },
     onError: (err: any) => {
       console.error('Join match failed:', err)
+      alert(err?.message ?? 'Failed to join match. Try again.')
     },
   })
 

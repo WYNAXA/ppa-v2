@@ -27,10 +27,12 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
   onCreateMatch?: () => void
 }) {
   const navigate = useNavigate()
+  const { profile } = useAuth()
+  const userElo = (profile as any)?.internal_ranking ?? null
   const today = new Date().toISOString().split('T')[0]
 
   const { data: openMatches = [], isLoading } = useQuery<MatchCardData[]>({
-    queryKey: ['join-open-matches', userId],
+    queryKey: ['join-open-matches', userId, userElo],
     enabled: open && !!userId,
     queryFn: async () => {
       const { data, error } = await supabase
@@ -41,9 +43,14 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
         .order('match_date', { ascending: true })
         .limit(20)
       if (error) throw error
-      const filtered = (data ?? []).filter(
-        (m) => !(m.player_ids as string[]).includes(userId)
-      )
+      const filtered = (data ?? [])
+        .filter((m) => !(m.player_ids as string[]).includes(userId))
+        .filter((m: any) => {
+          if (userElo == null) return true
+          if (m.open_elo_min != null && userElo < m.open_elo_min) return false
+          if (m.open_elo_max != null && userElo > m.open_elo_max) return false
+          return true
+        })
       const allIds = [...new Set(filtered.flatMap((m) => m.player_ids as string[]))].slice(0, 40)
       const { data: profiles } = allIds.length > 0
         ? await supabase.from('profiles').select('id, name, avatar_url').in('id', allIds)
@@ -73,6 +80,7 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
     },
     onError: (err: any) => {
       console.error('Join match failed:', err)
+      alert(err?.message ?? 'Failed to join match. Try again.')
     },
   })
 

@@ -523,6 +523,19 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       {/* ── Filter bar ── */}
       <div className="px-5 pt-2 pb-1 overflow-x-auto no-scrollbar">
         <div className="flex gap-2 min-w-max">
+          {viewTab === 'open' && (
+            <button
+              onClick={() => setNeedsRingersOnly(v => !v)}
+              className={cn(
+                'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
+                needsRingersOnly
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'border-gray-200 text-gray-600 bg-white',
+              )}
+            >
+              Needs ringers
+            </button>
+          )}
           {filterChips.map((f) => (
             <button
               key={f.id}
@@ -537,19 +550,6 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               {f.label}
             </button>
           ))}
-          {viewTab === 'open' && (
-            <button
-              onClick={() => setNeedsRingersOnly(v => !v)}
-              className={cn(
-                'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
-                needsRingersOnly
-                  ? 'bg-orange-500 border-orange-500 text-white'
-                  : 'border-gray-200 text-gray-600 bg-white',
-              )}
-            >
-              Needs ringers
-            </button>
-          )}
         </div>
       </div>
 

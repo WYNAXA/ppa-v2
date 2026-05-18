@@ -2,7 +2,6 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Search } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -34,7 +33,6 @@ interface ExistingInvitation {
 
 export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime, currentPlayerIds, onSent }: AskNetworkSheetProps) {
   const { user } = useAuth()
-  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')

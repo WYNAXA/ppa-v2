@@ -56,7 +56,8 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
         .eq('group_id', groupId!)
         .eq('status', 'ringer')
       if (!members?.length) return []
-      const ids = members.map(m => m.user_id)
+      const ids = members.map(m => m.user_id).filter((id: string) => !currentPlayerIds.includes(id))
+      if (ids.length === 0) return []
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, internal_ranking')
@@ -104,6 +105,15 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
       return da - db
     })
   }, [ringers, teamAvg])
+
+  // Only suggest if one ringer is uniquely closest to team avg
+  const suggestedId = useMemo(() => {
+    if (sortedRingers.length < 2) return sortedRingers[0]?.id ?? null
+    const distances = sortedRingers.map(r => Math.abs((r.internal_ranking ?? 1300) - teamAvg))
+    const minDist = Math.min(...distances)
+    const closestCount = distances.filter(d => d === minDist).length
+    return closestCount === 1 ? sortedRingers[distances.indexOf(minDist)]?.id ?? null : null
+  }, [sortedRingers, teamAvg])
 
   const getRequestStatus = (ringerId: string) => existingRequests.find(r => r.ringer_id === ringerId)?.status ?? null
 
@@ -160,7 +170,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
               <div className="h-1 w-10 rounded-full bg-gray-200" />
             </div>
             <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-              <h2 className="text-[15px] font-bold text-gray-900">{t('ask_ringers_title')}</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('ringers.ask_ringers_title')}</h2>
               <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-500" />
               </button>
@@ -168,16 +178,16 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
 
             <div className="px-5 pb-6 overflow-y-auto flex-1" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
               {expiryLabel && (
-                <p className="text-[12px] text-gray-400 mb-3">{t('ask_ringers_subtitle', { expiry: expiryLabel })}</p>
+                <p className="text-[12px] text-gray-400 mb-3">{t('ringers.ask_ringers_subtitle', { expiry: expiryLabel })}</p>
               )}
 
               {sortedRingers.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">{t('ask_ringers_no_ringers')}</p>
+                <p className="text-[13px] text-gray-500 text-center py-6">{t('ringers.ask_ringers_no_ringers')}</p>
               ) : (
                 <>
                   {selectableCount > 1 && (
                     <button onClick={selectAll} className="text-[12px] text-[#009688] font-semibold mb-3">
-                      {t('ask_ringers_select_all')}
+                      {t('ringers.ask_ringers_select_all')}
                     </button>
                   )}
 
@@ -208,9 +218,9 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-semibold text-gray-800 truncate">
                               {ringer.name}
-                              {idx === 0 && !status && (
+                              {suggestedId === ringer.id && !status && (
                                 <span className="ml-1.5 text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded-full px-1.5 py-0.5">
-                                  {t('ringer_responses_suggested')}
+                                  {t('ringers.ringer_responses_suggested')}
                                 </span>
                               )}
                             </p>
@@ -227,11 +237,11 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                               status === 'declined' ? 'bg-red-50 text-red-500 border border-red-100' :
                               'bg-gray-100 text-gray-400'
                             )}>
-                              {status === 'accepted' ? t('ringer_status_accepted') :
-                               status === 'pending' ? t('ringer_status_pending') :
-                               status === 'declined' ? t('ringer_status_declined') :
-                               status === 'expired' ? t('ringer_status_expired') :
-                               t('ringer_status_filled')}
+                              {status === 'accepted' ? t('ringers.ringer_status_accepted') :
+                               status === 'pending' ? t('ringers.ringer_status_pending') :
+                               status === 'declined' ? t('ringers.ringer_status_declined') :
+                               status === 'expired' ? t('ringers.ringer_status_expired') :
+                               t('ringers.ringer_status_filled')}
                             </span>
                           )}
                         </div>
@@ -245,7 +255,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                       disabled={sendMutation.isPending}
                       className="w-full mt-4 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
                     >
-                      {sendMutation.isPending ? 'Sending\u2026' : t('ask_ringers_send_btn', { count: selected.size })}
+                      {sendMutation.isPending ? 'Sending\u2026' : t('ringers.ask_ringers_send_btn', { count: selected.size })}
                     </button>
                   )}
 

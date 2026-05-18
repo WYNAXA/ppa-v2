@@ -192,7 +192,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                   )}
 
                   <div className="space-y-2">
-                    {sortedRingers.map((ringer, idx) => {
+                    {sortedRingers.map((ringer) => {
                       const status = getRequestStatus(ringer.id)
                       const isSelectable = !status
                       const isSelected = selected.has(ringer.id)

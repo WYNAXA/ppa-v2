@@ -286,26 +286,30 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   })
 
   // ── Open Matches ───────────────────────────────────────────────────────────
+  const userElo = (profile as any)?.internal_ranking ?? null
   const { data: openMatches = [], isLoading: loadingOpen } = useQuery<EnrichedMatch[]>({
-    queryKey: ['week-open-matches', fetchStart, userId, userGroupIds],
+    queryKey: ['week-open-matches', fetchStart, userId, userElo],
     enabled: !!userId && viewTab === 'open',
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from('matches')
-        .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id')
-        .in('status', ['open', 'pending'])
+        .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id, is_open, open_elo_min, open_elo_max')
+        .eq('is_open', true)
         .gte('match_date', format(today, 'yyyy-MM-dd'))
         .not('status', 'in', '(cancelled)')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true })
         .limit(30)
-      if (userGroupIds.length > 0) {
-        query = query.in('group_id', userGroupIds)
-      }
-      const { data, error } = await query
       if (error) throw error
-      // Exclude matches user is already in
-      const filtered = (data ?? []).filter(m => !(m.player_ids as string[])?.includes(userId))
+      // Exclude matches user is already in, then ELO-filter client-side
+      const filtered = (data ?? [])
+        .filter(m => !(m.player_ids as string[])?.includes(userId))
+        .filter(m => {
+          if (userElo == null) return true
+          if ((m as any).open_elo_min != null && userElo < (m as any).open_elo_min) return false
+          if ((m as any).open_elo_max != null && userElo > (m as any).open_elo_max) return false
+          return true
+        })
       return enrichMatches(filtered, userId)
     },
   })

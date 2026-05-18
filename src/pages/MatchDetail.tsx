@@ -274,6 +274,21 @@ export function MatchDetailPage() {
     },
   })
 
+  // Creator profile location (fallback when no venue booked)
+  const { data: creatorLatLng } = useQuery<{ latitude: number; longitude: number } | null>({
+    queryKey: ['creator-latlng', data?.match?.created_by],
+    enabled: !!data?.match?.created_by && !venueLatLng,
+    queryFn: async () => {
+      const { data: p } = await supabase
+        .from('profiles')
+        .select('latitude, longitude')
+        .eq('id', data!.match.created_by!)
+        .maybeSingle()
+      if (!p?.latitude || !p?.longitude) return null
+      return { latitude: p.latitude, longitude: p.longitude }
+    },
+  })
+
   // User's own profile location for distance calculations
   const { data: myLocation } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
     queryKey: ['my-location', profile?.id],
@@ -1647,8 +1662,8 @@ export function MatchDetailPage() {
         isEditing={(match as any).is_open === true}
         existingMin={(match as any).open_elo_min ?? null}
         existingMax={(match as any).open_elo_max ?? null}
-        anchorLat={venueLatLng?.latitude ?? null}
-        anchorLng={venueLatLng?.longitude ?? null}
+        anchorLat={venueLatLng?.latitude ?? creatorLatLng?.latitude ?? null}
+        anchorLng={venueLatLng?.longitude ?? creatorLatLng?.longitude ?? null}
         onSent={() => {
           queryClient.invalidateQueries({ queryKey: ['match', id] })
         }}

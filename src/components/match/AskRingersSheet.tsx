@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 
@@ -31,6 +32,7 @@ interface RingerRequest {
 }
 
 export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime, currentPlayerIds, onSent }: AskRingersSheetProps) {
+  const { user } = useAuth()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -45,23 +47,44 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
 
   const expiryLabel = expiryDate ? format(expiryDate, "EEE d MMM 'at' HH:mm") : ''
 
-  // Fetch group ringers
+  // Fetch asking user's group IDs for cross-group ringer pool
+  const { data: myGroupIds = [] } = useQuery({
+    queryKey: ['my-groups-for-ringers', user?.id],
+    enabled: open && !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', user!.id)
+        .eq('status', 'approved')
+      return (data ?? []).map((m: any) => m.group_id as string)
+    },
+  })
+
+  const allGroupIds = useMemo(() => {
+    const set = new Set<string>(myGroupIds)
+    if (groupId) set.add(groupId)
+    return Array.from(set)
+  }, [myGroupIds, groupId])
+
+  // Fetch ringers from all groups the user is in
   const { data: ringers = [] } = useQuery<RingerProfile[]>({
-    queryKey: ['group-ringers', groupId],
-    enabled: open && !!groupId,
+    queryKey: ['ringers-multi-group', allGroupIds.join(','), currentPlayerIds.join(',')],
+    enabled: open && allGroupIds.length > 0,
     queryFn: async () => {
       const { data: members } = await supabase
         .from('group_members')
         .select('user_id')
-        .eq('group_id', groupId!)
+        .in('group_id', allGroupIds)
         .eq('status', 'ringer')
       if (!members?.length) return []
-      const ids = members.map(m => m.user_id).filter((id: string) => !currentPlayerIds.includes(id))
-      if (ids.length === 0) return []
+      const uniqueIds = Array.from(new Set(members.map(m => m.user_id)))
+        .filter((id: string) => !currentPlayerIds.includes(id))
+      if (uniqueIds.length === 0) return []
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, internal_ranking')
-        .in('id', ids)
+        .in('id', uniqueIds)
       return (profiles ?? []) as RingerProfile[]
     },
   })

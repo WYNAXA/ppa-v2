@@ -422,9 +422,13 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
         ...userGroups.map((g) => ({ id: g.id, label: g.name })),
         { id: 'manual', label: 'Manual' },
       ]
-    : [
+    : viewTab === 'group'
+    ? [
         { id: 'all', label: 'All Groups' },
         ...userGroups.map((g) => ({ id: g.id, label: g.name })),
+      ]
+    : [
+        { id: 'all', label: 'All' },
       ]
 
   // ── Navigation ─────────────────────────────────────────────────────────────

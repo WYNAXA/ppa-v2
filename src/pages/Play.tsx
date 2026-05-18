@@ -35,8 +35,8 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, player_ids, match_type, status')
-        .eq('status', 'open')
+        .select('id, match_date, match_time, booked_venue_name, player_ids, match_type, status, is_open, open_elo_min, open_elo_max, group_id')
+        .eq('is_open', true)
         .gte('match_date', today)
         .order('match_date', { ascending: true })
         .limit(20)

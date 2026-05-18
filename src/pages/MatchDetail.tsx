@@ -1290,7 +1290,7 @@ export function MatchDetailPage() {
           {playerIds.length < 4 && !(match as any).is_open && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
               onClick={() => setShowPushToOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
             >
               Push to Open
             </button>
@@ -1298,7 +1298,7 @@ export function MatchDetailPage() {
           {(match as any).is_open && (isParticipant || isGroupAdmin) && (
             <button
               onClick={() => setShowPushToOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
             >
               Edit ELO range
             </button>

@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, startOfWeek, endOfWeek, addDays, endOfMonth } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
@@ -497,6 +497,8 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
 }) {
   const [view, setView] = useState<'upcoming' | 'past'>('upcoming')
   const [pastFilter, setPastFilter] = useState<PastFilter>('all')
+  const [weekFilter, setWeekFilter] = useState<'this_week' | 'next_week' | 'this_month' | 'all'>('this_week')
+  const [needsRingersOnly, setNeedsRingersOnly] = useState(false)
   const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd')
 
   const filteredPast = past.filter((m) => {
@@ -506,7 +508,22 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
     return true
   })
 
-  const filtered = view === 'upcoming' ? upcoming : filteredPast
+  // Week filter for upcoming matches
+  const now = new Date()
+  const thisWeekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const thisWeekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const nextWeekStart = format(startOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const nextWeekEnd = format(endOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  const thisMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+
+  let filteredUpcoming = upcoming
+  if (weekFilter === 'this_week') filteredUpcoming = upcoming.filter(m => m.match_date >= thisWeekStart && m.match_date <= thisWeekEnd)
+  else if (weekFilter === 'next_week') filteredUpcoming = upcoming.filter(m => m.match_date >= nextWeekStart && m.match_date <= nextWeekEnd)
+  else if (weekFilter === 'this_month') filteredUpcoming = upcoming.filter(m => m.match_date <= thisMonthEnd)
+
+  if (needsRingersOnly) filteredUpcoming = filteredUpcoming.filter(m => (m.player_ids?.length ?? 0) < 4)
+
+  const filtered = view === 'upcoming' ? filteredUpcoming : filteredPast
 
   // Personal stats in this group (only matches user participated in)
   const myPastMatches = past.filter(m => m.player_ids.includes(userId))
@@ -539,6 +556,36 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
           </button>
         ))}
       </div>
+
+      {/* Upcoming filter chips */}
+      {view === 'upcoming' && upcoming.length > 0 && (
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-3">
+          {([
+            { key: 'this_week' as const, label: 'This week' },
+            { key: 'next_week' as const, label: 'Next week' },
+            { key: 'this_month' as const, label: 'This month' },
+            { key: 'all' as const, label: 'All' },
+          ]).map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setWeekFilter(key)}
+              className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
+                weekFilter === key ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-500 bg-white'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            onClick={() => setNeedsRingersOnly(v => !v)}
+            className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
+              needsRingersOnly ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 text-gray-500 bg-white'
+            }`}
+          >
+            Needs ringers
+          </button>
+        </div>
+      )}
 
       {/* Past filter pills */}
       {view === 'past' && past.length > 0 && (

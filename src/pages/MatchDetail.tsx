@@ -869,7 +869,7 @@ export function MatchDetailPage() {
         <div className="mx-5 mb-4">
           <div className="flex items-center justify-between mb-1.5">
             <p className="text-[11px] font-semibold text-gray-500">{match.player_ids.length} of 4 players joined</p>
-            {isCreator && (
+            {(isParticipant || isGroupAdmin) && (
               <button
                 onClick={() => setShowInvite(true)}
                 className="text-[11px] font-semibold text-[#009688]"
@@ -934,7 +934,7 @@ export function MatchDetailPage() {
                   <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 bg-white flex items-center justify-center flex-shrink-0">
                     <span className="text-[10px] text-gray-300">+</span>
                   </div>
-                  {isCreator && match.status !== 'completed' && match.status !== 'cancelled' ? (
+                  {(isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' ? (
                     <button
                       onClick={() => setShowInvite(true)}
                       className="text-[11px] text-teal-600 font-semibold"

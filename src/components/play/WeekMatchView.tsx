@@ -234,6 +234,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   const [selectedFilter, setSelectedFilter] = useState<string>('all')
   const [direction, setDirection] = useState<'next' | 'prev'>('next')
   const [ringerOfferMatch, setRingerOfferMatch] = useState<EnrichedMatch | null>(null)
+  const [needsRingersOnly, setNeedsRingersOnly] = useState(false)
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const weekEnd = addDays(weekStart, 6)
@@ -380,12 +381,13 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       } else {
         if (viewTab !== 'open' && (matchDate < weekStart || matchDate > weekEnd)) return false
       }
+      if (needsRingersOnly && (m.player_ids?.length ?? 0) >= 4) return false
       if (selectedFilter === 'all') return true
       if (selectedFilter === 'groups') return !!m.group_id
       if (selectedFilter === 'manual') return m.created_manually && !m.group_id
       return m.group_id === selectedFilter
     })
-  }, [activeMatches, selectedDay, weekStart, weekEnd, selectedFilter, viewTab])
+  }, [activeMatches, selectedDay, weekStart, weekEnd, selectedFilter, viewTab, needsRingersOnly])
 
   // ── Week summary ───────────────────────────────────────────────────────────
   const weekMatches = activeMatches.filter((m) => {
@@ -535,6 +537,19 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               {f.label}
             </button>
           ))}
+          {viewTab === 'open' && (
+            <button
+              onClick={() => setNeedsRingersOnly(v => !v)}
+              className={cn(
+                'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
+                needsRingersOnly
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'border-gray-200 text-gray-600 bg-white',
+              )}
+            >
+              Needs ringers
+            </button>
+          )}
         </div>
       </div>
 

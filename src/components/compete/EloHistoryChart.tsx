@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts'
 import { format, parseISO, subMonths } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
+import { useTranslation } from 'react-i18next'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
@@ -43,6 +44,7 @@ function CustomTooltip({ active, payload }: any) {
 
 export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
   const locale = useDateLocale()
+  const { t } = useTranslation()
   const [range, setRange] = useState<TimeRange>('3m')
 
   // Fetch current ELO from profile
@@ -83,7 +85,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
     if (currentElo == null) return rawHistory
     const lastHistoryElo = rawHistory.length > 0 ? rawHistory[rawHistory.length - 1].elo : null
     if (lastHistoryElo === currentElo) return rawHistory
-    return [...rawHistory, { date: new Date().toISOString(), elo: currentElo, change: 0, label: 'Now' }]
+    return [...rawHistory, { date: new Date().toISOString(), elo: currentElo, change: 0, label: t('compete.now') }]
   }, [rawHistory, currentElo])
 
   // Time-filtered data
@@ -110,8 +112,8 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
         {currentElo != null && (
           <p className="text-[22px] font-black text-[#009688] mb-1">{currentElo.toLocaleString()} ELO</p>
         )}
-        <p className="text-[13px] font-semibold text-gray-500">{currentElo != null ? 'Current rating' : 'No rating history yet'}</p>
-        <p className="text-[11px] text-gray-400 mt-1">Play competitive matches to build your ELO history</p>
+        <p className="text-[13px] font-semibold text-gray-500">{currentElo != null ? t('compete.current_rating') : t('compete.no_rating_history')}</p>
+        <p className="text-[11px] text-gray-400 mt-1">{t('compete.play_to_build_history')}</p>
       </div>
     )
   }
@@ -129,7 +131,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
               range === r ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-500'
             )}
           >
-            {r === 'all' ? 'All' : r.toUpperCase()}
+            {r === 'all' ? t('compete.time_all') : r.toUpperCase()}
           </button>
         ))}
       </div>
@@ -180,7 +182,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
             'text-[12px] font-semibold',
             thirtyDayTrend > 0 ? 'text-green-600' : 'text-red-500'
           )}>
-            {thirtyDayTrend > 0 ? '+' : ''}{thirtyDayTrend} ELO in the last 30 days
+            {thirtyDayTrend > 0 ? '+' : ''}{thirtyDayTrend} {t('compete.elo_last_30d')}
           </span>
         </div>
       )}

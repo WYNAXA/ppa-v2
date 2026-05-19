@@ -1031,7 +1031,10 @@ export function YouPage() {
             <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.achievements')}</h2>
             <div className="grid grid-cols-3 gap-2">
               {achievements.map((a) => {
-                const meta = BADGE_DEFINITIONS[a.badge_key] ?? { label: a.badge_key, emoji: '🏅' }
+                const meta = {
+                  label: t(`achievements.${a.badge_key}`, { defaultValue: BADGE_DEFINITIONS[a.badge_key]?.label ?? a.badge_key }),
+                  emoji: BADGE_DEFINITIONS[a.badge_key]?.emoji ?? '🏅',
+                }
                 return (
                   <div key={a.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center">
                     <p className="text-[24px] leading-none mb-1">{meta.emoji}</p>

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import i18n from '@/i18n'
 
 // ── Achievement Library ──────────────────────────────────────────────────────
 
@@ -168,4 +169,18 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
       emoji: ACHIEVEMENT_LIBRARY[key]?.emoji ?? '🏅',
     }))
   } catch { return [] }
+}
+
+// ── Display helpers (non-reactive, for one-shot reads) ──────────────────────
+
+export function getAchievementLabel(key: string): string {
+  return i18n.t(`achievements.${key}`, { defaultValue: ACHIEVEMENT_LIBRARY[key]?.name ?? key })
+}
+
+export function getAchievementDescription(key: string): string {
+  return i18n.t(`achievements.${key}_desc`, { defaultValue: ACHIEVEMENT_LIBRARY[key]?.description ?? '' })
+}
+
+export function getAchievementHowTo(key: string): string {
+  return i18n.t(`achievements.${key}_howto`, { defaultValue: '' })
 }

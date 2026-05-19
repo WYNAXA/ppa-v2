@@ -422,6 +422,7 @@ function LeaderboardRow({
   index: number
   rowRef?: React.RefObject<HTMLDivElement | null>
 }) {
+  const { t } = useTranslation()
   const isMe = profile.id === currentUserId
   return (
     <motion.div
@@ -443,7 +444,7 @@ function LeaderboardRow({
       <PlayerAvatar name={profile.name} avatarUrl={profile.avatar_url} size="sm" />
       <div className="flex-1 min-w-0">
         <p className={cn('text-[13px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-          {profile.name}{isMe ? ' (you)' : ''}
+          {profile.name}{isMe ? ` ${t('compete.you_suffix')}` : ''}
         </p>
       </div>
       <div className="flex-shrink-0 text-right">
@@ -451,7 +452,7 @@ function LeaderboardRow({
           {(profile.internal_ranking ?? 0).toLocaleString()}
         </p>
         <p className="text-[10px] text-gray-400">
-          {profile.is_provisional ? 'ELO (prov.)' : 'ELO'}
+          {profile.is_provisional ? t('compete.elo_provisional') : t('compete.elo')}
         </p>
       </div>
     </motion.div>
@@ -593,7 +594,7 @@ export function CompetePage() {
         {/* ── ELO History Chart ── */}
         {userId && (
           <section>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-2">Your ELO Journey</h2>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-2">{t('compete.your_elo_journey')}</h2>
             <EloHistoryChart userId={userId} compact />
           </section>
         )}
@@ -609,7 +610,10 @@ export function CompetePage() {
             </div>
             <div className="grid grid-cols-3 gap-2">
               {myBadges.map((b) => {
-                const meta = BADGE_DEFINITIONS[b.badge_key] ?? { label: b.badge_key, emoji: '🏅' }
+                const meta = {
+                  label: t(`achievements.${b.badge_key}`, { defaultValue: BADGE_DEFINITIONS[b.badge_key]?.label ?? b.badge_key }),
+                  emoji: BADGE_DEFINITIONS[b.badge_key]?.emoji ?? '🏅',
+                }
                 return (
                   <button
                     key={b.id}
@@ -722,7 +726,7 @@ export function CompetePage() {
                   onClick={() => setLeaderboardLimit((l) => l + 50)}
                   className="mt-3 w-full rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
                 >
-                  Load more
+                  {t('compete.load_more')}
                 </button>
               )}
             </>
@@ -773,7 +777,7 @@ export function CompetePage() {
                 className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-[13px] text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
               >
                 <Plus className="h-4 w-4" />
-                Create another league
+                {t('compete.create_another_league')}
               </button>
             </div>
           )}
@@ -782,7 +786,7 @@ export function CompetePage() {
             className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-50 border border-gray-100 py-2.5 text-[12px] font-semibold text-[#009688]"
           >
             <Search className="h-3.5 w-3.5" />
-            Find open leagues & tournaments
+            {t('compete.find_open_leagues')}
           </button>
         </section>
       </div>

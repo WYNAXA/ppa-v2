@@ -507,6 +507,12 @@ export default {
     history_losses: 'الخسائر',
     admin_section: 'المسؤول',
     admin_my_groups: 'لوحات إدارة مجموعاتي',
+    rating_history: 'سجل التصنيف',
+    my_rewards: 'مكافآتي',
+    achievements_count_label: 'الإنجازات',
+    fav_partner_label: 'الشريك المفضل',
+    household_label: 'المنزل',
+    link_partner_short: 'ربط',
   },
   badges: {
     first_win: 'الفوز الأول',

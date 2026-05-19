@@ -763,6 +763,15 @@ export function YouPage() {
   const [showLinkPartner, setShowLinkPartner] = useState(false)
   const queryClient = useQueryClient()
 
+  // Section refs for nav chips + hero tiles
+  const statsRef = useRef<HTMLElement>(null)
+  const ratingRef = useRef<HTMLElement>(null)
+  const householdRef = useRef<HTMLElement>(null)
+  const matchHistoryRef = useRef<HTMLElement>(null)
+  const achievementsRef = useRef<HTMLElement>(null)
+  const settingsRef = useRef<HTMLElement>(null)
+  const favPartnersRef = useRef<HTMLElement>(null)
+
   const { data: fullProfile }           = useFullProfile(userId)
 
   // Persist push notification toggle from actual state
@@ -782,6 +791,11 @@ export function YouPage() {
 
   const profile = fullProfile ?? authProfile
 
+  // Hero derived data
+  const achievementsCount = achievements.length
+  const topAchievements = achievements.slice(0, 3).map((a) => a.badge_key)
+  const favPartner = stats?.favouritePartnerName ? { name: stats.favouritePartnerName, avatar_url: null as string | null } : null
+
   const filteredHistory = history.filter((m) => {
     if (historyFilter === 'wins')   return m.result_type === 'win'
     if (historyFilter === 'losses') return m.result_type === 'loss'
@@ -797,58 +811,138 @@ export function YouPage() {
 
       <div className="px-5 space-y-6">
 
-        {/* ── Profile Card ── */}
+        {/* ── Hero Card — navy gradient, identity-focused ── */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-gray-100 bg-gray-50 p-4"
+          className="relative overflow-hidden rounded-3xl shadow-lg"
+          style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)' }}
         >
-          <div className="flex items-center gap-4">
-            <PlayerAvatar
-              name={profile?.name}
-              avatarUrl={fullProfile?.avatar_url ?? authProfile?.avatar_url}
-              size="lg"
-            />
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h2 className="text-[18px] font-bold text-gray-900 truncate">{profile?.name || authProfile?.email?.split('@')[0] || '—'}</h2>
-                {fullProfile?.account_type === 'coach' && (
-                  <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">🎾 Coach</span>
-                )}
-                {fullProfile?.account_type === 'venue_manager' && (
-                  <span className="rounded-full bg-purple-50 border border-purple-100 px-2 py-0.5 text-[10px] font-bold text-purple-600">🏟️ Venue</span>
-                )}
-                {fullProfile?.account_type === 'organiser' && (
-                  <span className="rounded-full bg-amber-50 border border-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-600">🏆 Organiser</span>
-                )}
-              </div>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                {fullProfile?.city && (
-                  <span className="text-[12px] text-gray-400">{fullProfile.city}</span>
-                )}
-                {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
-                  <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[11px] font-bold text-teal-700">
-                    {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
-                    {fullProfile?.is_provisional && (
-                      <span className="ml-1 text-teal-500 font-normal">(provisional)</span>
-                    )}
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-gray-400 mt-0.5 truncate">{profile?.email}</p>
-            </div>
-          </div>
+          <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+
           <button
             onClick={() => setShowEdit(true)}
-            className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-100 transition-colors"
+            className="absolute top-4 right-4 z-10 h-9 w-9 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors"
+            aria-label="Edit profile"
           >
-            <Edit2 className="h-3.5 w-3.5" />
-            {t('you.edit_profile')}
+            <Edit2 className="h-3.5 w-3.5 text-white" />
           </button>
+
+          <div className="px-5 pt-6 pb-5">
+            <div className="flex items-start gap-4">
+              <PlayerAvatar
+                name={profile?.name}
+                avatarUrl={fullProfile?.avatar_url ?? authProfile?.avatar_url}
+                size="lg"
+              />
+              <div className="flex-1 min-w-0 pt-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="text-[20px] font-bold text-white truncate">
+                    {profile?.name || authProfile?.email?.split('@')[0] || '—'}
+                  </h2>
+                  {fullProfile?.account_type === 'coach' && (
+                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white">🎾 Coach</span>
+                  )}
+                  {fullProfile?.account_type === 'venue_manager' && (
+                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white">🏟️ Venue</span>
+                  )}
+                  {fullProfile?.account_type === 'organiser' && (
+                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white">🏆 Organiser</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {fullProfile?.city && (
+                    <span className="text-[12px] text-white/70">{fullProfile.city}</span>
+                  )}
+                  {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
+                    <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur-sm px-2 py-0.5 text-[11px] font-bold text-white">
+                      {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
+                      {fullProfile?.is_provisional && (
+                        <span className="ml-1 text-white/60 font-normal">(provisional)</span>
+                      )}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Identity grid — 3 tiles */}
+            <div className="grid grid-cols-3 gap-2 mt-5">
+              <button
+                onClick={() => achievementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
+              >
+                <div className="flex items-center gap-1 mb-1">
+                  {topAchievements.length > 0
+                    ? topAchievements.map((badgeKey, i) => (
+                        <span key={i} className="text-[15px]">{BADGE_DEFINITIONS[badgeKey]?.emoji ?? '🏅'}</span>
+                      ))
+                    : <span className="text-[15px] opacity-50">🏅</span>
+                  }
+                </div>
+                <p className="text-[18px] font-bold text-white leading-tight">{achievementsCount}</p>
+                <p className="text-[10px] text-white/60 leading-tight mt-0.5">{t('you.achievements_count_label')}</p>
+              </button>
+
+              <button
+                onClick={() => favPartnersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
+              >
+                <div className="mb-1 h-[15px]">
+                  {favPartner
+                    ? <PlayerAvatar name={favPartner.name} avatarUrl={favPartner.avatar_url} size="xs" />
+                    : <span className="text-[15px] opacity-50">👥</span>
+                  }
+                </div>
+                <p className="text-[13px] font-bold text-white leading-tight truncate">
+                  {favPartner?.name?.split(' ')[0] ?? '—'}
+                </p>
+                <p className="text-[10px] text-white/60 leading-tight mt-0.5">{t('you.fav_partner_label')}</p>
+              </button>
+
+              <button
+                onClick={() => householdRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
+              >
+                <div className="mb-1 h-[15px]">
+                  {householdPartner
+                    ? <Link className="h-[15px] w-[15px] text-white" />
+                    : <Unlink className="h-[15px] w-[15px] text-white/50" />
+                  }
+                </div>
+                <p className="text-[13px] font-bold text-white leading-tight truncate">
+                  {householdPartner?.name?.split(' ')[0] ?? t('you.link_partner_short')}
+                </p>
+                <p className="text-[10px] text-white/60 leading-tight mt-0.5">{t('you.household_label')}</p>
+              </button>
+            </div>
+          </div>
         </motion.div>
 
+        {/* Section nav chips */}
+        <div className="-mx-5 px-5 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
+          <div className="flex gap-2 pb-1">
+            {[
+              { key: 'stats', label: t('you.stats'), ref: statsRef },
+              { key: 'rating', label: t('you.rating_history'), ref: ratingRef },
+              { key: 'household', label: t('you.household'), ref: householdRef },
+              { key: 'matches', label: t('you.match_history'), ref: matchHistoryRef },
+              { key: 'achievements', label: t('you.achievements'), ref: achievementsRef },
+              { key: 'settings', label: t('you.settings'), ref: settingsRef },
+            ].map(({ key, label, ref }) => (
+              <button
+                key={key}
+                onClick={() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="rounded-full bg-gray-100 border border-gray-200 px-4 py-2 text-[12px] font-semibold text-gray-700 whitespace-nowrap hover:bg-gray-200 transition-colors"
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* ── Stats Summary ── */}
-        <section>
+        <section ref={statsRef} style={{ scrollMarginTop: '80px' }}>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.stats')}</h2>
           {loadingStats ? (
             <div className="grid grid-cols-2 gap-2">
@@ -870,7 +964,7 @@ export function YouPage() {
                 </div>
               ))}
               {stats.favouritePartnerName && (
-                <div className="col-span-2 rounded-xl bg-teal-50 border border-teal-100 px-4 py-3">
+                <div ref={favPartnersRef as React.RefObject<HTMLDivElement>} className="col-span-2 rounded-xl bg-teal-50 border border-teal-100 px-4 py-3" style={{ scrollMarginTop: '80px' }}>
                   <p className="text-[13px] font-bold text-teal-800 truncate">{stats.favouritePartnerName}</p>
                   <p className="text-[11px] text-teal-600 mt-0.5">{t('you.favourite_partner')}</p>
                 </div>
@@ -881,8 +975,8 @@ export function YouPage() {
 
         {/* ── Rating History ── */}
         {userId && (
-          <section className="pb-2">
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Rating History</h2>
+          <section ref={ratingRef} className="pb-2" style={{ scrollMarginTop: '80px' }}>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.rating_history')}</h2>
             <EloHistoryChart userId={userId} />
           </section>
         )}
@@ -890,7 +984,7 @@ export function YouPage() {
         {/* ── My Rewards ── */}
         {myRewards.length > 0 && (
           <section className="pb-2">
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">My Rewards</h2>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.my_rewards')}</h2>
             <div className="space-y-3">
               {myRewards.map((venue) => (
                 <RewardsCard
@@ -905,7 +999,7 @@ export function YouPage() {
         )}
 
         {/* ── Household ── */}
-        <section>
+        <section ref={householdRef} style={{ scrollMarginTop: '80px' }}>
           <h2 className="text-[16px] font-bold text-gray-900 mb-1">
             <span className="inline-flex items-center gap-2">
               <Home className="h-4 w-4 text-gray-500" />
@@ -954,7 +1048,7 @@ export function YouPage() {
         </section>
 
         {/* ── Match History ── */}
-        <section>
+        <section ref={matchHistoryRef} style={{ scrollMarginTop: '80px' }}>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.match_history')}</h2>
 
           {/* Filter tabs */}
@@ -1027,7 +1121,7 @@ export function YouPage() {
 
         {/* ── Achievements ── */}
         {achievements.length > 0 && (
-          <section>
+          <section ref={achievementsRef} style={{ scrollMarginTop: '80px' }}>
             <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.achievements')}</h2>
             <div className="grid grid-cols-3 gap-2">
               {achievements.map((a) => {
@@ -1050,7 +1144,7 @@ export function YouPage() {
         )}
 
         {/* ── Settings ── */}
-        <section>
+        <section ref={settingsRef} style={{ scrollMarginTop: '80px' }}>
           <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.settings')}</h2>
           <div className="rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
 

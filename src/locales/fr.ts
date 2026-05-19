@@ -507,6 +507,12 @@ export default {
     history_losses: 'Défaites',
     admin_section: 'Admin',
     admin_my_groups: 'Mes panneaux d\'administration de groupe',
+    rating_history: 'Historique de classement',
+    my_rewards: 'Mes récompenses',
+    achievements_count_label: 'Succès',
+    fav_partner_label: 'Parten. fav',
+    household_label: 'Foyer',
+    link_partner_short: 'Lier',
   },
   badges: {
     first_win: 'Première victoire',

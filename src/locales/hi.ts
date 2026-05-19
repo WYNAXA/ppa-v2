@@ -507,6 +507,12 @@ export default {
     history_losses: 'हार',
     admin_section: 'एडमिन',
     admin_my_groups: 'मेरे ग्रुप एडमिन पैनल',
+    rating_history: 'रेटिंग इतिहास',
+    my_rewards: 'मेरे पुरस्कार',
+    achievements_count_label: 'उपलब्धियां',
+    fav_partner_label: 'पसंदीदा साथी',
+    household_label: 'घर',
+    link_partner_short: 'लिंक',
   },
   badges: {
     first_win: 'पहली जीत',

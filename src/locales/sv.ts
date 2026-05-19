@@ -507,6 +507,12 @@ export default {
     history_losses: 'Förluster',
     admin_section: 'Admin',
     admin_my_groups: 'Mina gruppadminpaneler',
+    rating_history: 'Rankinghistorik',
+    my_rewards: 'Mina belöningar',
+    achievements_count_label: 'Prestationer',
+    fav_partner_label: 'Fav partner',
+    household_label: 'Hushåll',
+    link_partner_short: 'Länka',
   },
   badges: {
     first_win: 'Första vinsten',

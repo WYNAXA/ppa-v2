@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Search, Users, MapPin } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -16,6 +17,7 @@ export function AllGroupsPage() {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const userId = profile?.id ?? ''
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
@@ -97,7 +99,7 @@ export function AllGroupsPage() {
           <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">Find Groups</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('community.find_groups')}</h1>
         </div>
       </div>
       <div className="px-5 pt-4 space-y-3">
@@ -108,14 +110,14 @@ export function AllGroupsPage() {
             className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" />
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
-          {[{ key: 'near_me', label: 'Near me' }, { key: 'open_to_join', label: 'Open to join' }].map(({ key, label }) => (
+          {[{ key: 'near_me', label: t('community.filter_near_me') }, { key: 'open_to_join', label: t('community.filter_open_to_join') }].map(({ key, label }) => (
             <button key={key} onClick={() => setActiveFilter(activeFilter === key ? null : key)}
               className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${activeFilter === key ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'}`}>
               {label}
             </button>
           ))}
           <span className="text-gray-300 self-center">|</span>
-          {[{ key: 'newest', label: 'Newest' }, { key: 'most_members', label: 'Most members' }].map(({ key, label }) => (
+          {[{ key: 'newest', label: t('community.filter_newest') }, { key: 'most_members', label: t('community.filter_most_members') }].map(({ key, label }) => (
             <button key={key} onClick={() => setSortBy(key)}
               className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium border transition-colors ${sortBy === key ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-500 border-gray-200'}`}>
               {label}
@@ -126,7 +128,7 @@ export function AllGroupsPage() {
           <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />)}</div>
         ) : groups.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-            <p className="text-[13px] font-semibold text-gray-500">No groups found</p>
+            <p className="text-[13px] font-semibold text-gray-500">{t('community.no_groups_found')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -143,11 +145,11 @@ export function AllGroupsPage() {
                     {g.description && <p className="text-[12px] text-gray-400 mt-1 line-clamp-2">{g.description}</p>}
                   </div>
                   {g.membershipStatus === 'pending' ? (
-                    <span className="rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0">Requested</span>
+                    <span className="rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0">{t('community.group_requested')}</span>
                   ) : (
                     <button onClick={() => joinMutation.mutate(g.id)} disabled={joinMutation.isPending}
                       className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">
-                      Request to join
+                      {t('community.request_to_join')}
                     </button>
                   )}
                 </div>

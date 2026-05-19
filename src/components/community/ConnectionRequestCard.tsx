@@ -1,4 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { ConnectionCard } from './ConnectionCard'
@@ -10,6 +12,7 @@ interface ConnectionRequestCardProps {
 export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
   const { profile } = useAuth()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const userId = profile?.id ?? ''
 
   const acceptMutation = useMutation({
@@ -23,7 +26,7 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
       await supabase.from('notifications').insert({
         user_id: request.user_id,
         type: 'connection_accepted',
-        title: 'Connection accepted',
+        title: t('community.notif_connection_accepted'),
         message: `${profile?.name ?? 'A player'} accepted your connection request.`,
         related_id: userId,
         read: false,
@@ -31,6 +34,7 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
+      toast.success(t('community.toast_connection_accepted'))
     },
   })
 
@@ -46,6 +50,7 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
+      toast.success(t('community.toast_connection_declined'))
     },
   })
 
@@ -58,14 +63,14 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
         disabled={busy}
         className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
       >
-        Accept
+        {t('community.accept')}
       </button>
       <button
         onClick={() => declineMutation.mutate()}
         disabled={busy}
         className="rounded-lg border border-gray-200 px-3 py-1.5 text-[11px] font-bold text-gray-500 disabled:opacity-50"
       >
-        Decline
+        {t('community.decline')}
       </button>
     </ConnectionCard>
   )

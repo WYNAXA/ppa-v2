@@ -15,6 +15,7 @@ import { ConnectionRequestCard } from '@/components/community/ConnectionRequestC
 import { ConnectionCard } from '@/components/community/ConnectionCard'
 import { InviteToMatchSheet } from '@/components/community/InviteToMatchSheet'
 import { InviteToGroupSheet } from '@/components/community/InviteToGroupSheet'
+import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -291,6 +292,7 @@ function useFindPlayers(userId: string, query: string, city: string | null) {
 // ── My Group Card ─────────────────────────────────────────────────────────────
 
 function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; badge?: string }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   return (
     <motion.button
@@ -310,13 +312,13 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
                 <h3 className="text-[15px] font-bold text-gray-900 truncate">{group.name}</h3>
                 {group.hasActiveLeague && (
                   <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-600">
-                    Active League
+                    {t('community.active_league')}
                   </span>
                 )}
                 {badge && (
                   <span className={cn(
                     'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold',
-                    badge === 'Ringer' ? 'bg-orange-500 text-white' : 'bg-amber-500 text-white'
+                    badge === t('community.badge_ringer') ? 'bg-orange-500 text-white' : 'bg-amber-500 text-white'
                   )}>
                     {badge}
                   </span>
@@ -340,7 +342,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
             </div>
             <span className="text-[12px] text-gray-500">
               <span className="font-semibold">{group.memberCount}</span>{' '}
-              member{group.memberCount !== 1 ? 's' : ''}
+              {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
           </div>
         </div>
@@ -352,6 +354,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
 // ── Discover Card ─────────────────────────────────────────────────────────────
 
 function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   return (
     <motion.div
@@ -372,14 +375,14 @@ function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: n
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1 text-[12px] text-gray-500">
               <Users className="h-3 w-3 text-gray-400" />
-              <span className="font-semibold">{group.memberCount}</span> member{group.memberCount !== 1 ? 's' : ''}
+              <span className="font-semibold">{group.memberCount}</span> {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
             {group.join_mode === 'closed' ? (
-              <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">Closed</span>
+              <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">{t('community.group_closed')}</span>
             ) : group.join_mode === 'open' || group.visibility === 'public' ? (
-              <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">Open</span>
+              <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">{t('community.group_open')}</span>
             ) : (
-              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">Request</span>
+              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">{t('community.group_request')}</span>
             )}
           </div>
           {group.description && (
@@ -389,25 +392,25 @@ function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: n
 
         {group.membershipStatus === 'pending' ? (
           <span className="inline-flex items-center rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0 self-start mt-0.5">
-            Requested
+            {t('community.group_requested')}
           </span>
         ) : group.membershipStatus === 'approved' ? (
           <button
             onClick={() => navigate(`/community/groups/${group.id}`)}
             className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-3 py-1.5 text-[12px] font-bold text-teal-700 flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform"
           >
-            Member
+            {t('community.member_btn')}
           </button>
         ) : group.join_mode === 'closed' ? (
           <span className="inline-flex items-center rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0 self-start mt-0.5">
-            Closed
+            {t('community.group_closed')}
           </span>
         ) : (
           <button
             onClick={() => onJoin(group.id)}
             className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform"
           >
-            Request to join
+            {t('community.request_to_join')}
           </button>
         )}
       </div>
@@ -418,6 +421,7 @@ function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: n
 // ── Upcoming Events ─────────────────────────────────────────────────────────
 
 function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userGroupIds: string[] }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const locale = useDateLocale()
   const today = new Date().toISOString().split('T')[0]
@@ -443,11 +447,11 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[16px] font-bold text-gray-900">Upcoming Events</h2>
+        <h2 className="text-[16px] font-bold text-gray-900">{t('community.upcoming_events')}</h2>
       </div>
       {events.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-          <p className="text-[13px] text-gray-400">No upcoming events</p>
+          <p className="text-[13px] text-gray-400">{t('community.no_upcoming_events')}</p>
         </div>
       ) : (
       <div className="space-y-2">
@@ -462,12 +466,12 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
           >
             <div className="flex items-center gap-2 mb-1">
               {e.is_official && (
-                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">OFFICIAL</span>
+                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">{t('community.badge_official')}</span>
               )}
               {(e.entry_fee_pence ?? 0) > 0 ? (
                 <span className="text-[10px] font-semibold text-gray-500">{'\u00A3'}{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
               ) : (
-                <span className="text-[10px] font-semibold text-green-600">Free</span>
+                <span className="text-[10px] font-semibold text-green-600">{t('community.badge_free')}</span>
               )}
             </div>
             <p className="text-[14px] font-bold text-gray-900">{e.title}</p>
@@ -486,6 +490,7 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
 // ── Find a Coach ─────────────────────────────────────────────────────────────
 
 function CoachesSection({ userCity }: { userCity?: string | null }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const { data: coaches = [] } = useQuery({
@@ -504,10 +509,10 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
 
   return (
     <section>
-      <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find a Coach</h2>
+      <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.find_a_coach')}</h2>
       {coaches.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-          <p className="text-[13px] text-gray-400">No coaches yet — coming soon</p>
+          <p className="text-[13px] text-gray-400">{t('community.no_coaches_coming')}</p>
         </div>
       ) : (
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
@@ -519,7 +524,7 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
           >
             <PlayerAvatar name={c.name} avatarUrl={c.avatar_url} size="lg" />
             <p className="text-[12px] font-bold text-gray-900 mt-2 truncate w-full">{c.name}</p>
-            <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-2 py-0.5 mt-1">Coach</span>
+            <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-2 py-0.5 mt-1">{t('community.badge_coach')}</span>
             {c.city && <p className="text-[10px] text-gray-400 mt-0.5">{c.city}</p>}
           </button>
         ))}
@@ -532,6 +537,7 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
 // ── Nearby Venues ────────────────────────────────────────────────────────────
 
 function NearbyVenuesSection({ userCity }: { userCity?: string | null }) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const { data: venues = [] } = useQuery({
@@ -551,7 +557,7 @@ function NearbyVenuesSection({ userCity }: { userCity?: string | null }) {
 
   return (
     <section>
-      <h2 className="text-[16px] font-bold text-gray-900 mb-3">Padel Courts Near You</h2>
+      <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.padel_courts_near')}</h2>
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
         {venues.map((v) => {
           const courts = (v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0)
@@ -636,12 +642,12 @@ export function CommunityPage() {
 
   // Quick links config
   const quickLinks = useMemo(() => [
-    { key: 'groups',  emoji: '👥', label: 'Groups',  ref: groupsRef },
-    { key: 'players', emoji: '🤝', label: 'Players', ref: playersRef },
-    { key: 'coaches', emoji: '🎾', label: 'Coaches', ref: coachesRef },
-    { key: 'venues',  emoji: '📍', label: 'Venues',  ref: venuesRef },
-    { key: 'events',  emoji: '📅', label: 'Events',  ref: eventsRef },
-  ], [])
+    { key: 'groups',  emoji: '👥', label: t('community.nav_groups'),  ref: groupsRef },
+    { key: 'players', emoji: '🤝', label: t('community.nav_players'), ref: playersRef },
+    { key: 'coaches', emoji: '🎾', label: t('community.nav_coaches'), ref: coachesRef },
+    { key: 'venues',  emoji: '📍', label: t('community.nav_venues'),  ref: venuesRef },
+    { key: 'events',  emoji: '📅', label: t('community.nav_events'),  ref: eventsRef },
+  ], [t])
 
   // Hash scroll for notification deep links (/community#connections)
   useEffect(() => {
@@ -658,7 +664,7 @@ export function CommunityPage() {
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const group = discoverGroups.find((g) => g.id === groupId)
-      if (group?.join_mode === 'closed') throw new Error('This group is closed to new members')
+      if (group?.join_mode === 'closed') throw new Error(t('community.group_closed_error'))
       const autoApprove = group?.join_mode === 'open' || (group as any)?.auto_approve === true
       const status = autoApprove ? 'approved' : 'pending'
       const { error } = await supabase.from('group_members').insert({
@@ -692,13 +698,14 @@ export function CommunityPage() {
       await supabase.from('notifications').insert({
         user_id: targetId,
         type: 'connection_request',
-        title: 'Connection request',
+        title: t('community.notif_connection_request'),
         message: `${profile?.name ?? 'A player'} wants to connect with you.`,
         related_id: userId,
         read: false,
       })
     },
     onSuccess: () => {
+      toast.success(t('community.toast_connection_sent'))
       queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
     },
   })
@@ -710,13 +717,14 @@ export function CommunityPage() {
       await supabase.from('notifications').insert({
         user_id: requesterId,
         type: 'connection_accepted',
-        title: 'Connection accepted',
+        title: t('community.notif_connection_accepted'),
         message: `${profile?.name ?? 'A player'} accepted your connection request.`,
         related_id: userId,
         read: false,
       })
     },
     onSuccess: () => {
+      toast.success(t('community.toast_connection_accepted'))
       queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
     },
   })
@@ -724,7 +732,7 @@ export function CommunityPage() {
   // Merged groups list: approved + ringer (with badge)
   const mergedGroups = [
     ...myGroups.map(g => ({ ...g, badge: undefined as string | undefined })),
-    ...ringerGroups.map(g => ({ ...g, badge: 'Ringer' as string | undefined })),
+    ...ringerGroups.map(g => ({ ...g, badge: t('community.badge_ringer') as string | undefined })),
   ]
 
   // Connect button state helper
@@ -751,20 +759,20 @@ export function CommunityPage() {
           <div className="px-5 py-5 text-white">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h2 className="text-[20px] font-extrabold leading-tight">Your Padel Community</h2>
-                <p className="text-[13px] text-white/80 mt-1">Connect, organise and play</p>
+                <h2 className="text-[20px] font-extrabold leading-tight">{t('community.page_title')}</h2>
+                <p className="text-[13px] text-white/80 mt-1">{t('community.page_subtitle')}</p>
               </div>
               <div className="bg-white/15 rounded-xl px-3 py-2 text-center">
                 <p className="text-[22px] font-black leading-none">{allMyGroups.length}</p>
-                <p className="text-[10px] text-white/80 mt-0.5">groups</p>
+                <p className="text-[10px] text-white/80 mt-0.5">{t('community.groups_count')}</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setShowCreateSheet(true)} className="flex-1 rounded-xl bg-white py-2.5 text-[13px] font-bold text-[#009688]">
-                + Create Group
+                {t('community.create_group_btn')}
               </button>
               <button onClick={() => playersRef.current?.scrollIntoView({ behavior: 'smooth' })} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2.5 text-[13px] font-bold text-white">
-                Find Players
+                {t('community.find_players')}
               </button>
             </div>
           </div>
@@ -782,8 +790,8 @@ export function CommunityPage() {
             <span className="text-lg">🎾</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-bold text-gray-800">Open Matches</p>
-            <p className="text-[11px] text-gray-500">Matches looking for players near your level</p>
+            <p className="text-[13px] font-bold text-gray-800">{t('community.open_matches')}</p>
+            <p className="text-[11px] text-gray-500">{t('community.open_matches_subtitle')}</p>
           </div>
           <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
         </button>
@@ -832,7 +840,7 @@ export function CommunityPage() {
                     <p className="text-[13px] font-bold text-gray-800 truncate">{req.groupName}</p>
                     {req.groupCity && <p className="text-[11px] text-gray-500">{req.groupCity}</p>}
                     <span className="inline-flex items-center mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
-                      Pending approval
+                      {t('community.pending_approval')}
                     </span>
                   </div>
                   <button
@@ -840,7 +848,7 @@ export function CommunityPage() {
                     disabled={cancelRequestMutation.isPending}
                     className="flex-shrink-0 rounded-xl border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500 active:scale-95 transition-transform"
                   >
-                    Cancel
+                    {t('community.cancel')}
                   </button>
                 </div>
               ))}
@@ -850,7 +858,7 @@ export function CommunityPage() {
 
         {/* ── Find Groups (was "Discover") ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Groups</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.find_groups')}</h2>
 
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -866,8 +874,8 @@ export function CommunityPage() {
 
           <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-0.5">
             {[
-              { key: 'near_me',      label: 'Near me'       },
-              { key: 'open_to_join', label: 'Open to join'  },
+              { key: 'near_me',      label: t('community.filter_near_me')       },
+              { key: 'open_to_join', label: t('community.filter_open_to_join')  },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -883,8 +891,8 @@ export function CommunityPage() {
             ))}
             <span className="text-gray-300 self-center">|</span>
             {[
-              { key: 'newest',       label: 'Newest'        },
-              { key: 'most_members', label: 'Most members'  },
+              { key: 'newest',       label: t('community.filter_newest')        },
+              { key: 'most_members', label: t('community.filter_most_members')  },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -909,9 +917,9 @@ export function CommunityPage() {
           ) : discoverGroups.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
               <p className="text-[13px] font-semibold text-gray-500">
-                {search.trim() ? 'No groups found' : 'No public groups yet'}
+                {search.trim() ? t('community.no_groups_found') : t('community.no_public_groups_yet')}
               </p>
-              <p className="text-[12px] text-gray-400 mt-1">Be the first — create one above</p>
+              <p className="text-[12px] text-gray-400 mt-1">{t('community.be_first_create_above')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -923,7 +931,7 @@ export function CommunityPage() {
                   onClick={() => navigate('/community/groups')}
                   className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
                 >
-                  Show all ({discoverGroups.length} groups) →
+                  {t('community.show_all_groups', { count: discoverGroups.length })}
                 </button>
               )}
             </div>
@@ -933,7 +941,7 @@ export function CommunityPage() {
         {/* ── Connections ── */}
         <section ref={connectionsRef} id="connections">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-bold text-gray-900">Connections</h2>
+            <h2 className="text-[16px] font-bold text-gray-900">{t('community.connections')}</h2>
             {connections.accepted.size > 0 && (
               <span className="text-[12px] text-gray-400">
                 {connections.accepted.size} connection{connections.accepted.size !== 1 ? 's' : ''}
@@ -945,7 +953,7 @@ export function CommunityPage() {
           {connections.incomingRequests.length > 0 && (
             <div className="mb-4">
               <p className="text-[12px] font-bold text-gray-500 mb-2">
-                Connection requests ({connections.incomingRequests.length})
+                {t('community.connection_requests', { count: connections.incomingRequests.length })}
               </p>
               <div className="space-y-2">
                 {connections.incomingRequests.map((req) => (
@@ -981,28 +989,28 @@ export function CommunityPage() {
                   onClick={() => navigate('/community/connections')}
                   className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
                 >
-                  Show all ({connections.acceptedProfiles.length} connections) →
+                  {t('community.show_all_connections', { count: connections.acceptedProfiles.length })}
                 </button>
               )}
             </div>
           ) : connections.incomingRequests.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-500">No connections yet</p>
-              <p className="text-[12px] text-gray-400 mt-1">Connect with players below to invite them to matches and groups.</p>
+              <p className="text-[13px] font-semibold text-gray-500">{t('community.no_connections_yet')}</p>
+              <p className="text-[12px] text-gray-400 mt-1">{t('community.connect_with_players_invite')}</p>
             </div>
           ) : null}
         </section>
 
         {/* ── Find Players ── */}
         <section ref={playersRef} id="players" style={{ scrollMarginTop: '120px' }}>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">Find Players</h2>
+          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.find_players')}</h2>
           <div className="relative mb-2">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
             <input
               type="text"
               value={playerSearch}
               onChange={(e) => setPlayerSearch(e.target.value)}
-              placeholder="Search players by name\u2026"
+              placeholder={t('community.search_players')}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
@@ -1016,13 +1024,13 @@ export function CommunityPage() {
                   : 'bg-white text-gray-600 border-gray-200'
               }`}
             >
-              Near me ({profile.city})
+              {t('community.near_me_city', { city: profile.city })}
             </button>
           )}
           {foundPlayers.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
               <p className="text-[13px] font-semibold text-gray-500">
-                {playerSearch.trim() ? 'No players found' : 'No players yet'}
+                {playerSearch.trim() ? t('community.no_players_found') : t('community.no_players_yet')}
               </p>
             </div>
           ) : (
@@ -1054,12 +1062,12 @@ export function CommunityPage() {
                             disabled={connectMutation.isPending}
                             className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white hover:bg-teal-700 transition-colors"
                           >
-                            <UserPlus className="h-3 w-3" /> Connect
+                            <UserPlus className="h-3 w-3" /> {t('community.connect')}
                           </button>
                         )}
                         {state === 'pending_out' && (
                           <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
-                            <Clock className="h-3 w-3" /> Pending
+                            <Clock className="h-3 w-3" /> {t('community.pending')}
                           </span>
                         )}
                         {state === 'pending_in' && (
@@ -1068,12 +1076,12 @@ export function CommunityPage() {
                             disabled={acceptInlineMutation.isPending}
                             className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white transition-colors"
                           >
-                            <Check className="h-3 w-3" /> Accept
+                            <Check className="h-3 w-3" /> {t('community.accept')}
                           </button>
                         )}
                         {state === 'accepted' && (
                           <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
-                            <Check className="h-3 w-3" /> Connected
+                            <Check className="h-3 w-3" /> {t('community.connected')}
                           </span>
                         )}
                       </>
@@ -1086,7 +1094,7 @@ export function CommunityPage() {
                   onClick={() => navigate('/community/players')}
                   className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
                 >
-                  Show all ({foundPlayers.length} players) →
+                  {t('community.show_all_players', { count: foundPlayers.length })}
                 </button>
               )}
             </div>

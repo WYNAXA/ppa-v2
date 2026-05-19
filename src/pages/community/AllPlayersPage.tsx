@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Search, UserPlus, Check, Clock } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -10,6 +12,7 @@ export function AllPlayersPage() {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const userId = profile?.id ?? ''
   const [search, setSearch] = useState('')
   const [cityFilter, setCityFilter] = useState(false)
@@ -53,11 +56,14 @@ export function AllPlayersPage() {
       const { error } = await supabase.from('player_connections').insert({ user_id: userId, connected_user_id: targetId, status: 'pending' })
       if (error) throw error
       await supabase.from('notifications').insert({
-        user_id: targetId, type: 'connection_request', title: 'Connection request',
+        user_id: targetId, type: 'connection_request', title: t('community.notif_connection_request'),
         message: `${profile?.name ?? 'A player'} wants to connect with you.`, related_id: userId, read: false,
       })
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] }) },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] })
+      toast.success(t('community.toast_connection_sent'))
+    },
   })
 
   const acceptMutation = useMutation({
@@ -65,11 +71,14 @@ export function AllPlayersPage() {
       const { error } = await supabase.rpc('accept_connection_request', { p_requester_id: requesterId })
       if (error) throw error
       await supabase.from('notifications').insert({
-        user_id: requesterId, type: 'connection_accepted', title: 'Connection accepted',
+        user_id: requesterId, type: 'connection_accepted', title: t('community.notif_connection_accepted'),
         message: `${profile?.name ?? 'A player'} accepted your connection request.`, related_id: userId, read: false,
       })
     },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] }) },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] })
+      toast.success(t('community.toast_connection_accepted'))
+    },
   })
 
   function getState(pid: string) {
@@ -86,7 +95,7 @@ export function AllPlayersPage() {
           <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">Find Players</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('community.find_players')}</h1>
         </div>
       </div>
       <div className="px-5 pt-4 space-y-3">
@@ -120,23 +129,23 @@ export function AllPlayersPage() {
                 {state === 'none' && (
                   <button onClick={() => connectMutation.mutate(p.id)} disabled={connectMutation.isPending}
                     className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white">
-                    <UserPlus className="h-3 w-3" /> Connect
+                    <UserPlus className="h-3 w-3" /> {t('community.connect')}
                   </button>
                 )}
                 {state === 'pending_out' && (
                   <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
-                    <Clock className="h-3 w-3" /> Pending
+                    <Clock className="h-3 w-3" /> {t('community.pending')}
                   </span>
                 )}
                 {state === 'pending_in' && (
                   <button onClick={() => acceptMutation.mutate(p.id)} disabled={acceptMutation.isPending}
                     className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white">
-                    <Check className="h-3 w-3" /> Accept
+                    <Check className="h-3 w-3" /> {t('community.accept')}
                   </button>
                 )}
                 {state === 'accepted' && (
                   <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
-                    <Check className="h-3 w-3" /> Connected
+                    <Check className="h-3 w-3" /> {t('community.connected')}
                   </span>
                 )}
               </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { ChevronLeft, Calendar, Users } from 'lucide-react'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { ConnectionCard } from '@/components/community/ConnectionCard'
@@ -16,6 +17,7 @@ interface ConnectionProfile {
 export function MyConnectionsPage() {
   const { profile } = useAuth()
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const userId = profile?.id ?? ''
   const [inviteMatch, setInviteMatch] = useState<{ id: string; name: string } | null>(null)
   const [inviteGroup, setInviteGroup] = useState<{ id: string; name: string } | null>(null)
@@ -67,14 +69,14 @@ export function MyConnectionsPage() {
           <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">My Connections</h1>
+          <h1 className="text-xl font-bold text-gray-900">{t('community.my_connections')}</h1>
           {accepted.length > 0 && <span className="text-[12px] text-gray-400 ml-auto">{accepted.length}</span>}
         </div>
       </div>
       <div className="px-5 pt-4 space-y-5">
         {incoming.length > 0 && (
           <div>
-            <p className="text-[12px] font-bold text-gray-500 mb-2">Requests ({incoming.length})</p>
+            <p className="text-[12px] font-bold text-gray-500 mb-2">{t('community.requests_count', { count: incoming.length })}</p>
             <div className="space-y-2">
               {incoming.map(r => <ConnectionRequestCard key={r.user_id} request={r} />)}
             </div>
@@ -98,8 +100,8 @@ export function MyConnectionsPage() {
           </div>
         ) : incoming.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-            <p className="text-[13px] font-semibold text-gray-500">No connections yet</p>
-            <p className="text-[12px] text-gray-400 mt-1">Find players in the Community tab to connect.</p>
+            <p className="text-[13px] font-semibold text-gray-500">{t('community.no_connections_yet')}</p>
+            <p className="text-[12px] text-gray-400 mt-1">{t('community.find_players_to_connect')}</p>
           </div>
         ) : null}
       </div>

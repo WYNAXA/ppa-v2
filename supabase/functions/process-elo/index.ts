@@ -68,11 +68,11 @@ function processTeamElo(params: {
   const results: Record<string, any> = {}
 
   const opponentAvgRating =
-    params.opponentIds.reduce((sum, id) => sum + (params.playerRatings[id] || 1500), 0) /
+    params.opponentIds.reduce((sum, id) => sum + (params.playerRatings[id] || 1230), 0) /
     params.opponentIds.length
 
   for (const playerId of params.playerIds) {
-    const playerRating = params.playerRatings[playerId] || 1500
+    const playerRating = params.playerRatings[playerId] || 1230
     const played = params.matchesPlayed[playerId] || 0
 
     const expected = calculateExpected(playerRating, opponentAvgRating)
@@ -202,15 +202,17 @@ Deno.serve(async (req) => {
   // Fetch all player ratings and match counts
   const { data: players } = await supabase
     .from('profiles')
-    .select('id, internal_ranking, matches_played')
+    .select('id, internal_ranking, matches_played, peak_elo')
     .in('id', allPlayerIds)
 
   const playerRatings: Record<string, number> = {}
   const matchesPlayed: Record<string, number> = {}
+  const playerPeaks: Record<string, number> = {}
 
   players?.forEach((p: any) => {
-    playerRatings[p.id] = p.internal_ranking || 1500
+    playerRatings[p.id] = p.internal_ranking || 1230
     matchesPlayed[p.id] = p.matches_played || 0
+    playerPeaks[p.id] = p.peak_elo || 0
   })
 
   const team1Won = result.result_type === 'team1_win'
@@ -244,23 +246,25 @@ Deno.serve(async (req) => {
   for (const [playerId, data] of Object.entries(allResults)) {
     const newMatchesPlayed = (matchesPlayed[playerId] || 0) + 1
 
+    const currentPeak = playerPeaks[playerId] ?? 0
+    const isPeakUpdate = data.ratingAfter > currentPeak
+
     await supabase
       .from('profiles')
       .update({
         internal_ranking: data.ratingAfter,
         matches_played: newMatchesPlayed,
         is_provisional: newMatchesPlayed < 10,
-        peak_elo: Math.max(data.ratingAfter, data.ratingBefore),
-        peak_elo_date:
-          data.ratingAfter >= data.ratingBefore
-            ? new Date().toISOString().split('T')[0]
-            : undefined,
+        ...(isPeakUpdate ? {
+          peak_elo: data.ratingAfter,
+          peak_elo_date: new Date().toISOString().split('T')[0],
+        } : {}),
       })
       .eq('id', playerId)
 
     const opponentIds = team1.includes(playerId) ? team2 : team1
     const opponentAvg = Math.round(
-      opponentIds.reduce((s, id) => s + (playerRatings[id] || 1500), 0) / opponentIds.length
+      opponentIds.reduce((s, id) => s + (playerRatings[id] || 1230), 0) / opponentIds.length
     )
 
     await supabase.from('rating_history').upsert(

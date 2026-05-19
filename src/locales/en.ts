@@ -408,6 +408,7 @@ export default {
     ask_ringers_title: 'Ask a ringer to fill in',
     ask_ringers_subtitle: 'Replies needed by {{expiry}}',
     ask_ringers_select_all: 'Select all',
+    ask_ringers_deselect_all: 'Deselect all',
     ask_ringers_send_btn: 'Send to {{count}} ringer(s)',
     ask_ringers_no_ringers: 'This group has no ringers yet',
     ask_ringers_no_ringers_network: 'Your network has no ringers yet',

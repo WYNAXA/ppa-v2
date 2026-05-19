@@ -155,9 +155,18 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
     })
   }
 
-  function selectAll() {
+  function toggleSelectAll() {
     const selectable = sortedRingers.filter(r => canSelect(r.id) && !getRequestStatus(r.id))
-    setSelected(new Set(selectable.map(r => r.id)))
+    const allSel = selectable.length > 0 && selectable.every(r => selected.has(r.id))
+    if (allSel) {
+      const next = new Set(selected)
+      selectable.forEach(r => next.delete(r.id))
+      setSelected(next)
+    } else {
+      const next = new Set(selected)
+      selectable.forEach(r => next.add(r.id))
+      setSelected(next)
+    }
   }
 
   const sendMutation = useMutation({
@@ -179,7 +188,9 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
     },
   })
 
-  const selectableCount = sortedRingers.filter(r => canSelect(r.id) && !getRequestStatus(r.id)).length
+  const selectableRingers = sortedRingers.filter(r => canSelect(r.id) && !getRequestStatus(r.id))
+  const selectableCount = selectableRingers.length
+  const allSelected = selectableCount > 0 && selectableRingers.every(r => selected.has(r.id))
 
   return (
     <AnimatePresence>
@@ -211,8 +222,8 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
               ) : (
                 <>
                   {selectableCount > 1 && (
-                    <button onClick={selectAll} className="text-[12px] text-[#009688] font-semibold mb-3">
-                      {t('ringers.ask_ringers_select_all')}
+                    <button onClick={toggleSelectAll} className="text-[12px] text-[#009688] font-semibold mb-3">
+                      {allSelected ? t('ringers.ask_ringers_deselect_all') : t('ringers.ask_ringers_select_all')}
                     </button>
                   )}
 
@@ -280,7 +291,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                       disabled={sendMutation.isPending}
                       className="w-full mt-4 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
                     >
-                      {sendMutation.isPending ? 'Sending\u2026' : t('ringers.ask_ringers_send_btn', { count: selected.size })}
+                      {sendMutation.isPending ? 'Sending…' : t('ringers.ask_ringers_send_btn', { count: selected.size })}
                     </button>
                   )}
 

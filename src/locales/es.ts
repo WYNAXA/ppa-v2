@@ -408,6 +408,7 @@ export default {
     ask_ringers_title: 'Pedir a un suplente que juegue',
     ask_ringers_subtitle: 'Respuestas necesarias antes de {{expiry}}',
     ask_ringers_select_all: 'Seleccionar todos',
+    ask_ringers_deselect_all: 'Deseleccionar todos',
     ask_ringers_send_btn: 'Enviar a {{count}} suplente(s)',
     ask_ringers_no_ringers: 'Este grupo no tiene suplentes aún',
     ask_ringers_no_ringers_network: 'Tu red no tiene suplentes aún',

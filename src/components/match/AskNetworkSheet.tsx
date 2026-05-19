@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Search } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { toast } from 'sonner'
@@ -35,6 +36,7 @@ interface ExistingInvitation {
 
 export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime, currentPlayerIds, onSent }: AskNetworkSheetProps) {
   const { user } = useAuth()
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const locale = useDateLocale()
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -142,14 +144,14 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
           >
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0"><div className="h-1 w-10 rounded-full bg-gray-200" /></div>
             <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-              <h2 className="text-[15px] font-bold text-gray-900">Invite someone to play</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('invitations.invite_someone_title')}</h2>
               <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-500" />
               </button>
             </div>
 
             <div className="px-5 pb-6 overflow-y-auto flex-1" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-              {expiryLabel && <p className="text-[12px] text-gray-400 mb-3">Replies needed by {expiryLabel}</p>}
+              {expiryLabel && <p className="text-[12px] text-gray-400 mb-3">{t('invitations.replies_needed_by', { expiry: expiryLabel })}</p>}
 
               {/* Search */}
               <div className="relative mb-3">
@@ -176,7 +178,7 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
               </div>
 
               {people.length === 0 ? (
-                <p className="text-[13px] text-gray-400 text-center py-6">No one found</p>
+                <p className="text-[13px] text-gray-400 text-center py-6">{t('invitations.no_one_found')}</p>
               ) : (
                 <>
                 <div className="flex items-center justify-between px-1 mb-2">

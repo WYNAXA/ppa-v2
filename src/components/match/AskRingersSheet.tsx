@@ -298,7 +298,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                   )}
 
                   {sendMutation.isError && (
-                    <p className="text-[12px] text-red-500 text-center mt-2">Failed to send. Try again.</p>
+                    <p className="text-[12px] text-red-500 text-center mt-2">{t('ringers.send_failed')}</p>
                   )}
                 </>
               )}

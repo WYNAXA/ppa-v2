@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { PEER_VOTE_CATEGORIES } from '@/lib/achievements'
@@ -16,6 +17,7 @@ interface PeerVotingSheetProps {
 
 export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId }: PeerVotingSheetProps) {
   const [votes, setVotes] = useState<Record<string, string>>({})
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
 
   const otherPlayers = players.filter((p) => p.id !== currentUserId)
@@ -75,8 +77,8 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
 
             {/* Header */}
             <div className="px-5 pt-2 pb-4 text-center flex-shrink-0">
-              <h2 className="text-[16px] font-bold text-gray-900">Rate your teammates 🎾</h2>
-              <p className="text-[13px] text-gray-500 mt-1">Who stood out today?</p>
+              <h2 className="text-[16px] font-bold text-gray-900">{t('peer_voting.rate_teammates')}</h2>
+              <p className="text-[13px] text-gray-500 mt-1">{t('peer_voting.who_stood_out')}</p>
             </div>
 
             {/* Categories */}
@@ -86,8 +88,8 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-lg">{cat.emoji}</span>
                     <div>
-                      <p className="text-[13px] font-bold text-gray-800">{cat.name}</p>
-                      <p className="text-[11px] text-gray-400">{cat.desc}</p>
+                      <p className="text-[13px] font-bold text-gray-800">{t(`peer_voting.${cat.id}_name`)}</p>
+                      <p className="text-[11px] text-gray-400">{t(`peer_voting.${cat.id}_desc`)}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -123,11 +125,11 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                 disabled={Object.keys(votes).length === 0 || submitMutation.isPending}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40 mt-2"
               >
-                {submitMutation.isPending ? 'Submitting...' : 'Submit Votes'}
+                {submitMutation.isPending ? t('peer_voting.submitting') : t('peer_voting.submit_votes')}
               </button>
 
               {submitMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mt-2">Failed to submit votes. Try again.</p>
+                <p className="text-[12px] text-red-500 text-center mt-2">{t('peer_voting.submit_failed')}</p>
               )}
 
               {/* Skip */}
@@ -135,7 +137,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                 onClick={onClose}
                 className="w-full py-3 text-[13px] text-gray-400 hover:text-gray-600 transition-colors mt-1"
               >
-                Skip voting
+                {t('peer_voting.skip_voting')}
               </button>
             </div>
           </motion.div>

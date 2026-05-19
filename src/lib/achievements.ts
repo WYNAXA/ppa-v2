@@ -44,6 +44,14 @@ export const BADGE_DEFINITIONS: Record<string, { label: string; emoji: string }>
   Object.entries(ACHIEVEMENT_LIBRARY).map(([key, def]) => [key, { label: def.name, emoji: def.emoji }])
 )
 
+// ────────────────────────────────────────────────────────────────────
+// TODO (v1.1): Jersey rendering UI not yet built.
+// JERSEY_LIBRARY data structure is defined below but no callsite renders
+// it. When the weekly jersey gamification UI is built (likely in Compete
+// page or group leaderboards), translate these labels via
+// `t('jerseys.<color>_name')` and `t('jerseys.<color>_description')`
+// — keys to be added then.
+// ────────────────────────────────────────────────────────────────────
 export const JERSEY_LIBRARY: Record<string, { emoji: string; name: string; description: string }> = {
   yellow: { emoji: '🟡', name: 'League Leader',  description: 'Top of the standings' },
   green:  { emoji: '🟢', name: 'Giant Killer',   description: 'Beat the highest ranked opponent' },

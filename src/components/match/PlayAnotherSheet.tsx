@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Shuffle, Play } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { PAIRINGS, pairingToTeams, findPairingIndex } from '@/lib/predictions'
@@ -18,6 +19,7 @@ interface PlayAnotherSheetProps {
 
 export function PlayAnotherSheet({ open, onClose, match, players, currentUserId }: PlayAnotherSheetProps) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const playerIds = match.player_ids ?? []
 
@@ -96,7 +98,7 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
               <div className="w-9" />
             </div>
             <div className="px-5 pb-6" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-              <p className="text-[12px] text-gray-400 mb-4 text-center">Same players, same venue. Rearrange teams if you like.</p>
+              <p className="text-[12px] text-gray-400 mb-4 text-center">{t('play_another.same_players_subtitle')}</p>
 
               {/* Team 1 */}
               <div className="rounded-xl bg-teal-50 border border-teal-100 p-3 mb-2">
@@ -144,7 +146,7 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
               </button>
 
               {createMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mt-2">Failed to create match. Try again.</p>
+                <p className="text-[12px] text-red-500 text-center mt-2">{t('play_another.create_failed')}</p>
               )}
             </div>
           </motion.div>

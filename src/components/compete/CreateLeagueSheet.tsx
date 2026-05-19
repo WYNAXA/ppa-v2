@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight, Users, User, Trophy, Check, Info } from 'lucide-react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
@@ -54,19 +55,8 @@ function emptyForm(defaultGroupId?: string): FormState {
 
 // ── Format info modal ─────────────────────────────────────────────────────────
 
-const FORMAT_INFO: Record<Format, { title: string; description: string; bestFor: string; winner: string }> = {
-  round_robin:   { title: 'Round Robin', description: 'Every player/team plays against every other.', bestFor: '4–16 players', winner: 'Most points after all matches', },
-  mexicano:      { title: 'Mexicano', description: 'Partners rotate and are paired by current standings each round.', bestFor: '8–16 players', winner: 'Player with most total points', },
-  knockout:      { title: 'Knockout (Single Elimination)', description: 'Lose once and you\'re out. Winner of each match advances.', bestFor: '8–64 players', winner: 'Last player standing', },
-  americano:     { title: 'Americano', description: 'Players rotate partners every round. Each round played to 16–24 points. Great social format.', bestFor: '8–16 players', winner: 'Player with most total points across all rounds', },
-  king_of_hill:  { title: 'King of the Hill (Beat the Box)', description: 'Winners move up a court, losers move down. Top court players fight to stay on top.', bestFor: '8–20 players', winner: 'Player with most time on top court', },
-  compass_draw:  { title: 'Compass Draw', description: 'After first loss players continue in a separate bracket. Guarantees multiple matches for all.', bestFor: '8–32 players', winner: 'Final of each direction bracket', },
-  box_league:    { title: 'Box League (Promotion/Relegation)', description: 'Players in boxes of 4. Top finishers promote, bottom relegate each round.', bestFor: '8–40 players', winner: 'Top of the highest box', },
-  flex_league:   { title: 'Flex League (Self-Scheduled)', description: 'Players arrange their own matches within a time window. No fixed schedule.', bestFor: '4–32 players', winner: 'Player with most points at deadline', },
-}
-
 function FormatInfoModal({ format, onClose }: { format: Format; onClose: () => void }) {
-  const info = FORMAT_INFO[format]
+  const { t } = useTranslation()
   return (
     <>
       <motion.div
@@ -81,27 +71,27 @@ function FormatInfoModal({ format, onClose }: { format: Format; onClose: () => v
         className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[75] bg-white rounded-2xl p-6 shadow-2xl"
       >
         <div className="flex items-start justify-between mb-4">
-          <h3 className="text-[17px] font-bold text-gray-900 flex-1 pr-2">{info.title}</h3>
+          <h3 className="text-[17px] font-bold text-gray-900 flex-1 pr-2">{t(`create_league.format_${format}_title`)}</h3>
           <button onClick={onClose} className="h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
             <X className="h-3.5 w-3.5 text-gray-500" />
           </button>
         </div>
-        <p className="text-[13px] text-gray-600 mb-4">{info.description}</p>
+        <p className="text-[13px] text-gray-600 mb-4">{t(`create_league.format_${format}_desc`)}</p>
         <div className="space-y-2">
           <div className="flex items-start gap-2">
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wide w-20 flex-shrink-0 pt-0.5">Best for</span>
-            <span className="text-[13px] text-gray-700">{info.bestFor}</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wide w-20 flex-shrink-0 pt-0.5">{t('create_league.best_for_label')}</span>
+            <span className="text-[13px] text-gray-700">{t(`create_league.format_${format}_bestfor`)}</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wide w-20 flex-shrink-0 pt-0.5">Winner</span>
-            <span className="text-[13px] text-gray-700">{info.winner}</span>
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wide w-20 flex-shrink-0 pt-0.5">{t('create_league.winner_label')}</span>
+            <span className="text-[13px] text-gray-700">{t(`create_league.format_${format}_winner`)}</span>
           </div>
         </div>
         <button
           onClick={onClose}
           className="mt-5 w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white"
         >
-          Got it
+          {t('create_league.got_it')}
         </button>
       </motion.div>
     </>
@@ -127,19 +117,20 @@ function StepDots({ current, total }: { current: number; total: number }) {
 
 // ── Step 1 — League type ──────────────────────────────────────────────────────
 
-const LEAGUE_TYPES: Array<{ type: LeagueType; label: string; desc: string; Icon: typeof Trophy }> = [
-  { type: 'pairs',      label: 'Pairs',      desc: 'Teams of 2 compete across the league',  Icon: Users  },
-  { type: 'individual', label: 'Individual', desc: 'Solo players compete for ranking',       Icon: User   },
-  { type: 'tournament', label: 'Tournament', desc: 'Bracket-style knockout competition',     Icon: Trophy },
+const LEAGUE_TYPE_KEYS: Array<{ type: LeagueType; Icon: typeof Trophy }> = [
+  { type: 'pairs', Icon: Users },
+  { type: 'individual', Icon: User },
+  { type: 'tournament', Icon: Trophy },
 ]
 
 function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+  const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">League type</h2>
-      <p className="text-sm text-gray-500 mb-6">What kind of competition is this?</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_league.step1_title')}</h2>
+      <p className="text-sm text-gray-500 mb-6">{t('create_league.step1_subtitle')}</p>
       <div className="space-y-3">
-        {LEAGUE_TYPES.map(({ type, label, desc, Icon }) => {
+        {LEAGUE_TYPE_KEYS.map(({ type, Icon }) => {
           const selected = form.leagueType === type
           return (
             <button
@@ -157,8 +148,8 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 <Icon className={cn('h-5 w-5', selected ? 'text-[#009688]' : 'text-gray-400')} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{label}</p>
-                <p className="text-[13px] text-gray-500 mt-0.5">{desc}</p>
+                <p className="font-semibold text-gray-900">{t(`create_league.type_${type}_label`)}</p>
+                <p className="text-[13px] text-gray-500 mt-0.5">{t(`create_league.type_${type}_desc`)}</p>
               </div>
               {selected && (
                 <div className="h-5 w-5 rounded-full bg-[#009688] flex items-center justify-center flex-shrink-0">
@@ -175,23 +166,9 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
 // ── Step 2 — Setup ────────────────────────────────────────────────────────────
 
-const FORMATS: Array<{ id: Format; label: string }> = [
-  { id: 'round_robin',  label: 'Round Robin'        },
-  { id: 'mexicano',     label: 'Mexicano'            },
-  { id: 'knockout',     label: 'Knockout'            },
-  { id: 'americano',    label: 'Americano'           },
-  { id: 'king_of_hill', label: 'King of the Hill'   },
-  { id: 'compass_draw', label: 'Compass Draw'        },
-  { id: 'box_league',   label: 'Box League'          },
-  { id: 'flex_league',  label: 'Flex League'         },
-]
+const FORMATS: Format[] = ['round_robin', 'mexicano', 'knockout', 'americano', 'king_of_hill', 'compass_draw', 'box_league', 'flex_league']
 
-const SCORING_FORMATS: Array<{ id: ScoringFormat; label: string; desc: string }> = [
-  { id: 'standard',   label: 'Standard',    desc: 'Best of 3 sets, championship tiebreak' },
-  { id: 'short_sets', label: 'Short sets',  desc: 'First to 4 games per set'              },
-  { id: 'one_set',    label: 'One set',     desc: '9 games or super tiebreak'             },
-  { id: 'custom',     label: 'Custom',      desc: 'Admin defines the scoring'             },
-]
+const SCORING_FORMAT_KEYS: ScoringFormat[] = ['standard', 'short_sets', 'one_set', 'custom']
 
 function Step2({
   form,
@@ -203,6 +180,7 @@ function Step2({
   userId: string
 }) {
   const [infoFormat, setInfoFormat] = useState<Format | null>(null)
+  const { t } = useTranslation()
 
   const { data: groups = [] } = useQuery<MyGroup[]>({
     queryKey: ['my-groups-for-league', userId],
@@ -222,20 +200,20 @@ function Step2({
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Setup</h2>
-      <p className="text-sm text-gray-500 mb-6">Name your league and set the schedule</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_league.step2_title')}</h2>
+      <p className="text-sm text-gray-500 mb-6">{t('create_league.step2_subtitle')}</p>
       <div className="space-y-4">
 
         {/* Name */}
         <div>
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            Name <span className="text-red-400">*</span>
+            {t('create_league.name_label')} <span className="text-red-400">*</span>
           </label>
           <input
             type="text"
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
-            placeholder="e.g. Summer Padel League 2025"
+            placeholder={t('create_league.name_placeholder')}
             style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
           />
@@ -244,12 +222,12 @@ function Step2({
         {/* Description */}
         <div>
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            Description <span className="text-gray-400 font-normal">(optional)</span>
+            {t('create_league.description_label')}
           </label>
           <textarea
             value={form.description}
             onChange={(e) => setForm({ ...form, description: e.target.value })}
-            placeholder="Rules, prizes, anything players should know…"
+            placeholder={t('create_league.description_placeholder')}
             rows={2}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
@@ -259,14 +237,14 @@ function Step2({
         {/* Group */}
         {groups.length > 0 && (
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Group</label>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('create_league.group_label')}</label>
             <select
               value={form.groupId ?? ''}
               onChange={(e) => setForm({ ...form, groupId: e.target.value || null })}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
             >
-              <option value="">No group</option>
+              <option value="">{t('create_league.group_none')}</option>
               {groups.map((g) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
@@ -276,9 +254,9 @@ function Step2({
 
         {/* Tournament format */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-2">Tournament format <span className="text-red-400">*</span></label>
+          <label className="block text-[13px] font-medium text-gray-700 mb-2">{t('create_league.tournament_format_label')} <span className="text-red-400">*</span></label>
           <div className="grid grid-cols-2 gap-2">
-            {FORMATS.map(({ id, label }) => (
+            {FORMATS.map((id) => (
               <div key={id} className="relative">
                 <button
                   onClick={() => setForm({ ...form, format: id })}
@@ -290,12 +268,12 @@ function Step2({
                   )}
                 >
                   {form.format === id && <Check className="inline h-3 w-3 mr-1 flex-shrink-0" />}
-                  {label}
+                  {t(`create_league.format_${id}_title`)}
                 </button>
                 <button
                   onClick={(e) => { e.stopPropagation(); setInfoFormat(id) }}
                   className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={`Info about ${label}`}
+                  aria-label={t(`create_league.format_${id}_title`)}
                 >
                   <Info className="h-3.5 w-3.5" />
                 </button>
@@ -306,9 +284,9 @@ function Step2({
 
         {/* Scoring format */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-2">Match scoring</label>
+          <label className="block text-[13px] font-medium text-gray-700 mb-2">{t('create_league.match_scoring_label')}</label>
           <div className="space-y-1.5">
-            {SCORING_FORMATS.map(({ id, label, desc }) => (
+            {SCORING_FORMAT_KEYS.map((id) => (
               <button
                 key={id}
                 onClick={() => setForm({ ...form, scoringFormat: id })}
@@ -324,8 +302,8 @@ function Step2({
                   {form.scoringFormat === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-gray-900">{label}</p>
-                  <p className="text-[11px] text-gray-400">{desc}</p>
+                  <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.scoring_${id}_label`)}</p>
+                  <p className="text-[11px] text-gray-400">{t(`create_league.scoring_${id}_desc`)}</p>
                 </div>
               </button>
             ))}
@@ -335,7 +313,7 @@ function Step2({
         {/* Start / End dates */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Start date</label>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('create_league.start_date_label')}</label>
             <input
               type="date"
               value={form.startDate}
@@ -345,7 +323,7 @@ function Step2({
             />
           </div>
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">End date</label>
+            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('create_league.end_date_label')}</label>
             <input
               type="date"
               value={form.endDate}
@@ -359,13 +337,13 @@ function Step2({
         {/* Max participants */}
         <div>
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            Max players/teams <span className="text-gray-400 font-normal">(optional)</span>
+            {t('create_league.max_players_label')}
           </label>
           <input
             type="number"
             value={form.maxParticipants}
             onChange={(e) => setForm({ ...form, maxParticipants: e.target.value })}
-            placeholder="e.g. 16"
+            placeholder={t('create_league.max_players_placeholder')}
             min="2"
             max="128"
             style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
@@ -386,24 +364,22 @@ function Step2({
 
 // ── Step 3 — Settings + Confirm ───────────────────────────────────────────────
 
-const VISIBILITY_OPTIONS: Array<{ id: Visibility; label: string; desc: string }> = [
-  { id: 'group_only',  label: 'Group only',   desc: 'Only group members can join'  },
-  { id: 'open',        label: 'Open',         desc: 'Anyone can discover and join' },
-  { id: 'invite_only', label: 'Invite only',  desc: 'Join by invite link only'     },
-]
+const VISIBILITY_KEYS: Visibility[] = ['group_only', 'open', 'invite_only']
+const JOIN_MODE_KEYS: JoinMode[] = ['auto_add', 'invite', 'open']
 
 function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+  const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">Settings</h2>
-      <p className="text-sm text-gray-500 mb-6">Configure access and review</p>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_league.step3_title')}</h2>
+      <p className="text-sm text-gray-500 mb-6">{t('create_league.step3_subtitle')}</p>
       <div className="space-y-4">
 
         {/* Visibility */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-2">Visibility</label>
+          <label className="block text-[13px] font-medium text-gray-700 mb-2">{t('create_league.visibility_label')}</label>
           <div className="space-y-2">
-            {VISIBILITY_OPTIONS.map(({ id, label, desc }) => (
+            {VISIBILITY_KEYS.map((id) => (
               <button
                 key={id}
                 onClick={() => setForm({ ...form, visibility: id })}
@@ -419,8 +395,8 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                   {form.visibility === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-gray-900">{label}</p>
-                  <p className="text-[11px] text-gray-400">{desc}</p>
+                  <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.visibility_${id}_label`)}</p>
+                  <p className="text-[11px] text-gray-400">{t(`create_league.visibility_${id}_desc`)}</p>
                 </div>
               </button>
             ))}
@@ -429,13 +405,9 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
         {/* How members join */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-2">How should members join?</label>
+          <label className="block text-[13px] font-medium text-gray-700 mb-2">{t('create_league.join_mode_label')}</label>
           <div className="space-y-2">
-            {([
-              { id: 'auto_add' as JoinMode, label: 'Auto-add group members', desc: 'All group members are added instantly' },
-              { id: 'invite' as JoinMode, label: 'Send invitations', desc: 'Members must accept to join' },
-              { id: 'open' as JoinMode, label: 'Open registration', desc: 'Anyone with the link can join' },
-            ]).map(({ id, label, desc }) => (
+            {JOIN_MODE_KEYS.map((id) => (
               <button
                 key={id}
                 onClick={() => setForm({ ...form, joinMode: id })}
@@ -451,8 +423,8 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                   {form.joinMode === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
                 </div>
                 <div>
-                  <p className="text-[13px] font-semibold text-gray-900">{label}</p>
-                  <p className="text-[11px] text-gray-400">{desc}</p>
+                  <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.join_mode_${id}_label`)}</p>
+                  <p className="text-[11px] text-gray-400">{t(`create_league.join_mode_${id}_desc`)}</p>
                 </div>
               </button>
             ))}
@@ -462,14 +434,14 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
         {/* ELO range */}
         <div>
           <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            ELO range <span className="text-gray-400 font-normal">(optional filter)</span>
+            {t('create_league.elo_range_label')}
           </label>
           <div className="grid grid-cols-2 gap-3">
             <input
               type="number"
               value={form.minElo}
               onChange={(e) => setForm({ ...form, minElo: e.target.value })}
-              placeholder="Min ELO"
+              placeholder={t('create_league.min_elo_placeholder')}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
@@ -477,7 +449,7 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               type="number"
               value={form.maxElo}
               onChange={(e) => setForm({ ...form, maxElo: e.target.value })}
-              placeholder="Max ELO"
+              placeholder={t('create_league.max_elo_placeholder')}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
@@ -487,12 +459,12 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
         {/* Review */}
         <div className="rounded-2xl border border-gray-100 bg-gray-50 divide-y divide-gray-100 overflow-hidden">
           {[
-            { label: 'Type',    value: form.leagueType ?? '—' },
-            { label: 'Name',    value: form.name || '—' },
-            { label: 'Format',  value: form.format?.replace(/_/g, ' ') ?? '—' },
-            { label: 'Scoring', value: form.scoringFormat.replace(/_/g, ' ') },
-            { label: 'Starts',  value: form.startDate || '—' },
-            { label: 'Ends',    value: form.endDate || '—' },
+            { label: t('create_league.review_type'),    value: form.leagueType ?? '—' },
+            { label: t('create_league.review_name'),    value: form.name || '—' },
+            { label: t('create_league.review_format'),  value: form.format?.replace(/_/g, ' ') ?? '—' },
+            { label: t('create_league.review_scoring'), value: form.scoringFormat.replace(/_/g, ' ') },
+            { label: t('create_league.review_starts'),  value: form.startDate || '—' },
+            { label: t('create_league.review_ends'),    value: form.endDate || '—' },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center justify-between px-4 py-2.5">
               <span className="text-[12px] text-gray-500">{label}</span>
@@ -516,6 +488,7 @@ interface CreateLeagueSheetProps {
 export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagueSheetProps) {
   const { user } = useAuth()
   const navigate  = useNavigate()
+  const { t } = useTranslation()
   const [step, setStep]   = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm]   = useState<FormState>(emptyForm(defaultGroupId))
@@ -641,7 +614,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
               const { error: notifErr } = await supabase.from('notifications').insert(
                 members.map((m) => ({
                   user_id: m.user_id, type: 'league_invite',
-                  title: 'League invitation',
+                  title: t('create_league.league_invitation_title'),
                   message: `${creatorName} invited you to join ${form.name.trim()}`,
                   related_id: league.id, read: false,
                 }))
@@ -707,7 +680,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   ? <ChevronLeft className="h-5 w-5 text-gray-600" />
                   : <X className="h-4 w-4 text-gray-600" />}
               </button>
-              <span className="text-[13px] text-gray-400 font-medium">Step {step} of 3</span>
+              <span className="text-[13px] text-gray-400 font-medium">{t('create_league.step_of', { step, total: 3 })}</span>
               <div className="w-9" />
             </div>
 
@@ -745,7 +718,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-40"
                   style={{ background: '#009688' }}
                 >
-                  Continue <ChevronRight className="h-5 w-5" />
+                  {t('create_league.continue')} <ChevronRight className="h-5 w-5" />
                 </button>
               ) : (
                 <button
@@ -754,7 +727,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-60"
                   style={{ background: '#009688' }}
                 >
-                  {createMutation.isPending ? 'Creating…' : 'Create League'}
+                  {createMutation.isPending ? t('create_league.creating') : t('create_league.create_league_btn')}
                 </button>
               )}
             </div>

@@ -393,6 +393,56 @@ export function MatchDetailPage() {
     },
   })
 
+  // Pending broadcast invitees awaiting host confirmation
+  const { data: pendingInvitees = [] } = useQuery({
+    queryKey: ['pending-invitees', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data: invitations } = await supabase
+        .from('match_invitations')
+        .select('id, invitee_id, status, responded_at, is_broadcast')
+        .eq('match_id', id!)
+        .eq('status', 'accepted')
+        .eq('is_broadcast', true)
+        .order('responded_at', { ascending: true })
+      if (!invitations?.length) return []
+      const inviteeIds = invitations.map((i: any) => i.invitee_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, internal_ranking')
+        .in('id', inviteeIds)
+      const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]))
+      return invitations.map((inv: any) => ({
+        id: inv.id,
+        invitee_id: inv.invitee_id,
+        inviteeName: profileMap.get(inv.invitee_id)?.name ?? null,
+        inviteeAvatar: (profileMap.get(inv.invitee_id) as any)?.avatar_url ?? null,
+        inviteeElo: profileMap.get(inv.invitee_id)?.internal_ranking ?? null,
+      }))
+    },
+  })
+
+  const confirmInviteeMutation = useMutation({
+    mutationFn: async (inviteeId: string) => {
+      const { data, error } = await supabase.rpc('confirm_invitee_for_match', {
+        p_match_id: id,
+        p_invitee_id: inviteeId,
+      })
+      if (error) throw error
+      if (!(data as any)?.success) throw new Error('Confirm failed')
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['pending-invitees', id] })
+      queryClient.invalidateQueries({ queryKey: ['notifications'] })
+      toast.success('Player confirmed')
+    },
+    onError: (err: any) => {
+      console.error('Confirm invitee failed:', err)
+      toast.error(err?.message ?? 'Failed to confirm player. Try again.')
+    },
+  })
+
   // Travel request mutation
   const requestLiftMutation = useMutation({
     mutationFn: async ({ driverId }: { driverId: string }) => {
@@ -1582,6 +1632,33 @@ export function MatchDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Pending broadcast invitees */}
+      {pendingInvitees.length > 0 && (isParticipant || isGroupAdmin) && playerIds.length < 4 && (
+        <div className="px-5 mt-4">
+          <h3 className="text-[13px] font-semibold text-gray-700 mb-2">
+            Pending invitees ({pendingInvitees.length})
+          </h3>
+          <div className="space-y-2">
+            {pendingInvitees.map((p: any) => (
+              <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2.5">
+                <PlayerAvatar name={p.inviteeName} avatarUrl={p.inviteeAvatar} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">{p.inviteeName ?? 'Unknown'}</p>
+                  <p className="text-[11px] text-gray-500">ELO {p.inviteeElo ?? '\u2014'} \u00B7 Accepted</p>
+                </div>
+                <button
+                  onClick={() => confirmInviteeMutation.mutate(p.invitee_id)}
+                  disabled={confirmInviteeMutation.isPending}
+                  className="rounded-xl bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
+                >
+                  {confirmInviteeMutation.isPending ? 'Confirming\u2026' : 'Confirm'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Sheets */}
       <RecordResultSheet

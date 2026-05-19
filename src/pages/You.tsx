@@ -328,6 +328,7 @@ function LinkPartnerSheet({
   currentUserId: string
 }) {
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<{ id: string; name: string; avatar_url: string | null } | null>(null)
 
@@ -357,8 +358,8 @@ function LinkPartnerSheet({
       await supabase.from('notifications').insert({
         user_id:    partnerId,
         type:       'household_link',
-        title:      'Household link request',
-        message:    'Someone linked you as their household partner',
+        title:      t('you.notif_household_request_title'),
+        message:    t('you.notif_household_request_msg'),
         related_id: currentUserId,
       })
     },
@@ -391,12 +392,12 @@ function LinkPartnerSheet({
               <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-600" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Link Household Partner</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('you.link_household_title')}</h2>
               <div className="w-9" />
             </div>
             <div className="px-5 pb-6" style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
               <p className="text-[13px] text-gray-500 mb-4">
-                Search for the player you live with. They'll receive a notification.
+                {t('you.link_household_search_help')}
               </p>
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -404,7 +405,7 @@ function LinkPartnerSheet({
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setSelected(null) }}
-                  placeholder="Search by name…"
+                  placeholder={t('you.search_by_name')}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
@@ -423,21 +424,21 @@ function LinkPartnerSheet({
                       <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
                       <span className="text-[14px] font-medium text-gray-800">{p.name}</span>
                       {selected?.id === p.id && (
-                        <span className="ml-auto text-[11px] font-bold text-teal-600">Selected</span>
+                        <span className="ml-auto text-[11px] font-bold text-teal-600">{t('you.search_selected')}</span>
                       )}
                     </button>
                   ))}
                 </div>
               )}
               {linkMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mb-3">Failed to link. Try again.</p>
+                <p className="text-[12px] text-red-500 text-center mb-3">{t('you.link_failed')}</p>
               )}
               <button
                 onClick={() => selected && linkMutation.mutate(selected.id)}
                 disabled={!selected || linkMutation.isPending}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
-                {linkMutation.isPending ? 'Linking…' : 'Link Partner'}
+                {linkMutation.isPending ? t('you.linking') : t('you.link_partner_btn')}
               </button>
             </div>
           </motion.div>
@@ -460,6 +461,7 @@ function EditProfileSheet({
 }) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const [name, setName]             = useState(profile?.name ?? '')
   const [city, setCity]             = useState(profile?.city ?? '')
   const [postalCode, setPostalCode] = useState(profile?.postal_code ?? '')
@@ -511,7 +513,7 @@ function EditProfileSheet({
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error('Not authenticated')
+      if (!user) throw new Error(t('you.not_authenticated'))
       const { error } = await supabase
         .from('profiles')
         .update({
@@ -559,7 +561,7 @@ function EditProfileSheet({
                 <ChevronLeft className="h-4 w-4" />
                 Back
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Edit Profile</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('you.edit_profile_title')}</h2>
               <div className="w-14" />
             </div>
 
@@ -587,7 +589,7 @@ function EditProfileSheet({
                     <Edit2 className="h-3 w-3 text-white" />
                   </span>
                 </button>
-                <p className="text-[11px] text-gray-400">{uploading ? 'Uploading…' : 'Tap to change photo'}</p>
+                <p className="text-[11px] text-gray-400">{uploading ? t('you.uploading') : t('you.tap_change_photo')}</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -598,7 +600,7 @@ function EditProfileSheet({
               </div>
 
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Name</label>
+                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('you.name_label')}</label>
                 <input
                   type="text"
                   value={name}
@@ -609,33 +611,33 @@ function EditProfileSheet({
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                  City <span className="text-gray-400 font-normal">(optional)</span>
+                  {t('you.city_label')}
                 </label>
                 <input
                   type="text"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. London"
+                  placeholder={t('you.city_placeholder')}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                  Postcode <span className="text-gray-400 font-normal">(optional)</span>
+                  {t('you.postal_code_label')}
                 </label>
                 <input
                   type="text"
                   value={postalCode}
                   onChange={(e) => setPostalCode(e.target.value)}
-                  placeholder="e.g. SW1A 1AA"
+                  placeholder={t('you.postal_code_placeholder')}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
               </div>
               <div>
                 <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                  Country <span className="text-gray-400 font-normal">(optional)</span>
+                  {t('you.country_label')}
                 </label>
                 <select
                   value={country}
@@ -643,17 +645,17 @@ function EditProfileSheet({
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
                 >
-                  <option value="">Select country…</option>
+                  <option value="">{t('you.country_placeholder')}</option>
                   {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
 
               {/* Travel preferences */}
               <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
-                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Travel preferences</p>
+                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">{t('you.travel_preferences')}</p>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] text-gray-700">I have a car</span>
+                  <span className="text-[13px] text-gray-700">{t('you.i_have_a_car')}</span>
                   <button
                     type="button"
                     onClick={() => setCanDrive((v) => !v)}
@@ -717,12 +719,12 @@ function EditProfileSheet({
                   }}
                   className="w-full rounded-xl border border-gray-200 bg-white py-2 text-[12px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
                 >
-                  {locating ? 'Getting location…' : 'Use my current location'}
+                  {locating ? t('you.getting_location') : t('you.use_current_location')}
                 </button>
               </div>
 
               {saveMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center">Failed to save. Try again.</p>
+                <p className="text-[12px] text-red-500 text-center">{t('you.save_failed')}</p>
               )}
 
               <button
@@ -730,7 +732,7 @@ function EditProfileSheet({
                 disabled={saveMutation.isPending}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
-                {saveMutation.isPending ? 'Saving…' : 'Save Changes'}
+                {saveMutation.isPending ? t('you.saving') : t('you.save_changes')}
               </button>
             </div>
           </motion.div>
@@ -823,7 +825,7 @@ export function YouPage() {
           <button
             onClick={() => setShowEdit(true)}
             className="absolute top-4 right-4 z-10 h-9 w-9 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors"
-            aria-label="Edit profile"
+            aria-label={t('you.edit_profile_aria')}
           >
             <Edit2 className="h-3.5 w-3.5 text-white" />
           </button>
@@ -1006,7 +1008,7 @@ export function YouPage() {
               {t('you.household')}
             </span>
           </h2>
-          <p className="text-[12px] text-gray-400 mb-3 leading-relaxed">Link with a partner or family member to detect scheduling conflicts and coordinate travel.</p>
+          <p className="text-[12px] text-gray-400 mb-3 leading-relaxed">{t('you.household_description')}</p>
           {householdPartner ? (
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
               <div className="flex items-center gap-3 mb-3">
@@ -1203,7 +1205,7 @@ export function YouPage() {
                   'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
                   notifEnabled ? 'bg-[#009688]' : 'bg-gray-200'
                 )}
-                aria-label="Toggle notifications"
+                aria-label={t('you.toggle_notifications_aria')}
               >
                 <span className={cn(
                   'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',

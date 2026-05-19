@@ -238,6 +238,7 @@ export function MatchDetailPage() {
   const [confirmCancelBooking, setConfirmCancelBooking] = useState(false)
   const [showAskRingers, setShowAskRingers] = useState(false)
   const [showAskNetwork, setShowAskNetwork] = useState(false)
+  const [confirmingInviteeId, setConfirmingInviteeId] = useState<string | null>(null)
   const [showPushToOpen, setShowPushToOpen] = useState(false)
   const [cancellingBooking, setCancellingBooking] = useState(false)
   const [creatingNext, setCreatingNext] = useState(false)
@@ -431,6 +432,7 @@ export function MatchDetailPage() {
       if (error) throw error
       if (!(data as any)?.success) throw new Error('Confirm failed')
     },
+    onMutate: (inviteeId) => { setConfirmingInviteeId(inviteeId) },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['pending-invitees', id] })
@@ -441,6 +443,7 @@ export function MatchDetailPage() {
       console.error('Confirm invitee failed:', err)
       toast.error(err?.message ?? 'Failed to confirm player. Try again.')
     },
+    onSettled: () => { setConfirmingInviteeId(null) },
   })
 
   // Travel request mutation
@@ -1043,7 +1046,7 @@ export function MatchDetailPage() {
                 onClick={() => setShowInvite(true)}
                 className="text-[11px] font-semibold text-[#009688]"
               >
-                + Invite players
+                + Add player
               </button>
             )}
           </div>
@@ -1108,7 +1111,7 @@ export function MatchDetailPage() {
                       onClick={() => setShowInvite(true)}
                       className="text-[11px] text-teal-600 font-semibold"
                     >
-                      Invite player
+                      Add player
                     </button>
                   ) : (
                     <p className="text-[11px] text-gray-400 italic">Waiting…</p>
@@ -1436,9 +1439,14 @@ export function MatchDetailPage() {
           </div>
         </div>
       )}
-      {myInvitation?.status === 'accepted' && (
+      {myInvitation?.status === 'accepted' && !isParticipant && (
         <div className="mx-5 mb-4 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3">
-          <p className="text-[13px] font-semibold text-blue-800">You accepted this invitation.</p>
+          <p className="text-[13px] font-semibold text-blue-900 mb-0.5">You accepted this invitation</p>
+          <p className="text-[12px] text-blue-700">
+            {myInvitation.is_broadcast
+              ? 'Waiting on the host to confirm you for the match.'
+              : "You'll be added to the match shortly."}
+          </p>
         </div>
       )}
 
@@ -1649,10 +1657,10 @@ export function MatchDetailPage() {
                 </div>
                 <button
                   onClick={() => confirmInviteeMutation.mutate(p.invitee_id)}
-                  disabled={confirmInviteeMutation.isPending}
+                  disabled={confirmingInviteeId !== null}
                   className="rounded-xl bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
                 >
-                  {confirmInviteeMutation.isPending ? 'Confirming\u2026' : 'Confirm'}
+                  {confirmingInviteeId === p.invitee_id ? 'Confirming\u2026' : 'Confirm'}
                 </button>
               </div>
             ))}

@@ -450,7 +450,7 @@ export function AvailabilityPollPage() {
   const closesLabel = (() => {
     try {
       if (isClosed) return 'Closed'
-      return `Closes ${format(parseISO(poll.closes_at), 'MMM d, yyyy 'at' h:mm a', { locale })}`
+      return `Closes ${format(parseISO(poll.closes_at), "MMM d, yyyy 'at' h:mm a", { locale })}`
     } catch { return '' }
   })()
 

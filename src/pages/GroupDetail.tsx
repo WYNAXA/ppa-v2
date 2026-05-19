@@ -1,4 +1,5 @@
 import { useState, type ChangeEvent } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -311,6 +312,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
   currentUserId: string
 }) {
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const [copied, setCopied] = useState(false)
   const [memberFilter, setMemberFilter] = useState<'members' | 'ringers'>('members')
   const [menuMemberId, setMenuMemberId] = useState<string | null>(null)
@@ -340,7 +342,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
       ? `${window.location.origin}/join/${inviteCode}`
       : `${window.location.origin}/community/groups/${groupId}`
     if (navigator.share) {
-      try { await navigator.share({ title: 'Join our padel group', url }) } catch { /* cancelled */ }
+      try { await navigator.share({ title: t('group_detail.share_title'), url }) } catch { /* cancelled */ }
       return
     }
     const doWrite = () => { setCopied(true); setTimeout(() => setCopied(false), 2000) }
@@ -368,7 +370,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
         onClick={shareOrCopyInvite}
         className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 mb-4 text-[13px] font-semibold text-teal-700 transition-colors"
       >
-        {copied ? <><Check className="h-4 w-4" /> Copied!</> : <><Share2 className="h-4 w-4" /> Share group</>}
+        {copied ? <><Check className="h-4 w-4" /> {t('group_detail.copied')}</> : <><Share2 className="h-4 w-4" /> {t('group_detail.share_group')}</>}
       </button>
 
       {/* Member/Ringer filter */}
@@ -381,13 +383,13 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
               memberFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
           >
-            {f === 'members' ? `Members (${members.filter(m => m.memberStatus !== 'ringer').length})` : `Ringers (${members.filter(m => m.memberStatus === 'ringer').length})`}
+            {f === 'members' ? t('group_detail.members_count', { count: members.filter(m => m.memberStatus !== 'ringer').length }) : t('group_detail.ringers_count', { count: members.filter(m => m.memberStatus === 'ringer').length })}
           </button>
         ))}
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyTab message={memberFilter === 'ringers' ? 'No ringers yet' : 'No members yet'} />
+        <EmptyTab message={memberFilter === 'ringers' ? t('group_detail.no_ringers_yet') : t('group_detail.no_members_yet')} />
       ) : (
         <div className="space-y-2">
           {filtered.map((m) => (
@@ -398,10 +400,10 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
                 {m.ranking_points != null && <p className="text-[11px] text-gray-400">{m.ranking_points} pts</p>}
               </div>
               {m.role === 'admin' && (
-                <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Admin</span>
+                <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">{t('group_detail.badge_admin')}</span>
               )}
               {m.memberStatus === 'ringer' && (
-                <span className="rounded-full bg-orange-50 border border-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-500">Ringer</span>
+                <span className="rounded-full bg-orange-50 border border-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-500">{t('group_detail.badge_ringer')}</span>
               )}
               {isAdmin && m.id !== currentUserId && (
                 <button
@@ -446,7 +448,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
                     className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     <Shield className="h-4 w-4 text-teal-500" />
-                    Make Admin
+                    {t('group_detail.make_admin')}
                   </button>
                 )}
                 {menuMember.memberStatus === 'approved' ? (
@@ -456,7 +458,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
                     className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     <Star className="h-4 w-4 text-orange-400" />
-                    Mark as Ringer
+                    {t('group_detail.mark_as_ringer')}
                   </button>
                 ) : (
                   <button
@@ -465,7 +467,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
                     className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
                   >
                     <Star className="h-4 w-4 text-gray-400" />
-                    Promote to Member
+                    {t('group_detail.promote_to_member')}
                   </button>
                 )}
                 <button
@@ -474,7 +476,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
                   className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-red-500 hover:bg-red-50"
                 >
                   <UserX className="h-4 w-4" />
-                  Remove from Group
+                  {t('group_detail.remove_from_group')}
                 </button>
               </div>
             </motion.div>
@@ -497,6 +499,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
   onCreateMatch: () => void
 }) {
   const locale = useDateLocale()
+  const { t } = useTranslation()
   const [view, setView] = useState<'upcoming' | 'past'>('upcoming')
   const [pastFilter, setPastFilter] = useState<PastFilter>('all')
   const [weekFilter, setWeekFilter] = useState<'this_week' | 'next_week' | 'this_month' | 'all'>('this_week')
@@ -541,7 +544,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
-        Create group match
+        {t('group_detail.create_group_match')}
       </button>
 
       {/* Upcoming / Past toggle */}
@@ -554,7 +557,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
               view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
           >
-            {v === 'upcoming' ? `Upcoming (${upcoming.length})` : `Past (${past.length})`}
+            {v === 'upcoming' ? t('group_detail.upcoming_count', { count: upcoming.length }) : t('group_detail.past_count', { count: past.length })}
           </button>
         ))}
       </div>
@@ -563,10 +566,10 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
       {view === 'upcoming' && upcoming.length > 0 && (
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-3">
           {([
-            { key: 'this_week' as const, label: 'This week' },
-            { key: 'next_week' as const, label: 'Next week' },
-            { key: 'this_month' as const, label: 'This month' },
-            { key: 'all' as const, label: 'All' },
+            { key: 'this_week' as const, label: t('group_detail.chip_this_week') },
+            { key: 'next_week' as const, label: t('group_detail.chip_next_week') },
+            { key: 'this_month' as const, label: t('group_detail.chip_this_month') },
+            { key: 'all' as const, label: t('group_detail.chip_all') },
           ]).map(({ key, label }) => (
             <button
               key={key}
@@ -584,7 +587,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
               needsRingersOnly ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 text-gray-500 bg-white'
             }`}
           >
-            Needs ringers
+            {t('group_detail.needs_ringers')}
           </button>
         </div>
       )}
@@ -594,10 +597,10 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
         <>
           <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
             {([
-              { id: 'all' as PastFilter, label: 'All' },
-              { id: 'competitive' as PastFilter, label: 'Competitive' },
-              { id: 'friendly' as PastFilter, label: 'Friendly' },
-              { id: 'this_month' as PastFilter, label: 'This month' },
+              { id: 'all' as PastFilter, label: t('group_detail.chip_all') },
+              { id: 'competitive' as PastFilter, label: t('group_detail.chip_competitive') },
+              { id: 'friendly' as PastFilter, label: t('group_detail.chip_friendly') },
+              { id: 'this_month' as PastFilter, label: t('group_detail.chip_this_month') },
             ]).map((f) => (
               <button
                 key={f.id}
@@ -613,9 +616,9 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
           {/* Stats summary */}
           {pastCount > 0 && (
           <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 mb-3">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">Your record in this group</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{t('group_detail.your_record_in_group')}</p>
             <div className="flex gap-4">
-              <span className="text-[13px] font-bold text-gray-900">{pastCount} played</span>
+              <span className="text-[13px] font-bold text-gray-900">{t('group_detail.played', { count: pastCount })}</span>
               <span className="text-[13px] font-bold text-green-700">{winsCount}W</span>
               <span className="text-[13px] font-bold text-red-500">{pastCount - winsCount}L</span>
               <span className="text-[13px] font-bold text-gray-500">{pastCount > 0 ? Math.round((winsCount / pastCount) * 100) : 0}%</span>
@@ -627,8 +630,8 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
 
       {filtered.length === 0 ? (
         <EmptyTab
-          message={view === 'upcoming' ? 'No upcoming matches' : 'No past matches'}
-          sub={view === 'upcoming' ? 'Create one above' : undefined}
+          message={view === 'upcoming' ? t('group_detail.no_upcoming_matches') : t('group_detail.no_past_matches')}
+          sub={view === 'upcoming' ? t('group_detail.create_one_above') : undefined}
         />
       ) : (
         <div className="space-y-2.5">
@@ -637,7 +640,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
             return (
               <div key={match.id} className={!isInMatch ? 'opacity-75' : ''}>
                 {!isInMatch && (
-                  <p className="text-[10px] text-gray-400 mb-0.5 pl-1">Not in this match</p>
+                  <p className="text-[10px] text-gray-400 mb-0.5 pl-1">{t('group_detail.not_in_this_match')}</p>
                 )}
                 <MatchCard match={match} currentUserId={userId} action="view" index={i} />
               </div>
@@ -657,6 +660,7 @@ function PollsTab({ polls, isLoading, groupId }: {
   groupId: string
 }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const now = new Date()
   const isStillOpen = (p: Poll) => p.status === 'open' && (p.closes_at ? new Date(p.closes_at) > now : true)
   const active   = polls.filter(isStillOpen)
@@ -671,16 +675,16 @@ function PollsTab({ polls, isLoading, groupId }: {
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
-        Create availability poll
+        {t('group_detail.create_poll')}
       </button>
 
       {polls.length === 0 ? (
-        <EmptyTab message="No polls yet" sub="Create one to find the best time to play" />
+        <EmptyTab message={t('group_detail.no_polls_yet')} sub={t('group_detail.no_polls_sub')} />
       ) : (
         <>
           {active.length > 0 && (
             <div className="mb-4">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Active</p>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('group_detail.active')}</p>
               <div className="space-y-2">
                 {active.map((poll) => <PollCard key={poll.id} poll={poll} />)}
               </div>
@@ -688,7 +692,7 @@ function PollsTab({ polls, isLoading, groupId }: {
           )}
           {past.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Past</p>
+              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('group_detail.past')}</p>
               <div className="space-y-2">
                 {past.map((poll) => <PollCard key={poll.id} poll={poll} />)}
               </div>
@@ -702,6 +706,7 @@ function PollsTab({ polls, isLoading, groupId }: {
 
 function PollCard({ poll }: { poll: Poll }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <button
       onClick={() => navigate(`/play/availability/${poll.id}`)}
@@ -712,7 +717,7 @@ function PollCard({ poll }: { poll: Poll }) {
           <p className="text-[13px] font-semibold text-gray-900 truncate">{poll.title}</p>
           {poll.closes_at && (
             <p className="text-[11px] text-gray-400 mt-0.5">
-              Closes {format(parseISO(poll.closes_at), 'EEE d MMM, HH:mm', { locale: getDateLocale() })}
+              {t('group_detail.closes')} {format(parseISO(poll.closes_at), 'EEE d MMM, HH:mm', { locale: getDateLocale() })}
             </p>
           )}
         </div>
@@ -721,7 +726,7 @@ function PollCard({ poll }: { poll: Poll }) {
             ? 'bg-green-50 text-green-600 border border-green-100'
             : 'bg-gray-100 text-gray-500'
         }`}>
-          {poll.status === 'open' ? 'Open' : 'Closed'}
+          {poll.status === 'open' ? t('group_detail.poll_open') : t('group_detail.poll_closed')}
         </span>
       </div>
     </button>
@@ -738,6 +743,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
 }) {
   const navigate    = useNavigate()
   const locale = useDateLocale()
+  const { t } = useTranslation()
   const [showCreate, setShowCreate] = useState(false)
   const queryClient = useQueryClient()
 
@@ -751,12 +757,12 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
           className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
         >
           <Plus className="h-4 w-4" />
-          Create event
+          {t('group_detail.create_event')}
         </button>
       )}
 
       {events.length === 0 ? (
-        <EmptyTab message="No events yet" sub={isAdmin ? 'Create one above' : 'Check back later'} />
+        <EmptyTab message={t('group_detail.no_events_yet')} sub={isAdmin ? t('group_detail.create_one_above') : t('group_detail.check_back_later')} />
       ) : (
         <div className="space-y-2">
           {events.map((event) => (
@@ -798,6 +804,7 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
   groupId: string
 }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   if (isLoading) return <TabSkeleton />
 
@@ -814,11 +821,11 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
         className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
-        Create league
+        {t('group_detail.create_league')}
       </button>
 
       {leagues.length === 0 ? (
-        <EmptyTab message="No leagues yet" sub="Create one above to start competing" />
+        <EmptyTab message={t('group_detail.no_leagues_yet')} sub={t('group_detail.no_leagues_sub')} />
       ) : (
         <div className="space-y-2">
           {leagues.map((league) => (
@@ -859,6 +866,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   const navigate    = useNavigate()
   const queryClient = useQueryClient()
   const locale = useDateLocale()
+  const { t } = useTranslation()
   const [adminSection, setAdminSection] = useState<AdminSection>('overview')
   const [confirmLeave, setConfirmLeave] = useState(false)
 
@@ -1006,7 +1014,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                     : 'bg-gray-100 text-gray-500'
                 }`}
               >
-                {s === 'announce' ? 'Post' : s}
+                {s === 'overview' ? t('group_detail.admin_overview') : s === 'members' ? t('group_detail.admin_members') : s === 'announce' ? t('group_detail.admin_post') : t('group_detail.admin_settings')}
               </button>
             ))}
           </div>
@@ -1016,10 +1024,10 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Total members', value: approvedMembers.length },
-                  { label: 'Pending requests', value: pendingMembers.length },
-                  { label: 'Avg group ELO', value: avgElo?.toLocaleString() ?? '—' },
-                  { label: 'Created', value: group.created_at ? format(parseISO(group.created_at), 'd MMM yyyy', { locale }) : '—' },
+                  { label: t('group_detail.stat_total_members'), value: approvedMembers.length },
+                  { label: t('group_detail.stat_pending_requests'), value: pendingMembers.length },
+                  { label: t('group_detail.stat_avg_elo'), value: avgElo?.toLocaleString() ?? '—' },
+                  { label: t('group_detail.stat_created'), value: group.created_at ? format(parseISO(group.created_at), 'd MMM yyyy', { locale }) : '—' },
                 ].map(({ label, value }) => (
                   <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
                     <p className="text-[11px] text-gray-400 font-medium">{label}</p>
@@ -1032,7 +1040,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   onClick={() => setAdminSection('members')}
                   className="w-full rounded-xl bg-amber-50 border border-amber-100 py-3 text-[13px] font-bold text-amber-700"
                 >
-                  {pendingMembers.length} pending request{pendingMembers.length !== 1 ? 's' : ''} — Review
+                  {pendingMembers.length === 1 ? t('group_detail.pending_review', { count: pendingMembers.length }) : t('group_detail.pending_review_plural', { count: pendingMembers.length })}
                 </button>
               )}
             </div>
@@ -1045,7 +1053,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               {(loadingPending || pendingMembers.length > 0) && (
                 <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
                   <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wide mb-3">
-                    Pending requests {pendingMembers.length > 0 ? `(${pendingMembers.length})` : ''}
+                    {t('group_detail.pending_requests_label')} {pendingMembers.length > 0 ? `(${pendingMembers.length})` : ''}
                   </p>
                   {loadingPending ? (
                     <div className="h-10 bg-amber-100 rounded-xl animate-pulse" />
@@ -1064,13 +1072,13 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                             onClick={() => approveMember(pm.user_id)}
                             className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white"
                           >
-                            Approve
+                            {t('group_detail.approve')}
                           </button>
                           <button
                             onClick={() => declineMember(pm.user_id)}
                             className="rounded-lg border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500"
                           >
-                            Decline
+                            {t('group_detail.decline')}
                           </button>
                         </div>
                       ))}
@@ -1082,7 +1090,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               {/* Approved members */}
               <div className="rounded-2xl border border-gray-100 p-4">
                 <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">
-                  Members ({approvedMembers.length})
+                  {t('group_detail.members_label', { count: approvedMembers.length })}
                 </p>
                 <div className="space-y-2">
                   {approvedMembers.map((m) => (
@@ -1095,7 +1103,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                             <span className="text-[10px] text-gray-400">(you)</span>
                           )}
                           {m.role === 'admin' && (
-                            <span className="text-[10px] font-bold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">Admin</span>
+                            <span className="text-[10px] font-bold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">{t('group_detail.badge_admin')}</span>
                           )}
                         </div>
                         {m.internal_ranking != null && (
@@ -1108,13 +1116,13 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                             onClick={() => toggleRole(m)}
                             className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-semibold text-gray-600"
                           >
-                            {m.role === 'admin' ? 'Demote' : 'Admin'}
+                            {m.role === 'admin' ? t('group_detail.role_demote') : t('group_detail.role_make_admin')}
                           </button>
                           <button
                             onClick={() => removeMember(m.id)}
                             className="rounded-lg border border-red-200 px-2.5 py-1 text-[10px] font-semibold text-red-500"
                           >
-                            Remove
+                            {t('group_detail.remove')}
                           </button>
                         </div>
                       )}
@@ -1128,12 +1136,12 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
           {/* ANNOUNCE */}
           {adminSection === 'announce' && (
             <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Send Announcement</p>
-              <p className="text-[12px] text-gray-400">Sends to all {approvedMembers.length} members as a notification.</p>
+              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('group_detail.send_announcement')}</p>
+              <p className="text-[12px] text-gray-400">{t('group_detail.announcement_subtitle', { count: approvedMembers.length })}</p>
               <textarea
                 value={announcement}
                 onChange={(e) => setAnnouncement(e.target.value)}
-                placeholder="Write an announcement for all members…"
+                placeholder={t('group_detail.announcement_placeholder')}
                 rows={4}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
               />
@@ -1142,7 +1150,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 disabled={sending || !announcement.trim()}
                 className="w-full rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-40"
               >
-                {sent ? `📢 Sent to ${sentCount} members ✓` : sending ? 'Sending…' : `Send to ${approvedMembers.length} members`}
+                {sent ? t('group_detail.sent_to_n_members', { count: sentCount }) : sending ? t('group_detail.sending') : t('group_detail.send_to_n_members', { count: approvedMembers.length })}
               </button>
             </div>
           )}
@@ -1150,22 +1158,22 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
           {/* SETTINGS */}
           {adminSection === 'settings' && (
             <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Group Settings</p>
+              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('group_detail.group_settings')}</p>
 
               {/* Banner upload */}
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Group Banner</label>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.group_banner')}</label>
                 {group.banner_url && (
                   <img src={group.banner_url} alt="Banner" className="w-full h-24 object-cover rounded-xl mb-2" />
                 )}
                 <label className={`flex items-center justify-center gap-2 w-full rounded-xl border border-dashed border-gray-300 py-2.5 text-[12px] font-semibold text-gray-500 cursor-pointer hover:border-teal-400 hover:text-teal-600 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
                   <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
-                  {uploading ? 'Uploading…' : 'Upload banner image'}
+                  {uploading ? t('group_detail.uploading') : t('group_detail.upload_banner')}
                 </label>
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Name</label>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.name_label')}</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -1174,28 +1182,28 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Description</label>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.description_label')}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
-                  placeholder="Describe your group…"
+                  placeholder={t('group_detail.description_placeholder')}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">City</label>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.city_label')}</label>
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  placeholder="e.g. London"
+                  placeholder={t('group_detail.city_placeholder')}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Visibility</label>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.visibility_label')}</label>
                 <div className="flex gap-2">
                   {(['open', 'private'] as const).map((v) => (
                     <button
@@ -1207,7 +1215,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           : 'border-gray-200 text-gray-500'
                       }`}
                     >
-                      {v === 'open' ? 'Open (anyone can join)' : 'Private (request to join)'}
+                      {v === 'open' ? t('group_detail.visibility_open') : t('group_detail.visibility_private')}
                     </button>
                   ))}
                 </div>
@@ -1215,9 +1223,9 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
               <div className="flex items-center justify-between py-1">
                 <div>
-                  <p className="text-[13px] font-medium text-gray-700">Auto-approve members</p>
+                  <p className="text-[13px] font-medium text-gray-700">{t('group_detail.auto_approve_label')}</p>
                   <p className="text-[11px] text-gray-400">
-                    {visibility === 'private' ? 'Disabled for private groups' : 'Skip approval for join requests'}
+                    {visibility === 'private' ? t('group_detail.auto_approve_help_private') : t('group_detail.auto_approve_help_open')}
                   </p>
                 </div>
                 <button
@@ -1234,24 +1242,24 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Max members (optional)</label>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.max_members_label')}</label>
                 <input
                   type="number"
                   value={maxMembers}
                   onChange={(e) => setMaxMembers(e.target.value)}
-                  placeholder="e.g. 20"
+                  placeholder={t('group_detail.max_members_placeholder')}
                   min="1"
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">Group rules (optional)</label>
+                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.group_rules_label')}</label>
                 <textarea
                   value={rules}
                   onChange={(e) => setRules(e.target.value)}
                   rows={3}
-                  placeholder="Code of conduct, match rules, etc."
+                  placeholder={t('group_detail.group_rules_placeholder')}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
                 />
               </div>
@@ -1261,7 +1269,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 disabled={saving}
                 className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
               >
-                {saved ? 'Saved!' : saving ? 'Saving…' : 'Save Changes'}
+                {saved ? t('group_detail.saved') : saving ? t('group_detail.saving') : t('group_detail.save_changes')}
               </button>
             </div>
           )}
@@ -1270,12 +1278,12 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
       {/* Danger Zone — visible to all members */}
       <div className="rounded-2xl border border-red-100 p-4">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">Danger Zone</p>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">{t('group_detail.danger_zone')}</p>
         <button
           onClick={() => setConfirmLeave(true)}
           className="w-full rounded-xl border border-red-200 py-3 text-[14px] font-semibold text-red-500"
         >
-          Leave Group
+          {t('group_detail.leave_group_btn')}
         </button>
       </div>
 
@@ -1293,11 +1301,11 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">Leave group?</p>
-              <p className="text-[13px] text-gray-500 text-center mb-6">You can rejoin later if the group is open.</p>
+              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('group_detail.leave_group')}</p>
+              <p className="text-[13px] text-gray-500 text-center mb-6">{t('group_detail.leave_group_help')}</p>
               <div className="flex gap-3">
-                <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">Cancel</button>
-                <button onClick={leaveGroup} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white">Leave</button>
+                <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">{t('group_detail.cancel')}</button>
+                <button onClick={leaveGroup} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white">{t('group_detail.leave')}</button>
               </div>
             </motion.div>
           </>
@@ -1335,6 +1343,7 @@ export function GroupDetailPage() {
   const navigate              = useNavigate()
   const { profile }           = useAuth()
   const userId                = profile?.id ?? ''
+  const { t } = useTranslation()
 
   // Store active tab in URL so browser back restores correct tab
   const [searchParams, setSearchParams] = useSearchParams()
@@ -1360,12 +1369,12 @@ export function GroupDetailPage() {
   const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
 
   const TABS: Array<{ id: Tab; label: string }> = [
-    { id: 'members',  label: 'Members'  },
-    { id: 'matches',  label: 'Matches'  },
-    { id: 'polls',    label: 'Polls'    },
-    { id: 'events',   label: 'Events'   },
-    { id: 'leagues',  label: 'Leagues'  },
-    ...(isAdmin ? [{ id: 'settings' as Tab, label: 'Settings' }] : []),
+    { id: 'members',  label: t('group_detail.tab_members')  },
+    { id: 'matches',  label: t('group_detail.tab_matches')  },
+    { id: 'polls',    label: t('group_detail.tab_polls')    },
+    { id: 'events',   label: t('group_detail.tab_events')   },
+    { id: 'leagues',  label: t('group_detail.tab_leagues')  },
+    ...(isAdmin ? [{ id: 'settings' as Tab, label: t('group_detail.tab_settings') }] : []),
   ]
 
   if (loadingGroup) {
@@ -1379,9 +1388,9 @@ export function GroupDetailPage() {
   if (!group) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-        <p className="text-[14px] font-semibold text-gray-500">Group not found</p>
+        <p className="text-[14px] font-semibold text-gray-500">{t('group_detail.group_not_found')}</p>
         <button onClick={() => navigate('/community')} className="mt-4 text-[13px] text-teal-600 font-semibold">
-          Back to Community
+          {t('group_detail.back_to_community')}
         </button>
       </div>
     )
@@ -1419,7 +1428,7 @@ export function GroupDetailPage() {
               )}
               {isAdmin && (
                 <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">
-                  Admin
+                  {t('group_detail.badge_admin')}
                 </span>
               )}
             </div>

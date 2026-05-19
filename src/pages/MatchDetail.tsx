@@ -399,6 +399,11 @@ export function MatchDetailPage() {
     queryKey: ['pending-invitees', id],
     enabled: !!id,
     queryFn: async () => {
+      // Fetch current player_ids to filter out already-confirmed invitees
+      const { data: matchData } = await supabase
+        .from('matches').select('player_ids').eq('id', id!).single()
+      const currentPids = ((matchData?.player_ids ?? []) as string[])
+
       const { data: invitations } = await supabase
         .from('match_invitations')
         .select('id, invitee_id, status, responded_at, is_broadcast')
@@ -407,13 +412,17 @@ export function MatchDetailPage() {
         .eq('is_broadcast', true)
         .order('responded_at', { ascending: true })
       if (!invitations?.length) return []
-      const inviteeIds = invitations.map((i: any) => i.invitee_id)
+
+      const pending = invitations.filter((inv: any) => !currentPids.includes(inv.invitee_id))
+      if (!pending.length) return []
+
+      const inviteeIds = pending.map((i: any) => i.invitee_id)
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, name, avatar_url, internal_ranking')
         .in('id', inviteeIds)
       const profileMap = new Map((profiles ?? []).map((p: any) => [p.id, p]))
-      return invitations.map((inv: any) => ({
+      return pending.map((inv: any) => ({
         id: inv.id,
         invitee_id: inv.invitee_id,
         inviteeName: profileMap.get(inv.invitee_id)?.name ?? null,
@@ -1653,7 +1662,7 @@ export function MatchDetailPage() {
                 <PlayerAvatar name={p.inviteeName} avatarUrl={p.inviteeAvatar} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-gray-900 truncate">{p.inviteeName ?? 'Unknown'}</p>
-                  <p className="text-[11px] text-gray-500">ELO {p.inviteeElo ?? '\u2014'} \u00B7 Accepted</p>
+                  <p className="text-[11px] text-gray-500">ELO {p.inviteeElo ?? '—'} · Accepted</p>
                 </div>
                 <button
                   onClick={() => confirmInviteeMutation.mutate(p.invitee_id)}

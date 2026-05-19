@@ -28,6 +28,7 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
   onCreateMatch?: () => void
 }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { profile } = useAuth()
   const userElo = (profile as any)?.internal_ranking ?? null
   const today = new Date().toISOString().split('T')[0]
@@ -104,7 +105,7 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
               <div className="h-1 w-10 rounded-full bg-gray-200" />
             </div>
             <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-              <h2 className="text-[15px] font-bold text-gray-900">Open matches near you</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('play.open_matches_near_you')}</h2>
               <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-600" />
               </button>
@@ -116,11 +117,11 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
                 </div>
               ) : openMatches.length === 0 ? (
                 <div className="text-center py-12 px-4">
-                  <p className="text-[15px] font-bold text-gray-700 mb-1">No open matches</p>
-                  <p className="text-[13px] text-gray-400 mb-4">Create one and invite players</p>
+                  <p className="text-[15px] font-bold text-gray-700 mb-1">{t('play.no_open_matches')}</p>
+                  <p className="text-[13px] text-gray-400 mb-4">{t('play.create_one_invite')}</p>
                   {onCreateMatch && (
                     <button onClick={() => { onClose(); onCreateMatch() }} className="rounded-2xl bg-[#009688] px-5 py-2.5 text-[13px] font-semibold text-white">
-                      Create match
+                      {t('play.create_match')}
                     </button>
                   )}
                 </div>
@@ -194,7 +195,7 @@ export function PlayPage() {
 
               <div className="relative flex items-center justify-between px-5 py-5">
                 <div className="text-left">
-                  <p className="text-[11px] font-semibold text-white/60 uppercase tracking-widest mb-1">Auto-match</p>
+                  <p className="text-[11px] font-semibold text-white/60 uppercase tracking-widest mb-1">{t('play.auto_match')}</p>
                   <p className="text-xl font-black text-white leading-tight">{t('play.find_my_game')}</p>
                   <p className="text-[13px] text-white/70 mt-1 leading-snug">{t('play.find_sub')}</p>
                 </div>
@@ -249,7 +250,7 @@ export function PlayPage() {
                 <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
                   <Trophy className="h-4 w-4 text-[#009688]" />
                 </div>
-                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">Leagues</span>
+                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.leagues')}</span>
               </button>
             </div>
           </motion.div>

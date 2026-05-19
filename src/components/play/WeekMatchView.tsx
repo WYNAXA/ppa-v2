@@ -11,6 +11,7 @@ import {
   isValid,
 } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
+import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -53,6 +54,7 @@ function MatchCardEnhanced({
   onJoinMatch: (matchId: string) => void
   onOfferRinger: (match: EnrichedMatch) => void
 }) {
+  const { t } = useTranslation()
   const isPlayer = match.player_ids.includes(userId)
   const openSlots = 4 - match.player_ids.length
   const showJoin = !isPlayer && openSlots > 0 && viewTab !== 'mine'
@@ -68,17 +70,17 @@ function MatchCardEnhanced({
         )}
         {match.poll_id && (
           <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 rounded-full px-2 py-0.5">
-            Auto-scheduled
+            {t('play.auto_scheduled')}
           </span>
         )}
         {!isPlayer && viewTab === 'group' && match.player_ids.length >= 4 && (
           <span className="text-[10px] font-medium text-gray-400 bg-gray-50 rounded-full px-2 py-0.5">
-            4/4 players
+            {t('play.players_full')}
           </span>
         )}
         {!isPlayer && openSlots > 0 && openSlots <= 2 && (
           <span className="text-[10px] font-bold text-orange-700 bg-orange-50 rounded-full px-2 py-0.5 animate-pulse">
-            {openSlots === 1 ? 'Ringer needed' : `${openSlots} spots open`}
+            {openSlots === 1 ? t('play.ringer_needed') : t('play.spots_open', { count: openSlots })}
           </span>
         )}
       </div>
@@ -101,7 +103,7 @@ function MatchCardEnhanced({
           className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-700 active:scale-[0.97] transition-transform"
         >
           <UserPlus className="h-3 w-3" />
-          I can ringer
+          {t('play.i_can_ringer')}
         </button>
       )}
     </div>
@@ -114,6 +116,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
   match: EnrichedMatch | null; userId: string; onClose: () => void
 }) {
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const locale = useDateLocale()
 
   const offerMutation = useMutation({
@@ -131,7 +134,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
       await supabase.from('notifications').insert({
         user_id: creatorId,
         type: 'ringer_offer',
-        title: 'Ringer available',
+        title: t('play.ringer_available_title'),
         message: `${name} is available to ringer for your match on ${format(parseISO(match.match_date), 'EEE d MMM', { locale })} at ${match.match_time?.slice(0, 5) ?? 'TBC'}`,
         related_id: match.id,
         read: false,
@@ -158,9 +161,9 @@ function RingerOfferSheet({ match, userId, onClose }: {
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
       >
-        <p className="text-[16px] font-bold text-gray-900 text-center mb-1">Offer to ringer?</p>
+        <p className="text-[16px] font-bold text-gray-900 text-center mb-1">{t('play.offer_to_ringer')}</p>
         <p className="text-[13px] text-gray-500 text-center mb-4">
-          The match creator will be notified. They can add you if they accept.
+          {t('play.ringer_offer_sub')}
         </p>
 
         <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 mb-4 space-y-2">
@@ -177,7 +180,9 @@ function RingerOfferSheet({ match, userId, onClose }: {
             ))}
           </div>
           <p className="text-[11px] text-gray-400">
-            {match.player_ids.length}/4 players · {4 - match.player_ids.length} spot{4 - match.player_ids.length !== 1 ? 's' : ''} open
+            {(4 - match.player_ids.length) === 1
+              ? t('play.players_spots', { current: match.player_ids.length, spots: 1 })
+              : t('play.players_spots_plural', { current: match.player_ids.length, spots: 4 - match.player_ids.length })}
           </p>
         </div>
 
@@ -186,18 +191,18 @@ function RingerOfferSheet({ match, userId, onClose }: {
             onClick={onClose}
             className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
           >
-            Cancel
+            {t('play.cancel')}
           </button>
           <button
             onClick={() => offerMutation.mutate()}
             disabled={offerMutation.isPending}
             className="flex-1 rounded-2xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-50"
           >
-            {offerMutation.isPending ? 'Sending…' : 'Confirm'}
+            {offerMutation.isPending ? t('play.sending') : t('play.confirm')}
           </button>
         </div>
         {offerMutation.isSuccess && (
-          <p className="text-[12px] text-green-600 text-center mt-2 font-semibold">Offer sent!</p>
+          <p className="text-[12px] text-green-600 text-center mt-2 font-semibold">{t('play.offer_sent')}</p>
         )}
       </motion.div>
     </>
@@ -210,6 +215,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   const { profile } = useAuth()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const userId = profile?.id ?? ''
 
   const locale = useDateLocale()
@@ -427,18 +433,18 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   // ── Filter chips (contextual) ──────────────────────────────────────────────
   const filterChips = viewTab === 'mine'
     ? [
-        { id: 'all', label: 'All' },
-        { id: 'groups', label: 'My Groups' },
+        { id: 'all', label: t('play.chip_all') },
+        { id: 'groups', label: t('play.chip_my_groups') },
         ...userGroups.map((g) => ({ id: g.id, label: g.name })),
-        { id: 'manual', label: 'Manual' },
+        { id: 'manual', label: t('play.chip_manual') },
       ]
     : viewTab === 'group'
     ? [
-        { id: 'all', label: 'All Groups' },
+        { id: 'all', label: t('play.chip_all_groups') },
         ...userGroups.map((g) => ({ id: g.id, label: g.name })),
       ]
     : [
-        { id: 'all', label: 'All' },
+        { id: 'all', label: t('play.chip_all') },
       ]
 
   // ── Navigation ─────────────────────────────────────────────────────────────
@@ -457,9 +463,9 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       <div className="px-5 pt-3 pb-1">
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
           {([
-            { id: 'mine' as ViewTab, label: 'My Matches' },
-            { id: 'group' as ViewTab, label: 'Group' },
-            { id: 'open' as ViewTab, label: 'Open' },
+            { id: 'mine' as ViewTab, label: t('play.tab_my_matches') },
+            { id: 'group' as ViewTab, label: t('play.tab_group') },
+            { id: 'open' as ViewTab, label: t('play.tab_open') },
           ]).map((tab) => (
             <button
               key={tab.id}
@@ -488,9 +494,9 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 : `${format(weekStart, 'd MMM', { locale })} — ${format(weekEnd, 'd MMM', { locale })}`}
             </p>
             {selectedDay ? (
-              <button onClick={() => setSelectedDay(null)} className="text-[11px] font-semibold text-[#009688] mt-0.5">Show full week</button>
+              <button onClick={() => setSelectedDay(null)} className="text-[11px] font-semibold text-[#009688] mt-0.5">{t('play.show_full_week')}</button>
             ) : !isCurrentWeek ? (
-              <button onClick={goToday} className="text-[11px] font-semibold text-[#009688] mt-0.5">Today</button>
+              <button onClick={goToday} className="text-[11px] font-semibold text-[#009688] mt-0.5">{t('play.today')}</button>
             ) : null}
           </div>
           <button onClick={goNextWeek} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
@@ -550,7 +556,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 : 'border-gray-200 text-gray-600 bg-white',
             )}
           >
-            Needs ringers
+            {t('play.needs_ringers')}
           </button>
           {filterChips.map((f) => (
             <button
@@ -573,9 +579,9 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       {!selectedDay && weekMatches.length > 0 && (
         <div className="mx-5 mt-2 mb-1 flex items-center gap-3 text-[12px] text-gray-500">
           <Calendar className="h-3.5 w-3.5 text-gray-400" />
-          <span className="font-semibold">{weekMatches.length} match{weekMatches.length !== 1 ? 'es' : ''}</span>
+          <span className="font-semibold">{weekMatches.length === 1 ? t('play.week_matches', { count: 1 }) : t('play.week_matches_plural', { count: weekMatches.length })}</span>
           <span>·</span>
-          <span>{uniquePlayers.size} players active</span>
+          <span>{t('play.players_active', { count: uniquePlayers.size })}</span>
         </div>
       )}
 
@@ -596,19 +602,19 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
           ) : filteredMatches.length === 0 ? (
             <div className="rounded-2xl bg-gray-50 border border-dashed border-gray-200 px-6 py-10 text-center">
               <p className="text-[14px] font-semibold text-gray-500 mb-1">
-                {viewTab === 'mine' && (selectedDay ? `No matches on ${format(selectedDay, 'EEEE d MMM', { locale })}` : 'No matches this week')}
-                {viewTab === 'group' && 'No group matches this week'}
-                {viewTab === 'open' && 'No open matches available'}
+                {viewTab === 'mine' && (selectedDay ? t('play.no_matches_on_date', { date: format(selectedDay, 'EEEE d MMM', { locale }) }) : t('play.no_matches_this_week'))}
+                {viewTab === 'group' && t('play.no_group_matches_this_week')}
+                {viewTab === 'open' && t('play.no_open_matches_available')}
               </p>
               <p className="text-[12px] text-gray-400 mb-4">
-                {viewTab === 'mine' ? 'Create a match or check your availability' : 'Check back later or create one'}
+                {viewTab === 'mine' ? t('play.empty_mine_subtitle') : t('play.empty_group_subtitle')}
               </p>
               <button
                 onClick={onCreateMatch}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 <Plus className="h-4 w-4" />
-                Create match
+                {t('play.create_match')}
               </button>
             </div>
           ) : (
@@ -621,7 +627,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                       <div key={day.toISOString()}>
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5 mt-3 first:mt-0">
                           {format(day, 'EEEE d MMM', { locale })}
-                          {isSameDay(day, today) && <span className="text-[#009688] ml-1">· Today</span>}
+                          {isSameDay(day, today) && <span className="text-[#009688] ml-1">{t('play.today_dot')}</span>}
                         </p>
                         <div className="space-y-2">
                           {dayMatches.map((match, i) => (

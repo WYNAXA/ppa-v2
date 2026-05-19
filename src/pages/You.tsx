@@ -890,7 +890,7 @@ export function YouPage() {
               >
                 <div className="mb-1 h-[15px]">
                   {favPartner
-                    ? <PlayerAvatar name={favPartner.name} avatarUrl={favPartner.avatar_url} size="xs" />
+                    ? <div className="h-[15px] w-[15px] rounded-full bg-white/20 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{favPartner.name?.charAt(0)?.toUpperCase() ?? '?'}</span></div>
                     : <span className="text-[15px] opacity-50">👥</span>
                   }
                 </div>

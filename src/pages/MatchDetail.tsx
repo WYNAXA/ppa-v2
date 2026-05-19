@@ -1667,9 +1667,13 @@ export function MatchDetailPage() {
                 <button
                   onClick={() => confirmInviteeMutation.mutate(p.invitee_id)}
                   disabled={confirmingInviteeId !== null}
-                  className="rounded-xl bg-blue-600 px-3 py-1.5 text-[12px] font-semibold text-white disabled:opacity-50"
+                  className={`rounded-xl px-3 py-1.5 text-[12px] font-semibold text-white ${
+                    confirmingInviteeId === p.invitee_id
+                      ? 'bg-blue-700 animate-pulse'
+                      : 'bg-blue-600 disabled:bg-blue-400'
+                  }`}
                 >
-                  {confirmingInviteeId === p.invitee_id ? 'Confirming\u2026' : 'Confirm'}
+                  {confirmingInviteeId === p.invitee_id ? 'Confirming…' : 'Confirm'}
                 </button>
               </div>
             ))}

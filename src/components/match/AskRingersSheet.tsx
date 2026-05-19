@@ -207,7 +207,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
               )}
 
               {sortedRingers.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">{t('ringers.ask_ringers_no_ringers')}</p>
+                <p className="text-[13px] text-gray-500 text-center py-6">{groupId ? t('ringers.ask_ringers_no_ringers') : t('ringers.ask_ringers_no_ringers_network')}</p>
               ) : (
                 <>
                   {selectableCount > 1 && (

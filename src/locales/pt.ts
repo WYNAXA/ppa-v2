@@ -410,6 +410,7 @@ export default {
     ask_ringers_select_all: 'Selecionar todos',
     ask_ringers_send_btn: 'Enviar para {{count}} suplente(s)',
     ask_ringers_no_ringers: 'Este grupo não tem suplentes ainda',
+    ask_ringers_no_ringers_network: 'Sua rede ainda não tem ringers',
     ringer_status_pending: 'Aguardando',
     ringer_status_accepted: 'Disponível',
     ringer_status_declined: 'Não pode',

@@ -176,6 +176,30 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
               {people.length === 0 ? (
                 <p className="text-[13px] text-gray-400 text-center py-6">No one found</p>
               ) : (
+                <>
+                <div className="flex items-center justify-between px-1 mb-2">
+                  <p className="text-[11px] text-gray-500">{people.length} {people.length === 1 ? 'person' : 'people'}</p>
+                  {people.filter(p => !getInvitationStatus(p.id)).length > 0 && (
+                    <button
+                      onClick={() => {
+                        const selectable = people.filter(p => !getInvitationStatus(p.id))
+                        const allSelected = selectable.every(p => selected.has(p.id))
+                        if (allSelected) {
+                          const next = new Set(selected)
+                          selectable.forEach(p => next.delete(p.id))
+                          setSelected(next)
+                        } else {
+                          const next = new Set(selected)
+                          selectable.forEach(p => next.add(p.id))
+                          setSelected(next)
+                        }
+                      }}
+                      className="text-[12px] font-semibold text-blue-600"
+                    >
+                      {people.filter(p => !getInvitationStatus(p.id)).every(p => selected.has(p.id)) ? 'Deselect all' : 'Select all'}
+                    </button>
+                  )}
+                </div>
                 <div className="space-y-2">
                   {people.map(person => {
                     const status = getInvitationStatus(person.id)
@@ -218,6 +242,7 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                     )
                   })}
                 </div>
+                </>
               )}
 
               {selected.size > 0 && (

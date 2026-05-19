@@ -25,25 +25,25 @@ function todayStr() {
   return new Date().toISOString().split('T')[0]
 }
 
-function getCountdown(matchDate: string, matchTime: string | null): string {
+function getCountdown(matchDate: string, matchTime: string | null, t: (key: string, opts?: Record<string, unknown>) => string): string {
   try {
     const diff = differenceInCalendarDays(parseISO(matchDate), new Date())
-    if (diff === 0) return matchTime ? `Today at ${matchTime.slice(0, 5)}` : 'Today'
-    if (diff === 1) return matchTime ? `Tomorrow at ${matchTime.slice(0, 5)}` : 'Tomorrow'
-    if (diff > 1)  return `In ${diff} days`
+    if (diff === 0) return matchTime ? t('home.today_at', { time: matchTime.slice(0, 5) }) : t('home.today')
+    if (diff === 1) return matchTime ? t('home.tomorrow_at', { time: matchTime.slice(0, 5) }) : t('home.tomorrow')
+    if (diff > 1)  return t('home.in_days', { count: diff })
   } catch { /* fall through */ }
   return matchDate
 }
 
-function timeAgo(dateStr: string): string {
+function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
   try {
     const diff = Date.now() - parseISO(dateStr).getTime()
     const mins = Math.floor(diff / 60_000)
-    if (mins < 1)  return 'Just now'
-    if (mins < 60) return `${mins}m ago`
+    if (mins < 1)  return t('home.just_now')
+    if (mins < 60) return t('home.mins_ago', { count: mins })
     const hours = Math.floor(mins / 60)
-    if (hours < 24) return `${hours}h ago`
-    return `${Math.floor(hours / 24)}d ago`
+    if (hours < 24) return t('home.hours_ago', { count: hours })
+    return t('home.days_ago', { count: Math.floor(hours / 24) })
   } catch { return '' }
 }
 
@@ -283,11 +283,11 @@ function useRecentActivity(userId: string) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-const TYPE_BADGE: Record<string, { label: string; className: string }> = {
-  competitive: { label: 'Competitive', className: 'bg-orange-400/20 text-orange-100 border-orange-300/20' },
-  friendly:    { label: 'Friendly',    className: 'bg-blue-400/20 text-blue-100 border-blue-300/20'     },
-  casual:      { label: 'Casual',      className: 'bg-white/20 text-white/80 border-white/20'           },
-  group:       { label: 'Group',       className: 'bg-white/20 text-white/80 border-white/20'           },
+const TYPE_BADGE: Record<string, { key: string; className: string }> = {
+  competitive: { key: 'home.type_competitive', className: 'bg-orange-400/20 text-orange-100 border-orange-300/20' },
+  friendly:    { key: 'home.type_friendly',    className: 'bg-blue-400/20 text-blue-100 border-blue-300/20'     },
+  casual:      { key: 'home.type_casual',      className: 'bg-white/20 text-white/80 border-white/20'           },
+  group:       { key: 'home.type_group',       className: 'bg-white/20 text-white/80 border-white/20'           },
 }
 
 function NextMatchCard({
@@ -298,8 +298,9 @@ function NextMatchCard({
   onRecordResult: () => void
 }) {
   const navigate   = useNavigate()
+  const { t } = useTranslation()
   const locale = useDateLocale()
-  const countdown  = getCountdown(match.match_date, match.match_time)
+  const countdown  = getCountdown(match.match_date, match.match_time, t)
   const matchStart = match.match_time
     ? new Date(`${match.match_date}T${match.match_time}`)
     : new Date(`${match.match_date}T00:00:00`)
@@ -328,7 +329,7 @@ function NextMatchCard({
               'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize',
               typeStyle.className
             )}>
-              {typeStyle.label}
+              {t(typeStyle.key)}
             </span>
           )}
         </div>
@@ -367,7 +368,7 @@ function NextMatchCard({
             onClick={() => navigate(`/matches/${match.id}`)}
             className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 text-[13px] font-bold text-[#009688]"
           >
-            View match <ChevronRight className="h-4 w-4" />
+            {t('home.view_match')} <ChevronRight className="h-4 w-4" />
           </button>
           {canRecord && (
             <button
@@ -375,7 +376,7 @@ function NextMatchCard({
               className="flex items-center justify-center gap-1.5 rounded-xl bg-white/20 py-2.5 text-[13px] font-bold text-white border border-white/30"
             >
               <Trophy className="h-3.5 w-3.5" />
-              Record result
+              {t('home.record_result')}
             </button>
           )}
         </div>
@@ -386,6 +387,7 @@ function NextMatchCard({
 
 function EmptyMatchCard({ onCreateMatch }: { onCreateMatch: () => void }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -395,21 +397,21 @@ function EmptyMatchCard({ onCreateMatch }: { onCreateMatch: () => void }) {
       <div className="h-12 w-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
         <Calendar className="h-6 w-6 text-gray-400" />
       </div>
-      <p className="text-[14px] font-bold text-gray-700 mb-1">No matches coming up</p>
-      <p className="text-[12px] text-gray-400 mb-4">Find a time that works or create a match</p>
+      <p className="text-[14px] font-bold text-gray-700 mb-1">{t('home.no_matches')}</p>
+      <p className="text-[12px] text-gray-400 mb-4">{t('home.no_matches_sub')}</p>
       <div className="grid grid-cols-2 gap-2">
         <button
           onClick={() => navigate('/play/availability')}
           className="rounded-xl border border-[#009688] py-2.5 text-[13px] font-bold text-[#009688]"
         >
-          Find my game
+          {t('home.find_my_game')}
         </button>
         <button
           onClick={onCreateMatch}
           className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
         >
           <Plus className="h-3.5 w-3.5" />
-          Create match
+          {t('home.create_match')}
         </button>
       </div>
     </motion.div>
@@ -426,6 +428,7 @@ function RankingCard({
   isLoading: boolean
 }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const elo      = profile?.internal_ranking
 
   return (
@@ -437,14 +440,14 @@ function RankingCard({
       whileTap={{ scale: 0.97 }}
       className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
     >
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">My ranking</p>
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.ranking')}</p>
       <p className="text-[26px] font-black text-[#009688] leading-none">{elo != null ? elo.toLocaleString() : '—'}</p>
       <p className="text-[11px] text-gray-500 mt-0.5 font-medium">ELO</p>
 
       {!isLoading && ranking && (
         <div className="mt-2.5 flex items-center gap-1.5">
           <p className="text-[11px] text-gray-500">
-            Ranked <span className="font-bold text-gray-700">#{ranking.rank}</span> globally
+            {t('home.ranked_globally', { rank: ranking.rank })}
           </p>
           {ranking.trend > 0 ? (
             <TrendingUp className="h-3 w-3 text-green-500" />
@@ -462,6 +465,7 @@ function RankingCard({
 
 function PollCard({ poll }: { poll: ActivePoll | null }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   return (
     <motion.button
       onClick={() => navigate(poll ? `/play/availability/${poll.id}` : '/play/availability')}
@@ -471,7 +475,7 @@ function PollCard({ poll }: { poll: ActivePoll | null }) {
       whileTap={{ scale: 0.97 }}
       className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
     >
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Availability</p>
+      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.availability')}</p>
       {poll ? (
         <>
           <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1.5">
@@ -480,25 +484,24 @@ function PollCard({ poll }: { poll: ActivePoll | null }) {
           <div className="flex items-center gap-1.5 mb-2">
             <Users className="h-3 w-3 text-gray-400" />
             <p className="text-[11px] text-gray-500">
-              <span className="font-bold text-gray-700">{poll.responseCount}</span>
-              /{poll.memberCount} responded
+              {t('home.responded', { count: poll.responseCount, total: poll.memberCount })}
             </p>
           </div>
           {poll.userHasResponded ? (
             <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11px] font-bold text-[#009688]">
-              You responded · Edit
+              {t('home.you_responded')}
             </span>
           ) : (
             <span className="inline-flex items-center rounded-xl bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white">
-              Add yours
+              {t('home.add_yours')}
             </span>
           )}
         </>
       ) : (
         <>
-          <p className="text-[12px] text-gray-500 mb-2">No open polls right now</p>
+          <p className="text-[12px] text-gray-500 mb-2">{t('home.no_polls')}</p>
           <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#009688]">
-            Check availability <ChevronRight className="h-3.5 w-3.5" />
+            {t('home.check_availability')} <ChevronRight className="h-3.5 w-3.5" />
           </span>
         </>
       )}
@@ -516,6 +519,7 @@ const ACTIVITY_ICON: Record<string, typeof Trophy> = {
 
 function ActivityFeed({ items }: { items: ActivityItem[] }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   function handleTap(item: ActivityItem) {
     if (!item.related_id) return
@@ -548,7 +552,7 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
               <p className={cn('text-[13px] leading-snug', item.read ? 'text-gray-600' : 'font-semibold text-gray-800')}>
                 {item.message}
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo(item.created_at)}</p>
+              <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo(item.created_at, t)}</p>
             </div>
             {!item.read && (
               <div className="h-2 w-2 rounded-full bg-[#009688] flex-shrink-0 mt-2" />
@@ -561,21 +565,22 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
 }
 
 function QuickStatsRow({ stats }: { stats: QuickStats | undefined }) {
+  const { t } = useTranslation()
   const items = [
     {
       value:    stats ? `${stats.weekMatches}` : '—',
-      label:    'matches',
-      subtitle: 'this week',
+      label:    t('home.matches_this_week'),
+      subtitle: t('home.this_week'),
     },
     {
       value:    stats ? `${stats.winRate}%` : '—',
-      label:    'win rate',
-      subtitle: 'all time',
+      label:    t('home.win_rate'),
+      subtitle: t('home.all_time'),
     },
     {
       value:    stats ? `${stats.streak}` : '—',
-      label:    'win streak',
-      subtitle: 'last 5 games',
+      label:    t('home.win_streak'),
+      subtitle: t('home.last_5'),
     },
   ]
   return (
@@ -743,7 +748,7 @@ export function HomePage() {
         {/* ── Group opportunities ── */}
         {groupOpps.length > 0 && (
           <section>
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide mb-2">In your groups this week</h2>
+            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.in_your_groups_week')}</h2>
             <div className="space-y-2">
               {groupOpps.map((m) => (
                 <button
@@ -764,11 +769,11 @@ export function HomePage() {
                         {m.group_name && (
                           <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{m.group_name}</span>
                         )}
-                        <span className="text-[10px] font-bold text-orange-600">{m.spots} spot{m.spots !== 1 ? 's' : ''} open</span>
+                        <span className="text-[10px] font-bold text-orange-600">{m.spots === 1 ? t('home.spots_open_one', { count: 1 }) : t('home.spots_open', { count: m.spots })}</span>
                       </div>
                     </div>
                     <span className="rounded-xl bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white flex-shrink-0">
-                      Join
+                      {t('home.join')}
                     </span>
                   </div>
                 </button>
@@ -785,14 +790,14 @@ export function HomePage() {
               onClick={() => navigate('/notifications')}
               className="text-[12px] text-[#009688] font-semibold"
             >
-              See all
+              {t('home.see_all')}
             </button>
           </div>
 
           {activity.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-400">No recent activity</p>
-              <p className="text-[12px] text-gray-300 mt-1">Play a match to get started</p>
+              <p className="text-[13px] font-semibold text-gray-400">{t('home.no_activity')}</p>
+              <p className="text-[12px] text-gray-300 mt-1">{t('home.no_activity_sub')}</p>
             </div>
           ) : (
             <ActivityFeed items={activity} />

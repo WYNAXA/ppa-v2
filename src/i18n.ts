@@ -7,6 +7,7 @@ import fr from './locales/fr'
 import it from './locales/it'
 import sv from './locales/sv'
 import ar from './locales/ar'
+import hi from './locales/hi'
 
 const STORAGE_KEY = 'ppa_language'
 
@@ -18,6 +19,7 @@ export const SUPPORTED_LANGUAGES = [
   { code: 'it', label: 'Italiano' },
   { code: 'sv', label: 'Svenska' },
   { code: 'ar', label: 'العربية' },
+  { code: 'hi', label: 'हिन्दी' },
 ]
 
 const SUPPORTED_CODES = SUPPORTED_LANGUAGES.map((l) => l.code)
@@ -41,6 +43,7 @@ i18n
       it: { translation: it },
       sv: { translation: sv },
       ar: { translation: ar },
+      hi: { translation: hi },
     },
     lng: savedLang,
     fallbackLng: 'en',

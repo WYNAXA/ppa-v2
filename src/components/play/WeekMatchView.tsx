@@ -10,7 +10,7 @@ import {
   parseISO,
   isValid,
 } from 'date-fns'
-import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
+import { useDateLocale } from '@/lib/dateLocale'
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'

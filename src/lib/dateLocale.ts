@@ -1,3 +1,4 @@
+import type { Locale } from 'date-fns'
 import { enGB, es, pt, fr, it, sv, ar, hi } from 'date-fns/locale'
 import { useTranslation } from 'react-i18next'
 import i18n from '@/i18n'

@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { format, addHours } from 'date-fns'
-import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
+import { getDateLocale } from '@/lib/dateLocale'
 
 interface CreateEventSheetProps {
   open: boolean

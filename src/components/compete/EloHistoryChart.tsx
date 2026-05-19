@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts'
 import { format, parseISO, subMonths } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
@@ -41,6 +42,7 @@ function CustomTooltip({ active, payload }: any) {
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
+  const locale = useDateLocale()
   const [range, setRange] = useState<TimeRange>('3m')
 
   // Fetch current ELO from profile
@@ -70,7 +72,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
         date: r.created_at as string,
         elo: r.rating_after as number,
         change: r.rating_change as number,
-        label: format(parseISO(r.created_at as string), 'd MMM'),
+        label: format(parseISO(r.created_at as string), 'd MMM', { locale }),
       }))
     },
     staleTime: 5 * 60 * 1000,

@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -16,6 +17,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
   const { profile } = useAuth()
   const userId = profile?.id ?? ''
   const queryClient = useQueryClient()
+  const locale = useDateLocale()
   const today = new Date().toISOString().split('T')[0]
 
   const { data: matches = [], isLoading } = useQuery({
@@ -42,7 +44,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
         .eq('id', match.id)
       if (error) throw error
 
-      const dateStr = (() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()
+      const dateStr = (() => { try { return format(parseISO(match.match_date), 'EEE d MMM', { locale }) } catch { return match.match_date } })()
       await supabase.from('notifications').insert({
         user_id: playerId,
         type: 'match_created',
@@ -100,7 +102,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                 <div className="space-y-2">
                   <p className="text-[11px] text-gray-400 mb-2">Select a match to invite {playerName.split(' ')[0]} to:</p>
                   {matches.map((m: any) => {
-                    const dateStr = (() => { try { return format(parseISO(m.match_date), 'EEE d MMM') } catch { return m.match_date } })()
+                    const dateStr = (() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()
                     const timeStr = m.match_time?.slice(0, 5) ?? ''
                     const slots = 4 - (m.player_ids?.length ?? 0)
                     return (

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -750,6 +751,7 @@ export function YouPage() {
   const navigate = useNavigate()
   const userId = authProfile?.id ?? ''
 
+  const locale = useDateLocale()
   const [historyFilter, setHistoryFilter]   = useState<'all' | 'wins' | 'losses'>('all')
   const [historyLimit, setHistoryLimit]     = useState(10)
   const [showEdit, setShowEdit]             = useState(false)
@@ -990,7 +992,7 @@ export function YouPage() {
               <div className="space-y-2">
                 {filteredHistory.map((m) => {
                   const dateStr = (() => {
-                    try { return format(parseISO(m.match_date), 'd MMM yyyy') } catch { return m.match_date }
+                    try { return format(parseISO(m.match_date), 'd MMM yyyy', { locale }) } catch { return m.match_date }
                   })()
                   return (
                     <div key={m.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
@@ -1035,7 +1037,7 @@ export function YouPage() {
                     <p className="text-[24px] leading-none mb-1">{meta.emoji}</p>
                     <p className="text-[11px] font-semibold text-gray-700 leading-tight">{meta.label}</p>
                     <p className="text-[10px] text-gray-400 mt-0.5">
-                      {(() => { try { return format(parseISO(a.earned_at), 'd MMM') } catch { return '' } })()}
+                      {(() => { try { return format(parseISO(a.earned_at), 'd MMM', { locale }) } catch { return '' } })()}
                     </p>
                   </div>
                 )

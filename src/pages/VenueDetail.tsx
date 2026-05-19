@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe } from 'lucide-react'
 import { format } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -79,6 +80,7 @@ export function VenueDetailPage() {
   const { user } = useAuth()
   const userId = user?.id
 
+  const locale = useDateLocale()
   const [userRating, setUserRating] = useState(0)
   const [userReview, setUserReview] = useState('')
 
@@ -500,7 +502,7 @@ export function VenueDetailPage() {
                     <div className="flex items-center gap-0.5">{renderStars(r.rating)}</div>
                   </div>
                   <span className="text-xs text-gray-400">
-                    {format(new Date(r.created_at), 'd MMM yyyy')}
+                    {format(new Date(r.created_at), 'd MMM yyyy', { locale })}
                   </span>
                 </div>
                 {r.review && <p className="text-sm text-gray-600">{r.review}</p>}

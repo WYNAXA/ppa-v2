@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, CheckCircle, Clock, Trophy, AlertTriangle, Star, Users, Shuffle, RefreshCw } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -91,7 +92,7 @@ async function fetchPollDetail(pollId: string, userId: string) {
 function getDayLabel(weekStartDate: string, dayName: string): string {
   try {
     const d = getSlotDate(weekStartDate, dayName)
-    return format(d, 'EEEE d MMMM')
+    return format(d, 'EEEE d MMMM', { locale: getDateLocale() })
   } catch {
     return dayName
   }
@@ -105,6 +106,7 @@ export function AvailabilityPollPage() {
   const { profile } = useAuth()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const locale = useDateLocale()
   const userId = profile?.id ?? ''
 
   // ── Query ──
@@ -448,7 +450,7 @@ export function AvailabilityPollPage() {
   const closesLabel = (() => {
     try {
       if (isClosed) return 'Closed'
-      return `Closes ${format(parseISO(poll.closes_at), 'MMM d, yyyy \'at\' h:mm a')}`
+      return `Closes ${format(parseISO(poll.closes_at), 'MMM d, yyyy 'at' h:mm a', { locale })}`
     } catch { return '' }
   })()
 
@@ -884,10 +886,10 @@ export function AvailabilityPollPage() {
                   <option value="">No preference</option>
                   {selectedDays.map((day) => {
                     const d = getSlotDate(poll.week_start_date, day)
-                    const dateStr = format(d, 'yyyy-MM-dd')
+                    const dateStr = format(d, 'yyyy-MM-dd', { locale })
                     return (
                       <option key={day} value={dateStr}>
-                        {day} ({format(d, 'MMM d')})
+                        {day} ({format(d, 'MMM d', { locale })})
                       </option>
                     )
                   })}

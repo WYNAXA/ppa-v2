@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { PlayerAvatar } from './PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { format, parseISO } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 
 export interface MatchCardData {
   id: string
@@ -48,7 +49,7 @@ const STATUS_DOT: Record<string, string> = {
 function formatMatchDate(dateStr: string, timeStr: string | null) {
   try {
     const d = parseISO(dateStr)
-    const dayPart = format(d, 'EEE d MMM')
+    const dayPart = format(d, 'EEE d MMM', { locale: getDateLocale() })
     if (!timeStr) return dayPart
     return `${dayPart} · ${timeStr.slice(0, 5)}`
   } catch {

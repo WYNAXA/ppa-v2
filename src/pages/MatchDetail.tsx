@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO, addHours, isBefore } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -217,6 +218,7 @@ export function MatchDetailPage() {
   const location = useLocation()
   const { profile } = useAuth()
   const { t } = useTranslation()
+  const locale = useDateLocale()
 
   // Realtime: auto-refresh when match/results/votes change
   useMatchSubscription(id ?? null)
@@ -707,7 +709,7 @@ export function MatchDetailPage() {
   const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }
 
   const formattedDate = (() => {
-    try { return format(parseISO(match.match_date), 'EEEE, d MMMM yyyy') } catch { return match.match_date }
+    try { return format(parseISO(match.match_date), 'EEEE, d MMMM yyyy', { locale }) } catch { return match.match_date }
   })()
 
   // Calendar event
@@ -801,7 +803,7 @@ export function MatchDetailPage() {
       if (realPlayerIds.length > 0) {
         const { data: realProfiles } = await supabase.from('profiles').select('id').in('id', realPlayerIds)
         const validIds = (realProfiles ?? []).map((p: any) => p.id)
-        const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM') } catch { return data.match.match_date } })()
+        const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM', { locale }) } catch { return data.match.match_date } })()
         if (validIds.length > 0) {
           await supabase.from('notifications').insert(
             validIds.map((pid: string) => ({
@@ -858,7 +860,7 @@ export function MatchDetailPage() {
       if (allPlayerIds.length > 0) {
         const { data: realProfiles } = await supabase.from('profiles').select('id').in('id', allPlayerIds)
         const validIds = (realProfiles ?? []).map((p: any) => p.id)
-        const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM') } catch { return data.match.match_date } })()
+        const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM', { locale }) } catch { return data.match.match_date } })()
         if (validIds.length > 0) {
           await supabase.from('notifications').insert(
             validIds.map((pid: string) => ({
@@ -1399,7 +1401,7 @@ export function MatchDetailPage() {
           <p className="text-[14px] font-bold text-teal-900 mb-1">{t('ringers.ringer_request_banner_title')}</p>
           <p className="text-[12px] text-teal-700 mb-3">
             {t('ringers.ringer_request_banner_subtitle', {
-              expiry: format(parseISO(myRingerRequest.expires_at), 'EEE d MMM, HH:mm')
+              expiry: format(parseISO(myRingerRequest.expires_at), 'EEE d MMM, HH:mm', { locale })
             })}
           </p>
           <div className="flex gap-2">
@@ -1435,7 +1437,7 @@ export function MatchDetailPage() {
       {myInvitation?.status === 'pending' && new Date(myInvitation.expires_at) > new Date() && (
         <div className="mx-5 mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
           <p className="text-[14px] font-bold text-blue-900 mb-1">You've been invited to this match</p>
-          <p className="text-[12px] text-blue-700 mb-3">Reply by {format(parseISO(myInvitation.expires_at), 'EEE d MMM, HH:mm')}</p>
+          <p className="text-[12px] text-blue-700 mb-3">Reply by {format(parseISO(myInvitation.expires_at), 'EEE d MMM, HH:mm', { locale })}</p>
           <div className="flex gap-2">
             <button onClick={() => respondInvitationMutation.mutate(true)} disabled={respondInvitationMutation.isPending}
               className="flex-1 rounded-xl bg-blue-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">

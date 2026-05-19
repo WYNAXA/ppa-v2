@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Trophy, BarChart2, Calendar } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -291,7 +292,7 @@ export function PlayerProfilePage() {
               const draw = m.result_type === 'draw'
               const scoreStr = `${m.team1_score}–${m.team2_score}`
               let dateLabel = m.match_date
-              try { dateLabel = format(parseISO(m.match_date), 'EEE d MMM yyyy') } catch {}
+              try { dateLabel = format(parseISO(m.match_date), 'EEE d MMM yyyy', { locale: getDateLocale() }) } catch {}
 
               return (
                 <button

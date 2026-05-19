@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star } from 'lucide-react'
 import { format, parseISO, startOfWeek, endOfWeek, addDays, endOfMonth } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
@@ -495,11 +496,12 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
   userId: string
   onCreateMatch: () => void
 }) {
+  const locale = useDateLocale()
   const [view, setView] = useState<'upcoming' | 'past'>('upcoming')
   const [pastFilter, setPastFilter] = useState<PastFilter>('all')
   const [weekFilter, setWeekFilter] = useState<'this_week' | 'next_week' | 'this_month' | 'all'>('this_week')
   const [needsRingersOnly, setNeedsRingersOnly] = useState(false)
-  const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd')
+  const monthStart = format(new Date(new Date().getFullYear(), new Date().getMonth(), 1), 'yyyy-MM-dd', { locale })
 
   const filteredPast = past.filter((m) => {
     if (pastFilter === 'competitive') return m.match_type === 'competitive'
@@ -510,11 +512,11 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
 
   // Week filter for upcoming matches
   const now = new Date()
-  const thisWeekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const thisWeekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const nextWeekStart = format(startOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const nextWeekEnd = format(endOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const thisMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd')
+  const thisWeekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd', { locale })
+  const thisWeekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd', { locale })
+  const nextWeekStart = format(startOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd', { locale })
+  const nextWeekEnd = format(endOfWeek(addDays(now, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd', { locale })
+  const thisMonthEnd = format(endOfMonth(now), 'yyyy-MM-dd', { locale })
 
   let filteredUpcoming = upcoming
   if (weekFilter === 'this_week') filteredUpcoming = upcoming.filter(m => m.match_date >= thisWeekStart && m.match_date <= thisWeekEnd)
@@ -710,7 +712,7 @@ function PollCard({ poll }: { poll: Poll }) {
           <p className="text-[13px] font-semibold text-gray-900 truncate">{poll.title}</p>
           {poll.closes_at && (
             <p className="text-[11px] text-gray-400 mt-0.5">
-              Closes {format(parseISO(poll.closes_at), 'EEE d MMM, HH:mm')}
+              Closes {format(parseISO(poll.closes_at), 'EEE d MMM, HH:mm', { locale: getDateLocale() })}
             </p>
           )}
         </div>
@@ -735,6 +737,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
   isAdmin: boolean
 }) {
   const navigate    = useNavigate()
+  const locale = useDateLocale()
   const [showCreate, setShowCreate] = useState(false)
   const queryClient = useQueryClient()
 
@@ -764,8 +767,8 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
             >
               <p className="text-[13px] font-semibold text-gray-900">{event.title}</p>
               <p className="text-[12px] text-gray-500 mt-0.5">
-                {format(parseISO(event.start_time), 'EEE d MMM · HH:mm')}
-                {event.end_time && ` – ${format(parseISO(event.end_time), 'HH:mm')}`}
+                {format(parseISO(event.start_time), 'EEE d MMM · HH:mm', { locale })}
+                {event.end_time && ` – ${format(parseISO(event.end_time), 'HH:mm', { locale })}`}
               </p>
               {event.location && (
                 <p className="text-[11px] text-gray-400 mt-0.5">{event.location}</p>
@@ -855,6 +858,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 }) {
   const navigate    = useNavigate()
   const queryClient = useQueryClient()
+  const locale = useDateLocale()
   const [adminSection, setAdminSection] = useState<AdminSection>('overview')
   const [confirmLeave, setConfirmLeave] = useState(false)
 
@@ -1015,7 +1019,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   { label: 'Total members', value: approvedMembers.length },
                   { label: 'Pending requests', value: pendingMembers.length },
                   { label: 'Avg group ELO', value: avgElo?.toLocaleString() ?? '—' },
-                  { label: 'Created', value: group.created_at ? format(parseISO(group.created_at), 'd MMM yyyy') : '—' },
+                  { label: 'Created', value: group.created_at ? format(parseISO(group.created_at), 'd MMM yyyy', { locale }) : '—' },
                 ].map(({ label, value }) => (
                   <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
                     <p className="text-[11px] text-gray-400 font-medium">{label}</p>

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Calendar, Users } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -16,6 +17,7 @@ export function OpenMatchesPage() {
   const { t } = useTranslation()
   const userId = profile?.id ?? ''
   const userElo = (profile as any)?.internal_ranking ?? null
+  const locale = useDateLocale()
   const [filterMyElo, setFilterMyElo] = useState(true)
 
   const { data: matches = [], isLoading } = useQuery({
@@ -100,7 +102,7 @@ export function OpenMatchesPage() {
         ) : (
           <div className="space-y-3">
             {matches.map((m: any, i: number) => {
-              const dateStr = (() => { try { return format(parseISO(m.match_date), 'EEE d MMM') } catch { return m.match_date } })()
+              const dateStr = (() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()
               const timeStr = m.match_time?.slice(0, 5) ?? ''
               const slots = 4 - (m.player_ids?.length ?? 0)
 

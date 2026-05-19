@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { format, addDays, parseISO } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import {
   ChevronLeft, MapPin, Calendar, Clock, Users, CreditCard,
   CheckCircle, Share2, Copy, Search, X, Plus, ChevronRight,
@@ -96,7 +97,7 @@ function useDebounce<T>(value: T, delay: number): T {
 
 function formatSlotTime(timeStr: string): string {
   try {
-    if (timeStr.includes('T')) return format(parseISO(timeStr), 'HH:mm')
+    if (timeStr.includes('T')) return format(parseISO(timeStr), 'HH:mm', { locale: getDateLocale() })
     return timeStr.slice(0, 5)
   } catch {
     return timeStr
@@ -124,8 +125,8 @@ function generateDateRange() {
   return Array.from({ length: MAX_ADVANCE_DAYS }, (_, i) => {
     const d = addDays(today, i + 1)
     return {
-      date: format(d, 'yyyy-MM-dd'),
-      label: format(d, 'EEE d MMM'),
+      date: format(d, 'yyyy-MM-dd', { locale: getDateLocale() }),
+      label: format(d, 'EEE d MMM', { locale: getDateLocale() }),
       dayNum: i + 1,
       isPpaExclusive: i + 1 >= PPA_EXCLUSIVE_FROM_DAY,
     }
@@ -294,6 +295,7 @@ function PaymentForm({
 export function BookCourtPage() {
   const navigate = useNavigate()
   const { session } = useAuth()
+  const locale = useDateLocale()
   const userId = session?.user?.id ?? ''
   const [params] = useSearchParams()
   const matchId = params.get('match_id') ?? ''
@@ -1077,7 +1079,7 @@ export function BookCourtPage() {
                 </div>
                 {selectedDate && (
                   <p className="text-[12px] text-[#009688] font-semibold mt-2">
-                    {format(new Date(selectedDate + 'T12:00:00'), 'EEEE d MMMM yyyy')}
+                    {format(new Date(selectedDate + 'T12:00:00'), 'EEEE d MMMM yyyy', { locale })}
                     {dateRange.find(d => d.date === selectedDate)?.isPpaExclusive && ' · PPA exclusive'}
                   </p>
                 )}

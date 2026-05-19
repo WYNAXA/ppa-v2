@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserMatchesSubscription, useNotificationsSubscription } from '@/hooks/useRealtimeSubscription'
@@ -297,6 +298,7 @@ function NextMatchCard({
   onRecordResult: () => void
 }) {
   const navigate   = useNavigate()
+  const locale = useDateLocale()
   const countdown  = getCountdown(match.match_date, match.match_time)
   const matchStart = match.match_time
     ? new Date(`${match.match_date}T${match.match_time}`)
@@ -333,7 +335,7 @@ function NextMatchCard({
 
         {/* Date */}
         <p className="text-white font-bold text-[18px] leading-tight mb-1">
-          {(() => { try { return format(parseISO(match.match_date), 'EEEE, d MMMM') } catch { return match.match_date } })()}
+          {(() => { try { return format(parseISO(match.match_date), 'EEEE, d MMMM', { locale }) } catch { return match.match_date } })()}
           {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
         </p>
 
@@ -606,8 +608,8 @@ function useGroupOpportunities(userId: string) {
         .from('group_members').select('group_id').eq('user_id', userId).eq('status', 'approved')
       if (!memberships || memberships.length === 0) return []
       const groupIds = memberships.map((m) => m.group_id)
-      const today = format(new Date(), 'yyyy-MM-dd')
-      const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd')
+      const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
+      const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd', { locale: getDateLocale() })
       const { data: matches } = await supabase
         .from('matches')
         .select('id, match_date, match_time, booked_venue_name, player_ids, group_id')
@@ -649,6 +651,7 @@ export function HomePage() {
   const userId      = profile?.id ?? ''
   const { t } = useTranslation()
 
+  const locale = useDateLocale()
   const [createMatchOpen, setCreateMatchOpen] = useState(false)
 
   // Realtime: auto-refresh when matches or notifications change
@@ -664,7 +667,7 @@ export function HomePage() {
 
   const today = new Date()
   const dateLabel = (() => {
-    try { return format(today, 'EEEE, d MMMM') } catch { return '' }
+    try { return format(today, 'EEEE, d MMMM', { locale }) } catch { return '' }
   })()
 
   return (
@@ -751,7 +754,7 @@ export function HomePage() {
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-semibold text-gray-800">
-                        {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM') } catch { return m.match_date } })()}
+                        {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
                         {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
                       </p>
                       {m.booked_venue_name && (

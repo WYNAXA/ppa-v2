@@ -8,6 +8,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js'
 import { format, parseISO } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 
 // ── Env vars ──────────────────────────────────────────────────────────────────
@@ -344,7 +345,7 @@ export function PayBookingPage() {
 
   // ── Format date ──
   const dateFormatted = (() => {
-    try { return format(parseISO(booking.match_date), 'EEEE d MMMM yyyy') } catch { return booking.match_date }
+    try { return format(parseISO(booking.match_date), 'EEEE d MMMM yyyy', { locale: getDateLocale() }) } catch { return booking.match_date }
   })()
 
   const amountGBP = (booking.price_per_player_pence / 100).toFixed(2)

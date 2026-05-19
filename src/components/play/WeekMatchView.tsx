@@ -10,6 +10,7 @@ import {
   parseISO,
   isValid,
 } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -113,6 +114,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
   match: EnrichedMatch | null; userId: string; onClose: () => void
 }) {
   const queryClient = useQueryClient()
+  const locale = useDateLocale()
 
   const offerMutation = useMutation({
     mutationFn: async () => {
@@ -130,7 +132,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
         user_id: creatorId,
         type: 'ringer_offer',
         title: 'Ringer available',
-        message: `${name} is available to ringer for your match on ${format(parseISO(match.match_date), 'EEE d MMM')} at ${match.match_time?.slice(0, 5) ?? 'TBC'}`,
+        message: `${name} is available to ringer for your match on ${format(parseISO(match.match_date), 'EEE d MMM', { locale })} at ${match.match_time?.slice(0, 5) ?? 'TBC'}`,
         related_id: match.id,
         read: false,
       })
@@ -163,7 +165,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
 
         <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 mb-4 space-y-2">
           <p className="text-[13px] font-semibold text-gray-800">
-            {format(parseISO(match.match_date), 'EEEE d MMM')}
+            {format(parseISO(match.match_date), 'EEEE d MMM', { locale })}
             {match.match_time && ` · ${match.match_time.slice(0, 5)}`}
           </p>
           {match.booked_venue_name && (
@@ -210,6 +212,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   const queryClient = useQueryClient()
   const userId = profile?.id ?? ''
 
+  const locale = useDateLocale()
+
   // Realtime: auto-refresh when matches change
   useUserMatchesSubscription(userId)
 
@@ -228,7 +232,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     const actual = typeof newWeek === 'function' ? newWeek(weekStart) : newWeek
     setSearchParams(prev => {
       const next = new URLSearchParams(prev)
-      next.set('week', format(actual, 'yyyy-MM-dd'))
+      next.set('week', format(actual, 'yyyy-MM-dd', { locale }))
       return next
     }, { replace: true })
   }, [weekStart, setSearchParams])
@@ -240,8 +244,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
 
   // ── Derived ────────────────────────────────────────────────────────────────
   const weekEnd = addDays(weekStart, 6)
-  const fetchStart = format(weekStart, 'yyyy-MM-dd')
-  const fetchEnd = format(addDays(weekStart, 13), 'yyyy-MM-dd')
+  const fetchStart = format(weekStart, 'yyyy-MM-dd', { locale })
+  const fetchEnd = format(addDays(weekStart, 13), 'yyyy-MM-dd', { locale })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
   const today = new Date()
   const isCurrentWeek = isSameDay(weekStart, dateFnsStartOfWeek(today, { weekStartsOn: 1 }))
@@ -297,7 +301,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
         .from('matches')
         .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id, is_open, open_elo_min, open_elo_max')
         .eq('is_open', true)
-        .gte('match_date', format(today, 'yyyy-MM-dd'))
+        .gte('match_date', format(today, 'yyyy-MM-dd', { locale }))
         .not('status', 'in', '(cancelled)')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true })
@@ -480,8 +484,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
           <div className="text-center">
             <p className="text-[14px] font-bold text-gray-900">
               {selectedDay
-                ? format(selectedDay, 'EEEE d MMM')
-                : `${format(weekStart, 'd MMM')} — ${format(weekEnd, 'd MMM')}`}
+                ? format(selectedDay, 'EEEE d MMM', { locale })
+                : `${format(weekStart, 'd MMM', { locale })} — ${format(weekEnd, 'd MMM', { locale })}`}
             </p>
             {selectedDay ? (
               <button onClick={() => setSelectedDay(null)} className="text-[11px] font-semibold text-[#009688] mt-0.5">Show full week</button>
@@ -511,10 +515,10 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 )}
               >
                 <span className={cn('text-[10px] font-medium', isSelected ? 'text-white/80' : 'text-gray-400')}>
-                  {format(day, 'EEE')}
+                  {format(day, 'EEE', { locale })}
                 </span>
                 <span className={cn('text-[16px] font-bold leading-tight', isDayToday && !isSelected && 'text-[#009688]')}>
-                  {format(day, 'd')}
+                  {format(day, 'd', { locale })}
                 </span>
                 {dots.length > 0 && (
                   <div className="flex gap-0.5 mt-0.5">
@@ -592,7 +596,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
           ) : filteredMatches.length === 0 ? (
             <div className="rounded-2xl bg-gray-50 border border-dashed border-gray-200 px-6 py-10 text-center">
               <p className="text-[14px] font-semibold text-gray-500 mb-1">
-                {viewTab === 'mine' && (selectedDay ? `No matches on ${format(selectedDay, 'EEEE d MMM')}` : 'No matches this week')}
+                {viewTab === 'mine' && (selectedDay ? `No matches on ${format(selectedDay, 'EEEE d MMM', { locale })}` : 'No matches this week')}
                 {viewTab === 'group' && 'No group matches this week'}
                 {viewTab === 'open' && 'No open matches available'}
               </p>
@@ -616,7 +620,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                     return (
                       <div key={day.toISOString()}>
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5 mt-3 first:mt-0">
-                          {format(day, 'EEEE d MMM')}
+                          {format(day, 'EEEE d MMM', { locale })}
                           {isSameDay(day, today) && <span className="text-[#009688] ml-1">· Today</span>}
                         </p>
                         <div className="space-y-2">

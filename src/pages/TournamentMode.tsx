@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Trophy, Check, Zap } from 'lucide-react'
 import { format } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -112,7 +113,7 @@ export function TournamentModePage() {
     queryKey: ['tournament-fixtures', id],
     enabled: !!id,
     queryFn: async () => {
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
 
       // Build query — league_id or linked groups
       let query = supabase
@@ -329,7 +330,7 @@ export function TournamentModePage() {
     try {
       const players = standings.map((s) => s.user_id)
       const matchesToCreate = []
-      const today = format(new Date(), 'yyyy-MM-dd')
+      const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
 
       for (let i = 0; i + 3 < players.length; i += 4) {
         matchesToCreate.push({

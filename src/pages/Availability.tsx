@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Plus, ChevronRight, Clock, Users, CheckCircle } from 'lucide-react'
 import { format, parseISO, formatDistanceToNow, isPast } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn, parseJsonArray } from '@/lib/utils'
@@ -82,7 +83,7 @@ function closesText(closesAt: string) {
 function formatSlotLabel(poll: Poll, slot: PollSlot) {
   try {
     const d = getSlotDate(poll.week_start_date, slot.day)
-    return `${format(d, 'EEE d MMM')} · ${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)}`
+    return `${format(d, 'EEE d MMM', { locale: getDateLocale() })} · ${slot.start_time.slice(0, 5)}–${slot.end_time.slice(0, 5)}`
   } catch { return slot.day }
 }
 

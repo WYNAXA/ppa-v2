@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { cn } from '@/lib/utils'
 
@@ -50,7 +51,7 @@ function StampDot({ filled }: { filled: boolean }) {
 function RewardBanner({ reward }: { reward: VenueReward }) {
   const label = reward.reward_type === 'free_drink' ? '🥤 FREE DRINK AVAILABLE!' : '🎾 FREE GAME SHARE AVAILABLE!'
   const expires = reward.expires_at
-    ? (() => { try { return format(parseISO(reward.expires_at), 'd MMM yyyy') } catch { return null } })()
+    ? (() => { try { return format(parseISO(reward.expires_at), 'd MMM yyyy', { locale: getDateLocale() }) } catch { return null } })()
     : null
 
   return (

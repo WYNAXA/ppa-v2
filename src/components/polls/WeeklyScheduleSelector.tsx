@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { format, parseISO } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 import { CheckCircle, Users, AlertTriangle, Star, Calendar, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -45,7 +46,7 @@ interface Props {
 }
 
 function formatMatchDate(dateStr: string): string {
-  try { return format(parseISO(dateStr), 'EEE d MMM') } catch { return dateStr }
+  try { return format(parseISO(dateStr), 'EEE d MMM', { locale: getDateLocale() }) } catch { return dateStr }
 }
 
 function QualityBadge({ quality }: { quality: 'excellent' | 'good' | 'fair' }) {

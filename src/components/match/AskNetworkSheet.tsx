@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check, Search } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -35,6 +36,7 @@ interface ExistingInvitation {
 export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime, currentPlayerIds, onSent }: AskNetworkSheetProps) {
   const { user } = useAuth()
   const queryClient = useQueryClient()
+  const locale = useDateLocale()
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState('')
   const [filter, setFilter] = useState<'all' | 'connections' | 'group'>('all')
@@ -42,7 +44,7 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
   const expiryDate = useMemo(() => {
     try { const d = new Date(matchDateTime); d.setHours(d.getHours() - 24); return d } catch { return null }
   }, [matchDateTime])
-  const expiryLabel = expiryDate ? format(expiryDate, "EEE d MMM 'at' HH:mm") : ''
+  const expiryLabel = expiryDate ? format(expiryDate, "EEE d MMM 'at' HH:mm", { locale }) : ''
 
   // Fetch connections
   const { data: connections = [] } = useQuery<PersonProfile[]>({

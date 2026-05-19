@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -418,6 +419,7 @@ function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: n
 
 function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userGroupIds: string[] }) {
   const navigate = useNavigate()
+  const locale = useDateLocale()
   const today = new Date().toISOString().split('T')[0]
 
   const { data: events = [] } = useQuery({
@@ -470,7 +472,7 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
             </div>
             <p className="text-[14px] font-bold text-gray-900">{e.title}</p>
             <p className="text-[12px] text-gray-500 mt-0.5">
-              {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM \u00B7 HH:mm') } catch { return e.start_time } })()}
+              {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM \u00B7 HH:mm', { locale }) } catch { return e.start_time } })()}
               {e.location && ` \u00B7 ${e.location}`}
             </p>
           </button>

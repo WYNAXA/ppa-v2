@@ -4,6 +4,7 @@ import { useMutation } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Plus, X, Clock, Calendar } from 'lucide-react'
 import { format, addHours, startOfWeek, addWeeks } from 'date-fns'
+import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
@@ -24,11 +25,11 @@ const DEFAULT_ADDITIONAL_OPTIONS = ["I can drive", "I'm up for a drink after"]
 function nextMonday(): string {
   // Start of next week (Monday)
   const d = startOfWeek(addWeeks(new Date(), 1), { weekStartsOn: 1 })
-  return format(d, 'yyyy-MM-dd')
+  return format(d, 'yyyy-MM-dd', { locale: getDateLocale() })
 }
 
 function defaultClosesAt(): string {
-  return format(addHours(new Date(), 48), "yyyy-MM-dd'T'HH:mm")
+  return format(addHours(new Date(), 48), "yyyy-MM-dd'T'HH:mm", { locale: getDateLocale() })
 }
 
 export function CreatePollPage() {
@@ -386,7 +387,7 @@ export function CreatePollPage() {
           <input
             type="datetime-local"
             value={closesAt}
-            min={format(new Date(), "yyyy-MM-dd'T'HH:mm")}
+            min={format(new Date(), "yyyy-MM-dd'T'HH:mm", { locale: getDateLocale() })}
             onChange={(e) => setClosesAt(e.target.value)}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688]"

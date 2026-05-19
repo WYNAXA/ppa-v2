@@ -4,6 +4,7 @@ import { X, Check } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -36,6 +37,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
   const { user } = useAuth()
   const { t } = useTranslation()
   const queryClient = useQueryClient()
+  const locale = useDateLocale()
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
   const expiryDate = useMemo(() => {
@@ -46,7 +48,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
     } catch { return null }
   }, [matchDateTime])
 
-  const expiryLabel = expiryDate ? format(expiryDate, "EEE d MMM 'at' HH:mm") : ''
+  const expiryLabel = expiryDate ? format(expiryDate, "EEE d MMM 'at' HH:mm", { locale }) : ''
 
   // Fetch asking user's group IDs for cross-group ringer pool
   const { data: myGroupIds = [] } = useQuery({

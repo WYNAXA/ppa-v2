@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Clock, Calendar, Share2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
@@ -111,6 +112,7 @@ export function EventDetailPage() {
   const { user }      = useAuth()
   const userId        = user?.id ?? ''
   const queryClient   = useQueryClient()
+  const locale = useDateLocale()
 
   const { data: event, isLoading }     = useEvent(id)
   const { data: myRsvp }               = useMyRsvp(id, userId)
@@ -172,13 +174,13 @@ export function EventDetailPage() {
   }
 
   const formattedStart = (() => {
-    try { return format(parseISO(event.start_time), 'EEEE, d MMMM yyyy') } catch { return event.start_time }
+    try { return format(parseISO(event.start_time), 'EEEE, d MMMM yyyy', { locale }) } catch { return event.start_time }
   })()
   const formattedTime = (() => {
-    try { return format(parseISO(event.start_time), 'HH:mm') } catch { return '' }
+    try { return format(parseISO(event.start_time), 'HH:mm', { locale }) } catch { return '' }
   })()
   const formattedEnd = event.end_time
-    ? (() => { try { return format(parseISO(event.end_time), 'HH:mm') } catch { return '' } })()
+    ? (() => { try { return format(parseISO(event.end_time), 'HH:mm', { locale }) } catch { return '' } })()
     : null
 
   return (

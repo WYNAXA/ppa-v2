@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
+import { useDateLocale } from '@/lib/dateLocale'
 import { Bell, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Users, Zap, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -132,6 +133,8 @@ export function PollAdminView({
   currentUserName,
   onRefetch,
 }: PollAdminViewProps) {
+  const locale = useDateLocale()
+
   // Safe parse time_slots and additional_options (may be JSON strings from DB)
   const safePoll = useMemo(() => {
     const ts = Array.isArray(poll.time_slots) ? poll.time_slots
@@ -251,7 +254,7 @@ export function PollAdminView({
       )
       const dateLabel = (() => {
         try {
-          return format(getSlotDate(poll.week_start_date, day), 'EEEE d MMMM')
+          return format(getSlotDate(poll.week_start_date, day), 'EEEE d MMMM', { locale })
         } catch {
           return day
         }
@@ -597,7 +600,7 @@ export function PollAdminView({
               {isAdmin && count >= 4 && (
                 <button
                   onClick={() => {
-                    const dayDate = (() => { try { return format(getSlotDate(poll.week_start_date, day), 'yyyy-MM-dd') } catch { return '' } })()
+                    const dayDate = (() => { try { return format(getSlotDate(poll.week_start_date, day), 'yyyy-MM-dd', { locale }) } catch { return '' } })()
                     setScheduleDefaults({ date: dayDate, groupId })
                     setCreateMatchOpen(true)
                   }}
@@ -621,7 +624,7 @@ export function PollAdminView({
             const viable = voters.length >= 4
             const dateLabel = (() => {
               try {
-                return format(getSlotDate(poll.week_start_date, slot.day), 'EEE d')
+                return format(getSlotDate(poll.week_start_date, slot.day), 'EEE d', { locale })
               } catch {
                 return slot.day
               }

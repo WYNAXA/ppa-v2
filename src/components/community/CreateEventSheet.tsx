@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { format, addHours } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 
 interface CreateEventSheetProps {
   open: boolean
@@ -13,7 +14,7 @@ interface CreateEventSheetProps {
 }
 
 function todayDateTime() {
-  return format(addHours(new Date(), 1), "yyyy-MM-dd'T'HH:mm")
+  return format(addHours(new Date(), 1), "yyyy-MM-dd'T'HH:mm", { locale: getDateLocale() })
 }
 
 export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetProps) {
@@ -22,14 +23,14 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
 
   const [title, setTitle]       = useState('')
   const [startTime, setStartTime] = useState(todayDateTime())
-  const [endTime, setEndTime]   = useState(format(addHours(new Date(), 3), "yyyy-MM-dd'T'HH:mm"))
+  const [endTime, setEndTime]   = useState(format(addHours(new Date(), 3), "yyyy-MM-dd'T'HH:mm", { locale: getDateLocale() }))
   const [location, setLocation] = useState('')
   const [description, setDescription] = useState('')
 
   function reset() {
     setTitle('')
     setStartTime(todayDateTime())
-    setEndTime(format(addHours(new Date(), 3), "yyyy-MM-dd'T'HH:mm"))
+    setEndTime(format(addHours(new Date(), 3), "yyyy-MM-dd'T'HH:mm", { locale: getDateLocale() }))
     setLocation('')
     setDescription('')
   }

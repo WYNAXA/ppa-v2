@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Zap, Share2, Plus, X } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
+import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -915,6 +916,7 @@ function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
   fixtures: FixtureMatch[]
   onSelect: (match: FixtureMatch) => void
 }) {
+  const locale = useDateLocale()
   const unplayed = fixtures.filter((m) => m.status !== 'completed' && m.status !== 'cancelled')
 
   return (
@@ -959,7 +961,7 @@ function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
                       className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
                     >
                       <p className="text-[13px] font-semibold text-gray-900 mb-1">
-                        {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()}
+                        {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM', { locale }) } catch { return match.match_date } })()}
                         {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
                       </p>
                       {match.players && match.players.length > 0 && (
@@ -995,6 +997,7 @@ export function LeagueDetailPage() {
   const [activeTab, setActiveTab] = useState<Tab>('standings')
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
+  const locale = useDateLocale()
   const [generatingRound, setGeneratingRound] = useState(false)
 
   async function handleShare(leagueName: string) {
@@ -1098,7 +1101,7 @@ export function LeagueDetailPage() {
 
     const players = standings.map(s => s.user_id)
     const matchesToCreate = []
-    const today = format(new Date(), 'yyyy-MM-dd')
+    const today = format(new Date(), 'yyyy-MM-dd', { locale })
 
     for (let i = 0; i + 3 < players.length; i += 4) {
       matchesToCreate.push({
@@ -1176,9 +1179,9 @@ export function LeagueDetailPage() {
         </div>
         {(league.season_start || league.season_end) && (
           <p className="text-[12px] text-gray-400 ml-12">
-            {league.season_start ? (() => { try { return format(parseISO(league.season_start), 'd MMM yyyy') } catch { return league.season_start } })() : ''}
+            {league.season_start ? (() => { try { return format(parseISO(league.season_start), 'd MMM yyyy', { locale }) } catch { return league.season_start } })() : ''}
             {league.season_start && league.season_end ? ' – ' : ''}
-            {league.season_end ? (() => { try { return format(parseISO(league.season_end), 'd MMM yyyy') } catch { return league.season_end } })() : ''}
+            {league.season_end ? (() => { try { return format(parseISO(league.season_end), 'd MMM yyyy', { locale }) } catch { return league.season_end } })() : ''}
           </p>
         )}
       </div>
@@ -1392,7 +1395,7 @@ export function LeagueDetailPage() {
                     >
                       <div className="flex items-center justify-between gap-2 mb-1.5">
                         <p className="text-[13px] font-semibold text-gray-900">
-                          {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM') } catch { return match.match_date } })()}
+                          {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM', { locale }) } catch { return match.match_date } })()}
                           {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
                         </p>
                         <span className={cn(
@@ -1456,7 +1459,7 @@ export function LeagueDetailPage() {
                     >
                       <div className="flex items-center justify-between gap-1 mb-1">
                         <p className="text-[11px] text-gray-400">
-                          {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM yyyy') } catch { return match.match_date } })()}
+                          {(() => { try { return format(parseISO(match.match_date), 'EEE d MMM yyyy', { locale }) } catch { return match.match_date } })()}
                         </p>
                         {r && (
                           <span className={cn(

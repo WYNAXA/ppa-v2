@@ -7,6 +7,11 @@
 -- Every FK with ON DELETE NO ACTION pointing at profiles(id) is handled
 -- explicitly before the profile row is deleted. Tables with ON DELETE CASCADE
 -- are cleaned up automatically by the profile deletion.
+--
+-- EXCEPTION clauses catch ONLY undefined_table and undefined_column so the
+-- function survives in environments missing certain tables/columns. All other
+-- errors (permission_denied, foreign_key_violation, deadlock, etc.) propagate
+-- to the caller.
 -- =============================================================================
 
 CREATE OR REPLACE FUNCTION public.delete_user()
@@ -17,10 +22,21 @@ SET search_path = public, auth
 AS $$
 DECLARE
   v_uid uuid := auth.uid();
+  v_profile_exists boolean;
 BEGIN
   -- Refuse to run without an authenticated user
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Not authenticated — auth.uid() is NULL';
+  END IF;
+
+  -- Check whether the profile row exists. If a previous half-deletion left
+  -- an auth.users row without a profile, skip straight to auth cleanup.
+  SELECT EXISTS (SELECT 1 FROM profiles WHERE id = v_uid) INTO v_profile_exists;
+
+  IF NOT v_profile_exists THEN
+    -- No profile — just clean up the orphaned auth row
+    DELETE FROM auth.users WHERE id = v_uid;
+    RETURN jsonb_build_object('deleted', true, 'user_id', v_uid, 'note', 'profile_not_found');
   END IF;
 
   -- ──────────────────────────────────────────────────────────────────────
@@ -34,73 +50,73 @@ BEGIN
   -- event_attendees.user_id
   BEGIN
     DELETE FROM event_attendees WHERE user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- league_members.user_id
   BEGIN
     DELETE FROM league_members WHERE user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- league_invitations.invited_user_id (this user as invitee)
   BEGIN
     DELETE FROM league_invitations WHERE invited_user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- match_result_votes.voter_id
   BEGIN
     DELETE FROM match_result_votes WHERE voter_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- league_teams (pair includes this user)
   BEGIN
     DELETE FROM league_teams WHERE player1_id = v_uid OR player2_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- pairs_rankings (pair includes this user)
   BEGIN
     DELETE FROM pairs_rankings WHERE player1_id = v_uid OR player2_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- user_badges.user_id (may be dashboard-created table)
   BEGIN
     DELETE FROM user_badges WHERE user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- ranking_changes.player_id (uses player_id, not user_id)
   BEGIN
     DELETE FROM ranking_changes WHERE player_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- league_standings.user_id
   BEGIN
     DELETE FROM league_standings WHERE user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- group_members.user_id
   BEGIN
     DELETE FROM group_members WHERE user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- notifications.user_id
   BEGIN
     DELETE FROM notifications WHERE user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- poll_responses.user_id
   BEGIN
     DELETE FROM poll_responses WHERE user_id = v_uid;
-  EXCEPTION WHEN undefined_table THEN NULL;
+  EXCEPTION WHEN undefined_table OR undefined_column THEN NULL;
   END;
 
   -- ── 1b. NULL "actor" / "metadata" columns (preserve parent row) ──────

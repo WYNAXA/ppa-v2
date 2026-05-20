@@ -6,6 +6,8 @@ import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
+import * as Sentry from '@sentry/react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -759,6 +761,7 @@ export function YouPage() {
   const [showEdit, setShowEdit]             = useState(false)
   const [notifEnabled, setNotifEnabled]     = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [iosHint, setIosHint] = useState(false)
   const [resetSent, setResetSent]           = useState(false)
 
@@ -1347,7 +1350,7 @@ export function YouPage() {
               <motion.div
                 className="fixed inset-0 z-[55] bg-black/50"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => !deleting && setShowDeleteConfirm(false)}
               />
               <motion.div
                 className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
@@ -1360,24 +1363,41 @@ export function YouPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+                    disabled={deleting}
+                    className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
                   >
                     {t('common.cancel')}
                   </button>
                   <button
+                    disabled={deleting}
                     onClick={async () => {
-                      setShowDeleteConfirm(false)
+                      setDeleting(true)
                       try {
                         const { error } = await supabase.rpc('delete_user')
                         if (error) throw error
-                      } catch { /* proceed to sign out regardless */ }
-                      await signOut()
+                        // Success — sign out and redirect
+                        setShowDeleteConfirm(false)
+                        await signOut()
+                        localStorage.clear()
+                        window.location.href = '/auth'
+                      } catch (err: unknown) {
+                        Sentry.captureException(err)
+                        const msg = err instanceof Error ? err.message : 'Unknown error'
+                        toast.error(`Account deletion failed: ${msg}. Please contact support.`)
+                        setDeleting(false)
+                      }
                     }}
-                    className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white"
+                    className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white disabled:opacity-50"
                   >
-                    {t('common.delete')}
+                    {deleting ? 'Deleting…' : t('common.delete')}
                   </button>
                 </div>
+                <p className="text-[11px] text-gray-400 text-center mt-4">
+                  Having trouble?{' '}
+                  <a href="mailto:support@padelplayersapp.com" className="underline">
+                    support@padelplayersapp.com
+                  </a>
+                </p>
               </motion.div>
             </>
           )}

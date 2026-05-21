@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, Link } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
 export function AuthPage() {
   const { session, loading } = useAuth()
+  const { t } = useTranslation()
   const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>('signin')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -256,6 +258,19 @@ export function AuthPage() {
         {mode === 'signup' && (
           <p className="text-[11px] text-gray-500 text-center mt-3">
             After signing up you'll need to confirm your email. We'll then help you set up your padel profile.
+          </p>
+        )}
+
+        {mode === 'signup' && (
+          <p className="text-[11px] text-gray-400 text-center mt-2">
+            {t('auth.signup_consent_prefix')}{' '}
+            <Link to="/terms" className="underline hover:no-underline">
+              {t('auth.terms_link')}
+            </Link>
+            {' '}{t('auth.and')}{' '}
+            <Link to="/privacy" className="underline hover:no-underline">
+              {t('auth.privacy_link')}
+            </Link>
           </p>
         )}
       </form>

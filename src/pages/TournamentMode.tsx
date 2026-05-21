@@ -338,7 +338,7 @@ export function TournamentModePage() {
         matchesToCreate.push({
           match_date: today,
           match_time: '12:00:00',
-          match_type: league.match_type ?? 'competitive',
+          match_type: 'competitive',
           status: 'scheduled',
           player_ids: [players[i], players[i + 1], players[i + 2], players[i + 3]],
           group_id: league.linked_group_ids?.[0] ?? null,

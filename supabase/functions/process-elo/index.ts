@@ -308,16 +308,26 @@ Deno.serve(async (req) => {
     )
 
     // Write ranking_changes row (drives Home 7-day and Compete 30-day ELO trend)
-    await supabase.from('ranking_changes').upsert(
-      {
-        player_id: playerId,
-        match_result_id,
-        points_change: data.ratingChange,
-        old_ranking: data.ratingBefore,
-        new_ranking: data.ratingAfter,
-      },
-      { onConflict: 'player_id,match_result_id', ignoreDuplicates: true }
-    )
+    const onTeam1 = team1.includes(playerId)
+    const isWinner = onTeam1 ? team1Won : !team1Won && !isDraw
+    try {
+      await supabase.from('ranking_changes').upsert(
+        {
+          player_id: playerId,
+          match_id: result.match_id,
+          match_result_id,
+          previous_points: data.ratingBefore,
+          new_points: data.ratingAfter,
+          points_change: data.ratingChange,
+          opponent_ids: opponentIds,
+          opponent_avg_rating: opponentAvg,
+          is_winner: isWinner,
+        },
+        { onConflict: 'player_id,match_result_id', ignoreDuplicates: true }
+      )
+    } catch (err) {
+      console.error(`[process-elo] ranking_changes insert failed for ${playerId}:`, err)
+    }
   }
 
   // Mark as processed (set verified_at if missing — admin Quick Result leaves it null)

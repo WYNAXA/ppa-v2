@@ -341,3 +341,5 @@ REVOKE EXECUTE ON FUNCTION public.delete_user() FROM anon;
 COMMENT ON FUNCTION public.delete_user() IS
   'Permanently deletes the calling user''s account and all associated data. '
   'Required for Apple App Store Guideline 5.1.1(v).';
+
+ALTER FUNCTION public.delete_user() SET row_security = off;

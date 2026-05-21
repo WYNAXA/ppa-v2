@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy, Heart } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { setLanguage } from '@/i18n'
+import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { reverseGeocode } from '@/lib/geocode'
 
 // ── Preserved exports (DB-backed + localStorage fast-path) ──────────────────
@@ -37,11 +37,22 @@ function playtomicToElo(level: number): number {
   return Math.max(600, Math.min(2500, Math.round(1500 + (level - 2.5) * 270)))
 }
 
-const LANG_OPTIONS = [
-  { code: 'en', flag: '\uD83C\uDDEC\uD83C\uDDE7', key: 'onboarding.language_english' },
-  { code: 'es', flag: '\uD83C\uDDEA\uD83C\uDDF8', key: 'onboarding.language_spanish' },
-  { code: 'pt', flag: '\uD83C\uDDF5\uD83C\uDDF9', key: 'onboarding.language_portuguese' },
-]
+const LANG_FLAGS: Record<string, string> = {
+  en: '\uD83C\uDDEC\uD83C\uDDE7',
+  es: '\uD83C\uDDEA\uD83C\uDDF8',
+  pt: '\uD83C\uDDF5\uD83C\uDDF9',
+  fr: '\uD83C\uDDEB\uD83C\uDDF7',
+  it: '\uD83C\uDDEE\uD83C\uDDF9',
+  sv: '\uD83C\uDDF8\uD83C\uDDEA',
+  ar: '\uD83C\uDDF8\uD83C\uDDE6',
+  hi: '\uD83C\uDDEE\uD83C\uDDF3',
+}
+
+const LANG_OPTIONS = SUPPORTED_LANGUAGES.map((lang) => ({
+  code: lang.code,
+  flag: LANG_FLAGS[lang.code] ?? '',
+  label: lang.label,
+}))
 
 // ── Steps ───────────────────────────────────────────────────────────────────
 
@@ -172,9 +183,7 @@ export function OnboardingPage() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  const currentLangName = LANG_OPTIONS.find(l => l.code === selectedLang)?.key
-    ? t(LANG_OPTIONS.find(l => l.code === selectedLang)!.key)
-    : 'English'
+  const currentLangName = LANG_OPTIONS.find(l => l.code === selectedLang)?.label ?? 'English'
 
   return (
     <div className="min-h-full bg-white flex flex-col">
@@ -219,7 +228,7 @@ export function OnboardingPage() {
                   {t('onboarding.language_subtitle', { language: currentLangName })}
                 </p>
                 <div className="space-y-2">
-                  {LANG_OPTIONS.map(({ code, flag, key }) => (
+                  {LANG_OPTIONS.map(({ code, flag, label }) => (
                     <button
                       key={code}
                       onClick={() => { setSelectedLang(code); setLanguage(code) }}
@@ -230,7 +239,7 @@ export function OnboardingPage() {
                       }`}
                     >
                       <span className="text-2xl">{flag}</span>
-                      <span className="text-[15px] font-semibold text-gray-800">{t(key)}</span>
+                      <span className="text-[15px] font-semibold text-gray-800">{label}</span>
                     </button>
                   ))}
                 </div>

@@ -494,6 +494,8 @@ export default {
     today: 'Idag',
     no_matches_on_date: 'Inga matcher den {{date}}',
     no_matches_this_week: 'Inga matcher denna vecka',
+    next_week_indicator_singular: '→ 1 match next week',
+    next_week_indicator_plural: '→ {{count}} matches next week',
     no_group_matches_this_week: 'Inga gruppmatcher denna vecka',
     no_open_matches_available: 'Inga öppna matcher tillgängliga',
     empty_mine_subtitle: 'Skapa en match eller kolla din tillgänglighet',

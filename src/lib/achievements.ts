@@ -88,9 +88,11 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
       .from('user_badges').select('badge_key').eq('user_id', userId)
     const existing = new Set((existingRows ?? []).map(r => r.badge_key as string))
 
+    // Only count verified results — unverified/disputed results must not affect badges
     const { data: allResults } = await supabase
       .from('match_results')
       .select('result_type, team1_players, team2_players, sets_data')
+      .eq('verification_status', 'verified')
       .or(`team1_players.cs.{${userId}},team2_players.cs.{${userId}}`)
       .order('created_at', { ascending: false })
     if (!allResults) return []

@@ -174,6 +174,15 @@ Deno.serve(async (req) => {
     )
   }
 
+  // Fetch the parent match to get league_id
+  const { data: matchRow } = await supabase
+    .from('matches')
+    .select('league_id')
+    .eq('id', result.match_id)
+    .single()
+
+  const leagueId: string | null = matchRow?.league_id ?? null
+
   // Only process verified results
   if (result.verification_status !== 'verified') {
     return new Response(
@@ -283,6 +292,18 @@ Deno.serve(async (req) => {
       },
       { onConflict: 'user_id,match_result_id', ignoreDuplicates: true }
     )
+
+    // Write ranking_changes row (drives Home 7-day and Compete 30-day ELO trend)
+    await supabase.from('ranking_changes').upsert(
+      {
+        player_id: playerId,
+        match_result_id,
+        points_change: data.ratingChange,
+        old_ranking: data.ratingBefore,
+        new_ranking: data.ratingAfter,
+      },
+      { onConflict: 'player_id,match_result_id', ignoreDuplicates: true }
+    )
   }
 
   // Mark as processed
@@ -290,6 +311,24 @@ Deno.serve(async (req) => {
     .from('match_results')
     .update({ elo_processed: true })
     .eq('id', match_result_id)
+
+  // Update league_standings if this match belongs to a league
+  if (leagueId) {
+    if (isDraw) {
+      await supabase.rpc('update_league_standings_draw', {
+        p_league_id: leagueId,
+        p_player_ids: [...team1, ...team2],
+      })
+    } else {
+      const winners = team1Won ? team1 : team2
+      const losers = team1Won ? team2 : team1
+      await supabase.rpc('update_league_standings_win', {
+        p_league_id: leagueId,
+        p_winner_ids: winners,
+        p_loser_ids: losers,
+      })
+    }
+  }
 
   return new Response(
     JSON.stringify({

@@ -825,6 +825,11 @@ export default {
     creating: 'Criando…',
     create_league_btn: 'Criar liga',
     league_invitation_title: 'Convite para liga',
+    about_this_league: 'About this league',
+    about_format: 'Format',
+    about_scoring: 'Scoring',
+    about_max_players: 'Max players',
+    about_elo_range: 'ELO range',
   },
   open_matches: {
     page_title: 'Jogos abertos',

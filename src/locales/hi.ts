@@ -825,6 +825,11 @@ export default {
     creating: 'बना रहे हैं…',
     create_league_btn: 'लीग बनाएं',
     league_invitation_title: 'लीग आमंत्रण',
+    about_this_league: 'About this league',
+    about_format: 'Format',
+    about_scoring: 'Scoring',
+    about_max_players: 'Max players',
+    about_elo_range: 'ELO range',
   },
   open_matches: {
     page_title: 'खुले मैच',

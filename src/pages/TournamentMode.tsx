@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Trophy, Check, Zap } from 'lucide-react'
 import { format } from 'date-fns'
@@ -44,6 +45,7 @@ export function TournamentModePage() {
   const { id = '' } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { t } = useTranslation('', { keyPrefix: 'create_league' })
   const queryClient = useQueryClient()
   const currentUserId = profile?.id ?? ''
 
@@ -59,7 +61,7 @@ export function TournamentModePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, match_type, linked_group_ids, created_by')
+        .select('id, name, status, match_type, format, scoring_format, max_participants, min_elo, max_elo, linked_group_ids, created_by')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -433,6 +435,26 @@ export function TournamentModePage() {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* About this tournament */}
+      {league?.format && (
+        <div className="bg-white border-b border-gray-100 px-5 py-3">
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{t('about_this_league')}</p>
+          <p className="text-[13px] text-gray-600 mb-2">{t(`format_${league.format}_desc`)}</p>
+          <div className="flex flex-wrap gap-x-6 gap-y-1">
+            <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_format')}</span> {t(`format_${league.format}_title`)}</span>
+            {league.scoring_format && (
+              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_scoring')}</span> {t({ standard: 'scoring_standard_label', short_sets: 'scoring_short_sets_label', one_set: 'scoring_one_set_label', custom: 'scoring_custom_label' }[league.scoring_format] ?? league.scoring_format)}</span>
+            )}
+            {league.max_participants && (
+              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_max_players')}</span> {league.max_participants}</span>
+            )}
+            {(league.min_elo != null || league.max_elo != null) && (
+              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_elo_range')}</span> {league.min_elo ?? 0} – {league.max_elo ?? 3000}</span>
+            )}
+          </div>
         </div>
       )}
 

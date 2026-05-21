@@ -343,6 +343,7 @@ export function TournamentModePage() {
           league_id: id,
           created_manually: false,
           notes: 'Tournament round — auto-generated',
+          created_by: currentUserId,
         })
       }
 

@@ -233,6 +233,7 @@ function MexicanoTab({
   leagueId: string
   isAdmin: boolean
 }) {
+  const { profile } = useAuth()
   const queryClient = useQueryClient()
   const sorted      = [...standings].sort((a, b) => b.points - a.points)
 
@@ -255,6 +256,7 @@ function MexicanoTab({
         player_ids:  [...r.pair1.map((p) => p.user_id), ...r.pair2.map((p) => p.user_id)],
         league_id:   leagueId,
         notes:       'Mexicano round — auto-generated',
+        created_by:  profile?.id,
       }))
       const { error } = await supabase.from('matches').insert(insertions)
       if (error) throw error
@@ -1113,6 +1115,7 @@ export function LeagueDetailPage() {
         group_id: league.linked_group_ids?.[0] ?? null,
         league_id: id,
         created_manually: false,
+        created_by: currentUserId,
       })
     }
 

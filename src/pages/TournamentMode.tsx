@@ -446,7 +446,7 @@ export function TournamentModePage() {
           <div className="flex flex-wrap gap-x-6 gap-y-1">
             <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_format')}</span> {t(`format_${league.format}_title`)}</span>
             {league.scoring_format && (
-              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_scoring')}</span> {t({ standard: 'scoring_standard_label', short_sets: 'scoring_short_sets_label', one_set: 'scoring_one_set_label', custom: 'scoring_custom_label' }[league.scoring_format] ?? league.scoring_format)}</span>
+              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_scoring')}</span> {t(({ standard: 'scoring_standard_label', short_sets: 'scoring_short_sets_label', one_set: 'scoring_one_set_label', custom: 'scoring_custom_label' } as Record<string, string>)[league.scoring_format] ?? league.scoring_format)}</span>
             )}
             {league.max_participants && (
               <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_max_players')}</span> {league.max_participants}</span>

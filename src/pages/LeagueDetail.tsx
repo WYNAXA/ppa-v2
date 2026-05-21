@@ -10,6 +10,8 @@ import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { PairAvatar } from '@/components/shared/PairAvatar'
+import { PairAssignmentSheet } from '@/components/compete/PairAssignmentSheet'
 import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -69,6 +71,21 @@ interface ResultMatch {
   profiles: Record<string, { name: string; avatar_url: string | null }>
 }
 
+interface TeamStanding {
+  team_id: string
+  team_name: string | null
+  player1_id: string
+  player2_id: string
+  player1?: { name: string; avatar_url: string | null }
+  player2?: { name: string; avatar_url: string | null }
+  rank: number
+  played: number
+  won: number
+  lost: number
+  drawn: number
+  points: number
+}
+
 type Tab = 'standings' | 'fixtures' | 'results' | 'mexicano' | 'admin'
 
 // ── Data hooks ────────────────────────────────────────────────────────────────
@@ -125,6 +142,90 @@ function useStandings(leagueId: string) {
         points:  (r.ranking_points ?? r.points ?? 0) as number,
         profile: profileMap[r.user_id],
       }))
+    },
+  })
+}
+
+function useTeamStandings(leagueId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['league-team-standings', leagueId],
+    enabled: !!leagueId && enabled,
+    queryFn: async (): Promise<TeamStanding[]> => {
+      const { data: rows, error } = await supabase
+        .from('league_team_standings')
+        .select('*')
+        .eq('league_id', leagueId)
+
+      if (error) { console.error('[League] team standings error:', error); return [] }
+      if (!rows || rows.length === 0) return []
+
+      const playerIds = rows.flatMap((r: any) => [r.player1_id, r.player2_id])
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', playerIds)
+
+      const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p]))
+
+      const sorted = [...rows].sort((a: any, b: any) =>
+        ((b.ranking_points ?? 0) as number) - ((a.ranking_points ?? 0) as number)
+      )
+
+      return sorted.map((r: any, i: number) => ({
+        team_id: r.team_id,
+        team_name: r.team_name,
+        player1_id: r.player1_id,
+        player2_id: r.player2_id,
+        player1: profileMap[r.player1_id],
+        player2: profileMap[r.player2_id],
+        rank: i + 1,
+        played: (r.matches_played ?? 0) as number,
+        won: (r.wins ?? 0) as number,
+        lost: (r.losses ?? 0) as number,
+        drawn: (r.draws ?? 0) as number,
+        points: (r.ranking_points ?? 0) as number,
+      }))
+    },
+  })
+}
+
+function useLeagueMembers(leagueId: string) {
+  return useQuery({
+    queryKey: ['league-members-profiles', leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data: members } = await supabase
+        .from('league_members')
+        .select('user_id')
+        .eq('league_id', leagueId)
+        .eq('status', 'active')
+      if (!members || members.length === 0) return []
+      const ids = members.map((m: any) => m.user_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, internal_ranking')
+        .in('id', ids)
+      return (profiles ?? []).map((p: any) => ({
+        id: p.id,
+        name: p.name ?? 'Unknown',
+        avatar_url: p.avatar_url,
+        internal_ranking: (p.internal_ranking as number) ?? 1230,
+      }))
+    },
+  })
+}
+
+function useLeagueTeams(leagueId: string) {
+  return useQuery({
+    queryKey: ['league-teams', leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('league_teams')
+        .select('*')
+        .eq('league_id', leagueId)
+      if (error) return []
+      return data ?? []
     },
   })
 }
@@ -1065,6 +1166,7 @@ export function LeagueDetailPage() {
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
   const [generatingRound, setGeneratingRound] = useState(false)
+  const { t: tPairs } = useTranslation('', { keyPrefix: 'pairs' })
 
   async function handleShare(leagueName: string) {
     const url = `${window.location.origin}/compete/leagues/${id}`
@@ -1078,7 +1180,9 @@ export function LeagueDetailPage() {
   const { data: league, isLoading: loadingLeague } = useLeague(id)
   const groupIds = league?.linked_group_ids ?? []
   const isMexicano = league?.match_type === 'mexicano'
+  const isPairs    = league?.match_type === 'pairs'
   const isAdmin    = league?.created_by === currentUserId
+  const [showPairSheet, setShowPairSheet] = useState(false)
 
   const TABS: Array<{ id: Tab; label: string }> = [
     { id: 'standings', label: 'Standings' },
@@ -1089,6 +1193,9 @@ export function LeagueDetailPage() {
   ]
 
   const { data: standings = [], isLoading: loadingStandings } = useStandings(id)
+  const { data: teamStandings = [] } = useTeamStandings(id, isPairs)
+  const { data: leagueTeams = [] } = useLeagueTeams(id)
+  const { data: leagueMembers = [] } = useLeagueMembers(id)
   const { data: fixtures  = [], isLoading: loadingFixtures  } = useFixtures(id, groupIds)
   const { data: results   = [], isLoading: loadingResults   } = useResults(id, groupIds)
 
@@ -1158,29 +1265,56 @@ export function LeagueDetailPage() {
   }, [id, queryClient])
 
   async function handleGenerateRound() {
-    if (!league || standings.length < 4) {
-      console.warn('[GenerateRound] not enough players:', standings.length)
-      return
-    }
     setGeneratingRound(true)
-    console.log('[GenerateRound] generating for', standings.length, 'players')
-
-    const players = standings.map(s => s.user_id)
-    const matchesToCreate = []
     const today = format(new Date(), 'yyyy-MM-dd', { locale })
+    const matchesToCreate: Record<string, unknown>[] = []
 
-    for (let i = 0; i + 3 < players.length; i += 4) {
-      matchesToCreate.push({
-        match_date: today,
-        match_time: '12:00:00',
-        match_type: 'competitive',
-        status: 'scheduled',
-        player_ids: [players[i], players[i+1], players[i+2], players[i+3]],
-        group_id: league.linked_group_ids?.[0] ?? null,
-        league_id: id,
-        created_manually: false,
-        created_by: currentUserId,
-      })
+    if (isPairs) {
+      // Pairs mode: generate fixtures from league_teams
+      if (leagueTeams.length < 2) {
+        console.warn('[GenerateRound] not enough teams:', leagueTeams.length)
+        setGeneratingRound(false)
+        return
+      }
+      const teams = [...leagueTeams]
+      for (let i = 0; i + 1 < teams.length; i += 2) {
+        const t1 = teams[i]
+        const t2 = teams[i + 1]
+        matchesToCreate.push({
+          match_date: today,
+          match_time: '12:00:00',
+          match_type: 'competitive',
+          status: 'scheduled',
+          player_ids: [t1.player1_id, t1.player2_id, t2.player1_id, t2.player2_id],
+          team1_id: t1.id,
+          team2_id: t2.id,
+          group_id: league?.linked_group_ids?.[0] ?? null,
+          league_id: id,
+          created_manually: false,
+          created_by: currentUserId,
+        })
+      }
+    } else {
+      // Individual mode
+      if (!league || standings.length < 4) {
+        console.warn('[GenerateRound] not enough players:', standings.length)
+        setGeneratingRound(false)
+        return
+      }
+      const players = standings.map(s => s.user_id)
+      for (let i = 0; i + 3 < players.length; i += 4) {
+        matchesToCreate.push({
+          match_date: today,
+          match_time: '12:00:00',
+          match_type: 'competitive',
+          status: 'scheduled',
+          player_ids: [players[i], players[i+1], players[i+2], players[i+3]],
+          group_id: league?.linked_group_ids?.[0] ?? null,
+          league_id: id,
+          created_manually: false,
+          created_by: currentUserId,
+        })
+      }
     }
 
     const { error } = await supabase.from('matches').insert(matchesToCreate)
@@ -1332,11 +1466,40 @@ export function LeagueDetailPage() {
           {/* ── Standings ── */}
           {activeTab === 'standings' && (
             loadingStandings ? <TabSkeleton /> :
-            standings.length === 0 ? <EmptyTab message="No standings yet" /> : (
+            standings.length === 0 && !isPairs ? <EmptyTab message="No standings yet" /> :
+            isPairs && leagueTeams.length === 0 ? (
+              <div className="space-y-3">
+                {league && <LeagueAboutCard league={league} />}
+                <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
+                  <p className="text-[14px] font-semibold text-gray-600 mb-1">{tPairs('no_pairs_yet')}</p>
+                  <p className="text-[12px] text-gray-400 mb-3">{tPairs('no_pairs_cta')}</p>
+                  {isAdmin && (
+                    <button
+                      onClick={() => setShowPairSheet(true)}
+                      className="rounded-xl bg-[#009688] px-5 py-2.5 text-[13px] font-bold text-white"
+                    >
+                      {tPairs('setup_title')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
               <div className="space-y-3">
 
               {/* Current leader card */}
-              {standings[0] && (
+              {isPairs && teamStandings[0] ? (
+                <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 px-4 py-3 flex items-center gap-3">
+                  <p className="text-[28px] leading-none">🥇</p>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Current Leader</p>
+                    <p className="text-[15px] font-bold text-gray-900 truncate">{teamStandings[0].team_name ?? 'Unknown'}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-[20px] font-black text-amber-700">{teamStandings[0].points}</p>
+                    <p className="text-[10px] text-amber-500 font-semibold">pts</p>
+                  </div>
+                </div>
+              ) : standings[0] && !isPairs ? (
                 <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 px-4 py-3 flex items-center gap-3">
                   <p className="text-[28px] leading-none">🥇</p>
                   <div className="flex-1 min-w-0">
@@ -1348,13 +1511,14 @@ export function LeagueDetailPage() {
                     <p className="text-[10px] text-amber-500 font-semibold">pts</p>
                   </div>
                 </div>
-              )}
+              ) : null}
 
               {/* Progress bar */}
               {(() => {
-                const n = standings.length
+                const rows = isPairs ? teamStandings : standings
+                const n = rows.length
                 const totalRounds = n > 1 ? n * (n - 1) / 2 : 0
-                const maxPlayed = standings.length > 0 ? Math.max(...standings.map((s) => s.played)) : 0
+                const maxPlayed = rows.length > 0 ? Math.max(...rows.map((s) => s.played)) : 0
                 const pct = totalRounds > 0 ? Math.min(100, Math.round((maxPlayed / totalRounds) * 100)) : 0
                 return totalRounds > 0 ? (
                   <div>
@@ -1380,42 +1544,85 @@ export function LeagueDetailPage() {
                 </div>
               )}
 
-              <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                  {['#', 'Player', 'P', 'W', 'L', 'Pts'].map((h) => (
-                    <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
-                  ))}
-                </div>
-                {standings.map((row, i) => {
-                  const isMe = row.user_id === currentUserId
-                  return (
-                    <div
-                      key={row.id}
-                      className={cn(
-                        'grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
-                        i < standings.length - 1 && 'border-b border-gray-50',
-                        isMe && 'bg-teal-50/60'
-                      )}
-                    >
-                      <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
-                        {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
-                      </span>
-                      <div className="flex items-center gap-2 min-w-0">
-                        <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                        <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                          {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+              {/* Standings table — pairs or individual */}
+              {isPairs ? (
+                <div className="rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    {['#', 'Pair', 'P', 'W', 'L', 'Pts'].map((h) => (
+                      <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
+                    ))}
+                  </div>
+                  {teamStandings.map((row, i) => {
+                    const isMyTeam = row.player1_id === currentUserId || row.player2_id === currentUserId
+                    return (
+                      <div
+                        key={row.team_id}
+                        className={cn(
+                          'grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
+                          i < teamStandings.length - 1 && 'border-b border-gray-50',
+                          isMyTeam && 'bg-teal-50/60'
+                        )}
+                      >
+                        <span className={cn('text-[12px] font-bold', isMyTeam ? 'text-[#009688]' : 'text-gray-400')}>
+                          {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
+                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <PairAvatar
+                            player1={{ name: row.player1?.name, avatarUrl: row.player1?.avatar_url }}
+                            player2={{ name: row.player2?.name, avatarUrl: row.player2?.avatar_url }}
+                          />
+                          <span className={cn('text-[12px] font-semibold truncate', isMyTeam ? 'text-[#009688]' : 'text-gray-800')}>
+                            {row.team_name ?? `${row.player1?.name?.split(' ')[0] ?? '?'} & ${row.player2?.name?.split(' ')[0] ?? '?'}`}{isMyTeam ? ' ★' : ''}
+                          </span>
+                        </div>
+                        <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                        <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                        <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                        <span className={cn('text-[12px] font-bold text-center', isMyTeam ? 'text-[#009688]' : 'text-gray-800')}>
+                          {row.points}
                         </span>
                       </div>
-                      <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                      <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
-                      <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
-                      <span className={cn('text-[12px] font-bold text-center', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                        {row.points}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    {['#', 'Player', 'P', 'W', 'L', 'Pts'].map((h) => (
+                      <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
+                    ))}
+                  </div>
+                  {standings.map((row, i) => {
+                    const isMe = row.user_id === currentUserId
+                    return (
+                      <div
+                        key={row.id}
+                        className={cn(
+                          'grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
+                          i < standings.length - 1 && 'border-b border-gray-50',
+                          isMe && 'bg-teal-50/60'
+                        )}
+                      >
+                        <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
+                          {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
+                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                          <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                            {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                          </span>
+                        </div>
+                        <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                        <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                        <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                        <span className={cn('text-[12px] font-bold text-center', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                          {row.points}
+                        </span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
               </div>
             )
           )}
@@ -1611,6 +1818,20 @@ export function LeagueDetailPage() {
         leagueId={id}
         currentUserId={currentUserId}
       />
+
+      {/* Pair assignment sheet */}
+      {isPairs && (
+        <PairAssignmentSheet
+          open={showPairSheet}
+          onClose={() => setShowPairSheet(false)}
+          leagueId={id}
+          members={leagueMembers}
+          onSaved={() => {
+            queryClient.invalidateQueries({ queryKey: ['league-teams', id] })
+            queryClient.invalidateQueries({ queryKey: ['league-team-standings', id] })
+          }}
+        />
+      )}
     </div>
   )
 }

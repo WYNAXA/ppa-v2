@@ -9,6 +9,7 @@ import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { PairAvatar } from '@/components/shared/PairAvatar'
 import { cn } from '@/lib/utils'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -70,6 +71,32 @@ export function TournamentModePage() {
   })
 
   const groupIds = league?.linked_group_ids ?? []
+  const isPairs = league?.match_type === 'pairs'
+
+  const { data: leagueTeams = [] } = useQuery({
+    queryKey: ['league-teams', id],
+    enabled: !!id && isPairs,
+    queryFn: async () => {
+      const { data } = await supabase.from('league_teams').select('*').eq('league_id', id)
+      return data ?? []
+    },
+  })
+
+  const { data: teamStandings = [] } = useQuery({
+    queryKey: ['tournament-team-standings', id],
+    enabled: !!id && isPairs,
+    queryFn: async () => {
+      const { data: rows } = await supabase.from('league_team_standings').select('*').eq('league_id', id)
+      if (!rows || rows.length === 0) return []
+      const sorted = [...rows].sort((a: any, b: any) => ((b.ranking_points ?? 0) as number) - ((a.ranking_points ?? 0) as number))
+      return sorted.map((r: any, i: number) => ({
+        team_id: r.team_id as string,
+        team_name: r.team_name as string | null,
+        points: (r.ranking_points ?? 0) as number,
+        rank: i + 1,
+      }))
+    },
+  })
 
   // ── Standings ────────────────────────────────────────────────────────────
 
@@ -323,27 +350,50 @@ export function TournamentModePage() {
   // ── Generate next round ──────────────────────────────────────────────────
 
   async function generateNextRound() {
-    if (!league || standings.length < 4) return
+    if (!league) return
     setGeneratingRound(true)
 
     try {
-      const players = standings.map((s) => s.user_id)
-      const matchesToCreate = []
+      const matchesToCreate: Record<string, unknown>[] = []
       const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
 
-      for (let i = 0; i + 3 < players.length; i += 4) {
-        matchesToCreate.push({
-          match_date: today,
-          match_time: '12:00:00',
-          match_type: 'competitive',
-          status: 'scheduled',
-          player_ids: [players[i], players[i + 1], players[i + 2], players[i + 3]],
-          group_id: league.linked_group_ids?.[0] ?? null,
-          league_id: id,
-          created_manually: false,
-          notes: 'Tournament round — auto-generated',
-          created_by: currentUserId,
-        })
+      if (isPairs && leagueTeams.length >= 2) {
+        const teams = [...leagueTeams]
+        for (let i = 0; i + 1 < teams.length; i += 2) {
+          const t1 = teams[i]
+          const t2 = teams[i + 1]
+          matchesToCreate.push({
+            match_date: today,
+            match_time: '12:00:00',
+            match_type: 'competitive',
+            status: 'scheduled',
+            player_ids: [t1.player1_id, t1.player2_id, t2.player1_id, t2.player2_id],
+            team1_id: t1.id,
+            team2_id: t2.id,
+            group_id: league.linked_group_ids?.[0] ?? null,
+            league_id: id,
+            created_manually: false,
+            notes: 'Tournament round — auto-generated',
+            created_by: currentUserId,
+          })
+        }
+      } else {
+        if (standings.length < 4) { setGeneratingRound(false); return }
+        const players = standings.map((s) => s.user_id)
+        for (let i = 0; i + 3 < players.length; i += 4) {
+          matchesToCreate.push({
+            match_date: today,
+            match_time: '12:00:00',
+            match_type: 'competitive',
+            status: 'scheduled',
+            player_ids: [players[i], players[i + 1], players[i + 2], players[i + 3]],
+            group_id: league.linked_group_ids?.[0] ?? null,
+            league_id: id,
+            created_manually: false,
+            notes: 'Tournament round — auto-generated',
+            created_by: currentUserId,
+          })
+        }
       }
 
       await supabase.from('matches').insert(matchesToCreate)
@@ -392,7 +442,7 @@ export function TournamentModePage() {
       </div>
 
       {/* Standings mini-view */}
-      {standings.length > 0 && (
+      {(isPairs ? teamStandings.length > 0 : standings.length > 0) && (
         <div className="bg-white border-b border-gray-100">
           <button
             onClick={() => setStandingsOpen((v) => !v)}
@@ -407,6 +457,26 @@ export function TournamentModePage() {
           </button>
           {standingsOpen && (
             <div className="px-5 pb-3 overflow-x-auto">
+              {isPairs ? (
+                <div className="flex gap-3 min-w-max">
+                  {teamStandings.slice(0, 5).map((ts, i) => (
+                    <div
+                      key={ts.team_id}
+                      className="flex items-center gap-2 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 min-w-[140px]"
+                    >
+                      <span className="text-[12px] font-bold text-gray-400">
+                        {i < 3 ? ['🥇', '🥈', '🥉'][i] : `#${i + 1}`}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-semibold text-gray-800 truncate">
+                          {ts.team_name ?? 'Team'}
+                        </p>
+                        <p className="text-[10px] text-gray-400">{ts.points} pts</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
               <div className="flex gap-3 min-w-max">
                 {standings.slice(0, 5).map((s, i) => (
                   <div
@@ -430,6 +500,7 @@ export function TournamentModePage() {
                   </div>
                 ))}
               </div>
+              )}
             </div>
           )}
         </div>

@@ -30,7 +30,7 @@ function Ul({ items }: { items: string[] }) {
 export function PrivacyPolicyPage() {
   const navigate = useNavigate()
   return (
-    <div className="min-h-full bg-white">
+    <div className="bg-white">
       <div className="flex items-center gap-3 px-5 pt-14 pb-4 border-b border-gray-100">
         <button onClick={() => navigate(-1)} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
           <ChevronLeft className="h-5 w-5 text-gray-600" />

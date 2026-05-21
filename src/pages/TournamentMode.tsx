@@ -117,21 +117,14 @@ export function TournamentModePage() {
     queryFn: async () => {
       const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
 
-      // Build query — league_id or linked groups
-      let query = supabase
+      // Strictly filter by league_id — no group_id fallback
+      const { data: matches } = await supabase
         .from('matches')
         .select('id, match_date, match_time, player_ids, status, notes')
+        .eq('league_id', id)
         .eq('match_date', today)
         .not('status', 'eq', 'cancelled')
         .order('match_time', { ascending: true })
-
-      if (groupIds.length > 0) {
-        query = query.or(`league_id.eq.${id},group_id.in.(${groupIds.join(',')})`)
-      } else {
-        query = query.eq('league_id', id)
-      }
-
-      const { data: matches } = await query
       if (!matches || matches.length === 0) return []
 
       // Fetch profiles for all players
@@ -149,6 +142,10 @@ export function TournamentModePage() {
       }))
     },
   })
+
+  // ── Reset entries when switching leagues ─────────────────────────────────
+
+  useEffect(() => { setEntries([]) }, [id])
 
   // ── Build entries from fixtures ──────────────────────────────────────────
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -17,9 +18,14 @@ interface LeagueInfo {
   name: string
   status: string
   match_type: string | null
+  format: string | null
+  scoring_format: string | null
   visibility: string | null
   season_start: string | null
   season_end: string | null
+  max_participants: number | null
+  min_elo: number | null
+  max_elo: number | null
   linked_group_ids: string[] | null
   created_by: string | null
   city: string | null
@@ -73,7 +79,7 @@ function useLeague(id: string) {
     queryFn: async (): Promise<LeagueInfo | null> => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, match_type, visibility, season_start, season_end, linked_group_ids, created_by, city, prizes')
+        .select('id, name, status, match_type, format, scoring_format, visibility, season_start, season_end, max_participants, min_elo, max_elo, linked_group_ids, created_by, city, prizes')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -613,6 +619,59 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
         >
           Delete League
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ── About card (visible to all members) ──────────────────────────────────────
+
+const SCORING_LABEL_KEY: Record<string, string> = {
+  standard: 'scoring_standard_label',
+  short_sets: 'scoring_short_sets_label',
+  one_set: 'scoring_one_set_label',
+  custom: 'scoring_custom_label',
+}
+
+function LeagueAboutCard({ league }: { league: LeagueInfo }) {
+  const { t } = useTranslation('', { keyPrefix: 'create_league' })
+  if (!league.format) return null
+
+  const rows: Array<{ label: string; value: string }> = []
+
+  rows.push({
+    label: t('about_format'),
+    value: t(`format_${league.format}_title`),
+  })
+
+  if (league.scoring_format) {
+    rows.push({
+      label: t('about_scoring'),
+      value: t(SCORING_LABEL_KEY[league.scoring_format] ?? league.scoring_format),
+    })
+  }
+
+  if (league.max_participants) {
+    rows.push({ label: t('about_max_players'), value: String(league.max_participants) })
+  }
+
+  if (league.min_elo != null || league.max_elo != null) {
+    const min = league.min_elo ?? 0
+    const max = league.max_elo ?? 3000
+    rows.push({ label: t('about_elo_range'), value: `${min} – ${max}` })
+  }
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+      <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-2">{t('about_this_league')}</p>
+      <p className="text-[13px] text-gray-600 mb-3">{t(`format_${league.format}_desc`)}</p>
+      <div className="space-y-1.5">
+        {rows.map((r) => (
+          <div key={r.label} className="flex items-baseline gap-2">
+            <span className="text-[11px] font-bold text-teal-700 uppercase tracking-wide w-24 flex-shrink-0">{r.label}</span>
+            <span className="text-[13px] text-gray-700">{r.value}</span>
+          </div>
+        ))}
       </div>
     </div>
   )
@@ -1304,6 +1363,9 @@ export function LeagueDetailPage() {
                   </div>
                 ) : null
               })()}
+
+              {/* About this league */}
+              {league && <LeagueAboutCard league={league} />}
 
               {/* Prizes */}
               {league?.prizes && (

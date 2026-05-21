@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy, Heart } from 'lucide-react'
@@ -381,10 +381,22 @@ export function OnboardingPage() {
       {/* Footer actions */}
       <div className="px-6 pb-10 space-y-3" style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom))' }}>
         {step === 'welcome' && (
-          <button onClick={goNext} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white">
-            {t('onboarding.welcome_continue')}
-            <ChevronRight className="h-5 w-5" />
-          </button>
+          <>
+            <button onClick={goNext} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white">
+              {t('onboarding.welcome_continue')}
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <p className="text-[11px] text-gray-400 text-center mt-2">
+              {t('onboarding.welcome_legal_prefix')}{' '}
+              <Link to="/terms" className="underline hover:no-underline">
+                {t('auth.terms_link')}
+              </Link>
+              {' '}{t('auth.and')}{' '}
+              <Link to="/privacy" className="underline hover:no-underline">
+                {t('auth.privacy_link')}
+              </Link>
+            </p>
+          </>
         )}
 
         {step === 'language' && (

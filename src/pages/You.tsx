@@ -1316,6 +1316,15 @@ export function YouPage() {
               <ChevronRight className="h-4 w-4 text-gray-400" />
             </button>
 
+            {/* Help & Support */}
+            <button
+              onClick={() => navigate('/support')}
+              className="w-full flex items-center justify-between px-4 py-3.5"
+            >
+              <span className="text-[13px] font-medium text-gray-700">{t('you.support_link')}</span>
+              <ChevronRight className="h-4 w-4 text-gray-400" />
+            </button>
+
             {/* Delete account */}
             <button
               onClick={() => setShowDeleteConfirm(true)}

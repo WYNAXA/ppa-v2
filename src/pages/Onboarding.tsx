@@ -2,11 +2,12 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy, Heart } from 'lucide-react'
+import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy, Heart, Bell } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { reverseGeocode } from '@/lib/geocode'
+import { isPushSupported, subscribeToPush } from '@/lib/push'
 
 // ── Preserved exports (DB-backed + localStorage fast-path) ──────────────────
 
@@ -56,7 +57,7 @@ const LANG_OPTIONS = SUPPORTED_LANGUAGES.map((lang) => ({
 
 // ── Steps ───────────────────────────────────────────────────────────────────
 
-const STEPS = ['welcome', 'language', 'location', 'level', 'tour'] as const
+const STEPS = ['welcome', 'language', 'location', 'level', 'tour', 'notifications'] as const
 type Step = (typeof STEPS)[number]
 
 // ── Component ───────────────────────────────────────────────────────────────
@@ -383,6 +384,35 @@ export function OnboardingPage() {
                 </div>
               </>
             )}
+
+            {/* ═══ NOTIFICATIONS ═══ */}
+            {step === 'notifications' && (
+              <>
+                <div className="flex justify-center mb-6 mt-8">
+                  <div className="h-20 w-20 rounded-3xl bg-teal-50 flex items-center justify-center">
+                    <Bell className="h-10 w-10 text-[#009688]" />
+                  </div>
+                </div>
+                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">
+                  {t('onboarding.notifications_title')}
+                </h1>
+                <p className="text-[14px] text-gray-500 text-center mb-6">
+                  {t('onboarding.notifications_subtitle')}
+                </p>
+                <div className="space-y-2">
+                  {[
+                    t('onboarding.notifications_benefit1'),
+                    t('onboarding.notifications_benefit2'),
+                    t('onboarding.notifications_benefit3'),
+                  ].map((text) => (
+                    <div key={text} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3">
+                      <span className="text-[#009688] text-lg">✓</span>
+                      <span className="text-[13px] text-gray-700">{text}</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </motion.div>
         </AnimatePresence>
       </div>
@@ -452,9 +482,45 @@ export function OnboardingPage() {
         )}
 
         {step === 'tour' && (
-          <button onClick={handleFinish} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+          <button
+            onClick={() => {
+              // Skip notifications step if push not supported or already decided
+              const shouldShowPushPrompt = isPushSupported()
+                && typeof Notification !== 'undefined'
+                && Notification.permission === 'default'
+              if (shouldShowPushPrompt) {
+                goNext()
+              } else {
+                handleFinish()
+              }
+            }}
+            disabled={saving}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+          >
             {saving ? t('onboarding.saving') : t('onboarding.tour_finish')}
           </button>
+        )}
+
+        {step === 'notifications' && (
+          <>
+            <button
+              onClick={async () => {
+                if (user) await subscribeToPush(user.id)
+                await handleFinish()
+              }}
+              disabled={saving}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+            >
+              {saving ? t('onboarding.saving') : t('onboarding.notifications_enable')}
+            </button>
+            <button
+              onClick={handleFinish}
+              disabled={saving}
+              className="w-full text-center text-[13px] text-gray-400"
+            >
+              {t('onboarding.notifications_skip')}
+            </button>
+          </>
         )}
       </div>
     </div>

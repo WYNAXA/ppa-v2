@@ -1,96 +1,22 @@
+// ── send-push Edge Function ────────────────────────────────────────────────
+// Sends Web Push notifications to users via the web-push library.
+//
+// Required Supabase secrets:
+//   VAPID_PUBLIC_KEY   — base64url-encoded ECDSA P-256 public key
+//   VAPID_PRIVATE_KEY  — base64url-encoded ECDSA P-256 private key
+//
+// Generate keys with: npx web-push generate-vapid-keys
+// Set them with:
+//   supabase secrets set VAPID_PUBLIC_KEY=... VAPID_PRIVATE_KEY=...
+// ────────────────────────────────────────────────────────────────────────────
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import webpush from 'npm:web-push@3.6.7'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
-
-// ── Web Push crypto (RFC 8030 + VAPID) ──────────────────────────────────────
-// Minimal implementation using Web Crypto API (Deno-native, no npm packages).
-
-async function importVapidKey(base64Key: string): Promise<CryptoKey> {
-  const raw = Uint8Array.from(atob(base64Key.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))
-  return crypto.subtle.importKey('raw', raw, { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign'])
-}
-
-function base64UrlEncode(data: Uint8Array): string {
-  return btoa(String.fromCharCode(...data)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '')
-}
-
-function base64UrlDecode(str: string): Uint8Array {
-  const padded = str + '='.repeat((4 - str.length % 4) % 4)
-  return Uint8Array.from(atob(padded.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))
-}
-
-async function createJwtToken(audience: string, vapidPrivateKey: string, vapidPublicKey: string): Promise<string> {
-  const header = base64UrlEncode(new TextEncoder().encode(JSON.stringify({ typ: 'JWT', alg: 'ES256' })))
-  const now = Math.floor(Date.now() / 1000)
-  const payload = base64UrlEncode(new TextEncoder().encode(JSON.stringify({
-    aud: audience,
-    exp: now + 12 * 3600,
-    sub: 'mailto:hello@padelplayersapp.com',
-  })))
-
-  const privKeyRaw = base64UrlDecode(vapidPrivateKey)
-  const key = await crypto.subtle.importKey(
-    'pkcs8',
-    await crypto.subtle.exportKey('pkcs8',
-      await crypto.subtle.importKey('jwk', {
-        kty: 'EC', crv: 'P-256',
-        d: base64UrlEncode(privKeyRaw),
-        x: base64UrlEncode(base64UrlDecode(vapidPublicKey).slice(1, 33)),
-        y: base64UrlEncode(base64UrlDecode(vapidPublicKey).slice(33, 65)),
-      }, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign'])
-    ),
-    { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']
-  )
-
-  const signingInput = new TextEncoder().encode(`${header}.${payload}`)
-  const signature = new Uint8Array(await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, signingInput))
-
-  // Convert DER signature to raw r||s (64 bytes)
-  const r = signature.slice(0, 32)
-  const s = signature.slice(32, 64)
-  const rawSig = new Uint8Array(64)
-  rawSig.set(r)
-  rawSig.set(s, 32)
-
-  return `${header}.${payload}.${base64UrlEncode(rawSig)}`
-}
-
-async function sendPushToSubscription(
-  subscription: { endpoint: string; keys: { p256dh: string; auth: string } },
-  payload: string,
-  vapidPublicKey: string,
-  vapidPrivateKey: string,
-): Promise<{ success: boolean; status: number; gone?: boolean }> {
-  try {
-    const url = new URL(subscription.endpoint)
-    const audience = `${url.protocol}//${url.host}`
-    const jwt = await createJwtToken(audience, vapidPrivateKey, vapidPublicKey)
-
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Encoding': 'aes128gcm',
-        Authorization: `vapid t=${jwt}, k=${vapidPublicKey}`,
-        TTL: '86400',
-      },
-      body: new TextEncoder().encode(payload),
-    })
-
-    return {
-      success: response.status >= 200 && response.status < 300,
-      status: response.status,
-      gone: response.status === 410,
-    }
-  } catch {
-    return { success: false, status: 0 }
-  }
-}
-
-// ── Main handler ────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -110,6 +36,12 @@ Deno.serve(async (req) => {
       status: 500, headers: corsHeaders,
     })
   }
+
+  webpush.setVapidDetails(
+    'mailto:hello@padelplayersapp.com',
+    vapidPublicKey,
+    vapidPrivateKey,
+  )
 
   let body: any
   try { body = await req.json() } catch {
@@ -148,18 +80,13 @@ Deno.serve(async (req) => {
         continue
       }
 
-      const result = await sendPushToSubscription(sub, payload, vapidPublicKey, vapidPrivateKey)
-
-      if (result.gone) {
-        // Subscription expired — clean up
+      await webpush.sendNotification(sub, payload)
+      sent++
+    } catch (err: any) {
+      if (err?.statusCode === 410 || err?.statusCode === 404) {
+        // Subscription expired or invalid — clean up
         await supabase.from('profiles').update({ push_token: null }).eq('id', profile.id)
-        failed++
-      } else if (result.success) {
-        sent++
-      } else {
-        failed++
       }
-    } catch {
       failed++
     }
   }

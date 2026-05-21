@@ -15,6 +15,7 @@ import { BADGE_DEFINITIONS } from '@/lib/achievements'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
+import { subscribeToPush, unsubscribeFromPush } from '@/lib/push'
 import { EloHistoryChart } from '@/components/compete/EloHistoryChart'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -1159,49 +1160,20 @@ export function YouPage() {
               <button
                 onClick={async () => {
                   if (notifEnabled) {
-                    // Unsubscribe from push + clear DB token
-                    try {
-                      const reg = await navigator.serviceWorker.ready
-                      const sub = await reg.pushManager.getSubscription()
-                      if (sub) await sub.unsubscribe()
-                    } catch { /* best effort */ }
-                    await supabase.from('profiles').update({ push_token: null }).eq('id', userId)
+                    await unsubscribeFromPush(userId)
                     setNotifEnabled(false)
                     return
                   }
-                  // iOS Safari only supports push when installed as PWA
-                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent)
-                  const isStandalone = window.matchMedia('(display-mode: standalone)').matches
-                    || (window.navigator as any).standalone === true
-                  if (isIOS && !isStandalone) {
+                  const result = await subscribeToPush(userId)
+                  if (result.success) {
+                    setNotifEnabled(true)
+                  } else if (result.reason === 'ios-non-pwa') {
                     setIosHint(true)
                     setTimeout(() => setIosHint(false), 6000)
-                    return
-                  }
-                  if (typeof Notification === 'undefined') return
-                  const permission = await Notification.requestPermission()
-                  if (permission !== 'granted') return
-                  try {
-                    const reg = await navigator.serviceWorker.ready
-                    const vapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY
-                    if (!vapidKey) {
-                      console.warn('[PushNotifications] VITE_VAPID_PUBLIC_KEY not configured')
-                      // No VAPID key — enable UI state only, no actual subscription
-                      setNotifEnabled(true)
-                      return
-                    }
-                    const sub = await reg.pushManager.subscribe({
-                      userVisibleOnly: true,
-                      applicationServerKey: vapidKey,
-                    })
-                    await supabase
-                      .from('profiles')
-                      .update({ push_token: JSON.stringify(sub) })
-                      .eq('id', userId)
-                    setNotifEnabled(true)
-                  } catch {
-                    // Permission granted but subscription failed — still reflect UI state
-                    setNotifEnabled(true)
+                  } else if (result.reason === 'denied') {
+                    // User declined — do nothing, toggle stays off
+                  } else {
+                    toast.error(result.message)
                   }
                 }}
                 className={cn(

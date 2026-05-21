@@ -166,7 +166,8 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
 // ── Step 2 — Setup ────────────────────────────────────────────────────────────
 
-const FORMATS: Format[] = ['round_robin', 'mexicano', 'knockout', 'americano', 'king_of_hill', 'compass_draw', 'box_league', 'flex_league']
+// Only show formats with working fixture generators
+const FORMATS: Format[] = ['round_robin', 'mexicano']
 
 const SCORING_FORMAT_KEYS: ScoringFormat[] = ['standard', 'short_sets', 'one_set', 'custom']
 

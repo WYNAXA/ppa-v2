@@ -471,100 +471,119 @@ export function TournamentModePage() {
             </p>
           </div>
         ) : (
-          entries.map((entry, idx) => {
-            const result = getResult(entry)
-            const scored = hasScores(entry)
+          (() => {
+            // Sort: pending first, completed last — preserve original indices for mutations
+            const sorted = entries
+              .map((entry, idx) => ({ entry, idx }))
+              .sort((a, b) => Number(a.entry.completed) - Number(b.entry.completed))
 
-            return (
-              <motion.div
-                key={entry.matchId}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05 }}
-                className={cn(
-                  'rounded-2xl border p-4 mb-3',
-                  entry.completed
-                    ? 'bg-green-50 border-green-200'
-                    : 'bg-white border-gray-100',
-                )}
-              >
-                {/* Team names */}
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <div className="flex-1 text-right">
-                    <p className="text-[12px] font-semibold text-gray-800 truncate">
-                      {entry.team1Names.join(' & ')}
-                    </p>
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-bold px-2">vs</span>
-                  <div className="flex-1">
-                    <p className="text-[12px] font-semibold text-gray-800 truncate">
-                      {entry.team2Names.join(' & ')}
-                    </p>
-                  </div>
+            const firstCompletedPos = sorted.findIndex((s) => s.entry.completed)
+            const hasBothSections = firstCompletedPos > 0
+
+            return sorted.map(({ entry, idx }, sortPos) => {
+              const result = getResult(entry)
+              const scored = hasScores(entry)
+
+              return (
+                <div key={entry.matchId}>
+                  {/* Divider between pending and completed */}
+                  {hasBothSections && sortPos === firstCompletedPos && (
+                    <div className="flex items-center gap-2 my-3">
+                      <div className="flex-1 h-px bg-gray-200" />
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Completed</span>
+                      <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+                  )}
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: sortPos * 0.05 }}
+                    className={cn(
+                      'rounded-2xl border p-4 mb-3',
+                      entry.completed
+                        ? 'bg-green-50 border-green-200'
+                        : 'bg-white border-gray-100',
+                    )}
+                  >
+                    {/* Team names */}
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="flex-1 text-right">
+                        <p className="text-[12px] font-semibold text-gray-800 truncate">
+                          {entry.team1Names.join(' & ')}
+                        </p>
+                      </div>
+                      <span className="text-[10px] text-gray-400 font-bold px-2">vs</span>
+                      <div className="flex-1">
+                        <p className="text-[12px] font-semibold text-gray-800 truncate">
+                          {entry.team2Names.join(' & ')}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Score inputs (per set) */}
+                    {entry.sets.map((set, i) => (
+                      <div key={i} className="flex items-center justify-center gap-2 mb-1">
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={9}
+                          value={set.team1}
+                          disabled={entry.completed}
+                          onChange={(e) => updateSet(idx, i, 'team1', e.target.value)}
+                          className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
+                        />
+                        <span className="text-gray-300">—</span>
+                        <input
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={9}
+                          value={set.team2}
+                          disabled={entry.completed}
+                          onChange={(e) => updateSet(idx, i, 'team2', e.target.value)}
+                          className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
+                        />
+                      </div>
+                    ))}
+
+                    {/* Add set button */}
+                    {!entry.completed && entry.sets.length < 3 && (
+                      <button
+                        onClick={() => addSet(idx)}
+                        className="text-[11px] text-teal-600 font-semibold mt-1"
+                      >
+                        + Add set
+                      </button>
+                    )}
+
+                    {/* Submit */}
+                    {!entry.completed && scored && (
+                      <button
+                        onClick={() => submitResult(idx)}
+                        disabled={entry.submitting}
+                        className="mt-2 w-full rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                      >
+                        {entry.submitting
+                          ? 'Submitting...'
+                          : `${result.label} · Submit`}
+                      </button>
+                    )}
+
+                    {/* Completed state */}
+                    {entry.completed && (
+                      <div className="flex items-center gap-1 mt-2">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="text-[12px] font-semibold text-green-700">
+                          Result submitted
+                        </span>
+                      </div>
+                    )}
+                  </motion.div>
                 </div>
-
-                {/* Score inputs (per set) */}
-                {entry.sets.map((set, i) => (
-                  <div key={i} className="flex items-center justify-center gap-2 mb-1">
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={9}
-                      value={set.team1}
-                      disabled={entry.completed}
-                      onChange={(e) => updateSet(idx, i, 'team1', e.target.value)}
-                      className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
-                    />
-                    <span className="text-gray-300">—</span>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={0}
-                      max={9}
-                      value={set.team2}
-                      disabled={entry.completed}
-                      onChange={(e) => updateSet(idx, i, 'team2', e.target.value)}
-                      className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
-                    />
-                  </div>
-                ))}
-
-                {/* Add set button */}
-                {!entry.completed && entry.sets.length < 3 && (
-                  <button
-                    onClick={() => addSet(idx)}
-                    className="text-[11px] text-teal-600 font-semibold mt-1"
-                  >
-                    + Add set
-                  </button>
-                )}
-
-                {/* Submit */}
-                {!entry.completed && scored && (
-                  <button
-                    onClick={() => submitResult(idx)}
-                    disabled={entry.submitting}
-                    className="mt-2 w-full rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-50"
-                  >
-                    {entry.submitting
-                      ? 'Submitting...'
-                      : `${result.label} · Submit`}
-                  </button>
-                )}
-
-                {/* Completed state */}
-                {entry.completed && (
-                  <div className="flex items-center gap-1 mt-2">
-                    <Check className="h-4 w-4 text-green-600" />
-                    <span className="text-[12px] font-semibold text-green-700">
-                      Result submitted
-                    </span>
-                  </div>
-                )}
-              </motion.div>
-            )
-          })
+              )
+            })
+          })()
         )}
 
         {/* Generate next round */}

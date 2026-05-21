@@ -121,24 +121,38 @@ Deno.serve(async (req) => {
 
   // Supabase Database Webhook payload: { type, record, old_record }
   if (payload?.type && payload?.record) {
-    if (payload.type !== 'UPDATE') {
+    const eventType = payload.type as string
+    const isVerified = payload.record?.verification_status === 'verified'
+
+    if (eventType === 'INSERT') {
+      // INSERT with verified status → process immediately (admin Quick Result)
+      if (!isVerified) {
+        return new Response(
+          JSON.stringify({ message: 'INSERT not verified, skipping', skipped: true }),
+          { headers: corsHeaders }
+        )
+      }
+    } else if (eventType === 'UPDATE') {
+      // UPDATE must be a transition TO verified (not already verified before)
+      if (!isVerified) {
+        return new Response(
+          JSON.stringify({ message: 'Not transitioning to verified', skipped: true }),
+          { headers: corsHeaders }
+        )
+      }
+      if (payload.old_record?.verification_status === 'verified') {
+        return new Response(
+          JSON.stringify({ message: 'Already verified, skipping', skipped: true }),
+          { headers: corsHeaders }
+        )
+      }
+    } else {
       return new Response(
-        JSON.stringify({ message: 'Skipping non-UPDATE event', skipped: true }),
+        JSON.stringify({ message: `Skipping ${eventType} event`, skipped: true }),
         { headers: corsHeaders }
       )
     }
-    if (payload.record?.verification_status !== 'verified') {
-      return new Response(
-        JSON.stringify({ message: 'Not transitioning to verified', skipped: true }),
-        { headers: corsHeaders }
-      )
-    }
-    if (payload.old_record?.verification_status === 'verified') {
-      return new Response(
-        JSON.stringify({ message: 'Already verified, skipping', skipped: true }),
-        { headers: corsHeaders }
-      )
-    }
+
     match_result_id = payload.record?.id
   } else {
     // Legacy direct-invoke: { match_result_id }
@@ -306,10 +320,13 @@ Deno.serve(async (req) => {
     )
   }
 
-  // Mark as processed
+  // Mark as processed (set verified_at if missing — admin Quick Result leaves it null)
   await supabase
     .from('match_results')
-    .update({ elo_processed: true })
+    .update({
+      elo_processed: true,
+      ...(!result.verified_at ? { verified_at: new Date().toISOString() } : {}),
+    })
     .eq('id', match_result_id)
 
   // Update league_standings if this match belongs to a league

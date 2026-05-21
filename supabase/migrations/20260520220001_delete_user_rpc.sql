@@ -23,6 +23,8 @@ AS $$
 DECLARE
   v_uid uuid := auth.uid();
   v_profile_exists boolean;
+  v_group_id uuid;
+  v_new_admin uuid;
 BEGIN
   -- Refuse to run without an authenticated user
   IF v_uid IS NULL THEN
@@ -264,10 +266,34 @@ BEGIN
 
   -- ── 1e. Other "created_by" / "admin" columns ────────────────────────
 
-  -- groups.admin_id
+  -- groups.admin_id — NOT NULL column, so reassign or delete the group
   BEGIN
-    UPDATE groups SET admin_id = NULL WHERE admin_id = v_uid;
-  EXCEPTION WHEN undefined_column THEN NULL;
+    FOR v_group_id IN
+      SELECT id FROM groups WHERE admin_id = v_uid
+    LOOP
+      -- Find another approved member to promote
+      SELECT user_id INTO v_new_admin
+      FROM group_members
+      WHERE group_id = v_group_id
+        AND user_id != v_uid
+        AND status = 'approved'
+      ORDER BY created_at ASC
+      LIMIT 1;
+
+      IF v_new_admin IS NOT NULL THEN
+        UPDATE group_members
+        SET role = 'admin'::group_role
+        WHERE group_id = v_group_id AND user_id = v_new_admin;
+
+        UPDATE groups SET admin_id = v_new_admin WHERE id = v_group_id;
+      ELSE
+        -- No other members — delete the group (cascades to group_members etc.)
+        DELETE FROM groups WHERE id = v_group_id;
+      END IF;
+    END LOOP;
+  EXCEPTION
+    WHEN undefined_table THEN NULL;
+    WHEN undefined_column THEN NULL;
   END;
 
   -- leagues.created_by

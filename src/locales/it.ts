@@ -494,6 +494,8 @@ export default {
     today: 'Oggi',
     no_matches_on_date: 'Nessuna partita il {{date}}',
     no_matches_this_week: 'Nessuna partita questa settimana',
+    next_week_indicator_singular: '→ 1 match next week',
+    next_week_indicator_plural: '→ {{count}} matches next week',
     no_group_matches_this_week: 'Nessuna partita di gruppo questa settimana',
     no_open_matches_available: 'Nessuna partita aperta disponibile',
     empty_mine_subtitle: 'Crea una partita o controlla la tua disponibilità',

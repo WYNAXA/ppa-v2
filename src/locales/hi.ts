@@ -494,6 +494,8 @@ export default {
     today: 'आज',
     no_matches_on_date: '{{date}} को कोई मैच नहीं',
     no_matches_this_week: 'इस सप्ताह कोई मैच नहीं',
+    next_week_indicator_singular: '→ 1 match next week',
+    next_week_indicator_plural: '→ {{count}} matches next week',
     no_group_matches_this_week: 'इस सप्ताह कोई ग्रुप मैच नहीं',
     no_open_matches_available: 'कोई खुला मैच उपलब्ध नहीं',
     empty_mine_subtitle: 'मैच बनाएं या अपनी उपलब्धता जांचें',

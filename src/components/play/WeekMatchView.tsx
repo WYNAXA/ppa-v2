@@ -395,6 +395,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   // ── Filtering ──────────────────────────────────────────────────────────────
   const filteredMatches = useMemo(() => {
     return activeMatches.filter((m) => {
+      // Hide completed and cancelled matches from the display
+      if (m.status === 'completed' || m.status === 'cancelled') return false
       const matchDate = parseISO(m.match_date)
       if (selectedDay) {
         if (!isSameDay(matchDate, selectedDay)) return false
@@ -409,8 +411,19 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     })
   }, [activeMatches, selectedDay, weekStart, weekEnd, selectedFilter, viewTab, needsRingersOnly])
 
+  // ── Future-week match count (matches beyond this week's display window) ────
+  const futureWeekCount = useMemo(() => {
+    if (viewTab === 'open') return 0
+    return activeMatches.filter((m) => {
+      if (m.status === 'completed' || m.status === 'cancelled') return false
+      const matchDate = parseISO(m.match_date)
+      return matchDate > weekEnd
+    }).length
+  }, [activeMatches, weekEnd, viewTab])
+
   // ── Week summary ───────────────────────────────────────────────────────────
   const weekMatches = activeMatches.filter((m) => {
+    if (m.status === 'completed' || m.status === 'cancelled') return false
     const d = parseISO(m.match_date)
     return d >= weekStart && d <= weekEnd
   })
@@ -651,6 +664,20 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                     />
                   ))}
             </div>
+          )}
+
+          {/* ── Future-week indicator ── */}
+          {!selectedDay && futureWeekCount > 0 && (
+            <button
+              onClick={goNextWeek}
+              className="mt-4 w-full rounded-2xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-center transition-colors active:bg-teal-100"
+            >
+              <span className="text-[13px] font-semibold text-[#009688]">
+                {futureWeekCount === 1
+                  ? t('play.next_week_indicator_singular')
+                  : t('play.next_week_indicator_plural', { count: futureWeekCount })}
+              </span>
+            </button>
           )}
         </motion.div>
       </AnimatePresence>

@@ -557,6 +557,8 @@ export default {
     today: 'Today',
     no_matches_on_date: 'No matches on {{date}}',
     no_matches_this_week: 'No matches this week',
+    next_week_indicator_singular: '\u2192 1 match next week',
+    next_week_indicator_plural: '\u2192 {{count}} matches next week',
     no_group_matches_this_week: 'No group matches this week',
     no_open_matches_available: 'No open matches available',
     empty_mine_subtitle: 'Create a match or check your availability',

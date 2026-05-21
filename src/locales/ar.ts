@@ -494,6 +494,8 @@ export default {
     today: 'اليوم',
     no_matches_on_date: 'لا توجد مباريات في {{date}}',
     no_matches_this_week: 'لا توجد مباريات هذا الأسبوع',
+    next_week_indicator_singular: '→ 1 match next week',
+    next_week_indicator_plural: '→ {{count}} matches next week',
     no_group_matches_this_week: 'لا توجد مباريات جماعية هذا الأسبوع',
     no_open_matches_available: 'لا توجد مباريات مفتوحة متاحة',
     empty_mine_subtitle: 'أنشئ مباراة أو تحقق من توفرك',

@@ -536,7 +536,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
 
 // ── Admin tab ─────────────────────────────────────────────────────────────────
 
-function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; standings: Standing[]; onNavigate: (path: string) => void }) {
+function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMatches }: { league: LeagueInfo; standings: Standing[]; onNavigate: (path: string) => void; onResetPairs?: () => void; hasTeams?: boolean; hasMatches?: boolean }) {
   const queryClient = useQueryClient()
   const [selectedUserId, setSelectedUserId] = useState('')
   const [pointsDelta, setPointsDelta] = useState('')
@@ -707,6 +707,22 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
 
       {/* Invite from group */}
       <InviteFromGroupSection league={league} standings={standings} />
+
+      {/* Reset pairs (only for pairs leagues with no matches played yet) */}
+      {league.match_type === 'pairs' && hasTeams && !hasMatches && onResetPairs && (
+        <div className="rounded-2xl border border-amber-100 p-4 space-y-3">
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Pairs</p>
+          <button
+            onClick={() => {
+              if (!confirm('Reset all pairs? This deletes the current pair assignments. You can only do this before any matches are played.')) return
+              onResetPairs()
+            }}
+            className="w-full rounded-xl border border-amber-200 py-2.5 text-[13px] font-semibold text-amber-600"
+          >
+            Reset Pairs
+          </button>
+        </div>
+      )}
 
       {/* Delete league */}
       <div className="rounded-2xl border border-red-100 p-4 space-y-3">
@@ -1644,9 +1660,15 @@ export function LeagueDetailPage() {
                 <EmptyTab message="No upcoming fixtures" />
                 {isAdmin && (
                   <button
-                    onClick={handleGenerateRound}
-                    disabled={generatingRound}
-                    className="mt-4 w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50"
+                    onClick={() => {
+                      if (isPairs && leagueTeams.length === 0) {
+                        toast.error(tPairs('no_pairs_cta'))
+                        return
+                      }
+                      handleGenerateRound()
+                    }}
+                    disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
+                    className="mt-4 w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {generatingRound ? 'Generating\u2026' : 'Generate Next Round'}
                   </button>
@@ -1786,7 +1808,18 @@ export function LeagueDetailPage() {
 
           {/* ── Admin ── */}
           {activeTab === 'admin' && isAdmin && (
-            <AdminTab league={league} standings={standings} onNavigate={navigate} />
+            <AdminTab
+              league={league}
+              standings={standings}
+              onNavigate={navigate}
+              hasTeams={leagueTeams.length > 0}
+              hasMatches={fixtures.length > 0}
+              onResetPairs={async () => {
+                await supabase.from('league_teams').delete().eq('league_id', id)
+                queryClient.invalidateQueries({ queryKey: ['league-teams', id] })
+                queryClient.invalidateQueries({ queryKey: ['league-team-standings', id] })
+              }}
+            />
           )}
 
         </motion.div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Trophy, Check, Zap } from 'lucide-react'
 import { format } from 'date-fns'
@@ -659,9 +660,15 @@ export function TournamentModePage() {
           <motion.button
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
-            onClick={generateNextRound}
-            disabled={generatingRound || standings.length < 4}
-            className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 py-3.5 text-[14px] font-bold text-white disabled:opacity-50 mt-4"
+            onClick={() => {
+              if (isPairs && leagueTeams.length === 0) {
+                toast.error('Set up pairs before generating fixtures')
+                return
+              }
+              generateNextRound()
+            }}
+            disabled={generatingRound || (isPairs ? leagueTeams.length < 2 : standings.length < 4)}
+            className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 py-3.5 text-[14px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed mt-4"
           >
             {generatingRound ? 'Generating...' : 'Generate Next Round'}
           </motion.button>

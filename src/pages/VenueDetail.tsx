@@ -301,7 +301,7 @@ export function VenueDetailPage() {
           >
             Book via PPA
           </button>
-        ) : venue.booking_url ? (
+        ) : venue.booking_url?.trim() ? (
           <button
             onClick={() => window.open(venue.booking_url!, '_blank')}
             className="flex-1 rounded-xl bg-teal-600 text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
@@ -309,6 +309,21 @@ export function VenueDetailPage() {
             Book via {venue.booking_platform ?? 'website'}
             <ExternalLink size={14} />
           </button>
+        ) : venue.website?.trim() ? (
+          <button
+            onClick={() => window.open(venue.website!, '_blank')}
+            className="flex-1 rounded-xl bg-teal-600 text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+          >
+            Visit venue website
+            <ExternalLink size={14} />
+          </button>
+        ) : venue.phone?.trim() ? (
+          <a
+            href={`tel:${venue.phone}`}
+            className="flex-1 rounded-xl bg-gray-200 text-gray-800 font-semibold py-3 text-sm text-center active:scale-[0.98] transition-transform"
+          >
+            Call venue
+          </a>
         ) : null}
         <button
           onClick={() => window.open(googleMapsUrl(venue.latitude, venue.longitude, venue.full_address), '_blank')}

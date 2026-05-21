@@ -898,4 +898,10 @@ export default {
     saving: 'جارٍ الحفظ…',
     back: 'رجوع',
   },
+  venue: {
+    book_at_venue: 'Book at venue',
+    visit_website: 'Visit venue website',
+    contact_directly: 'Contact venue directly',
+    no_online_booking: 'No online booking — contact venue',
+  },
 }

@@ -486,8 +486,8 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
     setSavingJersey(true)
     const colorIndex = JERSEY_COLOURS.findIndex(c => c.id === jerseyNumber)
     await supabase.from('league_jerseys').upsert(
-      { league_id: league.id, user_id: jerseyUserId, jersey_number: colorIndex >= 0 ? colorIndex + 1 : 1 },
-      { onConflict: 'league_id,user_id' }
+      { league_id: league.id, user_id: jerseyUserId, jersey_number: colorIndex >= 0 ? colorIndex + 1 : 1, jersey_color: jerseyNumber },
+      { onConflict: 'league_id,jersey_number' }
     )
     setSavingJersey(false)
     setJerseyUserId('')

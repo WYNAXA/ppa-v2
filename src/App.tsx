@@ -65,7 +65,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return
     if (!session || !profile) return
-    if (location.pathname === '/onboarding') return
+    if (['/onboarding', '/privacy', '/terms', '/support'].includes(location.pathname)) return
     if (location.pathname.startsWith('/auth')) return
     if (!isOnboardingComplete(profile)) {
       navigate('/onboarding', { replace: true })

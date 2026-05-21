@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -612,7 +613,11 @@ function AdminTab({ league, standings, onNavigate }: { league: LeagueInfo; stand
         <button
           onClick={async () => {
             if (!confirm('Delete this league? All fixtures and standings will be lost.')) return
-            await supabase.from('leagues').delete().eq('id', league.id)
+            const { error, count } = await supabase.from('leagues').delete({ count: 'exact' }).eq('id', league.id)
+            if (error || count === 0) {
+              toast.error(error?.message ?? 'Failed to delete league. You may not have permission.')
+              return
+            }
             onNavigate('/compete')
           }}
           className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"

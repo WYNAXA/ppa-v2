@@ -50,6 +50,8 @@ interface Venue {
   ppa_bookable?: boolean | null
   price_pence?: number | null
   price_per_player_pence?: number | null
+  website?: string | null
+  phone?: string | null
 }
 
 interface TimeSlot {
@@ -461,7 +463,7 @@ export function BookCourtPage() {
     supabase
       .from('padel_venues')
       .select(
-        'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_pence, price_per_player_pence',
+        'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_pence, price_per_player_pence, website, phone',
       )
       .or(`venue_name.ilike.%${debouncedVenueQuery}%,city.ilike.%${debouncedVenueQuery}%`)
       .limit(15)
@@ -846,47 +848,75 @@ export function BookCourtPage() {
 
               {/* Non-PPA venue notice */}
               <AnimatePresence>
-                {nonPpaVenue && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    className="rounded-2xl border border-blue-100 bg-blue-50 p-4"
-                  >
-                    <p className="text-[14px] font-bold text-blue-800 mb-1">{nonPpaVenue.venue_name}</p>
-                    <p className="text-[13px] text-blue-600 mb-3">
-                      This venue books via{' '}
-                      <strong>
-                        {PLATFORM_LABELS[nonPpaVenue.booking_platform ?? '']?.label ??
-                          nonPpaVenue.booking_platform ??
-                          'external platform'}
-                      </strong>
-                      . You'll be taken to their app to complete the booking.
-                    </p>
-                    {nonPpaVenue.booking_url && (
-                      <button
-                        onClick={() =>
-                          openVenueLink(
-                            nonPpaVenue.booking_url!,
-                            PLATFORM_LABELS[nonPpaVenue.booking_platform ?? '']?.appScheme,
-                          )
-                        }
-                        className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white"
-                      >
-                        Open in{' '}
-                        {PLATFORM_LABELS[nonPpaVenue.booking_platform ?? '']?.label ??
-                          nonPpaVenue.booking_platform}
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setNonPpaVenue(null)}
-                      className="mt-2 block text-[12px] text-blue-400 hover:text-blue-600"
+                {nonPpaVenue && (() => {
+                  const hasBookingUrl = !!nonPpaVenue.booking_url?.trim()
+                  const hasWebsite = !!nonPpaVenue.website?.trim()
+                  const hasPhone = !!nonPpaVenue.phone?.trim()
+                  const platformLabel = PLATFORM_LABELS[nonPpaVenue.booking_platform ?? '']?.label
+                    ?? nonPpaVenue.booking_platform ?? null
+                  const appScheme = PLATFORM_LABELS[nonPpaVenue.booking_platform ?? '']?.appScheme
+
+                  return (
+                    <motion.div
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0 }}
+                      className="rounded-2xl border border-blue-100 bg-blue-50 p-4"
                     >
-                      Choose a different venue
-                    </button>
-                  </motion.div>
-                )}
+                      <p className="text-[14px] font-bold text-blue-800 mb-1">{nonPpaVenue.venue_name}</p>
+
+                      {hasBookingUrl ? (
+                        <>
+                          <p className="text-[13px] text-blue-600 mb-3">
+                            This venue books via <strong>{platformLabel ?? 'external platform'}</strong>.
+                            {' '}You'll be taken to their app to complete the booking.
+                          </p>
+                          <button
+                            onClick={() => openVenueLink(nonPpaVenue.booking_url!, appScheme)}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white"
+                          >
+                            {platformLabel ? `Open in ${platformLabel}` : 'Book at venue'}
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      ) : hasWebsite ? (
+                        <>
+                          <p className="text-[13px] text-blue-600 mb-3">
+                            This venue doesn't have direct booking integration yet. Visit their website to check availability and book.
+                          </p>
+                          <button
+                            onClick={() => window.open(nonPpaVenue.website!, '_blank')}
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white"
+                          >
+                            Visit venue website
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-[13px] text-blue-600 mb-3">
+                            No online booking available — contact venue directly.
+                          </p>
+                          {hasPhone && (
+                            <a
+                              href={`tel:${nonPpaVenue.phone}`}
+                              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white"
+                            >
+                              Call {nonPpaVenue.phone}
+                            </a>
+                          )}
+                        </>
+                      )}
+
+                      <button
+                        onClick={() => setNonPpaVenue(null)}
+                        className="mt-2 block text-[12px] text-blue-400 hover:text-blue-600"
+                      >
+                        Choose a different venue
+                      </button>
+                    </motion.div>
+                  )
+                })()}
               </AnimatePresence>
 
               {/* Venue results */}

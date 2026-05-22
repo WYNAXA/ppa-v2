@@ -932,24 +932,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
       const { error: matchError } = await supabase.from('matches').update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
       if (matchError) throw matchError
 
-      // 3. Update league_standings via RPC
-      const team1 = match.player_ids.slice(0, 2)
-      const team2 = match.player_ids.slice(2, 4)
-
-      if (resultType === 'draw') {
-        await supabase.rpc('update_league_standings_draw', {
-          p_league_id: leagueId,
-          p_player_ids: [...team1, ...team2],
-        })
-      } else {
-        const winners = resultType === 'team1_win' ? team1 : team2
-        const losers = resultType === 'team1_win' ? team2 : team1
-        await supabase.rpc('update_league_standings_win', {
-          p_league_id: leagueId,
-          p_winner_ids: winners,
-          p_loser_ids: losers,
-        })
-      }
+      // 3. Standings updated by process-elo via DB webhook — no client-side RPC
 
       // 4. Invalidate and close
       queryClient.invalidateQueries({ queryKey: ['league-standings', leagueId] })

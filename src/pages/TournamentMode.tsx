@@ -317,19 +317,7 @@ export function TournamentModePage() {
         .update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
         .eq('id', entry.matchId)
 
-      // Update standings via RPC
-      if (resultType === 'draw') {
-        await supabase.rpc('update_league_standings_draw', {
-          p_league_id: id,
-          p_player_ids: [...team1, ...team2],
-        })
-      } else {
-        await supabase.rpc('update_league_standings_win', {
-          p_league_id: id,
-          p_winner_ids: resultType === 'team1_win' ? team1 : team2,
-          p_loser_ids: resultType === 'team1_win' ? team2 : team1,
-        })
-      }
+      // Standings updated by process-elo via DB webhook — no client-side RPC
 
       setEntries((prev) =>
         prev.map((e, i) =>

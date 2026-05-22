@@ -172,6 +172,11 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
       return
     }
 
+    // Auto-set max_rounds for round-robin based on team count
+    const teamCount = pairs.length + (leftoverMember ? 1 : 0)
+    const maxRounds = teamCount % 2 === 0 ? teamCount - 1 : teamCount
+    await supabase.from('leagues').update({ max_rounds: maxRounds }).eq('id', leagueId)
+
     toast.success(t('pairs_saved'))
     setSaving(false)
     onSaved()

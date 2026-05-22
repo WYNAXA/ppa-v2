@@ -63,7 +63,7 @@ export function TournamentModePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, match_type, format, scoring_format, max_participants, min_elo, max_elo, linked_group_ids, created_by')
+        .select('id, name, status, match_type, format, scoring_format, max_participants, min_elo, max_elo, max_rounds, linked_group_ids, created_by')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -355,6 +355,12 @@ export function TournamentModePage() {
       const nextRound = existingMatches?.[0]?.round_number != null
         ? (existingMatches[0].round_number as number) + 1
         : 0
+
+      // Season complete check
+      if (league.max_rounds != null && nextRound >= league.max_rounds) {
+        toast.error(`Season complete. All ${league.max_rounds} rounds have been generated.`)
+        return
+      }
 
       const matchesToCreate: Record<string, unknown>[] = []
 
@@ -689,13 +695,13 @@ export function TournamentModePage() {
       </div>
 
       {/* Bottom bar — progress */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 py-3 safe-area-pb z-30">
+      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-100 px-5 py-3 z-30">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-[12px] font-semibold text-gray-600">
-            {completedCount}/{totalCount} results submitted
+            This round: {completedCount} of {totalCount} results
           </span>
           {allCompleted && totalCount > 0 && (
-            <span className="text-[11px] font-bold text-green-600">All done!</span>
+            <span className="text-[11px] font-bold text-green-600">Round complete!</span>
           )}
         </div>
         <div className="h-2 rounded-full bg-gray-100 overflow-hidden">

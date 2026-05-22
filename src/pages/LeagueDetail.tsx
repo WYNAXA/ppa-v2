@@ -736,6 +736,10 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
               toast.error(error?.message ?? 'Failed to delete league. You may not have permission.')
               return
             }
+            queryClient.invalidateQueries({ queryKey: ['my-leagues-compete'] })
+            queryClient.invalidateQueries({ queryKey: ['league', league.id] })
+            queryClient.invalidateQueries({ queryKey: ['league-standings', league.id] })
+            queryClient.invalidateQueries({ queryKey: ['league-teams', league.id] })
             onNavigate('/compete')
           }}
           className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"

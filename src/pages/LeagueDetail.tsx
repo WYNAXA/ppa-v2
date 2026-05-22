@@ -13,6 +13,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { PairAvatar } from '@/components/shared/PairAvatar'
 import { PairAssignmentSheet } from '@/components/compete/PairAssignmentSheet'
 import { cn } from '@/lib/utils'
+import { generateRoundRobinRound } from '@/lib/roundRobin'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1314,61 +1315,93 @@ export function LeagueDetailPage() {
 
   async function handleGenerateRound() {
     setGeneratingRound(true)
-    const today = format(new Date(), 'yyyy-MM-dd', { locale })
-    const matchesToCreate: Record<string, unknown>[] = []
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd', { locale })
 
-    if (isPairs) {
-      // Pairs mode: generate fixtures from league_teams
-      if (leagueTeams.length < 2) {
-        console.warn('[GenerateRound] not enough teams:', leagueTeams.length)
-        setGeneratingRound(false)
-        return
+      // Determine next round number from existing matches
+      const { data: existingMatches } = await supabase
+        .from('matches')
+        .select('round_number')
+        .eq('league_id', id)
+        .not('round_number', 'is', null)
+        .order('round_number', { ascending: false })
+        .limit(1)
+      const nextRound = existingMatches?.[0]?.round_number != null
+        ? (existingMatches[0].round_number as number) + 1
+        : 0
+
+      const matchesToCreate: Record<string, unknown>[] = []
+
+      if (isPairs) {
+        if (leagueTeams.length < 2) {
+          console.warn('[GenerateRound] not enough teams:', leagueTeams.length)
+          return
+        }
+        const teamIds = leagueTeams.map((t) => t.id)
+        const teamMap = Object.fromEntries(leagueTeams.map((t) => [t.id, t]))
+        const { pairings, bye } = generateRoundRobinRound(teamIds, nextRound)
+
+        for (const [aId, bId] of pairings) {
+          const t1 = teamMap[aId]
+          const t2 = teamMap[bId]
+          matchesToCreate.push({
+            match_date: today,
+            match_time: '12:00:00',
+            match_type: 'competitive',
+            status: 'scheduled',
+            player_ids: [t1.player1_id, t1.player2_id, t2.player1_id, t2.player2_id],
+            team1_id: t1.id,
+            team2_id: t2.id,
+            group_id: league?.linked_group_ids?.[0] ?? null,
+            league_id: id,
+            round_number: nextRound,
+            created_manually: false,
+            created_by: currentUserId,
+          })
+        }
+
+        const byeName = bye ? teamMap[bye]?.team_name ?? bye : null
+        console.log(`[GenerateRound] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
+      } else {
+        // Individual mode: round-robin over players (groups of 4 = 2v2 padel)
+        // Each "entity" in the round-robin is a player; pairings produce 2 players per side
+        const playerIds = standings.map((s) => s.user_id)
+        if (playerIds.length < 4) {
+          console.warn('[GenerateRound] not enough players:', playerIds.length)
+          return
+        }
+
+        const { pairings, bye } = generateRoundRobinRound(playerIds, nextRound)
+
+        // Each round-robin pairing is 1v1; for padel doubles we need to group
+        // consecutive pairings into 4-player matches (pair[0] vs pair[1])
+        for (let i = 0; i + 1 < pairings.length; i += 2) {
+          const [a1, a2] = pairings[i]
+          const [b1, b2] = pairings[i + 1]
+          matchesToCreate.push({
+            match_date: today,
+            match_time: '12:00:00',
+            match_type: 'competitive',
+            status: 'scheduled',
+            player_ids: [a1, a2, b1, b2],
+            group_id: league?.linked_group_ids?.[0] ?? null,
+            league_id: id,
+            round_number: nextRound,
+            created_manually: false,
+            created_by: currentUserId,
+          })
+        }
+
+        const byeName = bye ? standings.find((s) => s.user_id === bye)?.profile?.name ?? bye : null
+        console.log(`[GenerateRound] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
       }
-      const teams = [...leagueTeams]
-      for (let i = 0; i + 1 < teams.length; i += 2) {
-        const t1 = teams[i]
-        const t2 = teams[i + 1]
-        matchesToCreate.push({
-          match_date: today,
-          match_time: '12:00:00',
-          match_type: 'competitive',
-          status: 'scheduled',
-          player_ids: [t1.player1_id, t1.player2_id, t2.player1_id, t2.player2_id],
-          team1_id: t1.id,
-          team2_id: t2.id,
-          group_id: league?.linked_group_ids?.[0] ?? null,
-          league_id: id,
-          created_manually: false,
-          created_by: currentUserId,
-        })
-      }
-    } else {
-      // Individual mode
-      if (!league || standings.length < 4) {
-        console.warn('[GenerateRound] not enough players:', standings.length)
-        setGeneratingRound(false)
-        return
-      }
-      const players = standings.map(s => s.user_id)
-      for (let i = 0; i + 3 < players.length; i += 4) {
-        matchesToCreate.push({
-          match_date: today,
-          match_time: '12:00:00',
-          match_type: 'competitive',
-          status: 'scheduled',
-          player_ids: [players[i], players[i+1], players[i+2], players[i+3]],
-          group_id: league?.linked_group_ids?.[0] ?? null,
-          league_id: id,
-          created_manually: false,
-          created_by: currentUserId,
-        })
-      }
+
+      const { error } = await supabase.from('matches').insert(matchesToCreate)
+      if (error) console.error('[GenerateRound] insert error:', error)
+      queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
+    } finally {
+      setGeneratingRound(false)
     }
-
-    const { error } = await supabase.from('matches').insert(matchesToCreate)
-    if (error) console.error('[GenerateRound] insert error:', error)
-    queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
-    setGeneratingRound(false)
   }
 
   if (loadingLeague) {

@@ -1562,6 +1562,7 @@ export function LeagueDetailPage() {
 
               {/* Standings table — pairs or individual */}
               {isPairs ? (
+                <>
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
                   <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
                     {['#', 'Pair', 'P', 'W', 'L', 'Pts'].map((h) => (
@@ -1628,7 +1629,7 @@ export function LeagueDetailPage() {
                     </>
                   )
                 })()}
-
+              </>
               ) : (
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
                   <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">

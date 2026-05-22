@@ -1532,18 +1532,11 @@ export function LeagueDetailPage() {
         </div>
       </div>
 
-      {/* League summary */}
+      {/* League summary — matches played count (leader shown in standings card) */}
       <div className="px-5 pt-3 pb-1">
-        <div className="flex items-center justify-between gap-3 text-[12px]">
-          <span className="text-gray-500">
-            {standings.reduce((s, r) => s + r.played, 0) / 2} matches played
-          </span>
-          {standings[0] && (
-            <span className="font-semibold text-gray-700">
-              Leader: {standings[0].profile?.name?.split(' ')[0]} · {standings[0].points} pts
-            </span>
-          )}
-        </div>
+        <p className="text-[12px] text-gray-500">
+          {standings.reduce((s, r) => s + r.played, 0) / 2} matches played
+        </p>
       </div>
 
       {/* Tab content */}

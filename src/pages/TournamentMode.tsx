@@ -569,6 +569,25 @@ export function TournamentModePage() {
         </div>
       )}
 
+      {/* Admin: Generate Round button at top */}
+      {isAdmin && (
+        <div className="bg-white border-b border-gray-100 px-5 py-3">
+          <button
+            onClick={() => {
+              if (isPairs && leagueTeams.length === 0) {
+                toast.error('Set up pairs before generating fixtures')
+                return
+              }
+              generateNextRound()
+            }}
+            disabled={generatingRound || (isPairs ? leagueTeams.length < 2 : standings.length < 4)}
+            className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingRound ? 'Generating…' : 'Generate Next Round'}
+          </button>
+        </div>
+      )}
+
       {/* Match list */}
       <div className="flex-1 px-4 pt-4 pb-32 overflow-y-auto">
         {entries.length === 0 ? (
@@ -706,24 +725,7 @@ export function TournamentModePage() {
           })()
         )}
 
-        {/* Generate next round */}
-        {allCompleted && (
-          <motion.button
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            onClick={() => {
-              if (isPairs && leagueTeams.length === 0) {
-                toast.error('Set up pairs before generating fixtures')
-                return
-              }
-              generateNextRound()
-            }}
-            disabled={generatingRound || (isPairs ? leagueTeams.length < 2 : standings.length < 4)}
-            className="w-full rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 py-3.5 text-[14px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed mt-4"
-          >
-            {generatingRound ? 'Generating...' : 'Generate Next Round'}
-          </motion.button>
-        )}
+        {/* Generate next round — moved to top (see progress bar section) */}
       </div>
 
       {/* Progress bar moved to top of page — see above About card */}

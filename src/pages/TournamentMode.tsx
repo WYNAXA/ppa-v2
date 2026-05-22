@@ -99,6 +99,22 @@ export function TournamentModePage() {
     },
   })
 
+  const { data: currentRound = 0 } = useQuery({
+    queryKey: ['tournament-current-round', id],
+    enabled: !!id,
+    queryFn: async (): Promise<number> => {
+      const { data } = await supabase
+        .from('matches')
+        .select('round_number')
+        .eq('league_id', id)
+        .not('round_number', 'is', null)
+        .order('round_number', { ascending: false })
+        .limit(1)
+      return data?.[0]?.round_number != null ? (data[0].round_number as number) + 1 : 0
+    },
+  })
+  const isSeasonComplete = league?.max_rounds != null && currentRound >= league.max_rounds
+
   // ── Standings ────────────────────────────────────────────────────────────
 
   const { data: standings = [] } = useQuery({
@@ -569,8 +585,8 @@ export function TournamentModePage() {
         </div>
       )}
 
-      {/* Admin: Generate Round button at top */}
-      {isAdmin && (
+      {/* Admin: Generate Round button at top (hidden when season complete) */}
+      {isAdmin && !isSeasonComplete && (
         <div className="bg-white border-b border-gray-100 px-5 py-3">
           <button
             onClick={() => {

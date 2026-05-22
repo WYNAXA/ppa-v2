@@ -35,7 +35,7 @@ ALTER TABLE matches ADD COLUMN IF NOT EXISTS team2_id uuid REFERENCES league_tea
 -- Both pair members play every match together, so their individual stats
 -- (matches_played, wins, losses, draws, ranking_points) are identical.
 -- We use player1's row only to avoid double-counting.
--- Individual admin adjustments will only surface on individual standings.
+-- Game difference calculated from match_results.sets_data for tie-breaking.
 
 CREATE OR REPLACE VIEW league_team_standings AS
 SELECT
@@ -48,6 +48,25 @@ SELECT
   COALESCE(s1.losses, 0)           AS losses,
   COALESCE(s1.draws, 0)            AS draws,
   COALESCE(s1.matches_played, 0)   AS matches_played,
-  COALESCE(s1.ranking_points, 0)   AS ranking_points
+  COALESCE(s1.ranking_points, 0)   AS ranking_points,
+  COALESCE(gd.games_won, 0)       AS games_won,
+  COALESCE(gd.games_lost, 0)      AS games_lost,
+  COALESCE(gd.games_won, 0) - COALESCE(gd.games_lost, 0) AS game_difference
 FROM league_teams t
-LEFT JOIN league_standings s1 ON s1.league_id = t.league_id AND s1.user_id = t.player1_id;
+LEFT JOIN league_standings s1 ON s1.league_id = t.league_id AND s1.user_id = t.player1_id
+LEFT JOIN LATERAL (
+  SELECT
+    SUM(CASE
+      WHEN mr.team1_players @> ARRAY[t.player1_id] THEN (s.val->>'team1')::int
+      ELSE (s.val->>'team2')::int
+    END) AS games_won,
+    SUM(CASE
+      WHEN mr.team1_players @> ARRAY[t.player1_id] THEN (s.val->>'team2')::int
+      ELSE (s.val->>'team1')::int
+    END) AS games_lost
+  FROM match_results mr
+  CROSS JOIN LATERAL jsonb_array_elements(mr.sets_data) AS s(val)
+  JOIN matches m ON m.id = mr.match_id AND m.league_id = t.league_id
+  WHERE mr.verification_status = 'verified'
+    AND (mr.team1_players @> ARRAY[t.player1_id] OR mr.team2_players @> ARRAY[t.player1_id])
+) gd ON true;

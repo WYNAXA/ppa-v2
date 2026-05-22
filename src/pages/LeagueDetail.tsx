@@ -86,6 +86,7 @@ interface TeamStanding {
   lost: number
   drawn: number
   points: number
+  game_difference: number
 }
 
 type Tab = 'standings' | 'fixtures' | 'results' | 'mexicano' | 'admin'
@@ -169,9 +170,11 @@ function useTeamStandings(leagueId: string, enabled: boolean) {
 
       const profileMap = Object.fromEntries((profiles ?? []).map((p: any) => [p.id, p]))
 
-      const sorted = [...rows].sort((a: any, b: any) =>
-        ((b.ranking_points ?? 0) as number) - ((a.ranking_points ?? 0) as number)
-      )
+      const sorted = [...rows].sort((a: any, b: any) => {
+        const ptsDiff = ((b.ranking_points ?? 0) as number) - ((a.ranking_points ?? 0) as number)
+        if (ptsDiff !== 0) return ptsDiff
+        return ((b.game_difference ?? 0) as number) - ((a.game_difference ?? 0) as number)
+      })
 
       return sorted.map((r: any, i: number) => ({
         team_id: r.team_id,
@@ -186,6 +189,7 @@ function useTeamStandings(leagueId: string, enabled: boolean) {
         lost: (r.losses ?? 0) as number,
         drawn: (r.draws ?? 0) as number,
         points: (r.ranking_points ?? 0) as number,
+        game_difference: (r.game_difference ?? 0) as number,
       }))
     },
   })
@@ -213,6 +217,23 @@ function useLeagueMembers(leagueId: string) {
         avatar_url: p.avatar_url,
         internal_ranking: (p.internal_ranking as number) ?? 1230,
       }))
+    },
+  })
+}
+
+function useCurrentRound(leagueId: string) {
+  return useQuery({
+    queryKey: ['league-current-round', leagueId],
+    enabled: !!leagueId,
+    queryFn: async (): Promise<number> => {
+      const { data } = await supabase
+        .from('matches')
+        .select('round_number')
+        .eq('league_id', leagueId)
+        .not('round_number', 'is', null)
+        .order('round_number', { ascending: false })
+        .limit(1)
+      return data?.[0]?.round_number != null ? (data[0].round_number as number) + 1 : 0
     },
   })
 }
@@ -1252,6 +1273,8 @@ export function LeagueDetailPage() {
   const { data: teamStandings = [] } = useTeamStandings(id, isPairs)
   const { data: leagueTeams = [] } = useLeagueTeams(id)
   const { data: leagueMembers = [] } = useLeagueMembers(id)
+  const { data: currentRound = 0 } = useCurrentRound(id)
+  const isSeasonComplete = league?.max_rounds != null && currentRound >= league.max_rounds
   const { data: fixtures  = [], isLoading: loadingFixtures  } = useFixtures(id, groupIds)
   const { data: results   = [], isLoading: loadingResults   } = useResults(id, groupIds)
 
@@ -1573,8 +1596,37 @@ export function LeagueDetailPage() {
             ) : (
               <div className="space-y-3">
 
-              {/* Current leader card */}
-              {isPairs && teamStandings[0] ? (
+              {/* Leader / Champion card */}
+              {isSeasonComplete && (isPairs ? teamStandings : standings).length >= 3 ? (
+                <div className="space-y-2">
+                  {/* Podium */}
+                  {(isPairs ? teamStandings : standings).slice(0, 3).map((row, i) => {
+                    const name = isPairs
+                      ? (row as TeamStanding).team_name ?? 'Unknown'
+                      : (row as Standing).profile?.name ?? 'Unknown'
+                    const pts = row.points
+                    const gd = isPairs ? (row as TeamStanding).game_difference : null
+                    const styles = [
+                      { bg: 'bg-gradient-to-r from-amber-50 to-yellow-50', border: 'border-amber-100', text: 'text-amber-600', pts_text: 'text-amber-700', emoji: '🏆', label: 'Champion' },
+                      { bg: 'bg-gradient-to-r from-gray-50 to-slate-50', border: 'border-gray-200', text: 'text-gray-500', pts_text: 'text-gray-700', emoji: '🥈', label: '2nd Place' },
+                      { bg: 'bg-gradient-to-r from-orange-50 to-amber-50', border: 'border-orange-100', text: 'text-orange-500', pts_text: 'text-orange-700', emoji: '🥉', label: '3rd Place' },
+                    ][i]
+                    return (
+                      <div key={i} className={cn('rounded-2xl border px-4 py-3 flex items-center gap-3', styles.bg, styles.border)}>
+                        <p className="text-[28px] leading-none">{styles.emoji}</p>
+                        <div className="flex-1 min-w-0">
+                          <p className={cn('text-[10px] font-bold uppercase tracking-wide mb-0.5', styles.text)}>{styles.label}</p>
+                          <p className="text-[15px] font-bold text-gray-900 truncate">{name}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className={cn('text-[20px] font-black', styles.pts_text)}>{pts}</p>
+                          <p className={cn('text-[10px] font-semibold', styles.text)}>{gd != null ? `GD ${gd >= 0 ? '+' : ''}${gd}` : 'pts'}</p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : isPairs && teamStandings[0] ? (
                 <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 px-4 py-3 flex items-center gap-3">
                   <p className="text-[28px] leading-none">🥇</p>
                   <div className="flex-1 min-w-0">
@@ -1637,8 +1689,8 @@ export function LeagueDetailPage() {
               {isPairs ? (
                 <>
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Pair', 'P', 'W', 'L', 'Pts'].map((h) => (
+                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    {['#', 'Pair', 'P', 'W', 'L', 'GD', 'Pts'].map((h) => (
                       <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
                     ))}
                   </div>
@@ -1648,7 +1700,7 @@ export function LeagueDetailPage() {
                       <div
                         key={row.team_id}
                         className={cn(
-                          'grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
+                          'grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
                           i < teamStandings.length - 1 && 'border-b border-gray-50',
                           isMyTeam && 'bg-teal-50/60'
                         )}
@@ -1668,6 +1720,9 @@ export function LeagueDetailPage() {
                         <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                        <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                          {row.game_difference > 0 ? '+' : ''}{row.game_difference}
+                        </span>
                         <span className={cn('text-[12px] font-bold text-center', isMyTeam ? 'text-[#009688]' : 'text-gray-800')}>
                           {row.points}
                         </span>
@@ -1752,19 +1807,21 @@ export function LeagueDetailPage() {
                 {/* Admin action bar — top of Fixtures */}
                 {isAdmin && (
                   <div className="flex gap-2 mb-4">
-                    <button
-                      onClick={() => {
-                        if (isPairs && leagueTeams.length === 0) {
-                          toast.error(tPairs('no_pairs_cta'))
-                          return
-                        }
-                        handleGenerateRound()
-                      }}
-                      disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
-                      className="flex-1 rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {generatingRound ? 'Generating…' : 'Generate Next Round'}
-                    </button>
+                    {!isSeasonComplete && (
+                      <button
+                        onClick={() => {
+                          if (isPairs && leagueTeams.length === 0) {
+                            toast.error(tPairs('no_pairs_cta'))
+                            return
+                          }
+                          handleGenerateRound()
+                        }}
+                        disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
+                        className="flex-1 rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {generatingRound ? 'Generating…' : 'Generate Next Round'}
+                      </button>
+                    )}
                     <button
                       onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
                       className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-[13px] font-bold text-white"

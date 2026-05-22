@@ -72,6 +72,7 @@ export function TournamentModePage() {
   })
 
   const isPairs = league?.match_type === 'pairs'
+  const isAdmin = league?.created_by === currentUserId
 
   const { data: leagueTeams = [] } = useQuery({
     queryKey: ['league-teams', id],
@@ -546,17 +547,48 @@ export function TournamentModePage() {
         </div>
       )}
 
+      {/* Progress bar — top position */}
+      {totalCount > 0 && (
+        <div className="bg-white border-b border-gray-100 px-5 py-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[12px] font-semibold text-gray-600">
+              This round: {completedCount} of {totalCount} results
+            </span>
+            {allCompleted && (
+              <span className="text-[11px] font-bold text-green-600">Round complete!</span>
+            )}
+          </div>
+          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+            <motion.div
+              className="h-full rounded-full bg-[#009688]"
+              initial={{ width: 0 }}
+              animate={{ width: `${progressPct}%` }}
+              transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Match list */}
       <div className="flex-1 px-4 pt-4 pb-32 overflow-y-auto">
         {entries.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
-            <Zap className="h-8 w-8 text-gray-300 mx-auto mb-3" />
-            <p className="text-[13px] font-semibold text-gray-500">
-              No matches scheduled for today
-            </p>
-            <p className="text-[12px] text-gray-400 mt-1">
-              Generate a round from standings to get started
-            </p>
+            {standings.length > 0 ? (
+              <>
+                <p className="text-[15px] font-bold text-gray-700 mb-1">Round complete!</p>
+                <p className="text-[12px] text-gray-400">
+                  {isAdmin ? 'Generate the next round to continue' : 'Waiting for the next round to be scheduled'}
+                </p>
+              </>
+            ) : (
+              <>
+                <Zap className="h-8 w-8 text-gray-300 mx-auto mb-3" />
+                <p className="text-[15px] font-bold text-gray-700 mb-1">Ready to start!</p>
+                <p className="text-[12px] text-gray-400">
+                  {isAdmin ? 'Generate Round 1 to create your first fixtures' : 'Waiting for the season to start'}
+                </p>
+              </>
+            )}
           </div>
         ) : (
           (() => {
@@ -694,25 +726,7 @@ export function TournamentModePage() {
         )}
       </div>
 
-      {/* Bottom bar — progress */}
-      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-gray-100 px-5 py-3 z-30">
-        <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[12px] font-semibold text-gray-600">
-            This round: {completedCount} of {totalCount} results
-          </span>
-          {allCompleted && totalCount > 0 && (
-            <span className="text-[11px] font-bold text-green-600">Round complete!</span>
-          )}
-        </div>
-        <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-          <motion.div
-            className="h-full rounded-full bg-[#009688]"
-            initial={{ width: 0 }}
-            animate={{ width: `${progressPct}%` }}
-            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
-          />
-        </div>
-      </div>
+      {/* Progress bar moved to top of page — see above About card */}
     </div>
   )
 }

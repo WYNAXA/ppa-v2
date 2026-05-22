@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
+import { generateRoundRobinRound } from '@/lib/roundRobin'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -341,14 +342,30 @@ export function TournamentModePage() {
     setGeneratingRound(true)
 
     try {
-      const matchesToCreate: Record<string, unknown>[] = []
       const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
 
+      // Determine next round number
+      const { data: existingMatches } = await supabase
+        .from('matches')
+        .select('round_number')
+        .eq('league_id', id)
+        .not('round_number', 'is', null)
+        .order('round_number', { ascending: false })
+        .limit(1)
+      const nextRound = existingMatches?.[0]?.round_number != null
+        ? (existingMatches[0].round_number as number) + 1
+        : 0
+
+      const matchesToCreate: Record<string, unknown>[] = []
+
       if (isPairs && leagueTeams.length >= 2) {
-        const teams = [...leagueTeams]
-        for (let i = 0; i + 1 < teams.length; i += 2) {
-          const t1 = teams[i]
-          const t2 = teams[i + 1]
+        const teamIds = leagueTeams.map((t) => t.id)
+        const teamMap = Object.fromEntries(leagueTeams.map((t) => [t.id, t]))
+        const { pairings, bye } = generateRoundRobinRound(teamIds, nextRound)
+
+        for (const [aId, bId] of pairings) {
+          const t1 = teamMap[aId]
+          const t2 = teamMap[bId]
           matchesToCreate.push({
             match_date: today,
             match_time: '12:00:00',
@@ -359,28 +376,38 @@ export function TournamentModePage() {
             team2_id: t2.id,
             group_id: league.linked_group_ids?.[0] ?? null,
             league_id: id,
+            round_number: nextRound,
             created_manually: false,
             notes: 'Tournament round — auto-generated',
             created_by: currentUserId,
           })
         }
+        const byeName = bye ? teamMap[bye]?.team_name ?? bye : null
+        console.log(`[Tournament] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
       } else {
         if (standings.length < 4) { setGeneratingRound(false); return }
-        const players = standings.map((s) => s.user_id)
-        for (let i = 0; i + 3 < players.length; i += 4) {
+        const playerIds = standings.map((s) => s.user_id)
+        const { pairings, bye } = generateRoundRobinRound(playerIds, nextRound)
+
+        for (let i = 0; i + 1 < pairings.length; i += 2) {
+          const [a1, a2] = pairings[i]
+          const [b1, b2] = pairings[i + 1]
           matchesToCreate.push({
             match_date: today,
             match_time: '12:00:00',
             match_type: 'competitive',
             status: 'scheduled',
-            player_ids: [players[i], players[i + 1], players[i + 2], players[i + 3]],
+            player_ids: [a1, a2, b1, b2],
             group_id: league.linked_group_ids?.[0] ?? null,
             league_id: id,
+            round_number: nextRound,
             created_manually: false,
             notes: 'Tournament round — auto-generated',
             created_by: currentUserId,
           })
         }
+        const byeName = bye ? standings.find((s) => s.user_id === bye)?.profile?.name ?? bye : null
+        console.log(`[Tournament] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
       }
 
       await supabase.from('matches').insert(matchesToCreate)

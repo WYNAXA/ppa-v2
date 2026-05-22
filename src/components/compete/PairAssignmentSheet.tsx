@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Shuffle, BarChart3, Hand } from 'lucide-react'
+import { X, Shuffle, BarChart3, Hand, AlertTriangle } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -33,44 +33,43 @@ interface PairAssignmentSheetProps {
 
 // ── Pairing algorithms ────────────────────────────────────────────────────────
 
-function autoBalancePairs(members: Member[]): Pair[] {
+function makePair(p1: Member, p2: Member): Pair {
+  const [first, second] = p1.id < p2.id ? [p1, p2] : [p2, p1]
+  return {
+    player1: first,
+    player2: second,
+    teamName: `${p1.name.split(' ')[0]} & ${p2.name.split(' ')[0]}`,
+  }
+}
+
+function autoBalancePairs(members: Member[]): { pairs: Pair[]; leftover: Member | null } {
   const sorted = [...members].sort((a, b) => b.internal_ranking - a.internal_ranking)
   const pairs: Pair[] = []
+  const pairableCount = sorted.length % 2 === 0 ? sorted.length : sorted.length - 1
   let lo = 0
-  let hi = sorted.length - 1
+  let hi = pairableCount - 1
   while (lo < hi) {
-    const p1 = sorted[lo]
-    const p2 = sorted[hi]
-    const [first, second] = p1.id < p2.id ? [p1, p2] : [p2, p1]
-    pairs.push({
-      player1: first,
-      player2: second,
-      teamName: `${p1.name.split(' ')[0]} & ${p2.name.split(' ')[0]}`,
-    })
+    pairs.push(makePair(sorted[lo], sorted[hi]))
     lo++
     hi--
   }
-  return pairs
+  const leftover = sorted.length % 2 !== 0 ? sorted[sorted.length - 1] : null
+  return { pairs, leftover }
 }
 
-function randomPairs(members: Member[]): Pair[] {
+function randomPairs(members: Member[]): { pairs: Pair[]; leftover: Member | null } {
   const shuffled = [...members]
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
     ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
   }
   const pairs: Pair[] = []
-  for (let i = 0; i < shuffled.length - 1; i += 2) {
-    const p1 = shuffled[i]
-    const p2 = shuffled[i + 1]
-    const [first, second] = p1.id < p2.id ? [p1, p2] : [p2, p1]
-    pairs.push({
-      player1: first,
-      player2: second,
-      teamName: `${p1.name.split(' ')[0]} & ${p2.name.split(' ')[0]}`,
-    })
+  const pairableCount = shuffled.length % 2 === 0 ? shuffled.length : shuffled.length - 1
+  for (let i = 0; i < pairableCount; i += 2) {
+    pairs.push(makePair(shuffled[i], shuffled[i + 1]))
   }
-  return pairs
+  const leftover = shuffled.length % 2 !== 0 ? shuffled[shuffled.length - 1] : null
+  return { pairs, leftover }
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -83,14 +82,18 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
   const [pairs, setPairs] = useState<Pair[]>([])
   const [selected, setSelected] = useState<Member | null>(null)
   const [unpaired, setUnpaired] = useState<Member[]>([])
+  const [leftoverMember, setLeftoverMember] = useState<Member | null>(null)
   const [saving, setSaving] = useState(false)
   const [editingIdx, setEditingIdx] = useState<number | null>(null)
+
+  const isOdd = members.length % 2 !== 0
 
   function reset() {
     setStep('mode')
     setPairs([])
     setSelected(null)
     setUnpaired([])
+    setLeftoverMember(null)
     setEditingIdx(null)
   }
 
@@ -102,31 +105,24 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
   // ── Mode selection handlers ─────────────────────────────────────────────
 
   function handleAutoBalance() {
-    if (members.length % 2 !== 0) {
-      toast.error(t('odd_members_error', { count: members.length }))
-      return
-    }
-    setPairs(autoBalancePairs(members))
+    const { pairs: p, leftover } = autoBalancePairs(members)
+    setPairs(p)
+    setLeftoverMember(leftover)
     setStep('review')
   }
 
   function handleRandom() {
-    if (members.length % 2 !== 0) {
-      toast.error(t('odd_members_error', { count: members.length }))
-      return
-    }
-    setPairs(randomPairs(members))
+    const { pairs: p, leftover } = randomPairs(members)
+    setPairs(p)
+    setLeftoverMember(leftover)
     setStep('review')
   }
 
   function handleManual() {
-    if (members.length % 2 !== 0) {
-      toast.error(t('odd_members_error', { count: members.length }))
-      return
-    }
     setUnpaired([...members])
     setPairs([])
     setSelected(null)
+    setLeftoverMember(null)
     setStep('manual')
   }
 
@@ -143,21 +139,19 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
     }
     const p1 = selected
     const p2 = member
-    const [first, second] = p1.id < p2.id ? [p1, p2] : [p2, p1]
-    setPairs((prev) => [
-      ...prev,
-      {
-        player1: first,
-        player2: second,
-        teamName: `${p1.name.split(' ')[0]} & ${p2.name.split(' ')[0]}`,
-      },
-    ])
+    setPairs((prev) => [...prev, makePair(p1, p2)])
     setUnpaired((prev) => prev.filter((m) => m.id !== p1.id && m.id !== p2.id))
     setSelected(null)
   }
 
   function canProceedToReview() {
-    return unpaired.length === 0 && pairs.length > 0
+    // Can proceed if we have at least 1 pair and at most 1 unpaired
+    return pairs.length > 0 && unpaired.length <= 1
+  }
+
+  function handleManualToReview() {
+    setLeftoverMember(unpaired.length === 1 ? unpaired[0] : null)
+    setStep('review')
   }
 
   // ── Save ────────────────────────────────────────────────────────────────
@@ -209,7 +203,17 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
           <p className="text-[12px] text-gray-400 mt-0.5">{t('setup_subtitle')}</p>
         </div>
 
-        <div className="px-5 py-4 pb-10">
+        <div className="px-5 py-4 pb-28">
+          {/* Odd member info banner */}
+          {isOdd && step === 'mode' && (
+            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-4 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+              <p className="text-[12px] text-amber-700">
+                {members.length} members — odd number. One player will be left unpaired and won&apos;t play until they get a partner.
+              </p>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {/* ── Step: Mode selection ── */}
             {step === 'mode' && (
@@ -292,7 +296,7 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                     {t('reset')}
                   </button>
                   {canProceedToReview() && (
-                    <button onClick={() => setStep('review')} className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white">
+                    <button onClick={handleManualToReview} className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white">
                       Review
                     </button>
                   )}
@@ -304,6 +308,18 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
             {step === 'review' && (
               <motion.div key="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <p className="text-[13px] text-gray-500 mb-3">{t('review_subtitle')}</p>
+
+                {/* Leftover member banner */}
+                {leftoverMember && (
+                  <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-3 flex items-center gap-2">
+                    <PlayerAvatar name={leftoverMember.name} avatarUrl={leftoverMember.avatar_url} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-amber-800 truncate">{leftoverMember.name}</p>
+                      <p className="text-[10px] text-amber-600">{t('unpaired')} — awaiting partner</p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-3">
                   {pairs.map((p, i) => (
                     <div key={i} className="rounded-xl border border-gray-100 p-3">

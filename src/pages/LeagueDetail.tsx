@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Zap, Share2, Plus, X } from 'lucide-react'
+import { ChevronLeft, Zap, Share2, Plus, X, AlertTriangle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
@@ -1601,6 +1601,34 @@ export function LeagueDetailPage() {
                     )
                   })}
                 </div>
+
+                {/* Unpaired members (not in any league_team) */}
+                {(() => {
+                  const pairedIds = new Set(teamStandings.flatMap((ts) => [ts.player1_id, ts.player2_id]))
+                  const unpairedMembers = leagueMembers.filter((m) => !pairedIds.has(m.id))
+                  if (unpairedMembers.length === 0) return null
+                  return (
+                    <>
+                      <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 flex items-start gap-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-[12px] text-amber-700">
+                          {unpairedMembers.length} player{unpairedMembers.length > 1 ? 's are' : ' is'} unpaired. Find them a partner or remove them from the league before the season completes.
+                        </p>
+                      </div>
+                      <div className="rounded-2xl border border-dashed border-gray-200 p-3">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Awaiting Partner</p>
+                        {unpairedMembers.map((m) => (
+                          <div key={m.id} className="flex items-center gap-2 py-1.5">
+                            <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="sm" />
+                            <span className="text-[12px] text-gray-500">{m.name}</span>
+                            <span className="ml-auto text-[11px] text-gray-300">—</span>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  )
+                })()}
+
               ) : (
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
                   <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">

@@ -312,14 +312,14 @@ function Step2({
         </div>
 
         {/* Start / End dates */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           <div>
             <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('create_league.start_date_label')}</label>
             <input
               type="date"
               value={form.startDate}
               onChange={(e) => setForm({ ...form, startDate: e.target.value })}
-              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+              style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>
@@ -329,7 +329,7 @@ function Step2({
               type="date"
               value={form.endDate}
               onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+              style={{ fontSize: '16px' }}
               className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>

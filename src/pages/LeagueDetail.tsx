@@ -840,17 +840,33 @@ interface QuickSetScore {
   team2: number | ''
 }
 
-function QuickResultSheet({ open, onClose, match, leagueId, currentUserId }: {
+const SCORING_MIN_SETS: Record<string, number> = {
+  standard: 2,
+  short_sets: 2,
+  one_set: 1,
+  custom: 0,
+}
+
+const SCORING_FORMAT_LABELS: Record<string, string> = {
+  standard: 'Best of 3 sets',
+  short_sets: 'Short sets (best of 3)',
+  one_set: 'One set',
+  custom: 'Custom',
+}
+
+function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scoringFormat }: {
   open: boolean
   onClose: () => void
   match: { id: string; player_ids: string[]; players?: Array<{ id: string; name: string }> } | null
   leagueId: string
   currentUserId: string
+  scoringFormat?: string | null
 }) {
   const [step, setStep] = useState(1)
   const [sets, setSets] = useState<QuickSetScore[]>([{ team1: '', team2: '' }])
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [showIncompleteConfirm, setShowIncompleteConfirm] = useState(false)
   const queryClient = useQueryClient()
 
   // Reset on open/close
@@ -1074,13 +1090,46 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId }: {
                       Back
                     </button>
                     <button
-                      onClick={handleSubmit}
+                      onClick={() => {
+                        const fmt = scoringFormat ?? 'standard'
+                        const minSets = SCORING_MIN_SETS[fmt] ?? 2
+                        const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '').length
+                        if (completedSets < minSets) {
+                          setShowIncompleteConfirm(true)
+                          return
+                        }
+                        handleSubmit()
+                      }}
                       disabled={submitting}
                       className="flex-1 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
                       {submitting ? 'Submitting...' : 'Submit Result'}
                     </button>
                   </div>
+
+                  {/* Incomplete match confirmation */}
+                  {showIncompleteConfirm && (
+                    <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                      <p className="text-[13px] font-semibold text-amber-800 mb-1">Match incomplete</p>
+                      <p className="text-[12px] text-amber-700 mb-3">
+                        This league uses {SCORING_FORMAT_LABELS[scoringFormat ?? 'standard'] ?? scoringFormat}. Submit with only {sets.filter((s) => s.team1 !== '' && s.team2 !== '').length} set{sets.filter((s) => s.team1 !== '' && s.team2 !== '').length !== 1 ? 's' : ''}?
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setShowIncompleteConfirm(false)}
+                          className="flex-1 rounded-xl border border-gray-200 py-2 text-[12px] font-semibold text-gray-600"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => { setShowIncompleteConfirm(false); handleSubmit() }}
+                          className="flex-1 rounded-xl bg-amber-500 py-2 text-[12px] font-bold text-white"
+                        >
+                          Submit incomplete
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -1539,8 +1588,8 @@ export function LeagueDetailPage() {
                 return totalRounds > 0 ? (
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <p className="text-[11px] font-semibold text-gray-500">Season progress</p>
-                      <p className="text-[11px] text-gray-400">{maxPlayed} / {totalRounds} rounds</p>
+                      <p className="text-[11px] font-semibold text-gray-500">{maxPlayed} of {totalRounds} fixtures played</p>
+                      <p className="text-[11px] text-gray-400">{pct}% complete</p>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${pct}%` }} />
@@ -1879,6 +1928,7 @@ export function LeagueDetailPage() {
         match={quickResultMatch}
         leagueId={id}
         currentUserId={currentUserId}
+        scoringFormat={league?.scoring_format}
       />
 
       {/* Pair assignment sheet */}

@@ -651,6 +651,13 @@ export default {
     elo_updated: 'تم تحديث ELO!',
     waiting_verify: 'بانتظار تأكيد اللاعبين الآخرين. سيُحدَّث ELO بعد التأكيد.',
     elo_changes: 'تغييرات ELO',
+    incomplete_match_title: 'المباراة غير مكتملة',
+    incomplete_match_message: 'تستخدم هذه الدوري {{format}}. هل تريد الإرسال مع {{entered}} مجموعات فقط؟',
+    submit_incomplete: 'إرسال غير مكتمل',
+    scoring_standard: 'أفضل من 3 مجموعات',
+    scoring_short_sets: 'مجموعات قصيرة (أفضل من 3)',
+    scoring_one_set: 'مجموعة واحدة',
+    scoring_custom: 'مخصص',
   },
   auth: {
     title: 'Padel Players',

@@ -119,6 +119,15 @@ Deno.serve(async (req) => {
     })
   }
 
+  console.log('[process-elo] INVOKED', {
+    type: payload?.type,
+    match_result_id: payload?.record?.id ?? payload?.match_result_id ?? 'unknown',
+    record_verification_status: payload?.record?.verification_status,
+    old_record_verification_status: payload?.old_record?.verification_status,
+    record_elo_processed: payload?.record?.elo_processed,
+    old_record_elo_processed: payload?.old_record?.elo_processed,
+  })
+
   // Supabase Database Webhook payload: { type, record, old_record }
   if (payload?.type && payload?.record) {
     const eventType = payload.type as string
@@ -127,6 +136,7 @@ Deno.serve(async (req) => {
     if (eventType === 'INSERT') {
       // INSERT with verified status → process immediately (admin Quick Result)
       if (!isVerified) {
+        console.log('[process-elo] EARLY RETURN', { reason: 'INSERT not verified' })
         return new Response(
           JSON.stringify({ message: 'INSERT not verified, skipping', skipped: true }),
           { headers: corsHeaders }
@@ -135,18 +145,21 @@ Deno.serve(async (req) => {
     } else if (eventType === 'UPDATE') {
       // UPDATE must be a transition TO verified (not already verified before)
       if (!isVerified) {
+        console.log('[process-elo] EARLY RETURN', { reason: 'UPDATE not verified' })
         return new Response(
           JSON.stringify({ message: 'Not transitioning to verified', skipped: true }),
           { headers: corsHeaders }
         )
       }
       if (payload.old_record?.verification_status === 'verified') {
+        console.log('[process-elo] EARLY RETURN', { reason: 'Already verified (old_record)' })
         return new Response(
           JSON.stringify({ message: 'Already verified, skipping', skipped: true }),
           { headers: corsHeaders }
         )
       }
     } else {
+      console.log('[process-elo] EARLY RETURN', { reason: `Skipping ${eventType} event` })
       return new Response(
         JSON.stringify({ message: `Skipping ${eventType} event`, skipped: true }),
         { headers: corsHeaders }
@@ -182,6 +195,7 @@ Deno.serve(async (req) => {
 
   // Idempotency check
   if (result.elo_processed) {
+    console.log('[process-elo] EARLY RETURN', { reason: 'Already elo_processed', match_result_id })
     return new Response(
       JSON.stringify({ message: 'Already processed', skipped: true }),
       { headers: corsHeaders }
@@ -342,6 +356,7 @@ Deno.serve(async (req) => {
   // Update league_standings if this match belongs to a league
   if (leagueId) {
     if (isDraw) {
+      console.log('[process-elo] CALLING update_league_standings_draw', { league_id: leagueId, match_result_id })
       await supabase.rpc('update_league_standings_draw', {
         p_league_id: leagueId,
         p_player_ids: [...team1, ...team2],
@@ -349,6 +364,7 @@ Deno.serve(async (req) => {
     } else {
       const winners = team1Won ? team1 : team2
       const losers = team1Won ? team2 : team1
+      console.log('[process-elo] CALLING update_league_standings_win', { league_id: leagueId, match_result_id })
       await supabase.rpc('update_league_standings_win', {
         p_league_id: leagueId,
         p_winner_ids: winners,
@@ -357,6 +373,7 @@ Deno.serve(async (req) => {
     }
   }
 
+  console.log('[process-elo] COMPLETED', { match_result_id })
   return new Response(
     JSON.stringify({
       success: true,

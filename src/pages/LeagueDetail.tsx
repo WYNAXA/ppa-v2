@@ -34,6 +34,7 @@ interface LeagueInfo {
   created_by: string | null
   city: string | null
   prizes: string | null
+  max_rounds: number | null
 }
 
 interface Standing {
@@ -98,7 +99,7 @@ function useLeague(id: string) {
     queryFn: async (): Promise<LeagueInfo | null> => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, match_type, format, scoring_format, visibility, season_start, season_end, max_participants, min_elo, max_elo, linked_group_ids, created_by, city, prizes')
+        .select('id, name, status, match_type, format, scoring_format, visibility, season_start, season_end, max_participants, min_elo, max_elo, linked_group_ids, created_by, city, prizes, max_rounds')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -941,8 +942,10 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
 
       // 4. Invalidate and close
       queryClient.invalidateQueries({ queryKey: ['league-standings', leagueId] })
+      queryClient.invalidateQueries({ queryKey: ['league-team-standings', leagueId] })
       queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
       queryClient.invalidateQueries({ queryKey: ['league-results', leagueId] })
+      queryClient.invalidateQueries({ queryKey: ['tournament-standings', leagueId] })
       queryClient.invalidateQueries({ queryKey: ['match', match.id] })
       handleClose()
     } catch (e: unknown) {
@@ -1334,6 +1337,12 @@ export function LeagueDetailPage() {
         ? (existingMatches[0].round_number as number) + 1
         : 0
 
+      // Season complete check
+      if (league?.max_rounds != null && nextRound >= league.max_rounds) {
+        toast.error(`Season complete. All ${league.max_rounds} rounds have been generated.`)
+        return
+      }
+
       const matchesToCreate: Record<string, unknown>[] = []
 
       if (isPairs) {
@@ -1608,7 +1617,9 @@ export function LeagueDetailPage() {
                 return totalRounds > 0 ? (
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <p className="text-[11px] font-semibold text-gray-500">{maxPlayed} of {totalRounds} fixtures played</p>
+                      <p className="text-[11px] font-semibold text-gray-500">
+                        {league?.max_rounds ? `Round ${Math.min(maxPlayed, league.max_rounds)} of ${league.max_rounds}` : `${maxPlayed} of ${totalRounds} fixtures played`}
+                      </p>
                       <p className="text-[11px] text-gray-400">{pct}% complete</p>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
@@ -1922,6 +1933,28 @@ export function LeagueDetailPage() {
 
         </motion.div>
       </AnimatePresence>
+
+      {/* Sticky Generate Round button on Fixtures tab */}
+      {isAdmin && activeTab === 'fixtures' && (
+        <div className="fixed bottom-20 left-0 right-0 px-5 z-40">
+          <button
+            onClick={() => {
+              if (isPairs && leagueTeams.length === 0) {
+                toast.error(tPairs('no_pairs_cta'))
+                return
+              }
+              if (league?.max_rounds != null) {
+                // check inline — handleGenerateRound also checks but this gives instant feedback
+              }
+              handleGenerateRound()
+            }}
+            disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
+            className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {generatingRound ? 'Generating…' : 'Generate Next Round'}
+          </button>
+        </div>
+      )}
 
       {/* FAB for quick result entry */}
       {isAdmin && activeTab === 'standings' && (

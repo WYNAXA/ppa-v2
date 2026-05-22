@@ -651,6 +651,13 @@ export default {
     elo_updated: 'ELO aggiornato!',
     waiting_verify: 'In attesa della verifica degli altri giocatori. L\'ELO verrà aggiornato dopo la conferma.',
     elo_changes: 'Variazioni ELO',
+    incomplete_match_title: 'Partita incompleta',
+    incomplete_match_message: 'Questa lega usa {{format}}. Inviare con solo {{entered}} set?',
+    submit_incomplete: 'Invia incompleto',
+    scoring_standard: 'Al meglio dei 3 set',
+    scoring_short_sets: 'Set corti (al meglio dei 3)',
+    scoring_one_set: 'Un set',
+    scoring_custom: 'Personalizzato',
   },
   auth: {
     title: 'Padel Players',

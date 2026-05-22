@@ -14,7 +14,7 @@ import { SentryErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 let pendingUpdate = false
 
-registerSW({
+const updateSW = registerSW({
   immediate: true,
   onNeedRefresh() {
     pendingUpdate = true
@@ -23,6 +23,16 @@ registerSW({
     // First install — nothing to do
   },
 })
+
+// Auto-reload when a new service worker takes control
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload()
+  })
+}
+
+// Poll for SW updates every 60 seconds so PWA users get new deploys quickly
+setInterval(() => { updateSW(false) }, 60_000)
 
 function applyPendingUpdate() {
   if (!pendingUpdate) return

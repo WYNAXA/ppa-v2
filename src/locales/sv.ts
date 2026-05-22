@@ -651,6 +651,13 @@ export default {
     elo_updated: 'ELO uppdaterat!',
     waiting_verify: 'Väntar på att andra spelare verifierar. ELO uppdateras efter bekräftelse.',
     elo_changes: 'ELO-ändringar',
+    incomplete_match_title: 'Matchen ofullständig',
+    incomplete_match_message: 'Denna liga använder {{format}}. Skicka in med bara {{entered}} set?',
+    submit_incomplete: 'Skicka in ofullständig',
+    scoring_standard: 'Bäst av 3 set',
+    scoring_short_sets: 'Korta set (bäst av 3)',
+    scoring_one_set: 'Ett set',
+    scoring_custom: 'Anpassad',
   },
   auth: {
     title: 'Padel Players',

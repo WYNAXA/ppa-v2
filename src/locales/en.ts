@@ -714,6 +714,13 @@ export default {
     elo_updated: 'ELO updated!',
     waiting_verify: 'Waiting for other players to verify. ELO will update once confirmed.',
     elo_changes: 'ELO Changes',
+    incomplete_match_title: 'Match incomplete',
+    incomplete_match_message: 'This league uses {{format}}. Submit with only {{entered}} sets?',
+    submit_incomplete: 'Submit incomplete',
+    scoring_standard: 'Best of 3 sets',
+    scoring_short_sets: 'Short sets (best of 3)',
+    scoring_one_set: 'One set',
+    scoring_custom: 'Custom',
   },
   auth: {
     title: 'Padel Players',

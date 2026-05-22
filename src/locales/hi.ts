@@ -651,6 +651,13 @@ export default {
     elo_updated: 'ELO अपडेट हो गया!',
     waiting_verify: 'अन्य खिलाड़ियों की पुष्टि का इंतज़ार। पुष्टि के बाद ELO अपडेट होगा।',
     elo_changes: 'ELO बदलाव',
+    incomplete_match_title: 'मैच अधूरा है',
+    incomplete_match_message: 'यह लीग {{format}} का उपयोग करती है। केवल {{entered}} सेट के साथ सबमिट करें?',
+    submit_incomplete: 'अधूरा सबमिट करें',
+    scoring_standard: '3 सेट में से सर्वश्रेष्ठ',
+    scoring_short_sets: 'छोटे सेट (3 में से सर्वश्रेष्ठ)',
+    scoring_one_set: 'एक सेट',
+    scoring_custom: 'कस्टम',
   },
   auth: {
     title: 'Padel Players',

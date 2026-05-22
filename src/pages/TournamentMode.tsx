@@ -10,7 +10,6 @@ import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
-import { PairAvatar } from '@/components/shared/PairAvatar'
 import { cn } from '@/lib/utils'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -71,7 +70,6 @@ export function TournamentModePage() {
     },
   })
 
-  const groupIds = league?.linked_group_ids ?? []
   const isPairs = league?.match_type === 'pairs'
 
   const { data: leagueTeams = [] } = useQuery({

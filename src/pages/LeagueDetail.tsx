@@ -1754,46 +1754,54 @@ export function LeagueDetailPage() {
 
           {/* ── Fixtures ── */}
           {activeTab === 'fixtures' && (
-            loadingFixtures ? <TabSkeleton /> :
-            fixtures.length === 0 ? (
+            loadingFixtures ? <TabSkeleton /> : (
               <div>
+                {/* Admin action bar — top of Fixtures */}
                 {isAdmin && (
-                  <button
-                    onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 py-3 mb-4 text-[13px] font-bold text-white"
-                  >
-                    <Zap className="h-4 w-4" />
-                    Tournament Mode — Enter Results Fast
-                  </button>
+                  <div className="flex gap-2 mb-4">
+                    <button
+                      onClick={() => {
+                        if (isPairs && leagueTeams.length === 0) {
+                          toast.error(tPairs('no_pairs_cta'))
+                          return
+                        }
+                        handleGenerateRound()
+                      }}
+                      disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
+                      className="flex-1 rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {generatingRound ? 'Generating…' : 'Generate Next Round'}
+                    </button>
+                    <button
+                      onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
+                      className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-[13px] font-bold text-white"
+                    >
+                      <Zap className="h-4 w-4" />
+                      Live
+                    </button>
+                  </div>
                 )}
-                <EmptyTab message="No upcoming fixtures" />
-                {isAdmin && (
-                  <button
-                    onClick={() => {
-                      if (isPairs && leagueTeams.length === 0) {
-                        toast.error(tPairs('no_pairs_cta'))
-                        return
-                      }
-                      handleGenerateRound()
-                    }}
-                    disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
-                    className="mt-4 w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {generatingRound ? 'Generating\u2026' : 'Generate Next Round'}
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div>
-                {isAdmin && (
-                  <button
-                    onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
-                    className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 py-3 mb-4 text-[13px] font-bold text-white"
-                  >
-                    <Zap className="h-4 w-4" />
-                    Tournament Mode — Enter Results Fast
-                  </button>
-                )}
+
+                {/* Empty state */}
+                {fixtures.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+                    {results.length > 0 ? (
+                      <>
+                        <p className="text-[15px] font-bold text-gray-700 mb-1">Round complete!</p>
+                        <p className="text-[12px] text-gray-400">
+                          {isAdmin ? 'Generate the next round to continue' : 'Waiting for the next round to be scheduled'}
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[15px] font-bold text-gray-700 mb-1">Ready to start!</p>
+                        <p className="text-[12px] text-gray-400">
+                          {isAdmin ? 'Tap Generate Next Round to create your first fixtures' : 'Waiting for the season to start'}
+                        </p>
+                      </>
+                    )}
+                  </div>
+                ) : (
               <div className="space-y-2">
                 {fixtures.map((match) => (
                   <div key={match.id} className="rounded-xl border border-gray-100 bg-gray-50 overflow-hidden">
@@ -1848,6 +1856,7 @@ export function LeagueDetailPage() {
                   </div>
                 ))}
               </div>
+                )}
               </div>
             )
           )}
@@ -1933,28 +1942,6 @@ export function LeagueDetailPage() {
 
         </motion.div>
       </AnimatePresence>
-
-      {/* Sticky Generate Round button on Fixtures tab */}
-      {isAdmin && activeTab === 'fixtures' && (
-        <div className="fixed bottom-20 left-0 right-0 px-5 z-40">
-          <button
-            onClick={() => {
-              if (isPairs && leagueTeams.length === 0) {
-                toast.error(tPairs('no_pairs_cta'))
-                return
-              }
-              if (league?.max_rounds != null) {
-                // check inline — handleGenerateRound also checks but this gives instant feedback
-              }
-              handleGenerateRound()
-            }}
-            disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
-            className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {generatingRound ? 'Generating…' : 'Generate Next Round'}
-          </button>
-        </div>
-      )}
 
       {/* FAB for quick result entry */}
       {isAdmin && activeTab === 'standings' && (

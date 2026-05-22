@@ -1486,6 +1486,14 @@ export function LeagueDetailPage() {
               )}>
                 {league.status}
               </span>
+              {league.max_rounds && currentRound > 0 && (
+                <>
+                  <span className="text-gray-300">·</span>
+                  <span className="text-[11px] font-semibold text-gray-500">
+                    {isSeasonComplete ? 'Season complete' : `Round ${currentRound} of ${league.max_rounds}`}
+                  </span>
+                </>
+              )}
             </div>
           </div>
           <button
@@ -1656,14 +1664,18 @@ export function LeagueDetailPage() {
               {(() => {
                 const rows = isPairs ? teamStandings : standings
                 const n = rows.length
-                const totalRounds = n > 1 ? n * (n - 1) / 2 : 0
-                const maxPlayed = rows.length > 0 ? Math.max(...rows.map((s) => s.played)) : 0
-                const pct = totalRounds > 0 ? Math.min(100, Math.round((maxPlayed / totalRounds) * 100)) : 0
-                return totalRounds > 0 ? (
+                const totalFixtures = n > 1 ? n * (n - 1) / 2 : 0
+                const fixturesPlayed = rows.length > 0 ? Math.max(...rows.map((s) => s.played)) : 0
+                const pct = league?.max_rounds
+                  ? Math.min(100, Math.round((currentRound / league.max_rounds) * 100))
+                  : totalFixtures > 0 ? Math.min(100, Math.round((fixturesPlayed / totalFixtures) * 100)) : 0
+                return (totalFixtures > 0 || league?.max_rounds) ? (
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <p className="text-[11px] font-semibold text-gray-500">
-                        {league?.max_rounds ? `Round ${Math.min(maxPlayed, league.max_rounds)} of ${league.max_rounds}` : `${maxPlayed} of ${totalRounds} fixtures played`}
+                        {league?.max_rounds
+                          ? `Round ${currentRound} of ${league.max_rounds}`
+                          : `${fixturesPlayed} of ${totalFixtures} fixtures played`}
                       </p>
                       <p className="text-[11px] text-gray-400">{pct}% complete</p>
                     </div>
@@ -1819,16 +1831,18 @@ export function LeagueDetailPage() {
                         disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
                         className="flex-1 rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {generatingRound ? 'Generating…' : 'Generate Next Round'}
+                        {generatingRound ? 'Generating…' : currentRound === 0 ? 'Generate Round 1' : 'Generate Next Round'}
                       </button>
                     )}
-                    <button
-                      onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
-                      className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-[13px] font-bold text-white"
-                    >
-                      <Zap className="h-4 w-4" />
-                      Live
-                    </button>
+                    {!isSeasonComplete && (
+                      <button
+                        onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
+                        className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-[13px] font-bold text-white"
+                      >
+                        <Zap className="h-4 w-4" />
+                        Live
+                      </button>
+                    )}
                   </div>
                 )}
 

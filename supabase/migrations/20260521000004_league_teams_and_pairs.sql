@@ -31,8 +31,11 @@ CREATE POLICY "League admin can manage teams"
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS team1_id uuid REFERENCES league_teams(id) ON DELETE SET NULL;
 ALTER TABLE matches ADD COLUMN IF NOT EXISTS team2_id uuid REFERENCES league_teams(id) ON DELETE SET NULL;
 
--- ── league_team_standings: read-time aggregation view ───────────────────────
--- process-elo writes individual standings; this view sums per pair.
+-- ── league_team_standings: read-time view using player1's stats ──────────────
+-- Both pair members play every match together, so their individual stats
+-- (matches_played, wins, losses, draws, ranking_points) are identical.
+-- We use player1's row only to avoid double-counting.
+-- Individual admin adjustments will only surface on individual standings.
 
 CREATE OR REPLACE VIEW league_team_standings AS
 SELECT
@@ -41,11 +44,10 @@ SELECT
   t.team_name,
   t.player1_id,
   t.player2_id,
-  COALESCE(s1.wins, 0)             + COALESCE(s2.wins, 0)             AS wins,
-  COALESCE(s1.losses, 0)           + COALESCE(s2.losses, 0)           AS losses,
-  COALESCE(s1.draws, 0)            + COALESCE(s2.draws, 0)            AS draws,
-  COALESCE(s1.matches_played, 0)   + COALESCE(s2.matches_played, 0)   AS matches_played,
-  COALESCE(s1.ranking_points, 0)   + COALESCE(s2.ranking_points, 0)   AS ranking_points
+  COALESCE(s1.wins, 0)             AS wins,
+  COALESCE(s1.losses, 0)           AS losses,
+  COALESCE(s1.draws, 0)            AS draws,
+  COALESCE(s1.matches_played, 0)   AS matches_played,
+  COALESCE(s1.ranking_points, 0)   AS ranking_points
 FROM league_teams t
-LEFT JOIN league_standings s1 ON s1.league_id = t.league_id AND s1.user_id = t.player1_id
-LEFT JOIN league_standings s2 ON s2.league_id = t.league_id AND s2.user_id = t.player2_id;
+LEFT JOIN league_standings s1 ON s1.league_id = t.league_id AND s1.user_id = t.player1_id;

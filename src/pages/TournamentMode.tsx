@@ -471,7 +471,14 @@ export function TournamentModePage() {
               </span>
             </div>
             {league && (
-              <p className="text-[12px] text-gray-400 truncate mt-0.5">{league.name}</p>
+              <p className="text-[12px] text-gray-400 truncate mt-0.5">
+                {league.name}
+                {league.max_rounds && currentRound > 0 && (
+                  <span className="ml-1 font-semibold text-gray-500">
+                    · {isSeasonComplete ? 'Season complete' : `Round ${currentRound} of ${league.max_rounds}`}
+                  </span>
+                )}
+              </p>
             )}
           </div>
           <Trophy className="h-5 w-5 text-amber-500 flex-shrink-0" />
@@ -599,7 +606,7 @@ export function TournamentModePage() {
             disabled={generatingRound || (isPairs ? leagueTeams.length < 2 : standings.length < 4)}
             className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {generatingRound ? 'Generating…' : 'Generate Next Round'}
+            {generatingRound ? 'Generating…' : currentRound === 0 ? 'Generate Round 1' : 'Generate Next Round'}
           </button>
         </div>
       )}

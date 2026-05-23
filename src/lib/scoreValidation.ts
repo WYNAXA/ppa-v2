@@ -45,16 +45,20 @@ export function validateSetScores(
   sets: SetData[],
   scoringFormat: string | null | undefined,
 ): string | null {
-  // No validation for custom or unknown formats
-  if (!scoringFormat || scoringFormat === 'custom') return null
+  // No validation for custom format only
+  if (scoringFormat === 'custom') return null
+
+  // Treat null/undefined as 'standard' (the DB default — CreateLeagueSheet
+  // omits scoring_format when admin picks Standard, so it's stored as NULL)
+  const fmt = scoringFormat || 'standard'
 
   for (let i = 0; i < sets.length; i++) {
     const { team1, team2 } = sets[i]
     let error: string | null = null
 
-    if (scoringFormat === 'standard' || scoringFormat === 'one_set') {
+    if (fmt === 'standard' || fmt === 'one_set') {
       error = isValidStandardSet(team1, team2)
-    } else if (scoringFormat === 'short_sets') {
+    } else if (fmt === 'short_sets') {
       error = isValidShortSet(team1, team2)
     }
 

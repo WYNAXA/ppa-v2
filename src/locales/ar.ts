@@ -796,7 +796,7 @@ export default {
     scoring_short_sets_desc: 'أول من يصل إلى 4 ألعاب لكل مجموعة',
     scoring_one_set_label: 'مجموعة واحدة',
     scoring_one_set_desc: '9 ألعاب أو سوبر تايبريك',
-    scoring_custom_label: 'مخصص',
+    scoring_custom_label: 'تسجيل حر (بدون تحقق)',
     scoring_custom_desc: 'المشرف يحدد نظام النقاط',
     start_date_label: 'تاريخ البدء',
     end_date_label: 'تاريخ الانتهاء',

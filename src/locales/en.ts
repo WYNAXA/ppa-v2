@@ -859,7 +859,7 @@ export default {
     scoring_short_sets_desc: 'First to 4 games per set',
     scoring_one_set_label: 'One set',
     scoring_one_set_desc: '9 games or super tiebreak',
-    scoring_custom_label: 'Custom',
+    scoring_custom_label: 'Free-form scoring (no validation)',
     scoring_custom_desc: 'Admin defines the scoring',
     start_date_label: 'Start date',
     end_date_label: 'End date',

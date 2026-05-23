@@ -796,7 +796,7 @@ export default {
     scoring_short_sets_desc: 'Premier à 4 jeux par set',
     scoring_one_set_label: 'Un set',
     scoring_one_set_desc: '9 jeux ou super tiebreak',
-    scoring_custom_label: 'Personnalisé',
+    scoring_custom_label: 'Scoring libre (pas de validation)',
     scoring_custom_desc: 'L\'admin définit le pointage',
     start_date_label: 'Date de début',
     end_date_label: 'Date de fin',

@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
+import { checkSelfConflict } from '@/lib/conflictCheck'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -704,18 +705,14 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     }
 
     try {
-      // Conflict check — warn if creator has another match on the same date
+      // Conflict check — warn if creator has another match in the same time window
       if (!conflictWarning) {
-        const { data: conflicts } = await supabase
-          .from('matches')
-          .select('id, match_time, booked_venue_name')
-          .contains('player_ids', [user.id])
-          .eq('match_date', form.date)
-          .not('status', 'in', '("cancelled","completed")')
-        if (conflicts && conflicts.length > 0) {
+        const conflicts = await checkSelfConflict(user.id, form.date, form.time ?? null)
+        if (conflicts.length > 0) {
+          const conflictTime = conflicts[0].conflicting_time
           setConflictWarning({
-            match_time: conflicts[0].match_time ?? null,
-            venue: conflicts[0].booked_venue_name ?? null,
+            match_time: conflictTime ?? null,
+            venue: null,
           })
           setSubmitting(false)
           return

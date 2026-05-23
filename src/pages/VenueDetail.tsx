@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { calculateDistance } from '@/lib/travelUtils'
+import { goBack } from '@/lib/navigation'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -211,7 +212,7 @@ export function VenueDetailPage() {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-3 px-6 text-center">
         <p className="text-gray-500">Venue not found</p>
-        <button onClick={() => navigate(-1)} className="text-teal-600 font-medium">
+        <button onClick={() => goBack(navigate, '/play')} className="text-teal-600 font-medium">
           Go back
         </button>
       </div>
@@ -237,7 +238,7 @@ export function VenueDetailPage() {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => goBack(navigate, '/play')}
           className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow"
         >
           <ChevronLeft size={20} className="text-gray-800" />

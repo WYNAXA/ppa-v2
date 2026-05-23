@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { EmptyState } from '@/components/shared/EmptyState'
 import { cn } from '@/lib/utils'
+import { goBack } from '@/lib/navigation'
 
 interface SearchResult {
   id: string
@@ -190,7 +191,7 @@ export function SearchPage() {
           )}
         </div>
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => goBack(navigate, '/home')}
           className="text-[13px] font-semibold text-[#009688]"
         >
           Cancel

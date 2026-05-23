@@ -7,6 +7,7 @@ import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { goBack } from '@/lib/navigation'
 
 type RsvpStatus = 'going' | 'interested' | 'not_going'
 
@@ -144,7 +145,7 @@ export function EventDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
         <p className="text-[14px] font-semibold text-gray-500">Event not found</p>
-        <button onClick={() => navigate(-1)} className="mt-4 text-[13px] text-teal-600 font-semibold">Go back</button>
+        <button onClick={() => goBack(navigate, '/community')} className="mt-4 text-[13px] text-teal-600 font-semibold">Go back</button>
       </div>
     )
   }
@@ -188,7 +189,7 @@ export function EventDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => goBack(navigate, '/community')}
           className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5 text-gray-600" />

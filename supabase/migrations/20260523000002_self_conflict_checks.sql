@@ -157,30 +157,33 @@ BEGIN
     RAISE EXCEPTION 'Invitation has expired';
   END IF;
 
-  UPDATE match_invitations
-  SET status = CASE WHEN p_accept THEN 'accepted' ELSE 'declined' END, responded_at = now()
-  WHERE id = v_invitation.id;
-
   SELECT * INTO v_match FROM matches WHERE id = p_match_id FOR UPDATE;
   SELECT name INTO v_invitee_name FROM profiles WHERE id = v_user_id;
   v_invitee_name := COALESCE(v_invitee_name, 'A player');
 
+  -- Self-conflict check BEFORE updating invitation status (non-broadcast accept only)
   IF p_accept AND NOT v_invitation.is_broadcast THEN
     IF v_user_id = ANY(COALESCE(v_match.player_ids, ARRAY[]::uuid[])) THEN
       RETURN jsonb_build_object('success', true, 'accepted', true, 'auto_filled', false);
     END IF;
     IF array_length(v_match.player_ids, 1) >= 4 THEN RAISE EXCEPTION 'Match is full'; END IF;
 
-    -- Self-conflict check before auto-filling
     SELECT * INTO v_conflict
     FROM check_self_conflict(v_user_id, v_match.match_date, v_match.match_time::time, p_match_id)
     LIMIT 1;
     IF FOUND THEN
-      -- Revert invitation status to pending so user can try again later
-      UPDATE match_invitations SET status = 'pending', responded_at = NULL WHERE id = v_invitation.id;
+      -- Invitation stays pending — no state change, just reject
       RAISE EXCEPTION 'You already have a match scheduled at %. Can''t accept another.',
         COALESCE(to_char(v_conflict.conflicting_time, 'HH24:MI'), 'that time');
     END IF;
+  END IF;
+
+  -- Only update invitation status after conflict check passes
+  UPDATE match_invitations
+  SET status = CASE WHEN p_accept THEN 'accepted' ELSE 'declined' END, responded_at = now()
+  WHERE id = v_invitation.id;
+
+  IF p_accept AND NOT v_invitation.is_broadcast THEN
 
     v_new_player_ids := COALESCE(v_match.player_ids, ARRAY[]::uuid[]) || v_user_id;
     v_will_be_full := array_length(v_new_player_ids, 1) >= 4;

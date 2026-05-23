@@ -291,7 +291,7 @@ function useLeagueTeams(leagueId: string) {
 
 interface JerseyEntry {
   user_id: string
-  jersey_color: string
+  jersey_type: string
 }
 
 const JERSEY_EMOJI: Record<string, string> = {
@@ -316,7 +316,7 @@ function useLeagueJerseys(leagueId: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('league_jerseys')
-        .select('user_id, jersey_color')
+        .select('user_id, jersey_type')
         .eq('league_id', leagueId)
       return data ?? []
     },
@@ -684,15 +684,25 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
   async function saveJersey() {
     if (!jerseyUserId || !jerseyNumber) return
     setSavingJersey(true)
-    const colorIndex = JERSEY_COLOURS.findIndex(c => c.id === jerseyNumber)
-    const jerseyNum = colorIndex >= 0 ? colorIndex + 1 : 1
 
-    // Remove any existing jersey for this user in this league (avoids unique constraint on league_id,user_id)
-    await supabase.from('league_jerseys').delete().eq('league_id', league.id).eq('user_id', jerseyUserId)
+    // Find who currently holds this jersey type so we can set previous_holder
+    const { data: existing } = await supabase
+      .from('league_jerseys')
+      .select('user_id')
+      .eq('league_id', league.id)
+      .eq('jersey_type', jerseyNumber)
+      .maybeSingle()
+    const previousHolder = existing?.user_id && existing.user_id !== jerseyUserId ? existing.user_id : null
 
     const { error } = await supabase.from('league_jerseys').upsert(
-      { league_id: league.id, user_id: jerseyUserId, jersey_number: jerseyNum, jersey_color: jerseyNumber },
-      { onConflict: 'league_id,jersey_number' }
+      {
+        league_id: league.id,
+        user_id: jerseyUserId,
+        jersey_type: jerseyNumber,
+        awarded_week: new Date().toISOString().split('T')[0],
+        previous_holder: previousHolder,
+      },
+      { onConflict: 'league_id,jersey_type' }
     )
     setSavingJersey(false)
     if (error) {
@@ -1422,7 +1432,7 @@ export function LeagueDetailPage() {
   const { data: teamStandings = [] } = useTeamStandings(id, isPairs)
   const { data: leagueTeams = [] } = useLeagueTeams(id)
   const { data: jerseys = [] } = useLeagueJerseys(id)
-  const jerseyByUser = Object.fromEntries(jerseys.map((j) => [j.user_id, j.jersey_color]))
+  const jerseyByUser = Object.fromEntries(jerseys.map((j) => [j.user_id, j.jersey_type]))
   const { data: leagueMembers = [] } = useLeagueMembers(id)
   const { data: currentRound = 0 } = useCurrentRound(id)
   const isSeasonComplete = league?.max_rounds != null && currentRound >= league.max_rounds

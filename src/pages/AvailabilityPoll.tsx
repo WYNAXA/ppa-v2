@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, CheckCircle, Clock, Trophy, AlertTriangle, Star, Users, Shuffle, RefreshCw } from 'lucide-react'
+import { ChevronLeft, CheckCircle, Clock, Trophy, AlertTriangle, Star, Users, Shuffle, RefreshCw, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
@@ -161,6 +162,10 @@ export function AvailabilityPollPage() {
   const [showConflictDialog, setShowConflictDialog] = useState(false)
   const [conflictDetails, setConflictDetails] = useState<any[]>([])
 
+  // ── Delete poll ──
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+
   // ── Admin match generation ──
   const [showMatchGen, setShowMatchGen] = useState(false)
   const [matchSchedules, setMatchSchedules] = useState<any[]>([])
@@ -199,6 +204,7 @@ export function AvailabilityPollPage() {
   const poll = data?.poll
   const myResponse = data?.myResponse
   const isAdmin = data?.isAdmin ?? false
+  const isCreator = poll?.created_by === userId
   const isClosed = poll ? (() => {
     if (poll.status !== 'open') return true
     const closeDate = new Date(poll.closes_at)
@@ -500,6 +506,14 @@ export function AvailabilityPollPage() {
             {closesLabel}
           </p>
         </div>
+        {(isCreator || isAdmin) && (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          >
+            <Trash2 className="h-4 w-4 text-red-400" />
+          </button>
+        )}
       </div>
 
       <div className="px-5 space-y-5">
@@ -1019,6 +1033,53 @@ export function AvailabilityPollPage() {
                 className="flex-1 rounded-xl bg-amber-500 py-2.5 text-[13px] font-bold text-white"
               >
                 Continue Anyway
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ── Delete poll confirmation dialog ── */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4"
+          >
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <h3 className="text-[15px] font-bold text-gray-900">Delete Poll</h3>
+            </div>
+            <p className="text-[13px] text-gray-600">
+              Delete this poll? All responses and match options will be lost.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  setDeleting(true)
+                  const { error } = await supabase.from('polls').delete().eq('id', pollId!)
+                  setDeleting(false)
+                  if (error) {
+                    toast.error(error.message ?? 'Failed to delete poll')
+                    setShowDeleteConfirm(false)
+                    return
+                  }
+                  queryClient.invalidateQueries({ queryKey: ['polls'] })
+                  queryClient.invalidateQueries({ queryKey: ['availability-home'] })
+                  queryClient.invalidateQueries({ queryKey: ['group-polls'] })
+                  navigate(-1)
+                }}
+                disabled={deleting}
+                className="flex-1 rounded-xl bg-red-500 py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
+              >
+                {deleting ? 'Deleting…' : 'Delete'}
               </button>
             </div>
           </motion.div>

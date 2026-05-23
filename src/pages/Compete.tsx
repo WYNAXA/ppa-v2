@@ -580,9 +580,10 @@ export function CompetePage() {
         <h1 className="text-[22px] font-bold text-gray-900">{t('compete.title')}</h1>
         <button
           onClick={() => setShowCreateLeague(true)}
-          className="h-9 w-9 rounded-full bg-[#009688] flex items-center justify-center shadow-sm"
+          className="flex items-center gap-1.5 rounded-xl bg-[#009688] px-3 py-2 text-[12px] font-bold text-white shadow-sm"
         >
-          <Plus className="h-5 w-5 text-white" />
+          <Plus className="h-3.5 w-3.5" />
+          {t('compete.create_league')}
         </button>
       </div>
 
@@ -735,24 +736,6 @@ export function CompetePage() {
 
         {/* ── My Leagues ── */}
         <section>
-          {/* Prominent Create League CTA — always visible */}
-          <motion.button
-            onClick={() => setShowCreateLeague(true)}
-            initial={{ opacity: 0, y: 6 }}
-            animate={{ opacity: 1, y: 0 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full rounded-2xl bg-gradient-to-r from-[#009688] to-[#00796b] p-4 mb-4 text-left flex items-center gap-3"
-          >
-            <div className="h-10 w-10 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <Trophy className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[14px] font-bold text-white">{t('compete.create_league_cta')}</p>
-              <p className="text-[12px] text-white/70 mt-0.5">{t('compete.no_leagues_sub')}</p>
-            </div>
-            <Plus className="h-5 w-5 text-white/80 flex-shrink-0" />
-          </motion.button>
-
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-[16px] font-bold text-gray-900">{t('compete.my_leagues')}</h2>
             <button

@@ -13,6 +13,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { PairAvatar } from '@/components/shared/PairAvatar'
 import { PairAssignmentSheet } from '@/components/compete/PairAssignmentSheet'
 import { cn } from '@/lib/utils'
+import { goBack } from '@/lib/navigation'
 import { generateRoundRobinRound } from '@/lib/roundRobin'
 import { validateSetScores } from '@/lib/scoreValidation'
 
@@ -1402,6 +1403,8 @@ export function LeagueDetailPage() {
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
   const [generatingRound, setGeneratingRound] = useState(false)
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [leaving, setLeaving] = useState(false)
   const { t: tPairs } = useTranslation('', { keyPrefix: 'pairs' })
 
   async function handleShare(leagueName: string) {
@@ -1541,7 +1544,7 @@ export function LeagueDetailPage() {
 
       if (isPairs) {
         if (leagueTeams.length < 2) {
-          console.warn('[GenerateRound] not enough teams:', leagueTeams.length)
+          toast.error('Need at least 2 pairs to generate a round')
           return
         }
         const teamIds = leagueTeams.map((t) => t.id)
@@ -1574,7 +1577,7 @@ export function LeagueDetailPage() {
         // Each "entity" in the round-robin is a player; pairings produce 2 players per side
         const playerIds = standings.map((s) => s.user_id)
         if (playerIds.length < 4) {
-          console.warn('[GenerateRound] not enough players:', playerIds.length)
+          toast.error('Need at least 4 players to generate a round')
           return
         }
 
@@ -1623,7 +1626,7 @@ export function LeagueDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
         <p className="text-[14px] text-gray-500">League not found</p>
-        <button onClick={() => navigate(-1)} className="mt-4 text-[13px] text-teal-600 font-semibold">Go back</button>
+        <button onClick={() => goBack(navigate, '/compete')} className="mt-4 text-[13px] text-teal-600 font-semibold">Go back</button>
       </div>
     )
   }
@@ -1634,7 +1637,7 @@ export function LeagueDetailPage() {
       <div className="px-5 pt-14 pb-4">
         <div className="flex items-center gap-3 mb-1">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => goBack(navigate, '/compete')}
             className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
           >
             <ChevronLeft className="h-5 w-5 text-gray-600" />
@@ -2215,6 +2218,79 @@ export function LeagueDetailPage() {
         fixtures={fixtures}
         onSelect={(match) => setQuickResultMatch(match)}
       />
+
+      {/* Leave league — visible to members who are NOT the creator */}
+      {league && !isAdmin && (
+        <div className="px-5 pb-4">
+          <button
+            onClick={() => setShowLeaveConfirm(true)}
+            className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
+          >
+            Leave League
+          </button>
+        </div>
+      )}
+
+      {/* Leave league confirmation dialog */}
+      <AnimatePresence>
+        {showLeaveConfirm && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => !leaving && setShowLeaveConfirm(false)}
+            />
+            <motion.div
+              className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
+              initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
+            >
+              <h3 className="text-[15px] font-bold text-gray-900 mb-2">Leave this league?</h3>
+              <p className="text-[13px] text-gray-500 mb-5">
+                Your standings and ELO from this league will be preserved but you won't appear in future fixtures.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  disabled={leaving}
+                  className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={leaving}
+                  onClick={async () => {
+                    setLeaving(true)
+                    // Remove from league_members
+                    const { error: memErr } = await supabase
+                      .from('league_members').delete()
+                      .eq('league_id', id).eq('user_id', currentUserId)
+                    if (memErr) {
+                      toast.error(memErr.message ?? 'Failed to leave league')
+                      setLeaving(false)
+                      return
+                    }
+                    // For pairs: remove league_team if member is in one
+                    if (isPairs) {
+                      await supabase
+                        .from('league_teams').delete()
+                        .eq('league_id', id)
+                        .or(`player1_id.eq.${currentUserId},player2_id.eq.${currentUserId}`)
+                    }
+                    queryClient.invalidateQueries({ queryKey: ['my-leagues-compete'] })
+                    queryClient.invalidateQueries({ queryKey: ['my-leagues-discovery'] })
+                    queryClient.invalidateQueries({ queryKey: ['league-members-profiles', id] })
+                    queryClient.invalidateQueries({ queryKey: ['league-teams', id] })
+                    navigate('/compete')
+                  }}
+                  className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white disabled:opacity-50"
+                >
+                  {leaving ? 'Leaving…' : 'Leave League'}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Quick result sheet */}
       <QuickResultSheet

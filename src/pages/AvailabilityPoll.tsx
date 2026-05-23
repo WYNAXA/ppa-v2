@@ -14,6 +14,7 @@ import { cn } from '@/lib/utils'
 import { generateHalfHourSlots, getTimePeriod, getSlotDate } from '@/lib/pollUtils'
 import { WeeklyScheduleSelector } from '@/components/polls/WeeklyScheduleSelector'
 import { PollAdminView } from '@/components/polls/PollAdminView'
+import { goBack } from '@/lib/navigation'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -473,7 +474,7 @@ export function AvailabilityPollPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
         <p className="text-[14px] text-gray-500">Poll not found.</p>
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[#009688] font-semibold">Go back</button>
+        <button onClick={() => goBack(navigate, '/play')} className="text-[13px] text-[#009688] font-semibold">Go back</button>
       </div>
     )
   }
@@ -492,7 +493,7 @@ export function AvailabilityPollPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => goBack(navigate, '/play')}
           className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5 text-gray-600" />
@@ -1074,7 +1075,7 @@ export function AvailabilityPollPage() {
                   queryClient.invalidateQueries({ queryKey: ['polls'] })
                   queryClient.invalidateQueries({ queryKey: ['availability-home'] })
                   queryClient.invalidateQueries({ queryKey: ['group-polls'] })
-                  navigate(-1)
+                  goBack(navigate, '/play')
                 }}
                 disabled={deleting}
                 className="flex-1 rounded-xl bg-red-500 py-2.5 text-[13px] font-bold text-white disabled:opacity-50"

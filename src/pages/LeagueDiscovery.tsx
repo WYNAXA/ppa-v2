@@ -6,6 +6,7 @@ import { ChevronLeft, Search, Trophy, ChevronRight, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { goBack } from '@/lib/navigation'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -223,7 +224,7 @@ export function LeagueDiscoveryPage() {
       <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => goBack(navigate, '/compete')}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1"
           >
             <ChevronLeft className="w-5 h-5 text-gray-600" />

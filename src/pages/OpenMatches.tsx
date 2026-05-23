@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
+import { goBack } from '@/lib/navigation'
 
 export function OpenMatchesPage() {
   const navigate = useNavigate()
@@ -68,7 +69,7 @@ export function OpenMatchesPage() {
     <div className="min-h-full bg-white pb-32">
       <div className="px-4 pt-12 pb-4 bg-white border-b border-gray-100">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
+          <button onClick={() => goBack(navigate, '/play')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
             <ChevronLeft className="w-5 h-5 text-gray-600" />
           </button>
           <div>

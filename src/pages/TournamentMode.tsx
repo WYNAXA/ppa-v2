@@ -429,7 +429,7 @@ export function TournamentModePage() {
         const byeName = bye ? teamMap[bye]?.team_name ?? bye : null
         console.log(`[Tournament] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
       } else {
-        if (standings.length < 4) { setGeneratingRound(false); return }
+        if (standings.length < 4) { toast.error('Need at least 4 players to generate a round'); setGeneratingRound(false); return }
         const playerIds = standings.map((s) => s.user_id)
         const { pairings, bye } = generateRoundRobinRound(playerIds, nextRound)
 

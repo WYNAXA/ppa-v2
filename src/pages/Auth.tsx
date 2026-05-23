@@ -257,7 +257,7 @@ export function AuthPage() {
 
         {mode === 'signup' && (
           <p className="text-[11px] text-gray-500 text-center mt-3">
-            After signing up you'll need to confirm your email. We'll then help you set up your padel profile.
+            Welcome! After signing up we'll help you set up your padel profile.
           </p>
         )}
 

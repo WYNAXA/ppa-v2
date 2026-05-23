@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
+import { goBack } from '@/lib/navigation'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -155,7 +156,7 @@ export function PlayerProfilePage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
         <p className="text-[14px] text-gray-500">{t('player_profile.not_found')}</p>
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[#009688] font-semibold">{t('common.go_back')}</button>
+        <button onClick={() => goBack(navigate, '/community')} className="text-[13px] text-[#009688] font-semibold">{t('common.go_back')}</button>
       </div>
     )
   }
@@ -170,7 +171,7 @@ export function PlayerProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => goBack(navigate, '/community')}
           className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5 text-gray-600" />

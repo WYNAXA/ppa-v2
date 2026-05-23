@@ -762,6 +762,8 @@ export function YouPage() {
   const [showEdit, setShowEdit]             = useState(false)
   const [notifEnabled, setNotifEnabled]     = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1)
+  const [deleteTyped, setDeleteTyped] = useState('')
   const [deleting, setDeleting] = useState(false)
   const [iosHint, setIosHint] = useState(false)
   const [resetSent, setResetSent]           = useState(false)
@@ -1324,61 +1326,94 @@ export function YouPage() {
           </button>
         </section>
 
-        {/* Delete account confirmation dialog */}
+        {/* Delete account confirmation dialog — two-step */}
         <AnimatePresence>
           {showDeleteConfirm && (
             <>
               <motion.div
                 className="fixed inset-0 z-[55] bg-black/50"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                onClick={() => !deleting && setShowDeleteConfirm(false)}
+                onClick={() => { if (!deleting) { setShowDeleteConfirm(false); setDeleteStep(1); setDeleteTyped('') } }}
               />
               <motion.div
                 className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               >
-                <h3 className="text-[17px] font-bold text-gray-900 text-center mb-2">{t('you.delete_account_confirm')}</h3>
-                <p className="text-[13px] text-gray-500 text-center mb-5">
-                  {t('you.delete_account_sub')}
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    disabled={deleting}
-                    className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
-                  >
-                    {t('common.cancel')}
-                  </button>
-                  <button
-                    disabled={deleting}
-                    onClick={async () => {
-                      setDeleting(true)
-                      try {
-                        const { error } = await supabase.rpc('delete_user')
-                        if (error) throw error
-                        // Success — sign out and redirect
-                        setShowDeleteConfirm(false)
-                        await signOut()
-                        localStorage.clear()
-                        window.location.href = '/auth'
-                      } catch (err: unknown) {
-                        Sentry.captureException(err)
-                        const msg = err instanceof Error ? err.message : 'Unknown error'
-                        toast.error(`Account deletion failed: ${msg}. Please contact support.`)
-                        setDeleting(false)
-                      }
-                    }}
-                    className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white disabled:opacity-50"
-                  >
-                    {deleting ? 'Deleting…' : t('common.delete')}
-                  </button>
-                </div>
-                <p className="text-[11px] text-gray-400 text-center mt-4">
-                  Having trouble?{' '}
-                  <a href="mailto:support@padelplayersapp.com" className="underline">
-                    support@padelplayersapp.com
-                  </a>
-                </p>
+                {deleteStep === 1 ? (
+                  <>
+                    <h3 className="text-[17px] font-bold text-gray-900 text-center mb-2">{t('you.delete_account_confirm')}</h3>
+                    <p className="text-[13px] text-gray-500 text-center mb-5">
+                      This will permanently delete your account, all matches, results, ELO history, and you cannot recover this. Are you sure?
+                    </p>
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setShowDeleteConfirm(false); setDeleteStep(1); setDeleteTyped('') }}
+                        className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+                      >
+                        {t('common.cancel')}
+                      </button>
+                      <button
+                        onClick={() => setDeleteStep(2)}
+                        className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white"
+                      >
+                        Continue
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h3 className="text-[17px] font-bold text-red-600 text-center mb-2">Final confirmation</h3>
+                    <p className="text-[13px] text-gray-500 text-center mb-3">
+                      Type <span className="font-bold text-gray-900">DELETE</span> below to confirm.
+                    </p>
+                    <input
+                      type="text"
+                      value={deleteTyped}
+                      onChange={(e) => setDeleteTyped(e.target.value)}
+                      placeholder="Type DELETE"
+                      autoFocus
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-[14px] font-bold text-gray-900 focus:outline-none focus:border-red-400 mb-4"
+                    />
+                    <div className="flex gap-3">
+                      <button
+                        onClick={() => { setDeleteStep(1); setDeleteTyped('') }}
+                        disabled={deleting}
+                        className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
+                      >
+                        Back
+                      </button>
+                      <button
+                        disabled={deleting || deleteTyped !== 'DELETE'}
+                        onClick={async () => {
+                          setDeleting(true)
+                          try {
+                            const { error } = await supabase.rpc('delete_user')
+                            if (error) throw error
+                            setShowDeleteConfirm(false)
+                            await signOut()
+                            localStorage.clear()
+                            toast.success('Your account has been deleted')
+                            window.location.href = '/auth'
+                          } catch (err: unknown) {
+                            Sentry.captureException(err)
+                            const msg = err instanceof Error ? err.message : 'Unknown error'
+                            toast.error(`Account deletion failed: ${msg}. Please contact support.`)
+                            setDeleting(false)
+                          }
+                        }}
+                        className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white disabled:opacity-40"
+                      >
+                        {deleting ? 'Deleting…' : 'Delete my account'}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-gray-400 text-center mt-4">
+                      Having trouble?{' '}
+                      <a href="mailto:support@padelplayersapp.com" className="underline">
+                        support@padelplayersapp.com
+                      </a>
+                    </p>
+                  </>
+                )}
               </motion.div>
             </>
           )}

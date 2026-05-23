@@ -185,7 +185,7 @@ export default {
     global: 'Global',
     my_groups: 'Mis Grupos',
     my_leagues: 'Mis Ligas',
-    create_league: 'Crear',
+    create_league: 'Crear Liga',
     create_league_cta: 'Crear una liga',
     no_leagues: 'Sin ligas activas',
     no_leagues_sub: 'Crea una o únete a una liga de grupo',

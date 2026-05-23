@@ -185,7 +185,7 @@ export default {
     global: 'वैश्विक',
     my_groups: 'मेरे ग्रुप',
     my_leagues: 'मेरी लीग',
-    create_league: 'बनाएं',
+    create_league: 'लीग बनाएं',
     create_league_cta: 'एक लीग बनाएं',
     no_leagues: 'कोई सक्रिय लीग नहीं',
     no_leagues_sub: 'एक बनाएं या किसी ग्रुप लीग में शामिल हों',

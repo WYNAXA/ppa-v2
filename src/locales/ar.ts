@@ -185,7 +185,7 @@ export default {
     global: 'عالمي',
     my_groups: 'مجموعاتي',
     my_leagues: 'بطولاتي',
-    create_league: 'إنشاء',
+    create_league: 'إنشاء بطولة',
     create_league_cta: 'إنشاء بطولة',
     no_leagues: 'لا توجد بطولات نشطة',
     no_leagues_sub: 'أنشئ واحدة أو انضم إلى بطولة مجموعة',

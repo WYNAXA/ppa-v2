@@ -796,7 +796,7 @@ export default {
     scoring_short_sets_desc: 'Först till 4 game per set',
     scoring_one_set_label: 'Ett set',
     scoring_one_set_desc: '9 game eller super-tiebreak',
-    scoring_custom_label: 'Anpassad',
+    scoring_custom_label: 'Fri poängsättning (ingen validering)',
     scoring_custom_desc: 'Admin bestämmer poängsättningen',
     start_date_label: 'Startdatum',
     end_date_label: 'Slutdatum',

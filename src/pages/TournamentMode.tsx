@@ -384,6 +384,16 @@ export function TournamentModePage() {
         ? (existingMatches[0].round_number as number) + 1
         : 0
 
+      // Auto-set max_rounds on first round if not already set
+      if (nextRound === 0 && league.max_rounds == null) {
+        const n = isPairs ? leagueTeams.length : standings.length
+        if (n >= 2) {
+          const autoMaxRounds = n % 2 === 0 ? n - 1 : n
+          await supabase.from('leagues').update({ max_rounds: autoMaxRounds }).eq('id', id)
+          queryClient.invalidateQueries({ queryKey: ['league', id] })
+        }
+      }
+
       // Season complete check
       if (league.max_rounds != null && nextRound >= league.max_rounds) {
         toast.error(`Season complete. All ${league.max_rounds} rounds have been generated.`)

@@ -47,6 +47,7 @@ interface Standing {
   lost: number
   drawn: number
   points: number
+  game_difference: number
   profile?: { name: string; avatar_url: string | null }
 }
 
@@ -116,10 +117,16 @@ function useStandings(leagueId: string) {
     enabled: !!leagueId,
     queryFn: async (): Promise<Standing[]> => {
       // Select defensively — rank/won/lost/drawn may not exist
-      const { data: rows, error } = await supabase
-        .from('league_standings')
-        .select('*')
-        .eq('league_id', leagueId)
+      // Fetch match IDs for this league first, then results
+      const [{ data: rows, error }, { data: leagueMatches }] = await Promise.all([
+        supabase.from('league_standings').select('*').eq('league_id', leagueId),
+        supabase.from('matches').select('id').eq('league_id', leagueId).eq('status', 'completed'),
+      ])
+      const matchIds = (leagueMatches ?? []).map((m: any) => m.id)
+      const { data: results } = matchIds.length > 0
+        ? await supabase.from('match_results').select('team1_players, team2_players, sets_data')
+            .in('match_id', matchIds).not('sets_data', 'is', null)
+        : { data: [] }
 
       if (error) { console.error('[League] standings error:', error); return [] }
       if (!rows || rows.length === 0) return []
@@ -132,20 +139,48 @@ function useStandings(leagueId: string) {
 
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
 
-      // Sort by ranking_points desc then calculate rank client-side
-      const sorted = [...rows].sort((a, b) => ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number))
+      // Compute game difference per player from match_results.sets_data
+      const gdMap: Record<string, { won: number; lost: number }> = {}
+      for (const r of results ?? []) {
+        const t1Players = (r.team1_players ?? []) as string[]
+        const t2Players = (r.team2_players ?? []) as string[]
+        const setsData = (r.sets_data ?? []) as Array<{ team1: number; team2: number }>
+        let t1Games = 0, t2Games = 0
+        for (const s of setsData) { t1Games += s.team1 ?? 0; t2Games += s.team2 ?? 0 }
+        for (const pid of t1Players) {
+          if (!gdMap[pid]) gdMap[pid] = { won: 0, lost: 0 }
+          gdMap[pid].won += t1Games; gdMap[pid].lost += t2Games
+        }
+        for (const pid of t2Players) {
+          if (!gdMap[pid]) gdMap[pid] = { won: 0, lost: 0 }
+          gdMap[pid].won += t2Games; gdMap[pid].lost += t1Games
+        }
+      }
 
-      return sorted.map((r, i) => ({
-        id:      r.id,
-        user_id: r.user_id,
-        rank:    i + 1,
-        played:  (r.matches_played ?? r.played ?? 0) as number,
-        won:     (r.wins ?? r.won ?? 0) as number,
-        lost:    (r.losses ?? r.lost ?? 0) as number,
-        drawn:   (r.draws ?? r.drawn ?? 0) as number,
-        points:  (r.ranking_points ?? r.points ?? 0) as number,
-        profile: profileMap[r.user_id],
-      }))
+      // Sort by ranking_points desc, then game_difference desc
+      const sorted = [...rows].sort((a, b) => {
+        const ptsDiff = ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number)
+        if (ptsDiff !== 0) return ptsDiff
+        const aGd = (gdMap[a.user_id]?.won ?? 0) - (gdMap[a.user_id]?.lost ?? 0)
+        const bGd = (gdMap[b.user_id]?.won ?? 0) - (gdMap[b.user_id]?.lost ?? 0)
+        return bGd - aGd
+      })
+
+      return sorted.map((r, i) => {
+        const gd = gdMap[r.user_id]
+        return {
+          id:      r.id,
+          user_id: r.user_id,
+          rank:    i + 1,
+          played:  (r.matches_played ?? r.played ?? 0) as number,
+          won:     (r.wins ?? r.won ?? 0) as number,
+          lost:    (r.losses ?? r.lost ?? 0) as number,
+          drawn:   (r.draws ?? r.drawn ?? 0) as number,
+          points:  (r.ranking_points ?? r.points ?? 0) as number,
+          game_difference: gd ? gd.won - gd.lost : 0,
+          profile: profileMap[r.user_id],
+        }
+      })
     },
   })
 }
@@ -611,6 +646,10 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
   const [savingDate, setSavingDate] = useState(false)
   const [dateSaved, setDateSaved] = useState(false)
 
+  const [editingName, setEditingName] = useState(false)
+  const [newName, setNewName] = useState(league.name)
+  const [savingName, setSavingName] = useState(false)
+
   async function saveAdjustment() {
     if (!selectedUserId || !pointsDelta) return
     setAdjusting(true)
@@ -646,11 +685,23 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     if (!jerseyUserId || !jerseyNumber) return
     setSavingJersey(true)
     const colorIndex = JERSEY_COLOURS.findIndex(c => c.id === jerseyNumber)
-    await supabase.from('league_jerseys').upsert(
-      { league_id: league.id, user_id: jerseyUserId, jersey_number: colorIndex >= 0 ? colorIndex + 1 : 1, jersey_color: jerseyNumber },
+    const jerseyNum = colorIndex >= 0 ? colorIndex + 1 : 1
+
+    // Remove any existing jersey for this user in this league (avoids unique constraint on league_id,user_id)
+    await supabase.from('league_jerseys').delete().eq('league_id', league.id).eq('user_id', jerseyUserId)
+
+    const { error } = await supabase.from('league_jerseys').upsert(
+      { league_id: league.id, user_id: jerseyUserId, jersey_number: jerseyNum, jersey_color: jerseyNumber },
       { onConflict: 'league_id,jersey_number' }
     )
     setSavingJersey(false)
+    if (error) {
+      console.error('[Jersey] upsert error:', error)
+      toast.error(error.message ?? 'Failed to assign jersey')
+      return
+    }
+    toast.success('Jersey assigned!')
+    queryClient.invalidateQueries({ queryKey: ['league-jerseys', league.id] })
     setJerseyUserId('')
     setJerseyNumber('')
   }
@@ -670,6 +721,55 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
 
   return (
     <div className="space-y-4">
+      {/* Edit league name */}
+      <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">League Name</p>
+        {editingName ? (
+          <>
+            <input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+              autoFocus
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => { setEditingName(false); setNewName(league.name) }}
+                className="flex-1 rounded-xl border border-gray-200 py-2 text-[12px] font-semibold text-gray-600"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  if (!newName.trim()) return
+                  setSavingName(true)
+                  const { error } = await supabase.from('leagues').update({ name: newName.trim() }).eq('id', league.id)
+                  setSavingName(false)
+                  if (error) { toast.error(error.message ?? 'Failed to update name'); return }
+                  toast.success('League name updated')
+                  queryClient.invalidateQueries({ queryKey: ['league', league.id] })
+                  queryClient.invalidateQueries({ queryKey: ['my-leagues-compete'] })
+                  queryClient.invalidateQueries({ queryKey: ['my-leagues-discovery'] })
+                  setEditingName(false)
+                }}
+                disabled={savingName || !newName.trim()}
+                className="flex-1 rounded-xl bg-[#009688] py-2 text-[12px] font-bold text-white disabled:opacity-40"
+              >
+                {savingName ? 'Saving…' : 'Save'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <button
+            onClick={() => setEditingName(true)}
+            className="w-full flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2.5 text-left"
+          >
+            <span className="text-[13px] text-gray-900 truncate">{league.name}</span>
+            <span className="text-[11px] text-[#009688] font-semibold ml-2">Edit</span>
+          </button>
+        )}
+      </div>
+
       {/* Points adjustment */}
       <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
         <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Manual Points Adjustment</p>
@@ -1411,6 +1511,16 @@ export function LeagueDetailPage() {
         ? (existingMatches[0].round_number as number) + 1
         : 0
 
+      // Auto-set max_rounds on first round if not already set
+      if (nextRound === 0 && league?.max_rounds == null) {
+        const n = isPairs ? leagueTeams.length : standings.length
+        if (n >= 2) {
+          const autoMaxRounds = n % 2 === 0 ? n - 1 : n
+          await supabase.from('leagues').update({ max_rounds: autoMaxRounds }).eq('id', id)
+          queryClient.invalidateQueries({ queryKey: ['league', id] })
+        }
+      }
+
       // Season complete check
       if (league?.max_rounds != null && nextRound >= league.max_rounds) {
         toast.error(`Season complete. All ${league.max_rounds} rounds have been generated.`)
@@ -1664,7 +1774,7 @@ export function LeagueDetailPage() {
                       ? (row as TeamStanding).team_name ?? 'Unknown'
                       : (row as Standing).profile?.name ?? 'Unknown'
                     const pts = row.points
-                    const gd = isPairs ? (row as TeamStanding).game_difference : null
+                    const gd = isPairs ? (row as TeamStanding).game_difference : (row as Standing).game_difference
                     const styles = [
                       { bg: 'bg-gradient-to-r from-amber-50 to-yellow-50', border: 'border-amber-100', text: 'text-amber-600', pts_text: 'text-amber-700', emoji: '🏆', label: 'Champion' },
                       { bg: 'bg-gradient-to-r from-gray-50 to-slate-50', border: 'border-gray-200', text: 'text-gray-500', pts_text: 'text-gray-700', emoji: '🥈', label: '2nd Place' },
@@ -1832,8 +1942,8 @@ export function LeagueDetailPage() {
               </>
               ) : (
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Player', 'P', 'W', 'L', 'Pts'].map((h) => (
+                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    {['#', 'Player', 'P', 'W', 'L', 'GD', 'Pts'].map((h) => (
                       <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
                     ))}
                   </div>
@@ -1843,7 +1953,7 @@ export function LeagueDetailPage() {
                       <div
                         key={row.id}
                         className={cn(
-                          'grid grid-cols-[28px_1fr_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
+                          'grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
                           i < standings.length - 1 && 'border-b border-gray-50',
                           isMe && 'bg-teal-50/60'
                         )}
@@ -1868,6 +1978,9 @@ export function LeagueDetailPage() {
                         <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                        <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                          {row.game_difference > 0 ? '+' : ''}{row.game_difference}
+                        </span>
                         <span className={cn('text-[12px] font-bold text-center', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                           {row.points}
                         </span>

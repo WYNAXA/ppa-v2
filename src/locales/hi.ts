@@ -796,7 +796,7 @@ export default {
     scoring_short_sets_desc: 'प्रति सेट पहले 4 गेम तक',
     scoring_one_set_label: 'एक सेट',
     scoring_one_set_desc: '9 गेम या सुपर टाईब्रेक',
-    scoring_custom_label: 'कस्टम',
+    scoring_custom_label: 'मुक्त स्कोरिंग (कोई सत्यापन नहीं)',
     scoring_custom_desc: 'एडमिन स्कोरिंग तय करता है',
     start_date_label: 'शुरू की तारीख',
     end_date_label: 'समाप्ति तारीख',

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -14,6 +14,7 @@ import { PairAvatar } from '@/components/shared/PairAvatar'
 import { PairAssignmentSheet } from '@/components/compete/PairAssignmentSheet'
 import { cn } from '@/lib/utils'
 import { generateRoundRobinRound } from '@/lib/roundRobin'
+import { validateSetScores } from '@/lib/scoreValidation'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -250,6 +251,41 @@ function useLeagueTeams(leagueId: string) {
       if (error) return []
       return data ?? []
     },
+  })
+}
+
+interface JerseyEntry {
+  user_id: string
+  jersey_color: string
+}
+
+const JERSEY_EMOJI: Record<string, string> = {
+  yellow: '\u{1F7E1}',
+  green:  '\u{1F7E2}',
+  red:    '\u{1F534}',
+  blue:   '\u{1F535}',
+  black:  '\u26AB',
+}
+const JERSEY_LABEL: Record<string, string> = {
+  yellow: 'Leader',
+  green:  'Most Improved',
+  red:    'Most Competitive',
+  blue:   'Most Active',
+  black:  'Veteran',
+}
+
+function useLeagueJerseys(leagueId: string) {
+  return useQuery<JerseyEntry[]>({
+    queryKey: ['league-jerseys', leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('league_jerseys')
+        .select('user_id, jersey_color')
+        .eq('league_id', leagueId)
+      return data ?? []
+    },
+    staleTime: 60_000,
   })
 }
 
@@ -759,6 +795,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
               return
             }
             queryClient.invalidateQueries({ queryKey: ['my-leagues-compete'] })
+            queryClient.invalidateQueries({ queryKey: ['my-leagues-discovery'] })
             queryClient.invalidateQueries({ queryKey: ['league', league.id] })
             queryClient.invalidateQueries({ queryKey: ['league-standings', league.id] })
             queryClient.invalidateQueries({ queryKey: ['league-teams', league.id] })
@@ -895,6 +932,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
   const [error, setError] = useState<string | null>(null)
   const [showIncompleteConfirm, setShowIncompleteConfirm] = useState(false)
   const queryClient = useQueryClient()
+  const quickInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   // Reset on open/close
   if (!open && (step !== 1 || sets.length !== 1)) {
@@ -1028,6 +1066,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     <div key={i} className="flex items-center gap-2 mb-3 justify-center">
                       <span className="text-[12px] text-gray-400 w-12">Set {i + 1}</span>
                       <input
+                        ref={(el) => { quickInputRefs.current[`${i}-team1`] = el }}
                         type="number"
                         inputMode="numeric"
                         min={0}
@@ -1036,11 +1075,13 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                         onChange={(e) => {
                           const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
                           setSets((prev) => prev.map((x, j) => j === i ? { ...x, team1: val } : x))
+                          if (e.target.value !== '') setTimeout(() => quickInputRefs.current[`${i}-team2`]?.focus(), 0)
                         }}
                         className="w-[56px] rounded-xl border border-gray-200 bg-teal-50 py-2 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
                       />
                       <span className="text-gray-300">—</span>
                       <input
+                        ref={(el) => { quickInputRefs.current[`${i}-team2`] = el }}
                         type="number"
                         inputMode="numeric"
                         min={0}
@@ -1049,6 +1090,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                         onChange={(e) => {
                           const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
                           setSets((prev) => prev.map((x, j) => j === i ? { ...x, team2: val } : x))
+                          if (e.target.value !== '') setTimeout(() => quickInputRefs.current[`${i + 1}-team1`]?.focus(), 0)
                         }}
                         className="w-[56px] rounded-xl border border-gray-200 bg-orange-50 py-2 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
                       />
@@ -1103,9 +1145,16 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     </button>
                     <button
                       onClick={() => {
+                        // Validate set scores against scoring format
+                        const completedSetData = sets.filter((s) => s.team1 !== '' && s.team2 !== '').map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
+                        const validationError = validateSetScores(completedSetData, scoringFormat)
+                        if (validationError) {
+                          toast.error(validationError)
+                          return
+                        }
                         const fmt = scoringFormat ?? 'standard'
                         const minSets = SCORING_MIN_SETS[fmt] ?? 2
-                        const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '').length
+                        const completedSets = completedSetData.length
                         if (completedSets < minSets) {
                           setShowIncompleteConfirm(true)
                           return
@@ -1272,6 +1321,8 @@ export function LeagueDetailPage() {
   const { data: standings = [], isLoading: loadingStandings } = useStandings(id)
   const { data: teamStandings = [] } = useTeamStandings(id, isPairs)
   const { data: leagueTeams = [] } = useLeagueTeams(id)
+  const { data: jerseys = [] } = useLeagueJerseys(id)
+  const jerseyByUser = Object.fromEntries(jerseys.map((j) => [j.user_id, j.jersey_color]))
   const { data: leagueMembers = [] } = useLeagueMembers(id)
   const { data: currentRound = 0 } = useCurrentRound(id)
   const isSeasonComplete = league?.max_rounds != null && currentRound >= league.max_rounds
@@ -1728,6 +1779,15 @@ export function LeagueDetailPage() {
                           <span className={cn('text-[12px] font-semibold truncate', isMyTeam ? 'text-[#009688]' : 'text-gray-800')}>
                             {row.team_name ?? `${row.player1?.name?.split(' ')[0] ?? '?'} & ${row.player2?.name?.split(' ')[0] ?? '?'}`}{isMyTeam ? ' ★' : ''}
                           </span>
+                          {[row.player1_id, row.player2_id].map((pid) => jerseyByUser[pid] ? (
+                            <span
+                              key={pid}
+                              className="flex-shrink-0 text-[12px] leading-none"
+                              title={JERSEY_LABEL[jerseyByUser[pid]] ?? 'Jersey'}
+                            >
+                              {JERSEY_EMOJI[jerseyByUser[pid]] ?? ''}
+                            </span>
+                          ) : null)}
                         </div>
                         <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
@@ -1796,6 +1856,14 @@ export function LeagueDetailPage() {
                           <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                             {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
                           </span>
+                          {jerseyByUser[row.user_id] && (
+                            <span
+                              className="flex-shrink-0 text-[12px] leading-none"
+                              title={`${JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}`}
+                            >
+                              {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
+                            </span>
+                          )}
                         </div>
                         <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.won}</span>

@@ -185,7 +185,7 @@ export default {
     global: 'Global',
     my_groups: 'Mina grupper',
     my_leagues: 'Mina ligor',
-    create_league: 'Skapa',
+    create_league: 'Skapa Liga',
     create_league_cta: 'Skapa en liga',
     no_leagues: 'Inga aktiva ligor',
     no_leagues_sub: 'Skapa en eller gå med i en gruppliga',

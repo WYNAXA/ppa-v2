@@ -268,6 +268,7 @@ export function AvailabilityPollPage() {
 
   // ── Conflict check ──
   async function checkHouseholdConflicts(): Promise<any[]> {
+    console.log('[POLL-DIAG] checkHouseholdConflicts entered', { selectedSlots, poll: !!poll, userId })
     if (!poll || !userId || selectedSlots.length === 0) return []
     try {
       // Resolve each selected slot to a concrete date + time, then call the RPC
@@ -276,25 +277,28 @@ export function AvailabilityPollPage() {
 
       for (const slotId of selectedSlots) {
         const slot = timeSlots.find((s) => s.id === slotId)
-        if (!slot) continue
+        if (!slot) { console.log('[POLL-DIAG] slot not found for id:', slotId); continue }
         const slotDate = getSlotDate(poll.week_start_date, slot.day)
         const dateStr = format(slotDate, 'yyyy-MM-dd')
         const key = `${dateStr}-${slot.start_time}`
         if (checkedDates.has(key)) continue
         checkedDates.add(key)
 
+        console.log('[POLL-DIAG] calling RPC', { userId, date: dateStr, time: slot.start_time })
         const { data: result, error } = await supabase.rpc('get_household_conflicts', {
           _user_ids: [userId],
           _match_date: dateStr,
           _match_time: slot.start_time,
         })
+        console.log('[POLL-DIAG] RPC response', { data: result, error })
         if (error) { console.warn('[Conflicts] RPC error, skipping:', error.message); continue }
         if (result && result.length > 0) allConflicts.push(...result)
       }
 
+      console.log('[POLL-DIAG] total conflicts found:', allConflicts.length)
       return allConflicts
     } catch (e) {
-      console.warn('[Conflicts] RPC not available, skipping')
+      console.warn('[Conflicts] RPC not available, skipping', e)
       return []
     }
   }
@@ -352,13 +356,17 @@ export function AvailabilityPollPage() {
   })
 
   async function handleSubmit() {
+    console.log('[POLL-DIAG] handleSubmit invoked', { selectedSlots, cantDoWeek, pollId, isPending: submitMutation.isPending })
     if (submitMutation.isPending) return
     if (!cantDoWeek && selectedSlots.length === 0) return
 
     // Household conflict check
     if (!cantDoWeek && selectedSlots.length > 0) {
+      console.log('[POLL-DIAG] about to call checkHouseholdConflicts', { selectedSlotsCount: selectedSlots.length })
       const conflicts = await checkHouseholdConflicts()
+      console.log('[POLL-DIAG] conflicts result', { count: conflicts.length, conflicts })
       if (conflicts.length > 0) {
+        console.log('[POLL-DIAG] would show dialog', { conflicts })
         setConflictDetails(conflicts)
         setShowConflictDialog(true)
         return

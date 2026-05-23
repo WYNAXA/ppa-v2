@@ -270,12 +270,29 @@ export function AvailabilityPollPage() {
   async function checkHouseholdConflicts(): Promise<any[]> {
     if (!poll || !userId || selectedSlots.length === 0) return []
     try {
-      const { data: result, error } = await supabase.rpc('get_household_conflicts', {
-        p_user_id: userId,
-        p_slots: selectedSlots,
-      })
-      if (error) { console.warn('[Conflicts] RPC error, skipping:', error.message); return [] }
-      return result ?? []
+      // Resolve each selected slot to a concrete date + time, then call the RPC
+      const allConflicts: any[] = []
+      const checkedDates = new Set<string>()
+
+      for (const slotId of selectedSlots) {
+        const slot = timeSlots.find((s) => s.id === slotId)
+        if (!slot) continue
+        const slotDate = getSlotDate(poll.week_start_date, slot.day)
+        const dateStr = format(slotDate, 'yyyy-MM-dd')
+        const key = `${dateStr}-${slot.start_time}`
+        if (checkedDates.has(key)) continue
+        checkedDates.add(key)
+
+        const { data: result, error } = await supabase.rpc('get_household_conflicts', {
+          _user_ids: [userId],
+          _match_date: dateStr,
+          _match_time: slot.start_time,
+        })
+        if (error) { console.warn('[Conflicts] RPC error, skipping:', error.message); continue }
+        if (result && result.length > 0) allConflicts.push(...result)
+      }
+
+      return allConflicts
     } catch (e) {
       console.warn('[Conflicts] RPC not available, skipping')
       return []

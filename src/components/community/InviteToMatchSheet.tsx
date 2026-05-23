@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Calendar } from 'lucide-react'
+import { X, Calendar, AlertTriangle } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { checkSelfConflict } from '@/lib/conflictCheck'
 
 interface InviteToMatchSheetProps {
   open: boolean
@@ -19,6 +21,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
   const queryClient = useQueryClient()
   const locale = useDateLocale()
   const today = new Date().toISOString().split('T')[0]
+  const [conflictWarn, setConflictWarn] = useState<{ match: any; time: string | null } | null>(null)
 
   const { data: matches = [], isLoading } = useQuery({
     queryKey: ['invite-to-match-options', userId],
@@ -108,7 +111,15 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                     return (
                       <button
                         key={m.id}
-                        onClick={() => inviteMutation.mutate(m)}
+                        onClick={async () => {
+                          // Soft-warn: check if invited player has a conflict
+                          const conflicts = await checkSelfConflict(playerId, m.match_date, m.match_time ?? null, m.id)
+                          if (conflicts.length > 0) {
+                            setConflictWarn({ match: m, time: conflicts[0].conflicting_time ?? null })
+                            return
+                          }
+                          inviteMutation.mutate(m)
+                        }}
                         disabled={inviteMutation.isPending}
                         className="w-full flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
                       >
@@ -124,6 +135,31 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                       </button>
                     )
                   })}
+                  {/* Conflict warning dialog */}
+                  {conflictWarn && (
+                    <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <p className="text-[13px] font-semibold text-amber-800">
+                          {playerName.split(' ')[0]} already has a match{conflictWarn.time ? ` at ${conflictWarn.time.slice(0, 5)}` : ' that day'}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setConflictWarn(null)}
+                          className="flex-1 rounded-xl border border-gray-200 py-2 text-[12px] font-semibold text-gray-600"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => { inviteMutation.mutate(conflictWarn.match); setConflictWarn(null) }}
+                          className="flex-1 rounded-xl bg-amber-500 py-2 text-[12px] font-bold text-white"
+                        >
+                          Invite anyway
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {inviteMutation.isError && (

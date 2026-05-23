@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { generateRoundRobinRound } from '@/lib/roundRobin'
+import { validateSetScores } from '@/lib/scoreValidation'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ export function TournamentModePage() {
   const [entries, setEntries] = useState<MatchEntry[]>([])
   const [standingsOpen, setStandingsOpen] = useState(true)
   const [generatingRound, setGeneratingRound] = useState(false)
+  const tmInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
 
   // ── League info ──────────────────────────────────────────────────────────
 
@@ -304,6 +306,15 @@ export function TournamentModePage() {
 
   async function submitResult(idx: number) {
     const entry = entries[idx]
+
+    // Validate set scores against league scoring format
+    const completedSetData = entry.sets.filter((s) => s.team1 !== '' && s.team2 !== '').map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
+    const validationError = validateSetScores(completedSetData, league?.scoring_format)
+    if (validationError) {
+      toast.error(validationError)
+      return
+    }
+
     setEntries((prev) =>
       prev.map((e, i) => (i === idx ? { ...e, submitting: true } : e)),
     )
@@ -686,24 +697,32 @@ export function TournamentModePage() {
                     {entry.sets.map((set, i) => (
                       <div key={i} className="flex items-center justify-center gap-2 mb-1">
                         <input
+                          ref={(el) => { tmInputRefs.current[`${idx}-${i}-team1`] = el }}
                           type="number"
                           inputMode="numeric"
                           min={0}
                           max={9}
                           value={set.team1}
                           disabled={entry.completed}
-                          onChange={(e) => updateSet(idx, i, 'team1', e.target.value)}
+                          onChange={(e) => {
+                            updateSet(idx, i, 'team1', e.target.value)
+                            if (e.target.value !== '') setTimeout(() => tmInputRefs.current[`${idx}-${i}-team2`]?.focus(), 0)
+                          }}
                           className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
                         />
                         <span className="text-gray-300">—</span>
                         <input
+                          ref={(el) => { tmInputRefs.current[`${idx}-${i}-team2`] = el }}
                           type="number"
                           inputMode="numeric"
                           min={0}
                           max={9}
                           value={set.team2}
                           disabled={entry.completed}
-                          onChange={(e) => updateSet(idx, i, 'team2', e.target.value)}
+                          onChange={(e) => {
+                            updateSet(idx, i, 'team2', e.target.value)
+                            if (e.target.value !== '') setTimeout(() => tmInputRefs.current[`${idx}-${i + 1}-team1`]?.focus(), 0)
+                          }}
                           className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
                         />
                       </div>

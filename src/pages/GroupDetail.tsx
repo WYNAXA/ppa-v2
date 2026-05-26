@@ -170,6 +170,47 @@ function usePendingMembers(groupId: string, isAdmin: boolean) {
   })
 }
 
+function useGroupInviteNotification(groupId: string, userId: string) {
+  return useQuery({
+    queryKey: ['group-invite-notification', groupId, userId],
+    enabled: !!groupId && !!userId,
+    queryFn: async () => {
+      // Check if user already a member
+      const { data: existing } = await supabase
+        .from('group_members')
+        .select('status')
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (existing?.status === 'approved' || existing?.status === 'ringer') {
+        // Already a member — silently mark any stray invite notifications as read
+        await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('user_id', userId)
+          .eq('type', 'group_invite')
+          .eq('related_id', groupId)
+          .eq('read', false)
+        return null
+      }
+
+      // Check for pending invite notification
+      const { data: notif } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', 'group_invite')
+        .eq('related_id', groupId)
+        .eq('read', false)
+        .limit(1)
+        .maybeSingle()
+
+      return notif ? { notificationId: notif.id, alreadyRejected: existing?.status === 'rejected' } : null
+    },
+  })
+}
+
 function useGroupMatches(groupId: string) {
   const today = new Date().toISOString().split('T')[0]
   return useQuery({
@@ -1378,6 +1419,47 @@ export function GroupDetailPage() {
 
   const { isAdmin } = useIsGroupAdmin(groupId)
   const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
+  const queryClient = useQueryClient()
+  const { data: inviteData } = useGroupInviteNotification(groupId, userId)
+
+  const acceptInviteMutation = useMutation({
+    mutationFn: async () => {
+      if (!inviteData) throw new Error('No invite')
+      if (inviteData.alreadyRejected) throw new Error('rejected')
+      const { error } = await supabase.from('group_members').insert({
+        group_id: groupId, user_id: userId, role: 'member', status: 'approved',
+      })
+      if (error) {
+        if (error.code === '23505') throw new Error('rejected')
+        throw error
+      }
+      await supabase.from('notifications').update({ read: true }).eq('id', inviteData.notificationId)
+    },
+    onSuccess: () => {
+      toast.success(t('group_detail.welcome_to_group', { name: group?.name }))
+      queryClient.invalidateQueries({ queryKey: ['group-invite-notification', groupId, userId] })
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
+    },
+    onError: (err: Error) => {
+      if (err.message === 'rejected') {
+        toast.error(t('community.join_declined_contact_admin'))
+      } else {
+        toast.error(t('group_detail.accept_invite_failed'))
+      }
+    },
+  })
+
+  const declineInviteMutation = useMutation({
+    mutationFn: async () => {
+      if (!inviteData) throw new Error('No invite')
+      await supabase.from('notifications').update({ read: true }).eq('id', inviteData.notificationId)
+    },
+    onSuccess: () => {
+      toast(t('group_detail.invite_declined'))
+      queryClient.invalidateQueries({ queryKey: ['group-invite-notification', groupId, userId] })
+    },
+  })
 
   const TABS: Array<{ id: Tab; label: string }> = [
     { id: 'members',  label: t('group_detail.tab_members')  },
@@ -1449,6 +1531,31 @@ export function GroupDetailPage() {
           <ReportButton context="group" contextId={groupId} />
         </div>
       </div>
+
+      {/* Invite banner */}
+      {inviteData && !acceptInviteMutation.isSuccess && !declineInviteMutation.isSuccess && (
+        <div className="mx-5 mb-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+          <p className="text-[13px] font-semibold text-gray-800 mb-2">
+            {t('group_detail.invite_banner', { name: group.name })}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => acceptInviteMutation.mutate()}
+              disabled={acceptInviteMutation.isPending || declineInviteMutation.isPending}
+              className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
+            >
+              {acceptInviteMutation.isPending ? t('group_detail.accepting') : t('group_detail.accept_invite')}
+            </button>
+            <button
+              onClick={() => declineInviteMutation.mutate()}
+              disabled={acceptInviteMutation.isPending || declineInviteMutation.isPending}
+              className="flex-1 rounded-xl bg-gray-100 py-2 text-[13px] font-semibold text-gray-600 active:scale-95 transition-transform disabled:opacity-50"
+            >
+              {t('group_detail.decline_invite')}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="relative px-5 border-b border-gray-100">

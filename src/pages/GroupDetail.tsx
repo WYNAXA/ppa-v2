@@ -1454,6 +1454,53 @@ export function GroupDetailPage() {
     },
   })
 
+  // Admin pending requests banner
+  const { data: pendingRequests = [] } = usePendingMembers(groupId, isAdmin)
+
+  const approveBannerMutation = useMutation({
+    mutationFn: async (member: PendingMember) => {
+      await supabase.from('group_members').update({ status: 'approved' }).eq('group_id', groupId).eq('user_id', member.user_id)
+      await supabase.from('notifications').insert({
+        user_id: member.user_id,
+        type: 'group_join',
+        title: group?.name ?? '',
+        message: `Your request to join ${group?.name} was approved.`,
+        read: false,
+      })
+      // Mark admin's join-request notification as read
+      await supabase.from('notifications').update({ read: true })
+        .eq('user_id', userId).eq('type', 'group_join_request').eq('related_id', groupId).eq('read', false)
+      return member.name
+    },
+    onSuccess: (name) => {
+      toast.success(t('group_detail.member_approved', { name }))
+      queryClient.invalidateQueries({ queryKey: ['pending-members', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
+    },
+    onError: () => toast.error(t('group_detail.approve_failed')),
+  })
+
+  const declineBannerMutation = useMutation({
+    mutationFn: async (member: PendingMember) => {
+      await supabase.from('group_members').update({ status: 'rejected' }).eq('group_id', groupId).eq('user_id', member.user_id)
+      await supabase.from('notifications').insert({
+        user_id: member.user_id,
+        type: 'group_join',
+        title: group?.name ?? '',
+        message: `Your request to join ${group?.name} was declined.`,
+        read: false,
+      })
+      await supabase.from('notifications').update({ read: true })
+        .eq('user_id', userId).eq('type', 'group_join_request').eq('related_id', groupId).eq('read', false)
+      return member.name
+    },
+    onSuccess: (name) => {
+      toast(t('group_detail.member_declined', { name }))
+      queryClient.invalidateQueries({ queryKey: ['pending-members', groupId] })
+    },
+    onError: () => toast.error(t('group_detail.decline_failed')),
+  })
+
   const TABS: Array<{ id: Tab; label: string }> = [
     { id: 'members',  label: t('group_detail.tab_members')  },
     { id: 'matches',  label: t('group_detail.tab_matches')  },
@@ -1549,6 +1596,40 @@ export function GroupDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Admin pending requests banner */}
+      {isAdmin && pendingRequests.length > 0 && (() => {
+        const first = pendingRequests[0]
+        const count = pendingRequests.length
+        const busy = approveBannerMutation.isPending || declineBannerMutation.isPending
+        return (
+          <div className="mx-5 mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-[13px] font-semibold text-gray-800 mb-2">
+              {count === 1
+                ? t('group_detail.pending_single', { name: first.name })
+                : t('group_detail.pending_multiple', { count })}
+            </p>
+            <div className="flex items-center gap-3">
+              <PlayerAvatar name={first.name} avatarUrl={first.avatar_url} size="sm" />
+              <p className="text-[13px] font-semibold text-gray-700 flex-1 min-w-0 truncate">{first.name}</p>
+              <button onClick={() => approveBannerMutation.mutate(first)} disabled={busy}
+                className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
+                {t('group_detail.approve')}
+              </button>
+              <button onClick={() => declineBannerMutation.mutate(first)} disabled={busy}
+                className="rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-600 active:scale-95 transition-transform disabled:opacity-50">
+                {t('group_detail.decline')}
+              </button>
+            </div>
+            {count > 1 && (
+              <button onClick={() => setActiveTab('settings')}
+                className="mt-2 text-[12px] font-semibold text-amber-700">
+                {t('group_detail.view_all_requests', { count })}
+              </button>
+            )}
+          </div>
+        )
+      })()}
 
       {/* Tabs */}
       <div className="relative px-5 border-b border-gray-100">

@@ -183,30 +183,23 @@ function useGroupInviteNotification(groupId: string, userId: string) {
         .eq('user_id', userId)
         .maybeSingle()
 
-      if (existing?.status === 'approved' || existing?.status === 'ringer') {
-        // Already a member — silently mark any stray invite notifications as read
-        await supabase
-          .from('notifications')
-          .update({ read: true })
-          .eq('user_id', userId)
-          .eq('type', 'group_invite')
-          .eq('related_id', groupId)
-          .eq('read', false)
-        return null
-      }
+      // Already a member — no banner needed
+      if (existing?.status === 'approved' || existing?.status === 'ringer') return null
 
-      // Check for pending invite notification
+      // Find the most recent invite notification (read or unread)
       const { data: notif } = await supabase
         .from('notifications')
         .select('id')
         .eq('user_id', userId)
         .eq('type', 'group_invite')
         .eq('related_id', groupId)
-        .eq('read', false)
+        .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle()
 
-      return notif ? { notificationId: notif.id, alreadyRejected: existing?.status === 'rejected' } : null
+      if (!notif) return null
+
+      return { notificationId: notif.id, alreadyRejected: existing?.status === 'rejected' }
     },
   })
 }

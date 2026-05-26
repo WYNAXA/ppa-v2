@@ -474,8 +474,6 @@ export default {
     invite_declined: 'Invitation declined',
     pending_single: '{{name}} wants to join your group',
     pending_multiple: '{{count}} people want to join your group',
-    approve: 'Approve',
-    decline: 'Decline',
     view_all_requests: 'View all {{count}} requests →',
     member_approved: '{{name}} added to group',
     member_declined: '{{name}} declined',

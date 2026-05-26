@@ -87,6 +87,7 @@ function NotifIcon({ type }: { type: string }) {
       return <div className={`${base} bg-amber-50`}><Trophy className="w-4 h-4 text-amber-500" /></div>
     case 'group_invite':
     case 'group_update':
+    case 'group_join_request':
       return <div className={`${base} bg-blue-50`}><Users className="w-4 h-4 text-blue-500" /></div>
     case 'connection_request':
     case 'connection_accepted':

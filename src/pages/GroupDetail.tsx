@@ -4,6 +4,8 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star } from 'lucide-react'
+import { toast } from 'sonner'
+import imageCompression from 'browser-image-compression'
 import { ReportButton } from '@/components/shared/ReportButton'
 import { format, parseISO, startOfWeek, endOfWeek, addDays, endOfMonth } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
@@ -304,12 +306,11 @@ function useGroupLeagues(groupId: string) {
 
 // ── Tab: Members ──────────────────────────────────────────────────────────────
 
-function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentUserId }: {
+function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
   members: Member[]
   isLoading: boolean
   isAdmin: boolean
   groupId: string
-  inviteCode: string | null
   currentUserId: string
 }) {
   const queryClient = useQueryClient()
@@ -339,9 +340,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, inviteCode, currentU
   })
 
   async function shareOrCopyInvite() {
-    const url = inviteCode
-      ? `${window.location.origin}/join/${inviteCode}`
-      : `${window.location.origin}/community/groups/${groupId}`
+    const url = `${window.location.origin}/community/groups/${groupId}`
     if (navigator.share) {
       try { await navigator.share({ title: t('group_detail.share_title'), url }) } catch { /* cancelled */ }
       return
@@ -886,23 +885,34 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   async function handleBannerUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) return
-    if (file.size > 5 * 1024 * 1024) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('group_detail.banner_invalid_type'))
+      return
+    }
     setUploading(true)
-    const ext  = file.name.split('.').pop() ?? 'jpg'
-    const path = `${group.id}/banner.${ext}`
-    const { error: uploadError } = await supabase.storage
-      .from('group-banners')
-      .upload(path, file, { upsert: true, cacheControl: '3600' })
-    if (uploadError) {
-      console.error('[Banner] upload error:', uploadError)
-    } else {
+    try {
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 2,
+        maxWidthOrHeight: 2000,
+        useWebWorker: true,
+        fileType: 'image/jpeg',
+      })
+      const path = `${group.id}/banner.jpg`
+      const { error: uploadError } = await supabase.storage
+        .from('group-banners')
+        .upload(path, compressed, { upsert: true, cacheControl: '3600', contentType: 'image/jpeg' })
+      if (uploadError) throw uploadError
       const { data: { publicUrl } } = supabase.storage.from('group-banners').getPublicUrl(path)
       const { error: updateError } = await supabase.from('groups').update({ banner_url: publicUrl }).eq('id', group.id)
-      if (updateError) console.error('[Banner] update error:', updateError)
-      else queryClient.invalidateQueries({ queryKey: ['group', group.id] })
+      if (updateError) throw updateError
+      queryClient.invalidateQueries({ queryKey: ['group', group.id] })
+      toast.success(t('group_detail.banner_uploaded'))
+    } catch (err) {
+      console.error('[Banner] upload error:', err)
+      toast.error(t('group_detail.banner_upload_failed'))
+    } finally {
+      setUploading(false)
     }
-    setUploading(false)
   }
 
   // Announcement form state
@@ -1483,7 +1493,6 @@ export function GroupDetailPage() {
               isLoading={loadingMembers}
               isAdmin={isAdmin}
               groupId={groupId}
-              inviteCode={group.invite_code}
               currentUserId={userId}
             />
           )}

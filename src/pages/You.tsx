@@ -7,6 +7,7 @@ import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
+import imageCompression from 'browser-image-compression'
 import * as Sentry from '@sentry/react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -494,21 +495,33 @@ function EditProfileSheet({
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file || !user) return
+    if (!file.type.startsWith('image/')) {
+      toast.error(t('you.avatar_invalid_type'))
+      return
+    }
     const preview = URL.createObjectURL(file)
     setAvatarPreview(preview)
     setUploading(true)
     try {
-      const ext = file.name.split('.').pop() ?? 'jpg'
-      const path = `${user.id}/avatar.${ext}`
+      const compressed = await imageCompression(file, {
+        maxSizeMB: 1,
+        maxWidthOrHeight: 800,
+        useWebWorker: true,
+        fileType: 'image/jpeg',
+      })
+      const path = `${user.id}/avatar.jpg`
       const { error: uploadError } = await supabase.storage
         .from('avatars')
-        .upload(path, file, { upsert: true, contentType: file.type })
+        .upload(path, compressed, { upsert: true, contentType: 'image/jpeg' })
       if (uploadError) throw uploadError
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
       await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
       queryClient.invalidateQueries({ queryKey: ['full-profile', user.id] })
-    } catch {
+      toast.success(t('you.avatar_uploaded'))
+    } catch (err) {
+      console.error('[Avatar] upload error:', err)
       setAvatarPreview(null)
+      toast.error(t('you.avatar_upload_failed'))
     } finally {
       setUploading(false)
     }

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Search, Users, MapPin } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -84,11 +85,24 @@ export function AllGroupsPage() {
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId, user_id: userId, role: 'member', status: autoApprove ? 'approved' : 'pending',
       })
-      if (error) throw error
+      if (error) {
+        if (error.code === '23505') throw new Error('duplicate')
+        throw error
+      }
+      return { autoApprove }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      const msg = data?.autoApprove ? t('community.joined_group') : t('community.request_sent')
+      toast.success(msg)
       queryClient.invalidateQueries({ queryKey: ['all-groups'] })
       queryClient.invalidateQueries({ queryKey: ['my-groups'] })
+    },
+    onError: (err: Error) => {
+      if (err.message === 'duplicate') {
+        toast.error(t('community.join_declined_contact_admin'))
+      } else {
+        toast.error(err.message || t('community.join_error'))
+      }
     },
   })
 

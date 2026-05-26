@@ -202,8 +202,8 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
 
       const visibleGroups = filtered.filter((g) => membershipStatusMap[g.id] !== 'approved')
 
-      const result = visibleGroups.map((g) => ({
-        ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: membershipStatusMap[g.id] ?? 'none',
+      const result: DiscoverGroup[] = visibleGroups.map((g) => ({
+        ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: (membershipStatusMap[g.id] ?? 'none') as DiscoverGroup['membershipStatus'],
       }))
 
       if (sortBy === 'most_members') {
@@ -353,7 +353,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
 
 // ── Discover Card ─────────────────────────────────────────────────────────────
 
-function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void }) {
+function DiscoverCard({ group, index, onJoin, joinPending }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void; joinPending: boolean }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   return (
@@ -408,9 +408,10 @@ function DiscoverCard({ group, index, onJoin }: { group: DiscoverGroup; index: n
         ) : (
           <button
             onClick={() => onJoin(group.id)}
-            className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform"
+            disabled={joinPending}
+            className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
           >
-            {t('community.request_to_join')}
+            {joinPending ? t('community.joining') : t('community.request_to_join')}
           </button>
         )}
       </div>
@@ -670,9 +671,24 @@ export function CommunityPage() {
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId, user_id: userId, role: 'member', status,
       })
-      if (error) throw error
-      if (autoApprove) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
+      if (error) {
+        if (error.code === '23505') throw new Error('duplicate')
+        throw error
+      }
+      return { autoApprove }
+    },
+    onSuccess: (_data, _groupId) => {
+      const msg = _data?.autoApprove ? t('community.joined_group') : t('community.request_sent')
+      toast.success(msg)
+      if (_data?.autoApprove) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
       queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })
+    },
+    onError: (err: Error) => {
+      if (err.message === 'duplicate') {
+        toast.error(t('community.join_declined_contact_admin'))
+      } else {
+        toast.error(err.message || t('community.join_error'))
+      }
     },
   })
 
@@ -924,7 +940,7 @@ export function CommunityPage() {
           ) : (
             <div className="space-y-3">
               {inlineDiscoverGroups.map((group, i) => (
-                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} />
+                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} joinPending={joinMutation.isPending} />
               ))}
               {discoverGroups.length > 6 && (
                 <button

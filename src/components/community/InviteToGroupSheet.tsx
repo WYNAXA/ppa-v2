@@ -1,6 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Users } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -15,6 +17,7 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
   const { profile } = useAuth()
   const userId = profile?.id ?? ''
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
 
   const { data: adminGroups = [], isLoading } = useQuery({
     queryKey: ['admin-groups-for-invite', userId],
@@ -57,9 +60,13 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
         read: false,
       })
     },
-    onSuccess: () => {
+    onSuccess: (_data, group) => {
+      toast.success(t('community.invite_sent', { player: playerName.split(' ')[0], group: group.name }))
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       onClose()
+    },
+    onError: () => {
+      toast.error(t('community.invite_failed'))
     },
   })
 

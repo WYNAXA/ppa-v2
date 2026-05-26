@@ -406,6 +406,8 @@ export default {
     request_sent: 'Request sent — waiting for admin approval',
     join_declined_contact_admin: 'You\'ve been declined from this group. Contact the admin to be re-considered.',
     join_error: 'Could not join group. Please try again.',
+    invite_sent: 'Invitation sent to {{player}} for {{group}}',
+    invite_failed: 'Failed to send invitation. Please try again.',
     show_all_groups: 'Show all ({{count}} groups) →',
     connection_requests: 'Connection requests ({{count}})',
     show_all_connections: 'Show all ({{count}} connections) →',

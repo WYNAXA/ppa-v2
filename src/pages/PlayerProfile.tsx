@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Trophy, BarChart2, Calendar } from 'lucide-react'
+import { ReportButton } from '@/components/shared/ReportButton'
 import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
@@ -331,6 +332,11 @@ export function PlayerProfilePage() {
           <p className="text-[12px] text-gray-400 mt-1">{t('player_profile.no_matches_together_sub', { name: player.name.split(' ')[0] })}</p>
         </div>
       )}
+
+      {/* Report */}
+      <div className="mx-5 mt-8 flex justify-center">
+        <ReportButton context="user-profile" contextId={player.id} />
+      </div>
     </div>
   )
 }

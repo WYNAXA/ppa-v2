@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { ReportButton } from '@/components/shared/ReportButton'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
@@ -1649,6 +1650,9 @@ export function MatchDetailPage() {
               {creatingNext ? 'Creating\u2026' : 'Play Another'}
             </button>
           )}
+          <div className="col-span-2 flex justify-center pt-1">
+            <ReportButton context="match" contextId={match.id} />
+          </div>
         </div>
       </div>
 

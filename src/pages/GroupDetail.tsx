@@ -4,6 +4,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star } from 'lucide-react'
+import { ReportButton } from '@/components/shared/ReportButton'
 import { format, parseISO, startOfWeek, endOfWeek, addDays, endOfMonth } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
@@ -1433,6 +1434,9 @@ export function GroupDetailPage() {
               )}
             </div>
           </div>
+        </div>
+        <div className="flex justify-end">
+          <ReportButton context="group" contextId={groupId} />
         </div>
       </div>
 

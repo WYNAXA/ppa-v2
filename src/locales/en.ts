@@ -1010,4 +1010,9 @@ export default {
     pairs_saved: 'Pairs saved!',
     standings_header: 'Team Standings',
   },
+  report: {
+    button_label: 'Report',
+    subject_prefix: 'Report',
+    body_intro: "I'd like to report:",
+  },
 }

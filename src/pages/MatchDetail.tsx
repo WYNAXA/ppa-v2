@@ -1581,12 +1581,30 @@ export function MatchDetailPage() {
             </button>
           )}
           {(match as any).is_open && (isParticipant || isGroupAdmin) && (
-            <button
-              onClick={() => setShowPushToOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
-            >
-              Edit ELO range
-            </button>
+            <>
+              <div className="flex items-center justify-center gap-1.5 rounded-xl border border-green-200 bg-green-50 py-3 text-[13px] font-semibold text-green-700">
+                <CheckCircle className="h-4 w-4" />
+                Open match
+              </div>
+              <button
+                onClick={() => setShowPushToOpen(true)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
+              >
+                Edit ELO range
+              </button>
+              <button
+                onClick={async () => {
+                  const { error } = await supabase.rpc('revert_open_match', { p_match_id: match.id })
+                  if (error) { toast.error('Failed to close open match'); return }
+                  toast.success('Match is now private')
+                  queryClient.invalidateQueries({ queryKey: ['match', id] })
+                }}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-600"
+              >
+                <XCircle className="h-4 w-4" />
+                Make private
+              </button>
+            </>
           )}
           {canEdit && (
             <button

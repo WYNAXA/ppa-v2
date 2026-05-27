@@ -46,6 +46,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
   const locale = useDateLocale()
   const { t } = useTranslation()
   const [range, setRange] = useState<TimeRange>('3m')
+  const [selectedPoint, setSelectedPoint] = useState<HistoryPoint | null>(null)
 
   // Fetch current ELO from profile
   const { data: currentElo } = useQuery<number | null>({
@@ -136,10 +137,24 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
         ))}
       </div>
 
+      {/* Selected point display */}
+      {selectedPoint && (
+        <div className="flex items-center justify-between rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 mb-2">
+          <div>
+            <p className="text-[11px] text-gray-400">{selectedPoint.label}</p>
+            <p className="text-[16px] font-bold text-gray-900">{selectedPoint.elo.toLocaleString()} ELO</p>
+          </div>
+          <p className={cn('text-[13px] font-semibold', selectedPoint.change > 0 ? 'text-green-600' : selectedPoint.change < 0 ? 'text-red-500' : 'text-gray-400')}>
+            {selectedPoint.change > 0 ? '+' : ''}{selectedPoint.change}
+          </p>
+        </div>
+      )}
+
       {/* Chart */}
       <div className={compact ? 'h-32' : 'h-48'}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={filteredHistory} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+          <AreaChart data={filteredHistory} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}
+            onClick={(e: any) => { if (e?.activePayload?.[0]) setSelectedPoint(e.activePayload[0].payload as HistoryPoint) }}>
             <defs>
               <linearGradient id="eloGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#009688" stopOpacity={0.2} />

@@ -202,29 +202,29 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       <div className="space-y-4">
 
         {/* Date — full width stacked */}
-        <div className="flex flex-col gap-3">
-          <div>
+        <div className="flex flex-col gap-3 overflow-hidden">
+          <div className="min-w-0">
             <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.date')}</label>
             <input
               type="date"
               value={form.date}
               min={todayStr()}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
-              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              style={{ fontSize: '16px' }}
+              className="w-full min-w-0 max-w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 box-border"
             />
           </div>
 
           {/* Time — full width, below date */}
-          <div>
+          <div className="min-w-0">
             <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.time')}</label>
             <input
               type="time"
               value={form.time}
               step="1800"
               onChange={(e) => setForm({ ...form, time: e.target.value })}
-              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              style={{ fontSize: '16px' }}
+              className="w-full min-w-0 max-w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 box-border"
             />
           </div>
         </div>

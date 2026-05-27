@@ -999,8 +999,16 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
     queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
   }
 
-  async function declineMember(userId: string) {
-    await supabase.from('group_members').update({ status: 'rejected' }).eq('group_id', group.id).eq('user_id', userId)
+  async function declineMember(member: PendingMember) {
+    await supabase.from('group_members').update({ status: 'rejected' }).eq('group_id', group.id).eq('user_id', member.user_id)
+    await supabase.from('notifications').insert({
+      user_id: member.user_id,
+      type: 'group_join',
+      title: group.name,
+      message: `Your request to join ${group.name} was declined.`,
+      read: false,
+    })
+    toast(t('group_detail.member_declined', { name: member.name }))
     queryClient.invalidateQueries({ queryKey: ['pending-members', group.id] })
   }
 
@@ -1120,7 +1128,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                             {t('group_detail.approve')}
                           </button>
                           <button
-                            onClick={() => declineMember(pm.user_id)}
+                            onClick={() => declineMember(pm)}
                             className="rounded-lg border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500"
                           >
                             {t('group_detail.decline')}

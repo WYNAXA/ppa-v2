@@ -76,6 +76,15 @@ export function CreatePollPage() {
     ])
   }
 
+  function quickFill(days: typeof DAYS[number][]) {
+    const existingDays = new Set(slots.map(s => s.day))
+    const newSlots = days
+      .filter(d => !existingDays.has(d))
+      .map(d => ({ id: crypto.randomUUID(), day: d, start_time: '19:00', end_time: '21:00' }))
+    if (newSlots.length === 0) return
+    setSlots(prev => [...prev, ...newSlots].slice(0, 7))
+  }
+
   function removeSlot(id: string) {
     setSlots((prev) => prev.filter((s) => s.id !== id))
   }
@@ -276,6 +285,22 @@ export function CreatePollPage() {
                 Add slot
               </button>
             )}
+          </div>
+
+          <div className="flex gap-1.5 mb-3">
+            {([
+              { label: 'Weekdays', days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] as typeof DAYS[number][] },
+              { label: 'Weekend', days: ['Saturday', 'Sunday'] as typeof DAYS[number][] },
+              { label: 'All week', days: [...DAYS] as typeof DAYS[number][] },
+            ]).map(preset => (
+              <button
+                key={preset.label}
+                onClick={() => quickFill(preset.days)}
+                className="rounded-full border border-gray-200 px-3 py-1 text-[11px] font-semibold text-gray-600 active:bg-gray-100 transition-colors"
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
 
           <AnimatePresence>

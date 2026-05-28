@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star } from 'lucide-react'
+import { ChevronLeft, Share2, Plus, Check, MoreHorizontal, UserX, Shield, Star, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 import imageCompression from 'browser-image-compression'
 import { ReportButton } from '@/components/shared/ReportButton'
@@ -337,6 +337,23 @@ function useGroupLeagues(groupId: string) {
 
       if (error) throw error
       return data ?? []
+    },
+  })
+}
+
+function useUserMembership(groupId: string, userId: string) {
+  return useQuery({
+    queryKey: ['user-membership', groupId, userId],
+    enabled: !!groupId && !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('group_members')
+        .select('status')
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .in('status', ['approved', 'ringer'])
+        .maybeSingle()
+      return !!data
     },
   })
 }
@@ -1475,6 +1492,8 @@ export function GroupDetailPage() {
   const { data: leagues, isLoading: loadingLeagues } = useGroupLeagues(groupId)
 
   const { isAdmin } = useIsGroupAdmin(groupId)
+  const { data: isMember = false } = useUserMembership(groupId, userId)
+  const isPrivateAndNotMember = group?.visibility === 'private' && !isMember && !isAdmin
   const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
   const queryClient = useQueryClient()
   const { data: inviteData } = useGroupInviteNotification(groupId, userId)
@@ -1623,6 +1642,11 @@ export function GroupDetailPage() {
                   <span className="text-[12px] text-gray-400">{group.city}</span>
                 </>
               )}
+              {group.visibility === 'private' && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                  <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
+                </span>
+              )}
               {isAdmin && (
                 <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">
                   {t('group_detail.badge_admin')}
@@ -1732,30 +1756,40 @@ export function GroupDetailPage() {
           transition={{ duration: 0.15 }}
           className="px-5 pt-4 pb-32"
         >
-          {activeTab === 'members' && (
-            <MembersTab
-              members={members ?? []}
-              isLoading={loadingMembers}
-              isAdmin={isAdmin}
-              groupId={groupId}
-              currentUserId={userId}
-            />
-          )}
-          {activeTab === 'matches' && (
-            <MatchesTab
-              upcoming={upcomingMatches ?? []}
-              past={pastMatches ?? []}
-              isLoading={loadingMatches}
-              userId={userId}
-              onCreateMatch={() => setCreateMatchOpen(true)}
-            />
-          )}
-          {activeTab === 'polls' && (
-            <PollsTab
-              polls={polls ?? []}
-              isLoading={loadingPolls}
-              groupId={groupId}
-            />
+          {isPrivateAndNotMember && (activeTab === 'members' || activeTab === 'matches' || activeTab === 'polls') ? (
+            <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+              <Lock className="h-6 w-6 text-gray-300 mx-auto mb-3" />
+              <p className="text-[13px] font-semibold text-gray-500">{t('group_detail.private_locked_title')}</p>
+              <p className="text-[12px] text-gray-400 mt-1">{t('group_detail.private_locked_sub')}</p>
+            </div>
+          ) : (
+            <>
+              {activeTab === 'members' && (
+                <MembersTab
+                  members={members ?? []}
+                  isLoading={loadingMembers}
+                  isAdmin={isAdmin}
+                  groupId={groupId}
+                  currentUserId={userId}
+                />
+              )}
+              {activeTab === 'matches' && (
+                <MatchesTab
+                  upcoming={upcomingMatches ?? []}
+                  past={pastMatches ?? []}
+                  isLoading={loadingMatches}
+                  userId={userId}
+                  onCreateMatch={() => setCreateMatchOpen(true)}
+                />
+              )}
+              {activeTab === 'polls' && (
+                <PollsTab
+                  polls={polls ?? []}
+                  isLoading={loadingPolls}
+                  groupId={groupId}
+                />
+              )}
+            </>
           )}
           {activeTab === 'events' && (
             <EventsTab

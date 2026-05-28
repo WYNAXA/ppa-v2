@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar } from 'lucide-react'
+import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
@@ -162,7 +162,6 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       let query = supabase
         .from('groups')
         .select('id, name, description, city, visibility, admin_id, auto_approve')
-        .or('visibility.in.(public,open),visibility.is.null')
         .limit(40)
 
       if (sortBy === 'newest') query = query.order('created_at', { ascending: false })
@@ -380,7 +379,11 @@ function DiscoverCard({ group, index, onJoin, joiningGroupId }: { group: Discove
               <Users className="h-3 w-3 text-gray-400" />
               <span className="font-semibold">{group.memberCount}</span> {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
-            {group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true ? (
+            {group.visibility === 'private' ? (
+              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-gray-600 bg-gray-100 rounded-full px-1.5 py-0.5">
+                <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
+              </span>
+            ) : group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true ? (
               <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">{t('community.group_open')}</span>
             ) : (
               <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">{t('community.group_request')}</span>

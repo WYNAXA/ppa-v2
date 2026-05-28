@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Search, Users, MapPin } from 'lucide-react'
+import { ChevronLeft, Search, Users, MapPin, Lock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -42,7 +42,6 @@ export function AllGroupsPage() {
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let q = supabase.from('groups')
         .select('id, name, description, city, visibility, admin_id, auto_approve')
-        .or('visibility.in.(public,open),visibility.is.null')
         .limit(100)
 
       if (sortBy === 'newest') q = q.order('created_at', { ascending: false })
@@ -159,9 +158,16 @@ export function AllGroupsPage() {
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[14px] font-bold text-gray-900 truncate">{g.name}</h3>
                     {g.city && <div className="flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3 text-gray-400" /><p className="text-[12px] text-gray-400">{g.city}</p></div>}
-                    <span className="inline-flex items-center gap-1 text-[12px] text-gray-500 mt-1">
-                      <Users className="h-3 w-3 text-gray-400" /> <span className="font-semibold">{g.memberCount}</span> members
-                    </span>
+                    <div className="flex items-center gap-2 mt-1 flex-wrap">
+                      <span className="inline-flex items-center gap-1 text-[12px] text-gray-500">
+                        <Users className="h-3 w-3 text-gray-400" /> <span className="font-semibold">{g.memberCount}</span> members
+                      </span>
+                      {g.visibility === 'private' && (
+                        <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-gray-600 bg-gray-100 rounded-full px-1.5 py-0.5">
+                          <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
+                        </span>
+                      )}
+                    </div>
                     {g.description && <p className="text-[12px] text-gray-400 mt-1 line-clamp-2">{g.description}</p>}
                   </div>
                   {g.membershipStatus === 'pending' ? (

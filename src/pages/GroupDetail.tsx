@@ -32,6 +32,9 @@ interface Group {
   rules: string | null
   max_members: number | null
   auto_approve: boolean | null
+  allow_join_requests: boolean | null
+  allow_ringers: boolean | null
+  ringer_approval: string | null
   created_at: string | null
   banner_url: string | null
 }
@@ -79,7 +82,7 @@ function useGroup(groupId: string) {
     queryFn: async (): Promise<Group | null> => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, created_at, banner_url')
+        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, allow_join_requests, allow_ringers, ringer_approval, created_at, banner_url')
         .eq('id', groupId)
         .single()
       if (error) throw error
@@ -912,6 +915,9 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   const [rules, setRules]           = useState(group.rules ?? '')
   const [maxMembers, setMaxMembers] = useState(group.max_members?.toString() ?? '')
   const [autoApprove, setAutoApprove] = useState(group.auto_approve ?? false)
+  const [allowJoinRequests, setAllowJoinRequests] = useState(group.allow_join_requests ?? true)
+  const [allowRingers, setAllowRingers] = useState(group.allow_ringers ?? true)
+  const [ringerApproval, setRingerApproval] = useState<'admin' | 'any_member'>((group.ringer_approval as 'admin' | 'any_member') ?? 'admin')
   const [saving, setSaving]         = useState(false)
   const [saved, setSaved]           = useState(false)
   const [uploading, setUploading]   = useState(false)
@@ -964,17 +970,22 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
   async function saveSettings() {
     setSaving(true)
-    await supabase.from('groups').update({
+    const { error } = await supabase.from('groups').update({
       name,
       description: description.trim() || null,
       city: city.trim() || null,
       visibility,
       rules: rules.trim() || null,
       max_members: maxMembers ? parseInt(maxMembers, 10) : null,
-      auto_approve: autoApprove,
+      auto_approve: visibility === 'open' ? true : autoApprove,
+      allow_join_requests: visibility === 'open' ? true : allowJoinRequests,
+      allow_ringers: allowRingers,
+      ringer_approval: ringerApproval,
     }).eq('id', group.id)
     setSaving(false)
+    if (error) { toast.error(t('group_detail.save_failed')); return }
     setSaved(true)
+    toast.success(t('group_detail.settings_saved'))
     if (navigator.vibrate) navigator.vibrate(10)
     setTimeout(() => setSaved(false), 2000)
     queryClient.invalidateQueries({ queryKey: ['group', group.id] })
@@ -1274,24 +1285,69 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 </div>
               </div>
 
-              <div className="flex items-center justify-between py-1">
-                <div>
-                  <p className="text-[13px] font-medium text-gray-700">{t('group_detail.auto_approve_label')}</p>
-                  <p className="text-[11px] text-gray-400">
-                    {visibility === 'private' ? t('group_detail.auto_approve_help_private') : t('group_detail.auto_approve_help_open')}
-                  </p>
+              {/* Join request settings — only shown for private groups */}
+              {visibility === 'private' && (
+                <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
+                  <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Join Requests</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-gray-700">Allow join requests</span>
+                    <button
+                      type="button"
+                      onClick={() => setAllowJoinRequests(v => !v)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowJoinRequests ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowJoinRequests ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  {allowJoinRequests && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] text-gray-700">Auto-approve requests</span>
+                      <button
+                        type="button"
+                        onClick={() => setAutoApprove(v => !v)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoApprove ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoApprove ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => visibility !== 'private' && setAutoApprove(v => !v)}
-                  disabled={visibility === 'private'}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                    visibility === 'private' ? 'bg-gray-100 opacity-50' : autoApprove ? 'bg-[#009688]' : 'bg-gray-200'
-                  }`}
-                >
-                  <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                    autoApprove ? 'translate-x-6' : 'translate-x-1'
-                  }`} />
-                </button>
+              )}
+
+              {/* Ringer / Guest Policy */}
+              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
+                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Ringer / Guest Policy</p>
+                <div className="flex items-center justify-between">
+                  <span className="text-[13px] text-gray-700">Allow ringers</span>
+                  <button
+                    type="button"
+                    onClick={() => setAllowRingers(v => !v)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowRingers ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowRingers ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+                {allowRingers && (
+                  <div>
+                    <p className="text-[12px] text-gray-500 mb-2">Who can add ringers?</p>
+                    <div className="flex gap-2">
+                      {(['admin', 'any_member'] as const).map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => setRingerApproval(opt)}
+                          className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${
+                            ringerApproval === opt
+                              ? 'bg-[#009688] text-white border-[#009688]'
+                              : 'bg-white text-gray-600 border-gray-200'
+                          }`}
+                        >
+                          {opt === 'admin' ? 'Admin only' : 'Any member'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>

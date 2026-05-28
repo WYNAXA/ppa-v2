@@ -74,7 +74,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
           visibility,
           admin_id:              user.id,
           allow_join_requests:   visibility === 'private' ? allowJoinRequests : true,
-          auto_approve_requests: visibility === 'private' ? autoApprove : true,
+          auto_approve:          visibility === 'private' ? autoApprove : true,
           allow_ringers:         allowRingers,
           ringer_approval:       ringerApproval,
         })

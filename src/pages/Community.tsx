@@ -28,6 +28,8 @@ interface GroupRow {
   visibility: string | null
   join_mode: string | null
   admin_id: string
+  auto_approve: boolean | null
+  allow_join_requests: boolean | null
 }
 
 interface MyGroup extends GroupRow {
@@ -161,7 +163,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let query = supabase
         .from('groups')
-        .select('id, name, description, city, visibility, join_mode, admin_id')
+        .select('id, name, description, city, visibility, join_mode, admin_id, auto_approve, allow_join_requests')
         .or('visibility.in.(public,open),visibility.is.null')
         .limit(40)
 
@@ -405,15 +407,18 @@ function DiscoverCard({ group, index, onJoin, joinPending }: { group: DiscoverGr
           <span className="inline-flex items-center rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0 self-start mt-0.5">
             {t('community.group_closed')}
           </span>
-        ) : (
-          <button
-            onClick={() => onJoin(group.id)}
-            disabled={joinPending}
-            className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
-          >
-            {joinPending ? t('community.joining') : t('community.request_to_join')}
-          </button>
-        )}
+        ) : (() => {
+          const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.join_mode === 'open' || group.auto_approve === true
+          return (
+            <button
+              onClick={() => onJoin(group.id)}
+              disabled={joinPending}
+              className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
+            >
+              {joinPending ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+            </button>
+          )
+        })()}
       </div>
     </motion.div>
   )
@@ -666,7 +671,8 @@ export function CommunityPage() {
     mutationFn: async (groupId: string) => {
       const group = discoverGroups.find((g) => g.id === groupId)
       if (group?.join_mode === 'closed') throw new Error(t('community.group_closed_error'))
-      const autoApprove = group?.join_mode === 'open' || (group as any)?.auto_approve === true
+      const isOpen = group?.visibility === 'open' || group?.visibility === 'public' || group?.join_mode === 'open'
+      const autoApprove = isOpen || group?.auto_approve === true
       const status = autoApprove ? 'approved' : 'pending'
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId, user_id: userId, role: 'member', status,
@@ -675,10 +681,12 @@ export function CommunityPage() {
         if (error.code === '23505') throw new Error('duplicate')
         throw error
       }
-      return { autoApprove }
+      return { autoApprove, groupName: group?.name }
     },
     onSuccess: (_data, _groupId) => {
-      const msg = _data?.autoApprove ? t('community.joined_group') : t('community.request_sent')
+      const msg = _data?.autoApprove
+        ? t('community.joined_group_name', { name: _data.groupName ?? '' })
+        : t('community.request_sent')
       toast.success(msg)
       if (_data?.autoApprove) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
       queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })

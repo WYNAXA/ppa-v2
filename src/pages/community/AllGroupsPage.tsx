@@ -10,8 +10,8 @@ import { useAuth } from '@/hooks/useAuth'
 
 interface DiscoverGroup {
   id: string; name: string; description: string | null; city: string | null
-  visibility: string | null; join_mode: string | null; admin_id: string
-  auto_approve: boolean | null; allow_join_requests: boolean | null
+  visibility: string | null; admin_id: string
+  auto_approve: boolean | null
   memberCount: number; membershipStatus: 'none' | 'pending' | 'approved'
 }
 
@@ -41,7 +41,7 @@ export function AllGroupsPage() {
     enabled: !!userId,
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let q = supabase.from('groups')
-        .select('id, name, description, city, visibility, join_mode, admin_id, auto_approve, allow_join_requests')
+        .select('id, name, description, city, visibility, admin_id, auto_approve')
         .or('visibility.in.(public,open),visibility.is.null')
         .limit(100)
 
@@ -53,17 +53,19 @@ export function AllGroupsPage() {
         const cityName = (profile.city ?? '').split(',')[0].split(' ')[0].trim()
         if (cityName.length >= 3) q = q.ilike('city', `%${cityName}%`)
       }
-      if (activeFilter === 'open_to_join') q = q.or('join_mode.eq.open,auto_approve.eq.true,join_mode.is.null')
+      if (activeFilter === 'open_to_join') q = q.or('visibility.in.(open,public),auto_approve.eq.true')
 
       const { data, error } = await q
       if (error) throw error
       const filtered = (data ?? []).filter((g) => !myGroupIds.includes(g.id))
+      console.warn(`[AllGroups] query returned ${(data ?? []).length} groups, after excluding mine: ${filtered.length}`)
       if (filtered.length === 0) return []
 
       const ids = filtered.map(g => g.id)
       const { data: memberRows } = await supabase.from('group_members').select('group_id').in('group_id', ids).eq('status', 'approved')
       const countMap: Record<string, number> = {}
       for (const m of memberRows ?? []) countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
+      console.warn(`[AllGroups] member counts:`, Object.entries(countMap).map(([id, c]) => `${id.slice(0,8)}=${c}`).join(', ') || '(all zero)')
 
       const { data: statusRows } = await supabase.from('group_members').select('group_id, status').in('group_id', ids).eq('user_id', userId)
       const statusMap: Record<string, string> = {}
@@ -74,6 +76,7 @@ export function AllGroupsPage() {
         .map(g => ({ ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: (statusMap[g.id] ?? 'none') as any }))
 
       if (sortBy === 'most_members') result.sort((a, b) => b.memberCount - a.memberCount)
+      console.warn(`[AllGroups] final result: ${result.length} groups, sort=${sortBy}, counts=[${result.map(g => g.memberCount).join(',')}]`)
       return result
     },
   })
@@ -81,8 +84,7 @@ export function AllGroupsPage() {
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const group = groups.find(g => g.id === groupId)
-      if (group?.join_mode === 'closed') throw new Error('Closed')
-      const isOpen = group?.visibility === 'open' || group?.visibility === 'public' || group?.join_mode === 'open'
+      const isOpen = group?.visibility === 'open' || group?.visibility === 'public'
       const autoApprove = isOpen || group?.auto_approve === true
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId, user_id: userId, role: 'member', status: autoApprove ? 'approved' : 'pending',
@@ -165,7 +167,7 @@ export function AllGroupsPage() {
                   {g.membershipStatus === 'pending' ? (
                     <span className="rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0">{t('community.group_requested')}</span>
                   ) : (() => {
-                    const isAutoJoin = g.visibility === 'open' || g.visibility === 'public' || g.join_mode === 'open' || g.auto_approve === true
+                    const isAutoJoin = g.visibility === 'open' || g.visibility === 'public' || g.auto_approve === true
                     return (
                       <button onClick={() => joinMutation.mutate(g.id)} disabled={joinMutation.isPending}
                         className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">

@@ -26,10 +26,8 @@ interface GroupRow {
   description: string | null
   city: string | null
   visibility: string | null
-  join_mode: string | null
   admin_id: string
   auto_approve: boolean | null
-  allow_join_requests: boolean | null
 }
 
 interface MyGroup extends GroupRow {
@@ -163,7 +161,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let query = supabase
         .from('groups')
-        .select('id, name, description, city, visibility, join_mode, admin_id, auto_approve, allow_join_requests')
+        .select('id, name, description, city, visibility, admin_id, auto_approve')
         .or('visibility.in.(public,open),visibility.is.null')
         .limit(40)
 
@@ -179,7 +177,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
         if (cityName.length >= 3) query = query.ilike('city', `%${cityName}%`)
       }
       if (activeFilter === 'open_to_join') {
-        query = query.or('join_mode.eq.open,auto_approve.eq.true,join_mode.is.null')
+        query = query.or('visibility.in.(open,public),auto_approve.eq.true')
       }
 
       const { data: groups, error } = await query
@@ -187,6 +185,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       if (!groups || groups.length === 0) return []
 
       const filtered = groups.filter((g) => !myGroupIds.includes(g.id))
+      console.warn(`[Discover] query returned ${groups.length} groups, after excluding mine: ${filtered.length}`)
       if (filtered.length === 0) return []
       const filteredIds = filtered.map((g) => g.id)
 
@@ -195,6 +194,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
         .in('group_id', filteredIds).eq('status', 'approved')
       const countMap: Record<string, number> = {}
       for (const m of memberRows ?? []) countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
+      console.warn(`[Discover] member counts:`, Object.entries(countMap).map(([id, c]) => `${id.slice(0,8)}=${c}`).join(', ') || '(all zero)')
 
       const { data: membershipRows } = await supabase
         .from('group_members').select('group_id, status')
@@ -211,6 +211,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       if (sortBy === 'most_members') {
         result.sort((a, b) => b.memberCount - a.memberCount)
       }
+      console.warn(`[Discover] final result: ${result.length} groups, sort=${sortBy}, counts=[${result.map(g => g.memberCount).join(',')}]`)
 
       return result
     },
@@ -379,9 +380,7 @@ function DiscoverCard({ group, index, onJoin, joinPending }: { group: DiscoverGr
               <Users className="h-3 w-3 text-gray-400" />
               <span className="font-semibold">{group.memberCount}</span> {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
-            {group.join_mode === 'closed' ? (
-              <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5">{t('community.group_closed')}</span>
-            ) : group.join_mode === 'open' || group.visibility === 'public' ? (
+            {group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true ? (
               <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">{t('community.group_open')}</span>
             ) : (
               <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">{t('community.group_request')}</span>
@@ -403,12 +402,8 @@ function DiscoverCard({ group, index, onJoin, joinPending }: { group: DiscoverGr
           >
             {t('community.member_btn')}
           </button>
-        ) : group.join_mode === 'closed' ? (
-          <span className="inline-flex items-center rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0 self-start mt-0.5">
-            {t('community.group_closed')}
-          </span>
         ) : (() => {
-          const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.join_mode === 'open' || group.auto_approve === true
+          const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true
           return (
             <button
               onClick={() => onJoin(group.id)}
@@ -670,8 +665,7 @@ export function CommunityPage() {
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const group = discoverGroups.find((g) => g.id === groupId)
-      if (group?.join_mode === 'closed') throw new Error(t('community.group_closed_error'))
-      const isOpen = group?.visibility === 'open' || group?.visibility === 'public' || group?.join_mode === 'open'
+      const isOpen = group?.visibility === 'open' || group?.visibility === 'public'
       const autoApprove = isOpen || group?.auto_approve === true
       const status = autoApprove ? 'approved' : 'pending'
       const { error } = await supabase.from('group_members').insert({

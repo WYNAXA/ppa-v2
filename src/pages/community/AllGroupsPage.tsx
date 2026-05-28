@@ -169,9 +169,9 @@ export function AllGroupsPage() {
                   ) : (() => {
                     const isAutoJoin = g.visibility === 'open' || g.visibility === 'public' || g.auto_approve === true
                     return (
-                      <button onClick={() => joinMutation.mutate(g.id)} disabled={joinMutation.isPending}
+                      <button onClick={() => joinMutation.mutate(g.id)} disabled={joinMutation.isPending && joinMutation.variables === g.id}
                         className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">
-                        {isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+                        {joinMutation.isPending && joinMutation.variables === g.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
                       </button>
                     )
                   })()}

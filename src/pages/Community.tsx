@@ -356,7 +356,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
 
 // ── Discover Card ─────────────────────────────────────────────────────────────
 
-function DiscoverCard({ group, index, onJoin, joinPending }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void; joinPending: boolean }) {
+function DiscoverCard({ group, index, onJoin, joiningGroupId }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void; joiningGroupId: string | undefined }) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   return (
@@ -407,10 +407,10 @@ function DiscoverCard({ group, index, onJoin, joinPending }: { group: DiscoverGr
           return (
             <button
               onClick={() => onJoin(group.id)}
-              disabled={joinPending}
+              disabled={joiningGroupId === group.id}
               className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
             >
-              {joinPending ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+              {joiningGroupId === group.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
             </button>
           )
         })()}
@@ -942,7 +942,7 @@ export function CommunityPage() {
           ) : (
             <div className="space-y-3">
               {inlineDiscoverGroups.map((group, i) => (
-                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} joinPending={joinMutation.isPending} />
+                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} joiningGroupId={joinMutation.isPending ? joinMutation.variables : undefined} />
               ))}
               {discoverGroups.length > 6 && (
                 <button

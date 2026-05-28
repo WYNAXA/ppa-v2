@@ -1986,6 +1986,8 @@ export function MatchDetailPage() {
         existingMax={(match as any).open_elo_max ?? null}
         anchorLat={venueLatLng?.latitude ?? creatorLatLng?.latitude ?? null}
         anchorLng={venueLatLng?.longitude ?? creatorLatLng?.longitude ?? null}
+        matchDate={match.match_date ?? null}
+        matchTime={(match as any).match_time ?? null}
         onSent={() => {
           queryClient.invalidateQueries({ queryKey: ['match', id] })
         }}

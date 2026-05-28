@@ -201,30 +201,29 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       <p className="text-sm text-gray-500 mb-6">{t('create_match.match_setup_sub')}</p>
       <div className="space-y-4">
 
-        {/* Date — full width stacked */}
-        <div className="flex flex-col gap-3 overflow-hidden">
-          <div className="min-w-0">
+        {/* Date + Time — stacked, constrained to parent */}
+        <div className="flex flex-col gap-3" style={{ overflow: 'hidden' }}>
+          <div>
             <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.date')}</label>
             <input
               type="date"
               value={form.date}
               min={todayStr()}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
-              style={{ fontSize: '16px' }}
-              className="w-full min-w-0 max-w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 box-border"
+              style={{ fontSize: '16px', maxWidth: '100%', boxSizing: 'border-box' }}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>
 
-          {/* Time — full width, below date */}
-          <div className="min-w-0">
+          <div>
             <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.time')}</label>
             <input
               type="time"
               value={form.time}
               step="1800"
               onChange={(e) => setForm({ ...form, time: e.target.value })}
-              style={{ fontSize: '16px' }}
-              className="w-full min-w-0 max-w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 box-border"
+              style={{ fontSize: '16px', maxWidth: '100%', boxSizing: 'border-box' }}
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
           </div>
         </div>
@@ -263,7 +262,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               onChange={(e) => { setVenueQuery(e.target.value); setShowVenues(true); if (!e.target.value) setForm({ ...form, venue: null, court: null }) }}
               onFocus={() => setShowVenues(true)}
               placeholder={t('book_court.venue_placeholder')}
-              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+              style={{ fontSize: '16px', maxWidth: '100%', boxSizing: 'border-box' }}
               className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
             />
             {form.venue && (

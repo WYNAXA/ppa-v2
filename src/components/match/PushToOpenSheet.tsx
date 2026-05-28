@@ -17,9 +17,11 @@ interface PushToOpenSheetProps {
   existingMax?: number | null
   anchorLat?: number | null
   anchorLng?: number | null
+  matchDate?: string | null
+  matchTime?: string | null
 }
 
-export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSent, isEditing = false, existingMin, existingMax, anchorLat, anchorLng }: PushToOpenSheetProps) {
+export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSent, isEditing = false, existingMin, existingMax, anchorLat, anchorLng, matchDate, matchTime }: PushToOpenSheetProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
 
@@ -43,6 +45,14 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
   const max = eloMax ?? existingMax ?? Math.min(2500, teamAvg + 200)
 
   const hasGeo = anchorLat != null && anchorLng != null
+
+  // Check if match starts within 2 hours (matches the RPC's INTERVAL '2 hours' check)
+  const tooLateToOpen = (() => {
+    if (isEditing || !matchDate) return false
+    const timePart = matchTime ?? '00:00'
+    const matchStart = new Date(`${matchDate}T${timePart.slice(0, 5)}:00`)
+    return matchStart.getTime() - Date.now() < 2 * 60 * 60 * 1000
+  })()
 
   // Geo-scoped audience count
   const { data: audienceCount } = useQuery({
@@ -80,6 +90,14 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
       toast.success(isEditing ? 'ELO range updated' : 'Match pushed to Open')
       onSent()
       onClose()
+    },
+    onError: (err: any) => {
+      const msg = err?.message ?? ''
+      if (msg.includes('Too late')) {
+        toast.error("Can't open a match starting in less than 2 hours. There's not enough time for someone to find and join it.")
+      } else {
+        toast.error(msg || 'Failed to push match to open')
+      }
     },
   })
 
@@ -130,17 +148,17 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
                     : '...'}
               </p>
 
+              {tooLateToOpen && (
+                <p className="text-[12px] text-amber-600 text-center mb-3">This match starts in less than 2 hours — not enough time for someone to find and join it.</p>
+              )}
+
               <button
                 onClick={() => pushMutation.mutate()}
-                disabled={pushMutation.isPending || min >= max}
+                disabled={pushMutation.isPending || min >= max || tooLateToOpen}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
                 {pushMutation.isPending ? 'Saving\u2026' : isEditing ? 'Update ELO range' : t('open_matches.push_confirm')}
               </button>
-
-              {pushMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mt-2">Failed. Try again.</p>
-              )}
             </div>
           </motion.div>
         </>

@@ -164,7 +164,7 @@ export function AllGroupsPage() {
                     {g.city && <div className="flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3 text-gray-400" /><p className="text-[12px] text-gray-400">{g.city}</p></div>}
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="inline-flex items-center gap-1 text-[12px] text-gray-500">
-                        <Users className="h-3 w-3 text-gray-400" /> <span className="font-semibold">{g.memberCount}</span> members
+                        <Users className="h-3 w-3 text-gray-400" /> {g.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: g.memberCount })}
                       </span>
                       {g.visibility === 'private' && (
                         <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-gray-600 bg-gray-100 rounded-full px-1.5 py-0.5">
@@ -238,7 +238,7 @@ export function AllGroupsPage() {
                     </span>
                   )}
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
-                    <Users className="h-3 w-3" /> {previewGroup.memberCount} {previewGroup.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: previewGroup.memberCount })}
+                    <Users className="h-3 w-3" /> {previewGroup.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: previewGroup.memberCount })}
                   </span>
                   {previewGroup.allow_ringers && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 rounded-full px-2.5 py-1">

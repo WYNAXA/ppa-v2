@@ -345,7 +345,6 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
               ))}
             </div>
             <span className="text-[12px] text-gray-500">
-              <span className="font-semibold">{group.memberCount}</span>{' '}
               {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
           </div>
@@ -431,7 +430,7 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId }: {
 
                 {/* Member count */}
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
-                  <Users className="h-3 w-3" /> {group.memberCount} {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
+                  <Users className="h-3 w-3" /> {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
                 </span>
 
                 {/* Ringers */}
@@ -495,7 +494,7 @@ function DiscoverCard({ group, index, onJoin, joiningGroupId, onPreview }: { gro
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
             <span className="inline-flex items-center gap-1 text-[12px] text-gray-500">
               <Users className="h-3 w-3 text-gray-400" />
-              <span className="font-semibold">{group.memberCount}</span> {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
+              {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
             {group.visibility === 'private' ? (
               <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-gray-600 bg-gray-100 rounded-full px-1.5 py-0.5">

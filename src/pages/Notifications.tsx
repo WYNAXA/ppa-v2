@@ -60,6 +60,7 @@ function getNavTarget(n: Notification): string | null {
     default:
       break
   }
+  if (n.type === 'ringer_offer' || n.type === 'ringer_approved' || n.type === 'ringer_declined') return `/community/groups/${n.related_id}`
   if (n.type.startsWith('ringer_'))     return `/matches/${n.related_id}`
   if (n.type.startsWith('open_match_')) return `/matches/${n.related_id}`
   if (n.type.startsWith('invitation_') || n.type.startsWith('invitee_') || n.type === 'match_invitation') return `/matches/${n.related_id}`

@@ -443,9 +443,9 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
 
   if (isLoading) return <TabSkeleton />
 
-  const filtered = members.filter((m) =>
-    memberFilter === 'ringers' ? m.memberStatus === 'ringer' : m.memberStatus !== 'ringer'
-  )
+  const filtered = memberFilter === 'ringers'
+    ? members.filter((m) => m.memberStatus === 'ringer')
+    : members
   const menuMember = members.find((m) => m.id === menuMemberId)
 
   return (
@@ -467,7 +467,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
               memberFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
             }`}
           >
-            {f === 'members' ? t('group_detail.members_count', { count: members.filter(m => m.memberStatus !== 'ringer').length }) : t('group_detail.ringers_count', { count: members.filter(m => m.memberStatus === 'ringer').length })}
+            {f === 'members' ? t('group_detail.members_count', { count: members.length }) : t('group_detail.ringers_count', { count: members.filter(m => m.memberStatus === 'ringer').length })}
           </button>
         ))}
       </div>

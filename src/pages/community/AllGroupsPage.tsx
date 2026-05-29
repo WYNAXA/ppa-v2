@@ -12,7 +12,7 @@ interface DiscoverGroup {
   id: string; name: string; description: string | null; city: string | null
   visibility: string | null; admin_id: string
   auto_approve: boolean | null; banner_url: string | null; allow_ringers: boolean | null
-  memberCount: number; membershipStatus: 'none' | 'pending' | 'approved' | 'ringer' | 'pending_ringer'
+  memberCount: number; membershipStatus: 'none' | 'pending' | 'approved' | 'ringer' | 'pending_ringer' | 'ringer_declined'
 }
 
 export function AllGroupsPage() {
@@ -125,9 +125,10 @@ export function AllGroupsPage() {
       }
       return group?.name
     },
-    onSuccess: (name) => {
+    onSuccess: (name, groupId) => {
       toast.success(t('community.ringer_offer_sent', { name: name ?? '' }))
       queryClient.invalidateQueries({ queryKey: ['all-groups'] })
+      setPreviewGroup(prev => prev?.id === groupId ? { ...prev, membershipStatus: 'pending_ringer' } : prev)
     },
     onError: (err: Error) => {
       if (err.message === 'duplicate') {
@@ -291,7 +292,7 @@ export function AllGroupsPage() {
                     </div>
                   ) : (() => {
                     const isAutoJoin = previewGroup.visibility === 'open' || previewGroup.visibility === 'public' || previewGroup.auto_approve === true
-                    const canOfferRinger = previewGroup.allow_ringers && previewGroup.membershipStatus === 'none'
+                    const canOfferRinger = previewGroup.allow_ringers && (previewGroup.membershipStatus === 'none' || previewGroup.membershipStatus === 'ringer_declined')
                     return (
                       <>
                         <button

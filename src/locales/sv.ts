@@ -380,6 +380,7 @@ export default {
     group_private: 'Privat',
     group_request: 'Begär',
     group_requested: 'Begärd',
+    welcomes_ringers: 'Välkomnar ersättare',
     badge_ringer: 'Ersättare',
     badge_official: 'OFFICIELL',
     badge_free: 'Gratis',

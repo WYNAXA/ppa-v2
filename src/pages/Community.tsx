@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
-import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar, Lock } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar, Lock, X, Globe, UserCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
@@ -28,6 +28,8 @@ interface GroupRow {
   visibility: string | null
   admin_id: string
   auto_approve: boolean | null
+  banner_url: string | null
+  allow_ringers: boolean | null
 }
 
 interface MyGroup extends GroupRow {
@@ -161,7 +163,7 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let query = supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id, auto_approve')
+        .select('id, name, description, city, visibility, admin_id, auto_approve, banner_url, allow_ringers')
         .limit(40)
 
       if (sortBy === 'newest') query = query.order('created_at', { ascending: false })
@@ -353,17 +355,132 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
   )
 }
 
+// ── Group Preview Sheet ──────────────────────────────────────────────────────
+
+function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId }: {
+  group: DiscoverGroup | null
+  open: boolean
+  onClose: () => void
+  onJoin: (id: string) => void
+  joiningGroupId: string | undefined
+}) {
+  const { t } = useTranslation()
+  if (!group) return null
+
+  const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true
+  const isPending = group.membershipStatus === 'pending'
+  const isJoining = joiningGroupId === group.id
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-[55] bg-black/40"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1">
+              <div className="h-1 w-10 rounded-full bg-gray-200" />
+            </div>
+
+            {/* Close button */}
+            <div className="flex justify-end px-5 pb-1">
+              <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="h-4 w-4 text-gray-500" />
+              </button>
+            </div>
+
+            <div className="px-5 overflow-y-auto" style={{ maxHeight: '75vh', paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+              {/* Banner */}
+              {group.banner_url && (
+                <div className="relative h-32 rounded-2xl overflow-hidden mb-4">
+                  <img src={group.banner_url} alt={group.name} className="w-full h-full object-cover" />
+                </div>
+              )}
+
+              {/* Name */}
+              <h2 className="text-[18px] font-bold text-gray-900">{group.name}</h2>
+
+              {/* City */}
+              {group.city && (
+                <div className="flex items-center gap-1 mt-1">
+                  <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                  <p className="text-[13px] text-gray-500">{group.city}</p>
+                </div>
+              )}
+
+              {/* Badges row */}
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
+                {/* Visibility */}
+                {group.visibility === 'private' ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
+                    <Lock className="h-3 w-3" /> {t('community.group_private')}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 bg-teal-50 rounded-full px-2.5 py-1">
+                    <Globe className="h-3 w-3" /> {group.visibility === 'public' ? 'Public' : t('community.group_open')}
+                  </span>
+                )}
+
+                {/* Member count */}
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
+                  <Users className="h-3 w-3" /> {group.memberCount} {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
+                </span>
+
+                {/* Ringers */}
+                {group.allow_ringers && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 rounded-full px-2.5 py-1">
+                    <UserCheck className="h-3 w-3" /> {t('community.welcomes_ringers')}
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              {group.description && (
+                <p className="text-[13px] text-gray-500 mt-4 leading-relaxed">{group.description}</p>
+              )}
+
+              {/* Action button */}
+              <div className="mt-6 mb-4">
+                {isPending ? (
+                  <div className="w-full rounded-2xl bg-gray-100 py-3.5 text-center text-[14px] font-semibold text-gray-500">
+                    {t('community.group_requested')}
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => onJoin(group.id)}
+                    disabled={isJoining}
+                    className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                  >
+                    {isJoining ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ── Discover Card ─────────────────────────────────────────────────────────────
 
-function DiscoverCard({ group, index, onJoin, joiningGroupId }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void; joiningGroupId: string | undefined }) {
+function DiscoverCard({ group, index, onJoin, joiningGroupId, onPreview }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void; joiningGroupId: string | undefined; onPreview: (g: DiscoverGroup) => void }) {
   const { t } = useTranslation()
-  const navigate = useNavigate()
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      onClick={() => navigate(`/community/groups/${group.id}`)}
+      onClick={() => onPreview(group)}
       className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex items-start justify-between gap-3">
@@ -608,6 +725,7 @@ export function CommunityPage() {
   const [playerCityFilter, setPlayerCityFilter] = useState(false)
   const [inviteMatchTarget, setInviteMatchTarget] = useState<{ id: string; name: string } | null>(null)
   const [inviteGroupTarget, setInviteGroupTarget] = useState<{ id: string; name: string } | null>(null)
+  const [previewGroup, setPreviewGroup] = useState<DiscoverGroup | null>(null)
 
   useEffect(() => {
     if (profile?.city) setPlayerCityFilter(true)
@@ -943,7 +1061,7 @@ export function CommunityPage() {
           ) : (
             <div className="space-y-3">
               {inlineDiscoverGroups.map((group, i) => (
-                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} joiningGroupId={joinMutation.isPending ? joinMutation.variables : undefined} />
+                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} joiningGroupId={joinMutation.isPending ? joinMutation.variables : undefined} onPreview={(g) => setPreviewGroup(g)} />
               ))}
               {discoverGroups.length > 6 && (
                 <button
@@ -1165,6 +1283,14 @@ export function CommunityPage() {
         onClose={() => setInviteGroupTarget(null)}
         playerId={inviteGroupTarget?.id ?? ''}
         playerName={inviteGroupTarget?.name ?? ''}
+      />
+
+      <GroupPreviewSheet
+        group={previewGroup}
+        open={!!previewGroup}
+        onClose={() => setPreviewGroup(null)}
+        onJoin={(id) => joinMutation.mutate(id)}
+        joiningGroupId={joinMutation.isPending ? joinMutation.variables : undefined}
       />
     </div>
   )

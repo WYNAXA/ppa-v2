@@ -380,6 +380,7 @@ export default {
     group_private: 'خاص',
     group_request: 'طلب',
     group_requested: 'تم الطلب',
+    welcomes_ringers: 'يرحب بالبدلاء',
     badge_ringer: 'بديل',
     badge_official: 'رسمي',
     badge_free: 'مجاني',

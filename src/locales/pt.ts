@@ -380,6 +380,7 @@ export default {
     group_private: 'Privado',
     group_request: 'Solicitar',
     group_requested: 'Solicitado',
+    welcomes_ringers: 'Aceita reservas',
     badge_ringer: 'Reserva',
     badge_official: 'OFICIAL',
     badge_free: 'Grátis',

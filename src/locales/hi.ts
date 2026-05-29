@@ -380,6 +380,7 @@ export default {
     group_private: 'निजी',
     group_request: 'अनुरोध',
     group_requested: 'अनुरोधित',
+    welcomes_ringers: 'बैकअप खिलाड़ियों का स्वागत',
     badge_ringer: 'बैकअप',
     badge_official: 'आधिकारिक',
     badge_free: 'मुफ्त',

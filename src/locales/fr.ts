@@ -380,6 +380,7 @@ export default {
     group_private: 'Privé',
     group_request: 'Demander',
     group_requested: 'Demandé',
+    welcomes_ringers: 'Accepte les remplaçants',
     badge_ringer: 'Remplaçant',
     badge_official: 'OFFICIEL',
     badge_free: 'Gratuit',

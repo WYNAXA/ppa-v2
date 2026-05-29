@@ -363,7 +363,8 @@ function DiscoverCard({ group, index, onJoin, joiningGroupId }: { group: Discove
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
-      className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5"
+      onClick={() => navigate(`/community/groups/${group.id}`)}
+      className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -399,17 +400,14 @@ function DiscoverCard({ group, index, onJoin, joiningGroupId }: { group: Discove
             {t('community.group_requested')}
           </span>
         ) : group.membershipStatus === 'approved' ? (
-          <button
-            onClick={() => navigate(`/community/groups/${group.id}`)}
-            className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-3 py-1.5 text-[12px] font-bold text-teal-700 flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform"
-          >
+          <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-3 py-1.5 text-[12px] font-bold text-teal-700 flex-shrink-0 self-start mt-0.5">
             {t('community.member_btn')}
-          </button>
+          </span>
         ) : (() => {
           const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true
           return (
             <button
-              onClick={() => onJoin(group.id)}
+              onClick={(e) => { e.stopPropagation(); onJoin(group.id) }}
               disabled={joiningGroupId === group.id}
               className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
             >

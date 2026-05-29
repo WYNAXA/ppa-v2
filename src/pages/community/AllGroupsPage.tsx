@@ -153,7 +153,8 @@ export function AllGroupsPage() {
           <div className="space-y-3">
             {groups.map((g, i) => (
               <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5">
+                onClick={() => navigate(`/community/groups/${g.id}`)}
+                className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[14px] font-bold text-gray-900 truncate">{g.name}</h3>
@@ -175,7 +176,7 @@ export function AllGroupsPage() {
                   ) : (() => {
                     const isAutoJoin = g.visibility === 'open' || g.visibility === 'public' || g.auto_approve === true
                     return (
-                      <button onClick={() => joinMutation.mutate(g.id)} disabled={joinMutation.isPending && joinMutation.variables === g.id}
+                      <button onClick={(e) => { e.stopPropagation(); joinMutation.mutate(g.id) }} disabled={joinMutation.isPending && joinMutation.variables === g.id}
                         className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">
                         {joinMutation.isPending && joinMutation.variables === g.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
                       </button>

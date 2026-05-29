@@ -439,7 +439,7 @@ export default {
     group_rules_label: 'ग्रुप नियम (वैकल्पिक)', group_rules_placeholder: 'आचार संहिता, मैच नियम, आदि।',
     save_changes: 'परिवर्तन सहेजें', saving: 'सहेज रहे हैं…', saved: 'सहेजा गया!',
     danger_zone: 'खतरनाक क्षेत्र', leave_group: 'ग्रुप छोड़ें?', leave_group_help: 'यदि ग्रुप खुला है तो आप बाद में फिर से जुड़ सकते हैं।',
-    leave_group_btn: 'ग्रुप छोड़ें', cancel: 'रद्द करें', leave: 'छोड़ें',
+    leave_group_btn: 'ग्रुप छोड़ें', leave_group_confirm: 'इस ग्रुप को छोड़ें? आपको फिर से आमंत्रित किया जाना होगा या दोबारा अनुरोध करना होगा। आपके खेले गए मैच आपके इतिहास में रहेंगे।', left_group: 'आपने {{name}} छोड़ दिया', leave_failed: 'ग्रुप छोड़ने में विफल', leaving: 'छोड़ रहे हैं…', cancel: 'रद्द करें', leave: 'छोड़ें',
     stat_total_members: 'कुल सदस्य', stat_pending_requests: 'लंबित अनुरोध', stat_avg_elo: 'ग्रुप का औसत ELO', stat_created: 'बनाया गया',
     role_demote: 'एडमिन हटाएं', role_make_admin: 'एडमिन',
     group_not_found: 'ग्रुप नहीं मिला', back_to_community: 'समुदाय पर वापस', private_locked_title: 'केवल सदस्य', private_locked_sub: 'सदस्यों, मैचों और पोल देखने के लिए ग्रुप में शामिल हों',

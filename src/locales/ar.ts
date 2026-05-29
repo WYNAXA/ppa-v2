@@ -439,7 +439,7 @@ export default {
     group_rules_label: 'قواعد المجموعة (اختياري)', group_rules_placeholder: 'مدونة السلوك، قواعد المباريات، إلخ.',
     save_changes: 'حفظ التغييرات', saving: 'جاري الحفظ…', saved: 'تم الحفظ!',
     danger_zone: 'منطقة خطرة', leave_group: 'مغادرة المجموعة؟', leave_group_help: 'يمكنك العودة لاحقاً إذا كانت المجموعة مفتوحة.',
-    leave_group_btn: 'مغادرة المجموعة', cancel: 'إلغاء', leave: 'مغادرة',
+    leave_group_btn: 'مغادرة المجموعة', leave_group_confirm: 'مغادرة هذه المجموعة؟ ستحتاج إلى دعوة جديدة أو طلب انضمام مرة أخرى. المباريات التي لعبتها تبقى في سجلك.', left_group: 'لقد غادرت {{name}}', leave_failed: 'فشل في مغادرة المجموعة', leaving: 'جارٍ المغادرة…', cancel: 'إلغاء', leave: 'مغادرة',
     stat_total_members: 'إجمالي الأعضاء', stat_pending_requests: 'الطلبات المعلقة', stat_avg_elo: 'متوسط ELO المجموعة', stat_created: 'أُنشئت',
     role_demote: 'إلغاء المشرف', role_make_admin: 'مشرف',
     group_not_found: 'المجموعة غير موجودة', back_to_community: 'العودة للمجتمع', private_locked_title: 'للأعضاء فقط', private_locked_sub: 'انضم للمجموعة لرؤية الأعضاء والمباريات والاستطلاعات',

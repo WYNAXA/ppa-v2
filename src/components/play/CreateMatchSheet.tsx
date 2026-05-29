@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, UserPlus } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, UserPlus, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -343,7 +343,12 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
 // ── Step 3 — Players ──────────────────────────────────────────────────────────
 
-function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f: FormState) => void; creatorProfile: Profile | null }) {
+interface ConflictInfo { conflicting_match_id: string; conflicting_time: string | null }
+
+function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoading }: {
+  form: FormState; setForm: (f: FormState) => void; creatorProfile: Profile | null
+  playerConflicts: Record<string, ConflictInfo[]>; conflictsLoading: boolean
+}) {
   const { t } = useTranslation()
   const [query, setQuery]               = useState('')
   const [results, setResults]           = useState<Profile[]>([])
@@ -397,16 +402,25 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
       <div className="space-y-2 mb-4">
         {form.players.map((p) => {
           const isCreator = p.id === creatorProfile?.id
+          const conflicts = playerConflicts[p.id]
+          const hasConflict = conflicts && conflicts.length > 0
           return (
-            <div key={p.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50/60 px-3 py-2.5">
+            <div key={p.id} className={cn('flex items-center gap-3 rounded-xl border px-3 py-2.5', hasConflict ? 'border-amber-200 bg-amber-50/60' : 'border-gray-100 bg-gray-50/60')}>
               <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : p.avatar_url} size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-semibold text-gray-900 truncate">{p.name}</p>
-                {!p.isGuest && p.playtomic_level != null && (
+                {hasConflict ? (
+                  <p className="text-[11px] text-amber-600 font-medium">
+                    {t('create_match.conflict_at_time', { time: conflicts[0].conflicting_time?.slice(0, 5) ?? form.time.slice(0, 5) })}
+                  </p>
+                ) : !p.isGuest && p.playtomic_level != null ? (
                   <p className="text-[11px] text-gray-400">Level {Number(p.playtomic_level).toFixed(1)}</p>
-                )}
+                ) : null}
               </div>
-              {isCreator && (
+              {hasConflict && (
+                <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+              )}
+              {isCreator && !hasConflict && (
                 <span className="text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">{t('common.you')}</span>
               )}
               {p.isGuest && (
@@ -519,13 +533,30 @@ function Step3({ form, setForm, creatorProfile }: { form: FormState; setForm: (f
           )}
         </div>
       )}
+
+      {/* Conflict banner */}
+      {(() => {
+        const conflictCount = Object.values(playerConflicts).filter(c => c.length > 0).length
+        if (conflictCount === 0) return null
+        return (
+          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2.5">
+            <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-[12px] text-amber-700 font-medium">
+              {t('create_match.players_have_conflicts', { count: conflictCount })}
+            </p>
+          </div>
+        )
+      })()}
+      {conflictsLoading && form.players.length > 0 && form.date && form.time && (
+        <p className="text-[11px] text-gray-400 mt-2 text-center">{t('create_match.checking_conflicts')}</p>
+      )}
     </div>
   )
 }
 
 // ── Step 4 — Review ───────────────────────────────────────────────────────────
 
-function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] }) {
+function Step4({ form, safePlayers, playerConflicts }: { form: FormState; safePlayers: Profile[]; playerConflicts: Record<string, ConflictInfo[]> }) {
   const { t } = useTranslation()
   const rows = [
     { label: t('match.match_type'), value: form.matchType ?? '—' },
@@ -551,15 +582,19 @@ function Step4({ form, safePlayers }: { form: FormState; safePlayers: Profile[] 
 
       <p className="text-[13px] font-medium text-gray-700 mb-2.5">{t('match.players')}</p>
       <div className="grid grid-cols-2 gap-2">
-        {safePlayers.map((p) => (
-          <div key={p.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2.5">
-            <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[12px] font-semibold text-gray-900 truncate">{p.name.split(' ')[0]}</p>
-              {p.isGuest && <p className="text-[10px] text-gray-400">{t('common.guest')}</p>}
+        {safePlayers.map((p) => {
+          const hasConflict = playerConflicts[p.id]?.length > 0
+          return (
+            <div key={p.id} className={cn('flex items-center gap-2 rounded-xl px-3 py-2.5', hasConflict ? 'bg-amber-50 border border-amber-200' : 'bg-white border border-gray-100')}>
+              <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[12px] font-semibold text-gray-900 truncate">{p.name.split(' ')[0]}</p>
+                {p.isGuest && <p className="text-[10px] text-gray-400">{t('common.guest')}</p>}
+              </div>
+              {hasConflict && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />}
             </div>
-          </div>
-        ))}
+          )
+        })}
         {Array.from({ length: Math.max(0, 4 - safePlayers.length) }).map((_, i) => (
           <div key={i} className="flex items-center gap-2 border border-dashed border-gray-200 rounded-xl px-3 py-2.5">
             <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex-shrink-0" />
@@ -599,6 +634,8 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]     = useState<string | null>(null)
   const [conflictWarning, setConflictWarning] = useState<{ match_time: string | null; venue: string | null } | null>(null)
+  const [playerConflicts, setPlayerConflicts] = useState<Record<string, ConflictInfo[]>>({})
+  const [conflictsLoading, setConflictsLoading] = useState(false)
   const [form, setForm]       = useState<FormState>({
     matchType: null,
     group: null,
@@ -618,6 +655,8 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       setError(null)
       setSubmitting(false)
       setConflictWarning(null)
+      setPlayerConflicts({})
+      setConflictsLoading(false)
       setForm({
         matchType: null,
         group: null,
@@ -632,6 +671,35 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open])
+
+  // Check scheduling conflicts for all selected players
+  const playerIds_str = form.players.filter(p => !p.isGuest).map(p => p.id).sort().join(',')
+  useEffect(() => {
+    if (!form.date || !form.time || !open) { setPlayerConflicts({}); return }
+    const realPlayers = form.players.filter(p => !p.isGuest)
+    if (realPlayers.length === 0) { setPlayerConflicts({}); return }
+
+    let cancelled = false
+    setConflictsLoading(true)
+
+    Promise.all(
+      realPlayers.map(async (p) => {
+        const conflicts = await checkSelfConflict(p.id, form.date, form.time)
+        return { id: p.id, conflicts }
+      })
+    ).then((results) => {
+      if (cancelled) return
+      const map: Record<string, ConflictInfo[]> = {}
+      for (const r of results) {
+        if (r.conflicts.length > 0) map[r.id] = r.conflicts
+      }
+      setPlayerConflicts(map)
+      setConflictsLoading(false)
+    })
+
+    return () => { cancelled = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, form.date, form.time, playerIds_str])
 
   // Fetch user's groups for group picker
   const { data: userGroups = [] } = useQuery<GroupOption[]>({
@@ -704,13 +772,13 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     }
 
     try {
-      // Conflict check — warn if creator has another match in the same time window
+      // Conflict check — warn if any player has another match in the same time window
       if (!conflictWarning) {
-        const conflicts = await checkSelfConflict(user.id, form.date, form.time ?? null)
-        if (conflicts.length > 0) {
-          const conflictTime = conflicts[0].conflicting_time
+        const conflictingPlayers = Object.keys(playerConflicts).length
+        if (conflictingPlayers > 0) {
+          const firstConflict = Object.values(playerConflicts)[0][0]
           setConflictWarning({
-            match_time: conflictTime ?? null,
+            match_time: firstConflict?.conflicting_time ?? null,
             venue: null,
           })
           setSubmitting(false)
@@ -803,8 +871,8 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
                 >
                   {step === 1 && <Step1 form={form} setForm={setForm} userGroups={userGroups} />}
                   {step === 2 && <Step2 form={form} setForm={setForm} />}
-                  {step === 3 && <Step3 form={form} setForm={setForm} creatorProfile={creatorProfile} />}
-                  {step === 4 && <Step4 form={form} safePlayers={safePlayers} />}
+                  {step === 3 && <Step3 form={form} setForm={setForm} creatorProfile={creatorProfile} playerConflicts={playerConflicts} conflictsLoading={conflictsLoading} />}
+                  {step === 4 && <Step4 form={form} safePlayers={safePlayers} playerConflicts={playerConflicts} />}
                 </motion.div>
               </AnimatePresence>
 

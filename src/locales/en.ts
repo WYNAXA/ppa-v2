@@ -353,7 +353,6 @@ export default {
     page_subtitle: 'Connect, organise and play',
     open_matches: 'Open Matches',
     open_matches_subtitle: 'Matches looking for players near your level',
-    my_connections: 'My Connections',
     my_connections_subtitle: 'Players you play with regularly',
     upcoming_events: 'Upcoming Events',
     no_upcoming_events: 'No upcoming events',

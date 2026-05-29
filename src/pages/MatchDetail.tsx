@@ -867,6 +867,7 @@ export function MatchDetailPage() {
             validIds.map((pid: string) => ({
               user_id: pid, type: 'match_deleted', title: 'Match deleted',
               message: `${profile?.name ?? 'A player'} deleted the match on ${dateStr}`,
+              related_id: data.match.id,
               read: false,
             }))
           )

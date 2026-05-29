@@ -1051,6 +1051,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       type: 'group_join',
       title: group.name,
       message: `Your request to join ${group.name} was approved.`,
+      related_id: group.id,
       read: false,
     })
     queryClient.invalidateQueries({ queryKey: ['pending-members', group.id] })
@@ -1064,6 +1065,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       type: 'group_join',
       title: group.name,
       message: `Your request to join ${group.name} was declined.`,
+      related_id: group.id,
       read: false,
     })
     toast(t('group_detail.member_declined', { name: member.name }))
@@ -1096,6 +1098,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
         type: 'announcement',
         title: group.name,
         message: announcement.trim(),
+        related_id: group.id,
         read: false,
       }))
     if (notifications.length > 0) {
@@ -1652,7 +1655,7 @@ export function GroupDetailPage() {
       await supabase.from('group_members').update({ status: 'ringer' }).eq('group_id', groupId).eq('user_id', member.user_id)
       await supabase.from('notifications').insert({
         user_id: member.user_id, type: 'ringer_approved', title: group?.name ?? '',
-        message: `You've been approved as a ringer for ${group?.name}.`, read: false,
+        message: `You've been approved as a ringer for ${group?.name}.`, related_id: groupId, read: false,
       })
       return member.name
     },
@@ -1669,7 +1672,7 @@ export function GroupDetailPage() {
       await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', member.user_id)
       await supabase.from('notifications').insert({
         user_id: member.user_id, type: 'ringer_declined', title: group?.name ?? '',
-        message: `Your ringer offer for ${group?.name} was declined.`, read: false,
+        message: `Your ringer offer for ${group?.name} was declined.`, related_id: groupId, read: false,
       })
       return member.name
     },
@@ -1688,6 +1691,7 @@ export function GroupDetailPage() {
         type: 'group_join',
         title: group?.name ?? '',
         message: `Your request to join ${group?.name} was approved.`,
+        related_id: groupId,
         read: false,
       })
       // Mark admin's join-request notification as read
@@ -1711,6 +1715,7 @@ export function GroupDetailPage() {
         type: 'group_join',
         title: group?.name ?? '',
         message: `Your request to join ${group?.name} was declined.`,
+        related_id: groupId,
         read: false,
       })
       await supabase.from('notifications').update({ read: true })

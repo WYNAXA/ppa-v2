@@ -173,6 +173,36 @@ function usePendingMembers(groupId: string, isAdmin: boolean) {
   })
 }
 
+function usePendingRingerOffers(groupId: string, canApprove: boolean) {
+  return useQuery({
+    queryKey: ['pending-ringer-offers', groupId],
+    enabled: !!groupId && canApprove,
+    queryFn: async (): Promise<PendingMember[]> => {
+      const { data: rows } = await supabase
+        .from('group_members')
+        .select('id, user_id')
+        .eq('group_id', groupId)
+        .eq('status', 'pending_ringer')
+
+      if (!rows || rows.length === 0) return []
+      const userIds = rows.map((r) => r.user_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, internal_ranking')
+        .in('id', userIds)
+
+      const pm = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
+      return rows
+        .map((r) => {
+          const p = pm[r.user_id]
+          if (!p) return null
+          return { id: r.id, user_id: r.user_id, name: p.name, avatar_url: p.avatar_url ?? null, internal_ranking: p.internal_ranking ?? null }
+        })
+        .filter(Boolean) as PendingMember[]
+    },
+  })
+}
+
 function useGroupInviteNotification(groupId: string, userId: string) {
   return useQuery({
     queryKey: ['group-invite-notification', groupId, userId],
@@ -342,7 +372,7 @@ function useGroupLeagues(groupId: string) {
 }
 
 function useUserMembership(groupId: string, userId: string) {
-  return useQuery({
+  return useQuery<{ isMember: boolean; isRinger: boolean }>({
     queryKey: ['user-membership', groupId, userId],
     enabled: !!groupId && !!userId,
     queryFn: async () => {
@@ -353,7 +383,7 @@ function useUserMembership(groupId: string, userId: string) {
         .eq('user_id', userId)
         .in('status', ['approved', 'ringer'])
         .maybeSingle()
-      return !!data
+      return { isMember: !!data, isRinger: data?.status === 'ringer' }
     },
   })
 }
@@ -1443,7 +1473,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
 // ── Leave Group (non-admin members) ──────────────────────────────────────────
 
-function LeaveGroupSection({ groupId, groupName, userId }: { groupId: string; groupName: string; userId: string }) {
+function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: string; groupName: string; userId: string; isRinger: boolean }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { t } = useTranslation()
@@ -1472,7 +1502,7 @@ function LeaveGroupSection({ groupId, groupName, userId }: { groupId: string; gr
           onClick={() => setConfirmOpen(true)}
           className="w-full rounded-xl border border-red-200 py-3 text-[14px] font-semibold text-red-500 active:scale-[0.98] transition-transform"
         >
-          {t('group_detail.leave_group_btn')}
+          {isRinger ? t('group_detail.stop_ringer_btn') : t('group_detail.leave_group_btn')}
         </button>
       </div>
       <AnimatePresence>
@@ -1489,8 +1519,12 @@ function LeaveGroupSection({ groupId, groupName, userId }: { groupId: string; gr
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('group_detail.leave_group')}</p>
-              <p className="text-[13px] text-gray-500 text-center mb-6">{t('group_detail.leave_group_confirm')}</p>
+              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">
+                {isRinger ? t('group_detail.stop_ringer_title') : t('group_detail.leave_group')}
+              </p>
+              <p className="text-[13px] text-gray-500 text-center mb-6">
+                {isRinger ? t('group_detail.stop_ringer_confirm') : t('group_detail.leave_group_confirm')}
+              </p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmOpen(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">
                   {t('group_detail.cancel')}
@@ -1559,7 +1593,9 @@ export function GroupDetailPage() {
   const { data: leagues, isLoading: loadingLeagues } = useGroupLeagues(groupId)
 
   const { isAdmin } = useIsGroupAdmin(groupId)
-  const { data: isMember = false } = useUserMembership(groupId, userId)
+  const { data: membershipData } = useUserMembership(groupId, userId)
+  const isMember = membershipData?.isMember ?? false
+  const isRinger = membershipData?.isRinger ?? false
   const isPrivateAndNotMember = group?.visibility === 'private' && !isMember && !isAdmin
   const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
   const queryClient = useQueryClient()
@@ -1606,6 +1642,43 @@ export function GroupDetailPage() {
 
   // Admin pending requests banner
   const { data: pendingRequests = [] } = usePendingMembers(groupId, isAdmin)
+
+  // Ringer offer approval — admin always, any_member if ringer_approval='any_member'
+  const canApproveRingers = isAdmin || (isMember && group?.ringer_approval === 'any_member')
+  const { data: pendingRingerOffers = [] } = usePendingRingerOffers(groupId, canApproveRingers)
+
+  const approveRingerMutation = useMutation({
+    mutationFn: async (member: PendingMember) => {
+      await supabase.from('group_members').update({ status: 'ringer' }).eq('group_id', groupId).eq('user_id', member.user_id)
+      await supabase.from('notifications').insert({
+        user_id: member.user_id, type: 'ringer_approved', title: group?.name ?? '',
+        message: `You've been approved as a ringer for ${group?.name}.`, read: false,
+      })
+      return member.name
+    },
+    onSuccess: (name) => {
+      toast.success(t('group_detail.ringer_approved', { name }))
+      queryClient.invalidateQueries({ queryKey: ['pending-ringer-offers', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
+    },
+    onError: () => toast.error(t('group_detail.approve_failed')),
+  })
+
+  const declineRingerMutation = useMutation({
+    mutationFn: async (member: PendingMember) => {
+      await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', member.user_id)
+      await supabase.from('notifications').insert({
+        user_id: member.user_id, type: 'ringer_declined', title: group?.name ?? '',
+        message: `Your ringer offer for ${group?.name} was declined.`, read: false,
+      })
+      return member.name
+    },
+    onSuccess: (name) => {
+      toast(t('group_detail.ringer_declined', { name }))
+      queryClient.invalidateQueries({ queryKey: ['pending-ringer-offers', groupId] })
+    },
+    onError: () => toast.error(t('group_detail.decline_failed')),
+  })
 
   const approveBannerMutation = useMutation({
     mutationFn: async (member: PendingMember) => {
@@ -1719,6 +1792,11 @@ export function GroupDetailPage() {
                   {t('group_detail.badge_admin')}
                 </span>
               )}
+              {isRinger && !isAdmin && (
+                <span className="rounded-full bg-orange-50 border border-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-600">
+                  {t('community.badge_ringer')}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -1782,6 +1860,34 @@ export function GroupDetailPage() {
                 {t('group_detail.view_all_requests', { count })}
               </button>
             )}
+          </div>
+        )
+      })()}
+
+      {/* Pending ringer offers banner */}
+      {canApproveRingers && pendingRingerOffers.length > 0 && (() => {
+        const first = pendingRingerOffers[0]
+        const count = pendingRingerOffers.length
+        const busy = approveRingerMutation.isPending || declineRingerMutation.isPending
+        return (
+          <div className="mx-5 mb-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
+            <p className="text-[13px] font-semibold text-gray-800 mb-2">
+              {count === 1
+                ? t('group_detail.ringer_offer_single', { name: first.name })
+                : t('group_detail.ringer_offer_multiple', { count })}
+            </p>
+            <div className="flex items-center gap-3">
+              <PlayerAvatar name={first.name} avatarUrl={first.avatar_url} size="sm" />
+              <p className="text-[13px] font-semibold text-gray-700 flex-1 min-w-0 truncate">{first.name}</p>
+              <button onClick={() => approveRingerMutation.mutate(first)} disabled={busy}
+                className="rounded-xl bg-orange-500 px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
+                {t('group_detail.approve')}
+              </button>
+              <button onClick={() => declineRingerMutation.mutate(first)} disabled={busy}
+                className="rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-600 active:scale-95 transition-transform disabled:opacity-50">
+                {t('group_detail.decline')}
+              </button>
+            </div>
           </div>
         )
       })()}
@@ -1884,8 +1990,8 @@ export function GroupDetailPage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Leave Group — visible to non-admin members */}
-      {isMember && !isAdmin && <LeaveGroupSection groupId={groupId} groupName={group.name} userId={userId} />}
+      {/* Leave Group / Stop being a ringer — visible to non-admin members */}
+      {isMember && !isAdmin && <LeaveGroupSection groupId={groupId} groupName={group.name} userId={userId} isRinger={isRinger} />}
 
       {/* BUG 4: CreateMatchSheet inline with group_id pre-filled */}
       <CreateMatchSheet

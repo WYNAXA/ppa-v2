@@ -153,7 +153,13 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
       {/* Chart */}
       <div className={compact ? 'h-32' : 'h-48'}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={filteredHistory} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}>
+          <AreaChart data={filteredHistory} margin={{ top: 5, right: 5, bottom: 0, left: -20 }}
+            onClick={(state: any) => {
+              if (state?.activePayload?.[0]?.payload) {
+                setSelectedPoint(state.activePayload[0].payload as HistoryPoint)
+              }
+            }}
+          >
             <defs>
               <linearGradient id="eloGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#009688" stopOpacity={0.2} />
@@ -179,12 +185,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
               strokeWidth={2}
               fill="url(#eloGradient)"
               dot={{ r: 3, fill: '#009688', stroke: '#fff', strokeWidth: 1.5, cursor: 'pointer' }}
-              activeDot={{
-                r: 6, fill: '#009688', stroke: '#fff', strokeWidth: 2, cursor: 'pointer',
-                onClick: (_e: any, payload: any) => {
-                  if (payload?.payload) setSelectedPoint(payload.payload as HistoryPoint)
-                },
-              }}
+              activeDot={{ r: 6, fill: '#009688', stroke: '#fff', strokeWidth: 2, cursor: 'pointer' }}
             />
           </AreaChart>
         </ResponsiveContainer>

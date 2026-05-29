@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Search, Users, MapPin, Lock, X, Globe, UserCheck } from 'lucide-react'
+import { ChevronLeft, Search, Users, MapPin, Lock, X, Globe, UserCheck, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -12,7 +12,7 @@ interface DiscoverGroup {
   id: string; name: string; description: string | null; city: string | null
   visibility: string | null; admin_id: string
   auto_approve: boolean | null; banner_url: string | null; allow_ringers: boolean | null
-  memberCount: number; membershipStatus: 'none' | 'pending' | 'approved'
+  memberCount: number; membershipStatus: 'none' | 'pending' | 'approved' | 'ringer' | 'pending_ringer'
 }
 
 export function AllGroupsPage() {
@@ -54,6 +54,7 @@ export function AllGroupsPage() {
         if (cityName.length >= 3) q = q.ilike('city', `%${cityName}%`)
       }
       if (activeFilter === 'open_to_join') q = q.or('visibility.in.(open,public),auto_approve.eq.true')
+      if (activeFilter === 'welcomes_ringers') q = q.eq('allow_ringers', true)
 
       const { data, error } = await q
       if (error) throw error
@@ -72,7 +73,7 @@ export function AllGroupsPage() {
       for (const r of statusRows ?? []) statusMap[r.group_id] = r.status
 
       const result = filtered
-        .filter(g => statusMap[g.id] !== 'approved')
+        .filter(g => statusMap[g.id] !== 'approved' && statusMap[g.id] !== 'ringer')
         .map(g => ({ ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: (statusMap[g.id] ?? 'none') as any }))
 
       if (sortBy === 'most_members') result.sort((a, b) => b.memberCount - a.memberCount)
@@ -112,7 +113,33 @@ export function AllGroupsPage() {
     },
   })
 
+  const ringerOfferMutation = useMutation({
+    mutationFn: async (groupId: string) => {
+      const group = groups.find(g => g.id === groupId)
+      const { error } = await supabase.from('group_members').insert({
+        group_id: groupId, user_id: userId, role: 'member', status: 'pending_ringer',
+      })
+      if (error) {
+        if (error.code === '23505') throw new Error('duplicate')
+        throw error
+      }
+      return group?.name
+    },
+    onSuccess: (name) => {
+      toast.success(t('community.ringer_offer_sent', { name: name ?? '' }))
+      queryClient.invalidateQueries({ queryKey: ['all-groups'] })
+    },
+    onError: (err: Error) => {
+      if (err.message === 'duplicate') {
+        toast.error(t('community.join_declined_contact_admin'))
+      } else {
+        toast.error(err.message || t('community.join_error'))
+      }
+    },
+  })
+
   const joiningId = joinMutation.isPending ? joinMutation.variables : undefined
+  const [showRingerInfo, setShowRingerInfo] = useState(false)
 
   return (
     <div className="min-h-full bg-white pb-32">
@@ -132,7 +159,7 @@ export function AllGroupsPage() {
             className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" />
         </div>
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
-          {[{ key: 'near_me', label: t('community.filter_near_me') }, { key: 'open_to_join', label: t('community.filter_open_to_join') }].map(({ key, label }) => (
+          {[{ key: 'near_me', label: t('community.filter_near_me') }, { key: 'open_to_join', label: t('community.filter_open_to_join') }, { key: 'welcomes_ringers', label: t('community.filter_welcomes_ringers') }].map(({ key, label }) => (
             <button key={key} onClick={() => setActiveFilter(activeFilter === key ? null : key)}
               className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${activeFilter === key ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'}`}>
               {label}
@@ -249,21 +276,50 @@ export function AllGroupsPage() {
                 {previewGroup.description && (
                   <p className="text-[13px] text-gray-500 mt-4 leading-relaxed">{previewGroup.description}</p>
                 )}
-                <div className="mt-6 mb-4">
+                <div className="mt-6 mb-4 space-y-3">
                   {previewGroup.membershipStatus === 'pending' ? (
                     <div className="w-full rounded-2xl bg-gray-100 py-3.5 text-center text-[14px] font-semibold text-gray-500">
                       {t('community.group_requested')}
                     </div>
+                  ) : previewGroup.membershipStatus === 'pending_ringer' ? (
+                    <div className="w-full rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-center text-[14px] font-semibold text-orange-600">
+                      {t('community.ringer_offer_pending')}
+                    </div>
+                  ) : previewGroup.membershipStatus === 'ringer' ? (
+                    <div className="w-full rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-center text-[14px] font-semibold text-orange-600">
+                      {t('community.already_ringer')}
+                    </div>
                   ) : (() => {
                     const isAutoJoin = previewGroup.visibility === 'open' || previewGroup.visibility === 'public' || previewGroup.auto_approve === true
+                    const canOfferRinger = previewGroup.allow_ringers && previewGroup.membershipStatus === 'none'
                     return (
-                      <button
-                        onClick={() => joinMutation.mutate(previewGroup.id)}
-                        disabled={joiningId === previewGroup.id}
-                        className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
-                      >
-                        {joiningId === previewGroup.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
-                      </button>
+                      <>
+                        <button
+                          onClick={() => joinMutation.mutate(previewGroup.id)}
+                          disabled={joiningId === previewGroup.id}
+                          className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                        >
+                          {joiningId === previewGroup.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+                        </button>
+                        {canOfferRinger && (
+                          <button
+                            onClick={() => ringerOfferMutation.mutate(previewGroup.id)}
+                            disabled={ringerOfferMutation.isPending}
+                            className="w-full rounded-2xl border border-orange-200 bg-orange-50 py-3 text-[13px] font-semibold text-orange-700 active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                          >
+                            <UserCheck className="h-4 w-4" />
+                            {ringerOfferMutation.isPending ? t('community.offering') : t('community.offer_ringer')}
+                            <button type="button" onClick={(e) => { e.stopPropagation(); setShowRingerInfo(!showRingerInfo) }} className="ml-1">
+                              <Info className="h-3.5 w-3.5 text-orange-400" />
+                            </button>
+                          </button>
+                        )}
+                        {showRingerInfo && (
+                          <p className="text-[11px] text-gray-500 leading-relaxed px-1">
+                            {t('community.ringer_info')}
+                          </p>
+                        )}
+                      </>
                     )
                   })()}
                 </div>

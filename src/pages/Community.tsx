@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar, Lock, X, Globe, UserCheck } from 'lucide-react'
+import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar, Lock, X, Globe, UserCheck, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
@@ -42,7 +42,7 @@ interface MyGroup extends GroupRow {
 
 interface DiscoverGroup extends GroupRow {
   memberCount: number
-  membershipStatus: 'none' | 'pending' | 'approved'
+  membershipStatus: 'none' | 'pending' | 'approved' | 'ringer' | 'pending_ringer'
 }
 
 interface ConnectionProfile {
@@ -180,6 +180,9 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       if (activeFilter === 'open_to_join') {
         query = query.or('visibility.in.(open,public),auto_approve.eq.true')
       }
+      if (activeFilter === 'welcomes_ringers') {
+        query = query.eq('allow_ringers', true)
+      }
 
       const { data: groups, error } = await query
       if (error) throw error
@@ -200,10 +203,10 @@ function useDiscoverGroups(userId: string, search: string, myGroupIds: string[],
       const { data: membershipRows } = await supabase
         .from('group_members').select('group_id, status')
         .in('group_id', filteredIds).eq('user_id', userId)
-      const membershipStatusMap: Record<string, 'pending' | 'approved'> = {}
-      for (const r of membershipRows ?? []) membershipStatusMap[r.group_id] = r.status as 'pending' | 'approved'
+      const membershipStatusMap: Record<string, string> = {}
+      for (const r of membershipRows ?? []) membershipStatusMap[r.group_id] = r.status
 
-      const visibleGroups = filtered.filter((g) => membershipStatusMap[g.id] !== 'approved')
+      const visibleGroups = filtered.filter((g) => membershipStatusMap[g.id] !== 'approved' && membershipStatusMap[g.id] !== 'ringer')
 
       const result: DiscoverGroup[] = visibleGroups.map((g) => ({
         ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: (membershipStatusMap[g.id] ?? 'none') as DiscoverGroup['membershipStatus'],
@@ -356,19 +359,25 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
 
 // ── Group Preview Sheet ──────────────────────────────────────────────────────
 
-function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId }: {
+function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOfferRinger, ringerOfferPending }: {
   group: DiscoverGroup | null
   open: boolean
   onClose: () => void
   onJoin: (id: string) => void
   joiningGroupId: string | undefined
+  onOfferRinger: (id: string) => void
+  ringerOfferPending: boolean
 }) {
   const { t } = useTranslation()
+  const [showRingerInfo, setShowRingerInfo] = useState(false)
   if (!group) return null
 
   const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true
   const isPending = group.membershipStatus === 'pending'
+  const isPendingRinger = group.membershipStatus === 'pending_ringer'
+  const isRinger = group.membershipStatus === 'ringer'
   const isJoining = joiningGroupId === group.id
+  const showRingerOffer = group.allow_ringers && !isPending && !isPendingRinger && !isRinger && group.membershipStatus !== 'approved'
 
   return (
     <AnimatePresence>
@@ -446,20 +455,48 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId }: {
                 <p className="text-[13px] text-gray-500 mt-4 leading-relaxed">{group.description}</p>
               )}
 
-              {/* Action button */}
-              <div className="mt-6 mb-4">
+              {/* Action buttons */}
+              <div className="mt-6 mb-4 space-y-3">
                 {isPending ? (
                   <div className="w-full rounded-2xl bg-gray-100 py-3.5 text-center text-[14px] font-semibold text-gray-500">
                     {t('community.group_requested')}
                   </div>
+                ) : isPendingRinger ? (
+                  <div className="w-full rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-center text-[14px] font-semibold text-orange-600">
+                    {t('community.ringer_offer_pending')}
+                  </div>
+                ) : isRinger ? (
+                  <div className="w-full rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-center text-[14px] font-semibold text-orange-600">
+                    {t('community.already_ringer')}
+                  </div>
                 ) : (
-                  <button
-                    onClick={() => onJoin(group.id)}
-                    disabled={isJoining}
-                    className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
-                  >
-                    {isJoining ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
-                  </button>
+                  <>
+                    <button
+                      onClick={() => onJoin(group.id)}
+                      disabled={isJoining}
+                      className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                    >
+                      {isJoining ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+                    </button>
+                    {showRingerOffer && (
+                      <button
+                        onClick={() => onOfferRinger(group.id)}
+                        disabled={ringerOfferPending}
+                        className="w-full rounded-2xl border border-orange-200 bg-orange-50 py-3 text-[13px] font-semibold text-orange-700 active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        <UserCheck className="h-4 w-4" />
+                        {ringerOfferPending ? t('community.offering') : t('community.offer_ringer')}
+                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowRingerInfo(!showRingerInfo) }} className="ml-1">
+                          <Info className="h-3.5 w-3.5 text-orange-400" />
+                        </button>
+                      </button>
+                    )}
+                    {showRingerInfo && (
+                      <p className="text-[11px] text-gray-500 leading-relaxed px-1">
+                        {t('community.ringer_info')}
+                      </p>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -812,6 +849,31 @@ export function CommunityPage() {
     },
   })
 
+  const ringerOfferMutation = useMutation({
+    mutationFn: async (groupId: string) => {
+      const group = discoverGroups.find((g) => g.id === groupId)
+      const { error } = await supabase.from('group_members').insert({
+        group_id: groupId, user_id: userId, role: 'member', status: 'pending_ringer',
+      })
+      if (error) {
+        if (error.code === '23505') throw new Error('duplicate')
+        throw error
+      }
+      return group?.name
+    },
+    onSuccess: (name) => {
+      toast.success(t('community.ringer_offer_sent', { name: name ?? '' }))
+      queryClient.invalidateQueries({ queryKey: ['discover-groups'] })
+    },
+    onError: (err: Error) => {
+      if (err.message === 'duplicate') {
+        toast.error(t('community.join_declined_contact_admin'))
+      } else {
+        toast.error(err.message || t('community.join_error'))
+      }
+    },
+  })
+
   const cancelRequestMutation = useMutation({
     mutationFn: async (groupId: string) => {
       const { error } = await supabase.from('group_members').delete()
@@ -1010,8 +1072,9 @@ export function CommunityPage() {
 
           <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-0.5">
             {[
-              { key: 'near_me',      label: t('community.filter_near_me')       },
-              { key: 'open_to_join', label: t('community.filter_open_to_join')  },
+              { key: 'near_me',          label: t('community.filter_near_me')       },
+              { key: 'open_to_join',     label: t('community.filter_open_to_join')  },
+              { key: 'welcomes_ringers', label: t('community.filter_welcomes_ringers') },
             ].map(({ key, label }) => (
               <button
                 key={key}
@@ -1290,6 +1353,8 @@ export function CommunityPage() {
         onClose={() => setPreviewGroup(null)}
         onJoin={(id) => joinMutation.mutate(id)}
         joiningGroupId={joinMutation.isPending ? joinMutation.variables : undefined}
+        onOfferRinger={(id) => ringerOfferMutation.mutate(id)}
+        ringerOfferPending={ringerOfferMutation.isPending}
       />
     </div>
   )

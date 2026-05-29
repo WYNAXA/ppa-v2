@@ -380,6 +380,7 @@ export default {
     group_private: 'Privato',
     group_request: 'Richiedi',
     group_requested: 'Richiesto',
+    welcomes_ringers: 'Accetta rincalzi',
     badge_ringer: 'Rincalzo',
     badge_official: 'UFFICIALE',
     badge_free: 'Gratis',

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion } from 'framer-motion'
-import { ChevronLeft, Search, Users, MapPin, Lock } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronLeft, Search, Users, MapPin, Lock, X, Globe, UserCheck } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 interface DiscoverGroup {
   id: string; name: string; description: string | null; city: string | null
   visibility: string | null; admin_id: string
-  auto_approve: boolean | null
+  auto_approve: boolean | null; banner_url: string | null; allow_ringers: boolean | null
   memberCount: number; membershipStatus: 'none' | 'pending' | 'approved'
 }
 
@@ -24,6 +24,7 @@ export function AllGroupsPage() {
   const [search, setSearch] = useState('')
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState('newest')
+  const [previewGroup, setPreviewGroup] = useState<DiscoverGroup | null>(null)
 
   const { data: myGroupIds = [] } = useQuery({
     queryKey: ['my-group-ids', userId],
@@ -41,7 +42,7 @@ export function AllGroupsPage() {
     enabled: !!userId,
     queryFn: async (): Promise<DiscoverGroup[]> => {
       let q = supabase.from('groups')
-        .select('id, name, description, city, visibility, admin_id, auto_approve')
+        .select('id, name, description, city, visibility, admin_id, auto_approve, banner_url, allow_ringers')
         .limit(100)
 
       if (sortBy === 'newest') q = q.order('created_at', { ascending: false })
@@ -111,6 +112,8 @@ export function AllGroupsPage() {
     },
   })
 
+  const joiningId = joinMutation.isPending ? joinMutation.variables : undefined
+
   return (
     <div className="min-h-full bg-white pb-32">
       <div className="px-4 pt-12 pb-4 bg-white border-b border-gray-100">
@@ -153,7 +156,7 @@ export function AllGroupsPage() {
           <div className="space-y-3">
             {groups.map((g, i) => (
               <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                onClick={() => navigate(`/community/groups/${g.id}`)}
+                onClick={() => setPreviewGroup(g)}
                 className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -188,6 +191,87 @@ export function AllGroupsPage() {
           </div>
         )}
       </div>
+
+      {/* Group Preview Sheet */}
+      <AnimatePresence>
+        {previewGroup && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setPreviewGroup(null)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            >
+              <div className="flex justify-center pt-3 pb-1">
+                <div className="h-1 w-10 rounded-full bg-gray-200" />
+              </div>
+              <div className="flex justify-end px-5 pb-1">
+                <button onClick={() => setPreviewGroup(null)} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <X className="h-4 w-4 text-gray-500" />
+                </button>
+              </div>
+              <div className="px-5 overflow-y-auto" style={{ maxHeight: '75vh', paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
+                {previewGroup.banner_url && (
+                  <div className="relative h-32 rounded-2xl overflow-hidden mb-4">
+                    <img src={previewGroup.banner_url} alt={previewGroup.name} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <h2 className="text-[18px] font-bold text-gray-900">{previewGroup.name}</h2>
+                {previewGroup.city && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <MapPin className="h-3.5 w-3.5 text-gray-400" />
+                    <p className="text-[13px] text-gray-500">{previewGroup.city}</p>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 mt-3 flex-wrap">
+                  {previewGroup.visibility === 'private' ? (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
+                      <Lock className="h-3 w-3" /> {t('community.group_private')}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 bg-teal-50 rounded-full px-2.5 py-1">
+                      <Globe className="h-3 w-3" /> {previewGroup.visibility === 'public' ? 'Public' : t('community.group_open')}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
+                    <Users className="h-3 w-3" /> {previewGroup.memberCount} {previewGroup.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: previewGroup.memberCount })}
+                  </span>
+                  {previewGroup.allow_ringers && (
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 rounded-full px-2.5 py-1">
+                      <UserCheck className="h-3 w-3" /> {t('community.welcomes_ringers')}
+                    </span>
+                  )}
+                </div>
+                {previewGroup.description && (
+                  <p className="text-[13px] text-gray-500 mt-4 leading-relaxed">{previewGroup.description}</p>
+                )}
+                <div className="mt-6 mb-4">
+                  {previewGroup.membershipStatus === 'pending' ? (
+                    <div className="w-full rounded-2xl bg-gray-100 py-3.5 text-center text-[14px] font-semibold text-gray-500">
+                      {t('community.group_requested')}
+                    </div>
+                  ) : (() => {
+                    const isAutoJoin = previewGroup.visibility === 'open' || previewGroup.visibility === 'public' || previewGroup.auto_approve === true
+                    return (
+                      <button
+                        onClick={() => joinMutation.mutate(previewGroup.id)}
+                        disabled={joiningId === previewGroup.id}
+                        className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                      >
+                        {joiningId === previewGroup.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+                      </button>
+                    )
+                  })()}
+                </div>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

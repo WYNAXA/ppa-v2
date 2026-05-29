@@ -995,6 +995,26 @@ export function CommunityPage() {
           <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
         </button>
 
+        {/* My Connections link */}
+        <button
+          onClick={() => navigate('/community/connections')}
+          className="w-full flex items-center gap-3 rounded-2xl border border-teal-100 bg-teal-50/50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
+        >
+          <div className="h-9 w-9 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
+            <Users className="h-4.5 w-4.5 text-teal-600" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-gray-800">{t('community.my_connections')}</p>
+            <p className="text-[11px] text-gray-500">{t('community.my_connections_subtitle')}</p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {connections.accepted.size > 0 && (
+              <span className="text-[12px] font-semibold text-teal-600">{connections.accepted.size}</span>
+            )}
+            <ChevronRight className="h-4 w-4 text-gray-300" />
+          </div>
+        </button>
+
         {/* ── My Groups (merged: approved + ringer + pending) ── */}
         <section ref={groupsRef} id="groups" style={{ scrollMarginTop: '120px' }}>
           <div className="flex items-center justify-between mb-3">

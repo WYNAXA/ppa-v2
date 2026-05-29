@@ -439,7 +439,7 @@ export default {
     group_rules_label: 'Gruppregler (valfritt)', group_rules_placeholder: 'Uppförandekod, matchregler, etc.',
     save_changes: 'Spara ändringar', saving: 'Sparar…', saved: 'Sparat!',
     danger_zone: 'Farlig zon', leave_group: 'Lämna gruppen?', leave_group_help: 'Du kan gå med igen om gruppen är öppen.',
-    leave_group_btn: 'Lämna gruppen', cancel: 'Avbryt', leave: 'Lämna',
+    leave_group_btn: 'Lämna gruppen', leave_group_confirm: 'Lämna den här gruppen? Du behöver bli inbjuden igen eller begära att gå med. Matcher du spelat finns kvar i din historik.', left_group: 'Du har lämnat {{name}}', leave_failed: 'Kunde inte lämna gruppen', leaving: 'Lämnar…', cancel: 'Avbryt', leave: 'Lämna',
     stat_total_members: 'Totalt medlemmar', stat_pending_requests: 'Väntande förfrågningar', stat_avg_elo: 'Genomsnittligt grupp-ELO', stat_created: 'Skapad',
     role_demote: 'Degradera', role_make_admin: 'Admin',
     group_not_found: 'Gruppen hittades inte', back_to_community: 'Tillbaka till Community', private_locked_title: 'Endast medlemmar', private_locked_sub: 'Gå med i gruppen för att se medlemmar, matcher och omröstningar',

@@ -439,7 +439,7 @@ export default {
     group_rules_label: 'Reglas del grupo (opcional)', group_rules_placeholder: 'Código de conducta, reglas de partidos, etc.',
     save_changes: 'Guardar cambios', saving: 'Guardando…', saved: '¡Guardado!',
     danger_zone: 'Zona de peligro', leave_group: '¿Salir del grupo?', leave_group_help: 'Puedes volver a unirte si el grupo es abierto.',
-    leave_group_btn: 'Salir del grupo', cancel: 'Cancelar', leave: 'Salir',
+    leave_group_btn: 'Salir del grupo', leave_group_confirm: '¿Salir de este grupo? Necesitarás ser reinvitado o solicitar de nuevo. Los partidos jugados permanecen en tu historial.', left_group: 'Has salido de {{name}}', leave_failed: 'Error al salir del grupo', leaving: 'Saliendo…', cancel: 'Cancelar', leave: 'Salir',
     stat_total_members: 'Total de miembros', stat_pending_requests: 'Solicitudes pendientes', stat_avg_elo: 'ELO promedio del grupo', stat_created: 'Creado',
     role_demote: 'Quitar admin', role_make_admin: 'Admin',
     group_not_found: 'Grupo no encontrado', back_to_community: 'Volver a Comunidad', private_locked_title: 'Solo miembros', private_locked_sub: 'Únete al grupo para ver miembros, partidos y encuestas',

@@ -439,7 +439,7 @@ export default {
     group_rules_label: 'Regras do grupo (opcional)', group_rules_placeholder: 'Código de conduta, regras de partidas, etc.',
     save_changes: 'Salvar alterações', saving: 'Salvando…', saved: 'Salvo!',
     danger_zone: 'Zona de perigo', leave_group: 'Sair do grupo?', leave_group_help: 'Você pode voltar se o grupo for aberto.',
-    leave_group_btn: 'Sair do grupo', cancel: 'Cancelar', leave: 'Sair',
+    leave_group_btn: 'Sair do grupo', leave_group_confirm: 'Sair deste grupo? Você precisará ser reconvidado ou solicitar novamente. Partidas jogadas permanecem no seu histórico.', left_group: 'Você saiu de {{name}}', leave_failed: 'Falha ao sair do grupo', leaving: 'Saindo…', cancel: 'Cancelar', leave: 'Sair',
     stat_total_members: 'Total de membros', stat_pending_requests: 'Solicitações pendentes', stat_avg_elo: 'ELO médio do grupo', stat_created: 'Criado',
     role_demote: 'Remover admin', role_make_admin: 'Admin',
     group_not_found: 'Grupo não encontrado', back_to_community: 'Voltar para Comunidade', private_locked_title: 'Somente membros', private_locked_sub: 'Entre no grupo para ver membros, partidas e enquetes',

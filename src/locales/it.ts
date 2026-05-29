@@ -439,7 +439,7 @@ export default {
     group_rules_label: 'Regole del gruppo (opzionale)', group_rules_placeholder: 'Codice di condotta, regole delle partite, ecc.',
     save_changes: 'Salva modifiche', saving: 'Salvataggio…', saved: 'Salvato!',
     danger_zone: 'Zona pericolosa', leave_group: 'Lasciare il gruppo?', leave_group_help: 'Potrai rientrare se il gruppo è aperto.',
-    leave_group_btn: 'Lascia il gruppo', cancel: 'Annulla', leave: 'Lascia',
+    leave_group_btn: 'Lascia il gruppo', leave_group_confirm: 'Lasciare questo gruppo? Dovrai essere reinvitato o richiedere di nuovo. Le partite giocate restano nel tuo storico.', left_group: 'Hai lasciato {{name}}', leave_failed: 'Errore nell\'uscita dal gruppo', leaving: 'Uscita…', cancel: 'Annulla', leave: 'Lascia',
     stat_total_members: 'Membri totali', stat_pending_requests: 'Richieste in attesa', stat_avg_elo: 'ELO medio del gruppo', stat_created: 'Creato',
     role_demote: 'Retrocedi', role_make_admin: 'Admin',
     group_not_found: 'Gruppo non trovato', back_to_community: 'Torna a Comunità', private_locked_title: 'Solo membri', private_locked_sub: 'Unisciti al gruppo per vedere membri, partite e sondaggi',

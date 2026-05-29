@@ -84,7 +84,7 @@ function useGroup(groupId: string) {
         .from('groups')
         .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, allow_join_requests, allow_ringers, ringer_approval, created_at, banner_url')
         .eq('id', groupId)
-        .single()
+        .maybeSingle()
       if (error) throw error
       return data
     },
@@ -1441,6 +1441,73 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   )
 }
 
+// ── Leave Group (non-admin members) ──────────────────────────────────────────
+
+function LeaveGroupSection({ groupId, groupName, userId }: { groupId: string; groupName: string; userId: string }) {
+  const navigate = useNavigate()
+  const queryClient = useQueryClient()
+  const { t } = useTranslation()
+  const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const leaveMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('group_members').delete()
+        .eq('group_id', groupId).eq('user_id', userId)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      toast.success(t('group_detail.left_group', { name: groupName }))
+      queryClient.invalidateQueries({ queryKey: ['my-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
+      queryClient.invalidateQueries({ queryKey: ['user-membership', groupId, userId] })
+      navigate('/community')
+    },
+    onError: () => toast.error(t('group_detail.leave_failed')),
+  })
+
+  return (
+    <>
+      <div className="px-5 pb-8">
+        <button
+          onClick={() => setConfirmOpen(true)}
+          className="w-full rounded-xl border border-red-200 py-3 text-[14px] font-semibold text-red-500 active:scale-[0.98] transition-transform"
+        >
+          {t('group_detail.leave_group_btn')}
+        </button>
+      </div>
+      <AnimatePresence>
+        {confirmOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setConfirmOpen(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+              style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
+            >
+              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('group_detail.leave_group')}</p>
+              <p className="text-[13px] text-gray-500 text-center mb-6">{t('group_detail.leave_group_confirm')}</p>
+              <div className="flex gap-3">
+                <button onClick={() => setConfirmOpen(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">
+                  {t('group_detail.cancel')}
+                </button>
+                <button onClick={() => leaveMutation.mutate()} disabled={leaveMutation.isPending}
+                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-50">
+                  {leaveMutation.isPending ? t('group_detail.leaving') : t('group_detail.leave')}
+                </button>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
 // ── Shared helpers ────────────────────────────────────────────────────────────
 
 function TabSkeleton() {
@@ -1816,6 +1883,9 @@ export function GroupDetailPage() {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {/* Leave Group — visible to non-admin members */}
+      {isMember && !isAdmin && <LeaveGroupSection groupId={groupId} groupName={group.name} userId={userId} />}
 
       {/* BUG 4: CreateMatchSheet inline with group_id pre-filled */}
       <CreateMatchSheet

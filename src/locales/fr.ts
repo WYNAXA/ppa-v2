@@ -439,7 +439,7 @@ export default {
     group_rules_label: 'Règles du groupe (facultatif)', group_rules_placeholder: 'Code de conduite, règles de matchs, etc.',
     save_changes: 'Enregistrer les modifications', saving: 'Enregistrement…', saved: 'Enregistré !',
     danger_zone: 'Zone de danger', leave_group: 'Quitter le groupe ?', leave_group_help: 'Tu pourras revenir si le groupe est ouvert.',
-    leave_group_btn: 'Quitter le groupe', cancel: 'Annuler', leave: 'Quitter',
+    leave_group_btn: 'Quitter le groupe', leave_group_confirm: 'Quitter ce groupe ? Vous devrez être réinvité ou refaire une demande. Vos matchs joués restent dans votre historique.', left_group: 'Vous avez quitté {{name}}', leave_failed: 'Échec de la sortie du groupe', leaving: 'Sortie…', cancel: 'Annuler', leave: 'Quitter',
     stat_total_members: 'Total membres', stat_pending_requests: 'Demandes en attente', stat_avg_elo: 'ELO moyen du groupe', stat_created: 'Créé',
     role_demote: 'Rétrograder', role_make_admin: 'Admin',
     group_not_found: 'Groupe introuvable', back_to_community: 'Retour à Communauté', private_locked_title: 'Membres uniquement', private_locked_sub: 'Rejoignez le groupe pour voir les membres, matchs et sondages',

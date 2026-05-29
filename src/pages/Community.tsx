@@ -42,7 +42,7 @@ interface MyGroup extends GroupRow {
 
 interface DiscoverGroup extends GroupRow {
   memberCount: number
-  membershipStatus: 'none' | 'pending' | 'approved' | 'ringer' | 'pending_ringer'
+  membershipStatus: 'none' | 'pending' | 'approved' | 'ringer' | 'pending_ringer' | 'ringer_declined'
 }
 
 interface ConnectionProfile {
@@ -861,9 +861,10 @@ export function CommunityPage() {
       }
       return group?.name
     },
-    onSuccess: (name) => {
+    onSuccess: (name, groupId) => {
       toast.success(t('community.ringer_offer_sent', { name: name ?? '' }))
       queryClient.invalidateQueries({ queryKey: ['discover-groups'] })
+      setPreviewGroup(prev => prev?.id === groupId ? { ...prev, membershipStatus: 'pending_ringer' } : prev)
     },
     onError: (err: Error) => {
       if (err.message === 'duplicate') {

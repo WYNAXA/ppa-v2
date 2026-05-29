@@ -22,6 +22,7 @@ interface HistoryPoint {
   elo: number
   change: number
   label: string
+  idx: number
 }
 
 // ── Custom Tooltip ───────────────────────────────────────────────────────────
@@ -71,25 +72,19 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
         .gte('created_at', '2026-04-29T00:00:00Z')
         .order('created_at', { ascending: true })
         .limit(100)
-      return (data ?? []).map(r => ({
+      return (data ?? []).map((r, i) => ({
         date: r.created_at as string,
         elo: r.rating_after as number,
         change: r.rating_change as number,
-        label: format(parseISO(r.created_at as string), 'd MMM', { locale }),
+        label: format(parseISO(r.created_at as string), 'd MMM HH:mm', { locale }),
+        idx: i,
       }))
     },
     staleTime: 5 * 60 * 1000,
   })
 
-  // Always append current ELO as final point
-  const history = useMemo(() => {
-    if (currentElo == null) return rawHistory
-    const lastHistoryElo = rawHistory.length > 0 ? rawHistory[rawHistory.length - 1].elo : null
-    if (lastHistoryElo === currentElo) return rawHistory
-    return [...rawHistory, { date: new Date().toISOString(), elo: currentElo, change: 0, label: t('compete.now') }]
-  }, [rawHistory, currentElo])
-
   // Time-filtered data
+  const history = rawHistory
   const filteredHistory = useMemo(() => {
     if (range === 'all' || history.length === 0) return history
     const cutoff = subMonths(new Date(), range === '1m' ? 1 : range === '3m' ? 3 : 6)
@@ -166,7 +161,12 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
                 <stop offset="95%" stopColor="#009688" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} />
+            <XAxis
+              dataKey="idx"
+              tick={false}
+              axisLine={false}
+              tickLine={false}
+            />
             <YAxis tick={{ fontSize: 10, fill: '#9CA3AF' }} axisLine={false} tickLine={false} domain={['dataMin - 20', 'dataMax + 20']} />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={1500} stroke="#E5E7EB" strokeDasharray="3 3" />

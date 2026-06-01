@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Navigate, Link } from 'react-router-dom'
+import { Navigate, Link, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -7,7 +7,9 @@ import { useAuth } from '@/hooks/useAuth'
 export function AuthPage() {
   const { session, loading } = useAuth()
   const { t } = useTranslation()
-  const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>('signin')
+  const [searchParams] = useSearchParams()
+  const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin'
+  const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>(initialMode)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [name, setName] = useState('')

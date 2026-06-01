@@ -210,40 +210,39 @@ export function RankingExplainer() {
           </div>
         </div>
 
-        {/* ── Set scores ── */}
+        {/* ── Set scores — side by side on wider screens ── */}
         <div className="rounded-2xl border border-gray-100 bg-white p-5 mb-6 shadow-sm">
           <h3 className="text-[14px] font-bold text-navy mb-3">Score</h3>
-          <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {sets.map((s, i) => (
-              <div key={i} className="flex items-center gap-3">
-                {i > 0 && (
-                  <label className="flex items-center gap-2 cursor-pointer flex-shrink-0">
+              <div key={i} className="flex flex-col gap-2">
+                {i > 0 ? (
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
                       checked={s.played}
                       onChange={(e) => updateSet(i, 'played', e.target.checked)}
                       className="rounded border-gray-300 text-teal-500 focus:ring-teal-500/30 h-4 w-4"
                     />
-                    <span className="text-[12px] text-gray-500 w-12">Set {i + 1}</span>
+                    <span className="text-[12px] font-medium text-gray-500">Set {i + 1}</span>
                   </label>
+                ) : (
+                  <span className="text-[12px] font-medium text-gray-500 pl-0.5">Set 1</span>
                 )}
-                {i === 0 && (
-                  <span className="text-[12px] text-gray-500 w-[76px] flex-shrink-0 pl-6">Set 1</span>
-                )}
-                <div className={`flex items-center gap-2 flex-1 ${!s.played && i > 0 ? 'opacity-30 pointer-events-none' : ''}`}>
+                <div className={`flex items-center gap-2 ${!s.played && i > 0 ? 'opacity-30 pointer-events-none' : ''}`}>
                   <input
                     type="number" min={0} max={7}
                     value={s.team1}
                     onChange={(e) => updateSet(i, 'team1', e.target.value)}
-                    className="w-14 text-center rounded-lg border border-teal-200 px-2 py-1.5 text-[14px] font-bold text-teal-700 outline-none focus:ring-2 focus:ring-teal-500/30"
+                    className="w-full text-center rounded-lg border border-teal-200 px-2 py-2 text-[14px] font-bold text-teal-700 outline-none focus:ring-2 focus:ring-teal-500/30"
                     placeholder="A"
                   />
-                  <span className="text-[12px] text-gray-400">–</span>
+                  <span className="text-[12px] text-gray-400 flex-shrink-0">–</span>
                   <input
                     type="number" min={0} max={7}
                     value={s.team2}
                     onChange={(e) => updateSet(i, 'team2', e.target.value)}
-                    className="w-14 text-center rounded-lg border border-orange-200 px-2 py-1.5 text-[14px] font-bold text-orange-700 outline-none focus:ring-2 focus:ring-orange-500/30"
+                    className="w-full text-center rounded-lg border border-orange-200 px-2 py-2 text-[14px] font-bold text-orange-700 outline-none focus:ring-2 focus:ring-orange-500/30"
                     placeholder="B"
                   />
                 </div>

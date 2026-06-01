@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { ChevronLeft, ChevronDown, Search, X } from 'lucide-react'
 import { FAQS, FAQ_CATEGORIES } from './faqData'
 import { useReducedMotion } from '@/components/marketing/useReducedMotion'
@@ -46,7 +46,6 @@ function FaqAccordion({ id, q, a, defaultOpen }: { id: string; q: string; a: str
 
 /* ── Page ── */
 export function FAQPage() {
-  const navigate = useNavigate()
   const { hash } = useLocation()
   const [search, setSearch] = useState('')
   const initialCategory = useMemo(() => {
@@ -96,13 +95,13 @@ export function FAQPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100">
         <div className="mx-auto max-w-3xl flex items-center gap-3 px-5 pt-14 pb-4">
-          <button
-            onClick={() => navigate(-1)}
+          <Link
+            to="/"
             className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 hover:bg-gray-200 transition-colors mkt-btn"
-            aria-label="Go back"
+            aria-label="Back to home"
           >
             <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </button>
+          </Link>
           <h1 className="font-display text-[18px] font-bold text-navy">Frequently Asked Questions</h1>
         </div>
       </div>

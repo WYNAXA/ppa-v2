@@ -1,117 +1,229 @@
-import { Link } from 'react-router-dom'
-import { Navigate } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '@/hooks/useAuth'
-import {
-  MapPin, Users, Trophy, Calendar, Star, Shield,
-  Search, Zap, BarChart3, Heart, Globe, ChevronRight,
-} from 'lucide-react'
+import { ChevronRight, Award, Star, Trophy, Shield, Shirt } from 'lucide-react'
+import { IPhoneFrame } from '@/components/marketing/IPhoneFrame'
+import { FeatureTour } from '@/components/marketing/FeatureTour'
+import { RankingExplainer } from '@/components/marketing/RankingExplainer'
+import { AtmosphereBand } from '@/components/marketing/AtmosphereBand'
+import { useReducedMotion } from '@/components/marketing/useReducedMotion'
+import { useInView } from '@/components/marketing/useInView'
 
+/* ── Nav ── */
 function NavBar() {
   return (
     <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-100">
       <div className="mx-auto max-w-6xl flex items-center justify-between px-5 py-3">
         <Link to="/" className="flex items-center gap-2.5">
-          <img src="/PPA_Round_Logo_White_Background.png" alt="Padel Players" className="h-9 w-9 rounded-xl" />
-          <span className="text-[16px] font-extrabold text-navy">Padel Players</span>
+          <img
+            src="/PPA_Round_Logo_White_Background.png"
+            alt="Padel Players"
+            width={36} height={36}
+            className="h-9 w-9 rounded-xl"
+          />
+          <span className="font-display text-[16px] font-extrabold text-navy">Padel Players</span>
         </Link>
         <div className="hidden sm:flex items-center gap-6 text-[13px] font-medium text-gray-600">
-          <a href="#features" className="hover:text-teal-600 transition-colors">Features</a>
-          <Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link>
-          <Link to="/contact" className="hover:text-teal-600 transition-colors">Contact</Link>
+          <a href="#features" className="mkt-link pb-0.5 hover:text-navy transition-colors">Features</a>
+          <a href="#ranking" className="mkt-link pb-0.5 hover:text-navy transition-colors">Ranking</a>
+          <Link to="/faq" className="mkt-link pb-0.5 hover:text-navy transition-colors">FAQ</Link>
+          <Link to="/contact" className="mkt-link pb-0.5 hover:text-navy transition-colors">Contact</Link>
         </div>
         <Link
           to="/auth"
-          className="rounded-xl bg-teal-500 px-4 py-2 text-[13px] font-semibold text-white hover:bg-teal-600 transition-colors"
+          className="mkt-btn rounded-xl bg-teal-500 px-4 py-2 text-[13px] font-semibold text-white hover:bg-teal-600 transition-colors"
         >
-          Sign In
+          Get Started
         </Link>
       </div>
     </nav>
   )
 }
 
-const FEATURES = [
-  {
-    icon: MapPin,
-    title: 'Find Matches Near You',
-    desc: 'Discover open matches in your area and join with one tap. Location-based match discovery makes it easy to play.',
-  },
-  {
-    icon: Calendar,
-    title: 'Create a Match in Seconds',
-    desc: 'Set the time, venue, and number of players. Invite friends directly or broadcast to your network.',
-  },
-  {
-    icon: Zap,
-    title: 'Find My Game',
-    desc: 'Share your availability and get auto-matched with compatible players. No more group chat coordination.',
-  },
-  {
-    icon: Trophy,
-    title: 'Leagues & Tournaments',
-    desc: 'Create and run leagues with Round Robin or Mexicano formats. Live standings, seasons, and automated scheduling.',
-  },
-  {
-    icon: BarChart3,
-    title: 'ELO Rankings & Leaderboards',
-    desc: 'Track your rating over time with a global ELO system. Earn badges, achievements, and streaks as you improve.',
-  },
-  {
-    icon: Users,
-    title: 'Community & Groups',
-    desc: 'Find players, coaches, venues, and events. Create or join groups to organise your padel community.',
-  },
-  {
-    icon: Heart,
-    title: 'Household Linking',
-    desc: 'Link a partner or family member to detect scheduling conflicts and coordinate your padel lives.',
-  },
-  {
-    icon: Star,
-    title: 'Player Profiles',
-    desc: 'Showcase your stats, win rate, best streak, and favourite partner. Customise with avatar and banner images.',
-  },
-  {
-    icon: Search,
-    title: 'Book a Court',
-    desc: 'Search for available courts at venues near you and book directly through the app.',
-  },
-  {
-    icon: Shield,
-    title: 'Safe & Respectful',
-    desc: 'Built-in report and block tools keep the community welcoming. An account is required for all social features.',
-  },
-  {
-    icon: Globe,
-    title: 'iOS & Web',
-    desc: 'Available as a native iOS app and a full-featured web app. Your data syncs seamlessly across devices.',
-  },
-] as const
+/* ── Hero ── */
+function Hero() {
+  const reducedMotion = useReducedMotion()
 
-function FeatureCard({ icon: Icon, title, desc }: { icon: typeof MapPin; title: string; desc: string }) {
   return (
-    <div className="group rounded-2xl border border-gray-100 bg-white p-6 shadow-sm hover:shadow-md hover:border-teal-100 transition-all">
-      <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-600 group-hover:bg-teal-500 group-hover:text-white transition-colors">
-        <Icon className="h-5 w-5" />
-      </div>
-      <h3 className="text-[15px] font-bold text-navy mb-1.5">{title}</h3>
-      <p className="text-[13px] text-gray-500 leading-relaxed">{desc}</p>
-    </div>
-  )
-}
+    <section className="relative overflow-hidden bg-navy">
+      {/* Background photo — wide on desktop, portrait on mobile */}
+      <picture>
+        <source media="(min-width: 640px)" srcSet="/images/padel-hero-wide.webp" />
+        <img
+          src="/images/padel-hero.webp"
+          alt="Padel players on court"
+          loading="eager"
+          width={1200} height={800}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      </picture>
+      {/* Gradient for legibility */}
+      <div className="absolute inset-0 bg-gradient-to-t from-navy via-navy/70 to-navy/40" />
 
-function PhoneMockup({ src, alt }: { src: string; alt: string }) {
-  return (
-    <div className="relative mx-auto w-[220px] flex-shrink-0">
-      <div className="rounded-[2rem] border-[6px] border-navy bg-navy p-1 shadow-xl">
-        <div className="overflow-hidden rounded-[1.5rem] bg-gray-100">
-          <img src={src} alt={alt} className="w-full object-cover aspect-[9/19.5]" loading="lazy" />
+      <div className="relative z-10 mx-auto max-w-6xl px-5 pt-20 pb-24 sm:pt-28 sm:pb-32">
+        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
+          {/* Text */}
+          <div className="flex-1 text-center lg:text-left">
+            <h1 className="font-display text-[34px] sm:text-[48px] font-extrabold leading-[1.1] text-white tracking-tight">
+              Your Padel<br className="hidden sm:block" /> Community
+            </h1>
+            <p className="mt-4 text-[16px] sm:text-[18px] text-gray-300 leading-relaxed max-w-lg mx-auto lg:mx-0">
+              Find matches, run leagues, track your ranking, and connect with players near you. Free for everyone.
+            </p>
+            <div className="mt-8 flex flex-col sm:flex-row items-center lg:items-start gap-3">
+              <a
+                href="https://app.padelplayersapp.com"
+                className="mkt-btn inline-flex items-center gap-2 rounded-xl bg-teal-500 px-6 py-3.5 text-[14px] font-semibold text-white hover:bg-teal-600 transition-colors shadow-lg shadow-teal-500/20"
+              >
+                Get Started — It's Free
+                <ChevronRight className="h-4 w-4" />
+              </a>
+              <span className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-5 py-3 text-[13px] font-medium text-white/70">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
+                </svg>
+                iOS app coming soon
+              </span>
+            </div>
+          </div>
+
+          {/* Phone mockup — entrance animation */}
+          <div
+            className="flex-shrink-0"
+            style={reducedMotion ? {} : {
+              animation: 'phoneEntrance 0.8s cubic-bezier(0.22, 1, 0.36, 1) both',
+            }}
+          >
+            <IPhoneFrame
+              src="/screenshots/home.png"
+              alt="Padel Players App — Home screen"
+              width={280}
+            />
+          </div>
         </div>
       </div>
-    </div>
+
+      {/* Keyframes for phone entrance */}
+      <style>{`
+        @keyframes phoneEntrance {
+          from { opacity: 0; transform: perspective(800px) rotateY(8deg) translateY(24px); }
+          to   { opacity: 1; transform: perspective(800px) rotateY(0deg) translateY(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          @keyframes phoneEntrance { from, to { opacity: 1; transform: none; } }
+        }
+      `}</style>
+    </section>
   )
 }
 
+/* ── Feature showcase cards (social/competitive) ── */
+function FeatureShowcase() {
+  const reducedMotion = useReducedMotion()
+  const [ref1, inView1] = useInView<HTMLDivElement>({ threshold: 0.2 })
+  const [ref2, inView2] = useInView<HTMLDivElement>({ threshold: 0.2 })
+
+  const enterStyle = (visible: boolean) => reducedMotion
+    ? {}
+    : { opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(20px)', transition: 'opacity 0.5s ease, transform 0.5s ease' }
+
+  return (
+    <section className="bg-cream py-16 sm:py-24" id="features">
+      <div className="mx-auto max-w-6xl px-5">
+        <div className="text-center mb-12">
+          <p className="text-[13px] font-semibold text-teal-600 uppercase tracking-wider mb-2">Social + competitive</p>
+          <h2 className="font-display text-[26px] sm:text-[36px] font-extrabold text-navy">More than just a scoreboard</h2>
+        </div>
+
+        {/* Peer voting */}
+        <div ref={ref1} style={enterStyle(inView1)} className="grid sm:grid-cols-3 gap-5 mb-8">
+          <div className="mkt-card-hover rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <Award className="h-5 w-5" />
+            </div>
+            <h3 className="text-[15px] font-bold text-navy mb-1">Post-match voting</h3>
+            <p className="text-[13px] text-gray-500 leading-relaxed">
+              After recording a result, the submitter can rate teammates and opponents across five fun categories — Shot of the Match, Tactical Genius, Best Teammate, Comedy Gold, and Hustle Award.
+            </p>
+          </div>
+          <div className="mkt-card-hover rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <Star className="h-5 w-5" />
+            </div>
+            <h3 className="text-[15px] font-bold text-navy mb-1">Badges and achievements</h3>
+            <p className="text-[13px] text-gray-500 leading-relaxed">
+              Earn badges like First Victory, On Fire (3-win streak), Sharp Shooter (70%+ win rate), Giant Slayer (beating a much higher-rated team), and more as you play.
+            </p>
+          </div>
+          <div className="mkt-card-hover rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <Shirt className="h-5 w-5" />
+            </div>
+            <h3 className="text-[15px] font-bold text-navy mb-1">League jerseys</h3>
+            <p className="text-[13px] text-gray-500 leading-relaxed">
+              League admins can award special jerseys to standout players — League Leader, Giant Killer, Most Improved, Entertainer, and more. A fun way to recognise your group's best.
+            </p>
+          </div>
+        </div>
+
+        {/* Safety + trust */}
+        <div ref={ref2} style={enterStyle(inView2)} className="grid sm:grid-cols-2 gap-5">
+          <div className="mkt-card-hover rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <Shield className="h-5 w-5" />
+            </div>
+            <h3 className="text-[15px] font-bold text-navy mb-1">Safe and respectful</h3>
+            <p className="text-[13px] text-gray-500 leading-relaxed">
+              Built-in report and block tools keep the community welcoming. Match results go through a verification step — the opposing team confirms or disputes within 24 hours.
+            </p>
+          </div>
+          <div className="mkt-card-hover rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <h3 className="text-[15px] font-bold text-navy mb-1">Transparent ranking</h3>
+            <p className="text-[13px] text-gray-500 leading-relaxed">
+              Every rating change is explained — opponent strength, experience level, and score margin all factor in. Nothing is hidden.{' '}
+              <a href="#ranking" className="text-teal-600 font-medium mkt-link pb-0.5">Try the calculator below.</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Bottom CTA ── */
+function BottomCTA() {
+  return (
+    <section className="bg-gradient-to-br from-deep-teal to-navy py-16 sm:py-20">
+      <div className="mx-auto max-w-3xl px-5 text-center">
+        <h2 className="font-display text-[24px] sm:text-[32px] font-extrabold text-white mb-4">
+          Ready to play?
+        </h2>
+        <p className="text-[15px] text-teal-100 mb-8 max-w-lg mx-auto">
+          Join a growing community of padel players. Create your free account in seconds.
+        </p>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          <a
+            href="https://app.padelplayersapp.com"
+            className="mkt-btn inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-[14px] font-semibold text-navy hover:bg-gray-50 transition-colors shadow-sm"
+          >
+            Open the Web App
+            <ChevronRight className="h-4 w-4" />
+          </a>
+          <Link
+            to="/auth"
+            className="mkt-btn inline-flex items-center gap-2 rounded-xl border border-white/30 px-6 py-3 text-[14px] font-semibold text-white hover:bg-white/10 transition-colors"
+          >
+            Create an Account
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* ── Footer ── */
 function Footer() {
   return (
     <footer className="border-t border-gray-100 bg-white">
@@ -119,18 +231,18 @@ function Footer() {
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
           <div>
             <div className="flex items-center gap-2.5 mb-2">
-              <img src="/PPA_Round_Logo_White_Background.png" alt="Padel Players" className="h-8 w-8 rounded-lg" />
-              <span className="text-[15px] font-bold text-navy">Padel Players</span>
+              <img src="/PPA_Round_Logo_White_Background.png" alt="Padel Players" width={32} height={32} className="h-8 w-8 rounded-lg" />
+              <span className="font-display text-[15px] font-bold text-navy">Padel Players</span>
             </div>
             <p className="text-[12px] text-gray-400">Wynaxa Sports Tech Ltd (part of Wynaxa Limited)</p>
             <p className="text-[12px] text-gray-400">26 Fitzwilliam Square West, Dublin, D02 HX82, Ireland</p>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-[13px] font-medium text-gray-500">
-            <Link to="/privacy" className="hover:text-teal-600 transition-colors">Privacy</Link>
-            <Link to="/terms" className="hover:text-teal-600 transition-colors">Terms</Link>
-            <Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link>
-            <Link to="/contact" className="hover:text-teal-600 transition-colors">Contact</Link>
-            <Link to="/support" className="hover:text-teal-600 transition-colors">Support</Link>
+            <Link to="/privacy" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Privacy</Link>
+            <Link to="/terms" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Terms</Link>
+            <Link to="/faq" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">FAQ</Link>
+            <Link to="/contact" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Contact</Link>
+            <Link to="/support" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Support</Link>
           </div>
         </div>
         <p className="mt-6 text-[11px] text-gray-300">&copy; {new Date().getFullYear()} Wynaxa Sports Tech Ltd. All rights reserved.</p>
@@ -139,15 +251,7 @@ function Footer() {
   )
 }
 
-/* ── Screenshots that ship in /public/screenshots/ ── */
-const SCREENSHOTS = [
-  { src: '/screenshots/home.png', alt: 'Home dashboard showing upcoming matches' },
-  { src: '/screenshots/match.png', alt: 'Match detail view with players and scores' },
-  { src: '/screenshots/leagues.png', alt: 'League standings and rankings' },
-  { src: '/screenshots/community.png', alt: 'Community groups and player discovery' },
-  { src: '/screenshots/you.png', alt: 'Player profile with stats and achievements' },
-]
-
+/* ── Page ── */
 export function LandingPage() {
   const { session, loading } = useAuth()
 
@@ -164,104 +268,33 @@ export function LandingPage() {
   return (
     <div className="min-h-full bg-cream">
       <NavBar />
+      <Hero />
+      <FeatureTour />
 
-      {/* ── Hero ── */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-white to-cream">
-        <div className="mx-auto max-w-6xl px-5 pt-16 pb-20 sm:pt-24 sm:pb-28 text-center">
-          <img
-            src="/PPA_Round_Logo_White_Background.png"
-            alt="Padel Players App"
-            className="mx-auto mb-6 h-20 w-20 rounded-2xl shadow-md"
-          />
-          <h1 className="text-[32px] sm:text-[44px] font-extrabold leading-tight text-navy tracking-tight">
-            Your Padel Community,<br className="hidden sm:block" /> All in One App
-          </h1>
-          <p className="mx-auto mt-4 max-w-xl text-[15px] sm:text-[17px] text-gray-500 leading-relaxed">
-            Find matches, run leagues, track your ELO, and connect with players near you.
-            Free for everyone — built for the social padel player.
+      {/* Atmosphere band */}
+      <AtmosphereBand src="/images/padel-duo-overhead.webp" alt="Padel player overhead shot" gradientSide="left">
+        <div className="max-w-md">
+          <p className="font-display text-[22px] sm:text-[28px] font-extrabold text-white leading-tight">
+            Built for the social padel player
           </p>
-
-          {/* CTAs */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
-            <span className="inline-flex items-center gap-2 rounded-xl bg-gray-100 px-5 py-3 text-[14px] font-semibold text-gray-500">
-              <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
-              </svg>
-              Coming soon to the App Store
-            </span>
-            <a
-              href="https://app.padelplayersapp.com"
-              className="inline-flex items-center gap-2 rounded-xl bg-teal-500 px-5 py-3 text-[14px] font-semibold text-white hover:bg-teal-600 transition-colors shadow-sm"
-            >
-              Open the Web App
-              <ChevronRight className="h-4 w-4" />
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section id="features" className="bg-cream py-16 sm:py-24">
-        <div className="mx-auto max-w-6xl px-5">
-          <div className="text-center mb-12">
-            <p className="text-[13px] font-semibold text-teal-600 uppercase tracking-wider mb-2">Everything you need</p>
-            <h2 className="text-[26px] sm:text-[32px] font-extrabold text-navy">Built for Padel Players</h2>
-          </div>
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <FeatureCard key={f.title} {...f} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── Screenshots ── */}
-      <section className="bg-white py-16 sm:py-24">
-        <div className="mx-auto max-w-6xl px-5">
-          <div className="text-center mb-12">
-            <p className="text-[13px] font-semibold text-teal-600 uppercase tracking-wider mb-2">See it in action</p>
-            <h2 className="text-[26px] sm:text-[32px] font-extrabold text-navy">Designed for Your Phone</h2>
-          </div>
-          <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide justify-center flex-wrap sm:flex-nowrap">
-            {SCREENSHOTS.map((s) => (
-              <div key={s.alt} className="snap-center">
-                <PhoneMockup src={s.src} alt={s.alt} />
-              </div>
-            ))}
-          </div>
-          <p className="text-center text-[12px] text-gray-400 mt-6">
-            Screenshots are illustrative. Actual app experience may vary.
+          <p className="text-[14px] text-gray-300 mt-3 leading-relaxed">
+            Whether you play once a week or every day, Padel Players keeps your game organised and your community connected.
           </p>
         </div>
-      </section>
+      </AtmosphereBand>
 
-      {/* ── Bottom CTA ── */}
-      <section className="bg-gradient-to-br from-deep-teal to-navy py-16 sm:py-20">
-        <div className="mx-auto max-w-3xl px-5 text-center">
-          <h2 className="text-[24px] sm:text-[32px] font-extrabold text-white mb-4">
-            Ready to Play?
-          </h2>
-          <p className="text-[15px] text-teal-100 mb-8 max-w-lg mx-auto">
-            Join a growing community of padel players. Create your free account in seconds.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <a
-              href="https://app.padelplayersapp.com"
-              className="inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3 text-[14px] font-semibold text-navy hover:bg-gray-50 transition-colors shadow-sm"
-            >
-              Open the Web App
-              <ChevronRight className="h-4 w-4" />
-            </a>
-            <Link
-              to="/auth"
-              className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-6 py-3 text-[14px] font-semibold text-white hover:bg-white/10 transition-colors"
-            >
-              Create an Account
-            </Link>
-          </div>
-        </div>
-      </section>
+      <FeatureShowcase />
+      <RankingExplainer />
 
+      {/* Atmosphere band before CTA */}
+      <AtmosphereBand
+        src="/images/padel-duo-net.webp"
+        alt="Padel racket at the net"
+        gradientSide="right"
+        heightClass="h-[240px] sm:h-[300px]"
+      />
+
+      <BottomCTA />
       <Footer />
     </div>
   )

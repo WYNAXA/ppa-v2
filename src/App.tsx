@@ -13,8 +13,11 @@ import { OnboardingPage, isOnboardingComplete } from '@/pages/Onboarding'
 import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
 import { SupportPage } from '@/pages/Support'
+import { LandingPage } from '@/pages/Landing'
+import { FAQPage } from '@/pages/FAQ'
+import { ContactPage } from '@/pages/Contact'
 
-// v1.0.9 — bump this comment to force service worker cache invalidation
+// v1.1.0 — bump this comment to force service worker cache invalidation
 
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
@@ -65,7 +68,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return
     if (!session || !profile) return
-    if (['/onboarding', '/privacy', '/terms', '/support'].includes(location.pathname)) return
+    if (['/onboarding', '/privacy', '/terms', '/support', '/faq', '/contact'].includes(location.pathname)) return
     if (location.pathname.startsWith('/auth')) return
     if (!isOnboardingComplete(profile)) {
       navigate('/onboarding', { replace: true })
@@ -123,8 +126,8 @@ function AppShell() {
         <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>
           <Suspense fallback={<SplashScreen />}>
           <Routes>
-            {/* Root redirect */}
-            <Route path="/" element={<Navigate to={session ? '/home' : '/auth'} replace />} />
+            {/* Root — marketing landing for visitors, home for logged-in users */}
+            <Route path="/" element={session ? <Navigate to="/home" replace /> : <LandingPage />} />
 
             {/* Auth */}
             <Route path="/auth" element={<AuthPage />} />
@@ -134,6 +137,8 @@ function AppShell() {
             <Route path="/privacy" element={<PrivacyPolicyPage />} />
             <Route path="/terms" element={<TermsOfServicePage />} />
             <Route path="/support" element={<SupportPage />} />
+            <Route path="/faq" element={<FAQPage />} />
+            <Route path="/contact" element={<ContactPage />} />
             <Route path="/pay/booking/:bookingId/player/:playerId" element={<PayBookingPage />} />
 
             {/* Onboarding */}

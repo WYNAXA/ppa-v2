@@ -15,6 +15,9 @@ export default {
           600: '#00897b',
           700: '#00796b',
         },
+        'deep-teal': '#017174',
+        navy: '#102134',
+        cream: '#FCFCFC',
         orange: {
           DEFAULT: '#E65100',
           500: '#E65100',

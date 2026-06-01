@@ -3,10 +3,16 @@
 @theme {
   --color-teal: #009688;
   --color-teal-50: #e0f2f1;
+  --color-teal-100: #b2dfdb;
   --color-teal-500: #009688;
   --color-teal-600: #00897b;
+  --color-teal-700: #00796b;
+  --color-deep-teal: #017174;
+  --color-navy: #102134;
+  --color-cream: #FCFCFC;
   --color-orange: #E65100;
   --color-orange-500: #E65100;
+  --color-orange-600: #D84315;
   --color-sidebar: #0f1117;
 
   --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

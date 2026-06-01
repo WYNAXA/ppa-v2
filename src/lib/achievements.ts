@@ -195,9 +195,8 @@ const VOTE_BADGE_TIERS = [
 const PEER_VOTE_CATEGORY_IDS = PEER_VOTE_CATEGORIES.map(c => c.id)
 
 /**
- * Check and award tiered peer-vote badges for a list of player IDs.
- * Recomputes from current verified counts — idempotent, never double-awards.
- * Call after result verification for all participants of that match.
+ * @deprecated Server-side trigger trg_peer_vote_badges_on_verify now handles
+ * badge awarding on result verification. Kept as reference implementation.
  */
 export async function checkAndAwardPeerVoteBadges(playerIds: string[]): Promise<BadgeAward[]> {
   if (playerIds.length === 0) return []

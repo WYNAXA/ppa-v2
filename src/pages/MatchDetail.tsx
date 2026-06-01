@@ -19,7 +19,7 @@ import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
 import { AskNetworkSheet } from '@/components/match/AskNetworkSheet'
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
-import { PEER_VOTE_CATEGORIES } from '@/lib/achievements'
+import { PEER_VOTE_CATEGORIES, checkAndAwardPeerVoteBadges } from '@/lib/achievements'
 import { PushToOpenSheet } from '@/components/match/PushToOpenSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
@@ -619,11 +619,15 @@ export function MatchDetailPage() {
           .eq('id', result.id)
         // ELO processing is handled by the Database Webhook automatically
 
-        // Notify all players that the result is verified
-        const allPlayerIds = [
+        // Award tiered peer-vote badges for all match participants
+        const matchPlayerIds = [
           ...(result.team1_players ?? []),
           ...(result.team2_players ?? []),
-        ].filter((pid: string) => pid !== profile.id)
+        ]
+        checkAndAwardPeerVoteBadges(matchPlayerIds).catch(() => {})
+
+        // Notify all players that the result is verified
+        const allPlayerIds = matchPlayerIds.filter((pid: string) => pid !== profile.id)
         if (allPlayerIds.length > 0) {
           const score = `${result.team1_score}–${result.team2_score}`
           await supabase.from('notifications').insert(

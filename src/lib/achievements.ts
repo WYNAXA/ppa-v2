@@ -182,6 +182,103 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
   } catch { return [] }
 }
 
+// ── Peer Vote Tiered Badges ──────────────────────────────────────────────────
+// Tiers per category by lifetime VERIFIED votes RECEIVED:
+//   bronze ≥ 5, silver ≥ 15, gold ≥ 40
+
+const VOTE_BADGE_TIERS = [
+  { tier: 'gold',   threshold: 40 },
+  { tier: 'silver', threshold: 15 },
+  { tier: 'bronze', threshold: 5 },
+] as const
+
+const PEER_VOTE_CATEGORY_IDS = PEER_VOTE_CATEGORIES.map(c => c.id)
+
+/**
+ * Check and award tiered peer-vote badges for a list of player IDs.
+ * Recomputes from current verified counts — idempotent, never double-awards.
+ * Call after result verification for all participants of that match.
+ */
+export async function checkAndAwardPeerVoteBadges(playerIds: string[]): Promise<BadgeAward[]> {
+  if (playerIds.length === 0) return []
+  try {
+    const allAwarded: BadgeAward[] = []
+
+    for (const userId of playerIds) {
+      // 1. Get current verified vote counts from RPC
+      const { data: counts } = await supabase.rpc('get_verified_peer_vote_counts', { p_user_id: userId })
+      if (!counts || counts.length === 0) continue
+
+      // 2. Get existing peer-vote badges for this user
+      const { data: existingRows } = await supabase
+        .from('user_badges')
+        .select('badge_key, tier')
+        .eq('user_id', userId)
+        .in('badge_key', PEER_VOTE_CATEGORY_IDS)
+      const existingMap = new Map<string, string | null>()
+      for (const r of existingRows ?? []) {
+        existingMap.set(r.badge_key as string, (r.tier as string) ?? null)
+      }
+
+      // 3. For each category, determine highest tier reached
+      for (const row of counts) {
+        const category = row.category as string
+        if (!PEER_VOTE_CATEGORY_IDS.includes(category)) continue
+        const count = Number(row.vote_count)
+        const currentTier = existingMap.get(category)
+
+        // Find highest qualifying tier
+        let newTier: string | null = null
+        for (const { tier, threshold } of VOTE_BADGE_TIERS) {
+          if (count >= threshold) { newTier = tier; break }
+        }
+        if (!newTier) continue
+
+        // Skip if already at this tier or higher
+        const tierRank = (t: string | null) =>
+          t === 'gold' ? 3 : t === 'silver' ? 2 : t === 'bronze' ? 1 : 0
+        if (tierRank(currentTier ?? null) >= tierRank(newTier)) continue
+
+        // 4. Upsert the badge row
+        if (currentTier != null) {
+          // Upgrade existing badge
+          await supabase
+            .from('user_badges')
+            .update({ tier: newTier, earned_at: new Date().toISOString() })
+            .eq('user_id', userId)
+            .eq('badge_key', category)
+        } else {
+          // New badge
+          await supabase
+            .from('user_badges')
+            .insert({ user_id: userId, badge_key: category, tier: newTier })
+        }
+
+        const def = ACHIEVEMENT_LIBRARY[category]
+        const tierLabel = newTier.charAt(0).toUpperCase() + newTier.slice(1)
+        const award: BadgeAward = {
+          badge_key: category,
+          label: `${def?.name ?? category} (${tierLabel})`,
+          emoji: def?.emoji ?? '🏅',
+        }
+        allAwarded.push(award)
+
+        // 5. Notify the player
+        await supabase.from('notifications').insert({
+          user_id: userId,
+          type: 'achievement',
+          title: `${def?.emoji ?? '🏅'} ${tierLabel} ${def?.name ?? category}!`,
+          message: `You've received ${count} verified votes — ${tierLabel} tier unlocked.`,
+          related_id: userId,
+          read: false,
+        })
+      }
+    }
+
+    return allAwarded
+  } catch { return [] }
+}
+
 // ── Display helpers (non-reactive, for one-shot reads) ──────────────────────
 
 export function getAchievementLabel(key: string): string {

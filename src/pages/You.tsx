@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
-import { BADGE_DEFINITIONS } from '@/lib/achievements'
+import { BADGE_DEFINITIONS, PEER_VOTE_CATEGORIES } from '@/lib/achievements'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
@@ -239,6 +239,21 @@ function useAchievements(userId: string) {
         .order('earned_at', { ascending: false })
       if (error) return []
       return data ?? []
+    },
+  })
+}
+
+function useVerifiedVoteCounts(userId: string) {
+  return useQuery<{ category: string; vote_count: number }[]>({
+    queryKey: ['peer-vote-totals', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_verified_peer_vote_counts', { p_user_id: userId })
+      if (error) return []
+      return (data ?? []).map((r: Record<string, unknown>) => ({
+        category: r.category as string,
+        vote_count: Number(r.vote_count),
+      }))
     },
   })
 }
@@ -805,6 +820,7 @@ export function YouPage() {
   const { data: stats, isLoading: loadingStats } = useYouStats(userId)
   const { data: history = [], isLoading: loadingHistory } = useMatchHistory(userId, historyLimit)
   const { data: achievements = [] }     = useAchievements(userId)
+  const { data: voteCounts = [] }       = useVerifiedVoteCounts(userId)
   const { data: householdPartner }      = useHouseholdPartner(fullProfile?.household_partner_id)
   const { data: adminGroups = [] }      = useAdminGroups(userId)
   const { data: myRewards = [] }        = useMyRewards(userId)
@@ -1157,6 +1173,38 @@ export function YouPage() {
                     <p className="text-[10px] text-gray-400 mt-0.5">
                       {(() => { try { return format(parseISO(a.earned_at), 'd MMM', { locale }) } catch { return '' } })()}
                     </p>
+                  </div>
+                )
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* ── Peer vote totals ── */}
+        {voteCounts.length > 0 && (
+          <section>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Peer votes received</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {PEER_VOTE_CATEGORIES.map((cat) => {
+                const count = voteCounts.find(v => v.category === cat.id)?.vote_count ?? 0
+                if (count === 0) return null
+                const tier = count >= 40 ? 'gold' : count >= 15 ? 'silver' : count >= 5 ? 'bronze' : null
+                const tierColors: Record<string, string> = {
+                  gold: 'border-amber-200 bg-amber-50',
+                  silver: 'border-gray-200 bg-gray-50',
+                  bronze: 'border-orange-200 bg-orange-50',
+                }
+                const tierLabel: Record<string, string> = { gold: 'Gold', silver: 'Silver', bronze: 'Bronze' }
+                return (
+                  <div key={cat.id} className={`rounded-xl border p-3 text-center ${tier ? tierColors[tier] : 'border-gray-100 bg-gray-50'}`}>
+                    <p className="text-[20px] leading-none mb-1">{cat.emoji}</p>
+                    <p className="text-[18px] font-extrabold text-gray-800">{count}</p>
+                    <p className="text-[10px] font-semibold text-gray-500 leading-tight mt-0.5">{cat.name}</p>
+                    {tier && (
+                      <p className={`text-[9px] font-bold mt-1 uppercase tracking-wide ${
+                        tier === 'gold' ? 'text-amber-600' : tier === 'silver' ? 'text-gray-500' : 'text-orange-600'
+                      }`}>{tierLabel[tier]}</p>
+                    )}
                   </div>
                 )
               })}

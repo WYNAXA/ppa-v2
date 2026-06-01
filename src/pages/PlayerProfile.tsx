@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
+import { PEER_VOTE_CATEGORIES } from '@/lib/achievements'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -143,6 +144,19 @@ export function PlayerProfilePage() {
     queryFn: () => fetchPlayerProfile(playerId!, currentUserId),
     enabled: !!playerId && !!currentUserId && playerId !== currentUserId,
     staleTime: 5 * 60 * 1000,
+  })
+
+  const { data: voteCounts = [] } = useQuery<{ category: string; vote_count: number }[]>({
+    queryKey: ['peer-vote-totals', playerId],
+    enabled: !!playerId,
+    queryFn: async () => {
+      const { data: rows, error } = await supabase.rpc('get_verified_peer_vote_counts', { p_user_id: playerId })
+      if (error) return []
+      return (rows ?? []).map((r: Record<string, unknown>) => ({
+        category: r.category as string,
+        vote_count: Number(r.vote_count),
+      }))
+    },
   })
 
   if (isLoading) {
@@ -330,6 +344,37 @@ export function PlayerProfilePage() {
         <div className="mx-5 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-8 text-center">
           <p className="text-[14px] font-semibold text-gray-500">{t('player_profile.no_matches_together')}</p>
           <p className="text-[12px] text-gray-400 mt-1">{t('player_profile.no_matches_together_sub', { name: player.name.split(' ')[0] })}</p>
+        </div>
+      )}
+
+      {/* Peer vote totals */}
+      {voteCounts.length > 0 && (
+        <div className="mx-5 mt-6">
+          <h3 className="text-[14px] font-bold text-gray-900 mb-3">Peer votes received</h3>
+          <div className="grid grid-cols-3 gap-2">
+            {PEER_VOTE_CATEGORIES.map((cat) => {
+              const count = voteCounts.find(v => v.category === cat.id)?.vote_count ?? 0
+              if (count === 0) return null
+              const tier = count >= 40 ? 'gold' : count >= 15 ? 'silver' : count >= 5 ? 'bronze' : null
+              const tierColors: Record<string, string> = {
+                gold: 'border-amber-200 bg-amber-50',
+                silver: 'border-gray-200 bg-gray-50',
+                bronze: 'border-orange-200 bg-orange-50',
+              }
+              return (
+                <div key={cat.id} className={`rounded-xl border p-2.5 text-center ${tier ? tierColors[tier] : 'border-gray-100 bg-gray-50'}`}>
+                  <p className="text-[18px] leading-none mb-0.5">{cat.emoji}</p>
+                  <p className="text-[16px] font-extrabold text-gray-800">{count}</p>
+                  <p className="text-[9px] font-semibold text-gray-500 leading-tight mt-0.5">{cat.name}</p>
+                  {tier && (
+                    <p className={`text-[8px] font-bold mt-0.5 uppercase tracking-wide ${
+                      tier === 'gold' ? 'text-amber-600' : tier === 'silver' ? 'text-gray-500' : 'text-orange-600'
+                    }`}>{tier}</p>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </div>
       )}
 

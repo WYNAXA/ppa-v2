@@ -46,12 +46,8 @@ export const BADGE_DEFINITIONS: Record<string, { label: string; emoji: string }>
 )
 
 // ────────────────────────────────────────────────────────────────────
-// TODO (v1.1): Jersey rendering UI not yet built.
-// JERSEY_LIBRARY data structure is defined below but no callsite renders
-// it. When the weekly jersey gamification UI is built (likely in Compete
-// page or group leaderboards), translate these labels via
-// `t('jerseys.<color>_name')` and `t('jerseys.<color>_description')`
-// — keys to be added then.
+// Jersey types. Blue (Entertainer) is awarded weekly by cron.
+// Yellow/black are defined but not scheduled (Phase 2).
 // ────────────────────────────────────────────────────────────────────
 export const JERSEY_LIBRARY: Record<string, { emoji: string; name: string; description: string }> = {
   yellow: { emoji: '🟡', name: 'League Leader',  description: 'Top of the standings' },

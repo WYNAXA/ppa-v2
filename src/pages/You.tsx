@@ -258,6 +258,30 @@ function useVerifiedVoteCounts(userId: string) {
   })
 }
 
+function useMyJerseys(userId: string) {
+  return useQuery<{ jersey_color: string; reason: string; awarded_week: string; league_name: string }[]>({
+    queryKey: ['my-jerseys', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('league_jerseys')
+        .select('jersey_color, reason, awarded_week')
+        .eq('user_id', userId)
+        .eq('jersey_color', 'blue')
+        .order('awarded_week', { ascending: false })
+        .limit(5)
+      if (!data || data.length === 0) return []
+      // No join — just return the jersey data
+      return data.map((r: Record<string, unknown>) => ({
+        jersey_color: r.jersey_color as string,
+        reason: (r.reason as string) ?? '',
+        awarded_week: (r.awarded_week as string) ?? '',
+        league_name: '',
+      }))
+    },
+  })
+}
+
 // ── Admin groups hook ─────────────────────────────────────────────────────────
 
 function useAdminGroups(userId: string) {
@@ -821,6 +845,7 @@ export function YouPage() {
   const { data: history = [], isLoading: loadingHistory } = useMatchHistory(userId, historyLimit)
   const { data: achievements = [] }     = useAchievements(userId)
   const { data: voteCounts = [] }       = useVerifiedVoteCounts(userId)
+  const { data: myJerseys = [] }        = useMyJerseys(userId)
   const { data: householdPartner }      = useHouseholdPartner(fullProfile?.household_partner_id)
   const { data: adminGroups = [] }      = useAdminGroups(userId)
   const { data: myRewards = [] }        = useMyRewards(userId)
@@ -1208,6 +1233,29 @@ export function YouPage() {
                   </div>
                 )
               })}
+            </div>
+          </section>
+        )}
+
+        {/* ── Jerseys ── */}
+        {myJerseys.length > 0 && (
+          <section>
+            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Jerseys earned</h2>
+            <div className="space-y-2">
+              {myJerseys.map((j, i) => (
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-2.5">
+                  <span className="text-[18px]">🔵</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[12px] font-bold text-navy">Entertainer</p>
+                    <p className="text-[10px] text-gray-500 truncate">{j.reason}</p>
+                  </div>
+                  {j.awarded_week && (
+                    <span className="text-[10px] text-gray-400 flex-shrink-0">
+                      {(() => { try { return format(parseISO(j.awarded_week), 'd MMM', { locale }) } catch { return j.awarded_week } })()}
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           </section>
         )}

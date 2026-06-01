@@ -18,6 +18,8 @@ import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
 import { AskNetworkSheet } from '@/components/match/AskNetworkSheet'
+import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
+import { PEER_VOTE_CATEGORIES } from '@/lib/achievements'
 import { PushToOpenSheet } from '@/components/match/PushToOpenSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
@@ -248,6 +250,7 @@ export function MatchDetailPage() {
   const [voteSubmitted, setVoteSubmitted]     = useState(false)
   const [showDisputeInput, setShowDisputeInput] = useState(false)
   const [showLiftChooser, setShowLiftChooser] = useState(false)
+  const [showPeerVoting, setShowPeerVoting] = useState(false)
   const [disputeReason, setDisputeReason]     = useState('')
 
   const { data, isLoading, error } = useQuery({
@@ -324,6 +327,35 @@ export function MatchDetailPage() {
         .eq('ringer_id', profile!.id)
         .maybeSingle()
       return data
+    },
+  })
+
+  // Peer votes — has current user voted? (Step 4/5)
+  const matchIsCompleted = data?.match?.status === 'completed'
+  const { data: myPeerVotes } = useQuery({
+    queryKey: ['my-peer-votes', id, profile?.id],
+    enabled: !!id && !!profile?.id && matchIsCompleted,
+    queryFn: async () => {
+      const { data: votes } = await supabase
+        .from('match_peer_votes')
+        .select('category, voted_for_id')
+        .eq('match_id', id!)
+        .eq('voter_id', profile!.id)
+      return votes ?? []
+    },
+  })
+  const hasVotedPeer = (myPeerVotes?.length ?? 0) > 0
+
+  // Peer votes — all votes for this match (Step 6: tally)
+  const { data: allPeerVotes } = useQuery({
+    queryKey: ['peer-votes', id],
+    enabled: !!id && matchIsCompleted,
+    queryFn: async () => {
+      const { data: votes } = await supabase
+        .from('match_peer_votes')
+        .select('category, voted_for_id')
+        .eq('match_id', id!)
+      return votes ?? []
     },
   })
 
@@ -1261,6 +1293,88 @@ export function MatchDetailPage() {
         </div>
         )
       })()}
+
+      {/* Step 4: Cast your votes entry — any participant of a completed match who hasn't voted */}
+      {matchIsCompleted && isParticipant && !hasVotedPeer && (
+        <div className="px-5 mb-4">
+          <button
+            onClick={() => setShowPeerVoting(true)}
+            className="w-full rounded-2xl bg-purple-50 border border-purple-100 p-4 text-left"
+          >
+            <p className="text-[14px] font-bold text-purple-800 mb-0.5">{t('peer_voting.cast_votes')} 🎾</p>
+            <p className="text-[12px] text-purple-600">{t('peer_voting.cast_votes_desc')}</p>
+          </button>
+        </div>
+      )}
+
+      {/* Step 4: Already voted indicator */}
+      {matchIsCompleted && isParticipant && hasVotedPeer && (
+        <div className="px-5 mb-4">
+          <button
+            onClick={() => setShowPeerVoting(true)}
+            className="w-full rounded-2xl bg-teal-50 border border-teal-100 p-3 flex items-center justify-between"
+          >
+            <p className="text-[13px] font-semibold text-teal-700">{t('peer_voting.votes_cast')} ✓</p>
+            <span className="text-[12px] text-teal-500">{t('peer_voting.your_votes')}</span>
+          </button>
+        </div>
+      )}
+
+      {/* Step 6: Match votes tally */}
+      {matchIsCompleted && allPeerVotes && allPeerVotes.length > 0 && (
+        <div className="px-5 mb-4">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">{t('peer_voting.match_votes')}</p>
+            {result?.verification_status !== 'verified' && (
+              <p className="text-[11px] text-amber-600 mb-3 italic">{t('peer_voting.provisional_note')}</p>
+            )}
+            <div className="space-y-2.5">
+              {PEER_VOTE_CATEGORIES.map((cat) => {
+                const catVotes = allPeerVotes.filter((v) => v.category === cat.id)
+                if (catVotes.length === 0) return null
+                // Tally votes per votee
+                const tally = new Map<string, number>()
+                for (const v of catVotes) {
+                  tally.set(v.voted_for_id, (tally.get(v.voted_for_id) ?? 0) + 1)
+                }
+                // Find winner (most votes)
+                let winnerId = ''
+                let winnerCount = 0
+                for (const [pid, count] of tally) {
+                  if (count > winnerCount) { winnerId = pid; winnerCount = count }
+                }
+                const winner = players.find((p) => p.id === winnerId)
+                return (
+                  <div key={cat.id} className="flex items-center gap-3">
+                    <span className="text-[16px] flex-shrink-0">{cat.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[12px] font-semibold text-gray-700">{t(`peer_voting.${cat.id}_name`, { defaultValue: cat.name })}</p>
+                    </div>
+                    {winner && (
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <PlayerAvatar name={winner.name} avatarUrl={winner.avatar_url} size="sm" />
+                        <span className="text-[12px] font-semibold text-gray-800">{winner.name?.split(' ')[0]}</span>
+                        <span className="text-[11px] text-gray-400">({winnerCount})</span>
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PeerVotingSheet modal (from MatchDetail) */}
+      {matchIsCompleted && isParticipant && (
+        <PeerVotingSheet
+          open={showPeerVoting}
+          onClose={() => setShowPeerVoting(false)}
+          matchId={match.id}
+          players={players}
+          currentUserId={currentUserId}
+        />
+      )}
 
       {/* Getting there */}
       {match.status !== 'completed' && match.status !== 'cancelled' && (playerIds.length > 0 || match.booked_venue_name) && (

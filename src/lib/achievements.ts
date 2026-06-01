@@ -34,7 +34,8 @@ export const ACHIEVEMENT_LIBRARY: Record<string, AchievementDef> = {
   // Peer voted (per match)
   shot_of_match:   { name: 'Shot of the Match',   emoji: '🎾', description: 'Voted best shot',           rarity: 'special', permanent: false, scope: 'match', peerVoted: true },
   tactical_genius: { name: 'Tactical Genius',      emoji: '🧠', description: 'Voted smartest play',       rarity: 'special', permanent: false, scope: 'match', peerVoted: true },
-  best_teammate:   { name: 'Best Teammate',        emoji: '🤝', description: 'Voted most fun to play with', rarity: 'special', permanent: false, scope: 'match', peerVoted: true },
+  // TODO (v1.1): best_teammate returns as a monthly "best partner" ceremony.
+  best_recovery_shot: { name: 'Best Recovery Shot', emoji: '🪃', description: 'Kept the ball in play when the other team thought they\'d won the point.', rarity: 'special', permanent: false, scope: 'match', peerVoted: true },
   comedy_gold:     { name: 'Comedy Gold',          emoji: '😂', description: 'Voted funniest moment',     rarity: 'special', permanent: false, scope: 'match', peerVoted: true },
   hustle_award:    { name: 'Hustle Award',         emoji: '💪', description: 'Voted most effort',         rarity: 'special', permanent: false, scope: 'match', peerVoted: true },
 }
@@ -67,7 +68,7 @@ export const RARITY_COLORS: Record<string, string> = {
 export const PEER_VOTE_CATEGORIES = [
   { id: 'shot_of_match',   emoji: '🎾', name: 'Shot of the Match', desc: 'Best single shot' },
   { id: 'tactical_genius',  emoji: '🧠', name: 'Tactical Genius',   desc: 'Smartest play' },
-  { id: 'best_teammate',    emoji: '🤝', name: 'Best Teammate',     desc: 'Most fun to play with' },
+  { id: 'best_recovery_shot', emoji: '🪃', name: 'Best Recovery Shot', desc: 'Kept the ball alive when it looked lost' },
   { id: 'comedy_gold',      emoji: '😂', name: 'Comedy Gold',       desc: 'Funniest moment' },
   { id: 'hustle_award',     emoji: '💪', name: 'Hustle Award',      desc: 'Most effort' },
 ]

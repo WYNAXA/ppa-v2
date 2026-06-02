@@ -126,8 +126,12 @@ function AppShell() {
         <main className={`flex-1 overflow-y-auto${showNav ? ' pb-24' : ''}`}>
           <Suspense fallback={<SplashScreen />}>
           <Routes>
-            {/* Root — marketing landing for visitors, home for logged-in users */}
-            <Route path="/" element={session ? <Navigate to="/home" replace /> : <LandingPage />} />
+            {/* Root — app subdomain skips landing; marketing domains show it */}
+            <Route path="/" element={
+              window.location.hostname.startsWith('app.')
+                ? <Navigate to={session ? '/home' : '/auth'} replace />
+                : session ? <Navigate to="/home" replace /> : <LandingPage />
+            } />
 
             {/* Auth */}
             <Route path="/auth" element={<AuthPage />} />

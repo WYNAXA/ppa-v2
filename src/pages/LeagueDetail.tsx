@@ -344,6 +344,27 @@ function useEntertainerRace(leagueId: string) {
   })
 }
 
+function useEntertainerHistory(leagueId: string) {
+  return useQuery<{ user_id: string; week_start: string; vote_count: number }[]>({
+    queryKey: ['entertainer-history', leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('entertainer_jersey_history')
+        .select('user_id, week_start, vote_count')
+        .eq('league_id', leagueId)
+        .order('week_start', { ascending: false })
+        .limit(8)
+      return (data ?? []).map((r: Record<string, unknown>) => ({
+        user_id: r.user_id as string,
+        week_start: r.week_start as string,
+        vote_count: Number(r.vote_count),
+      }))
+    },
+    staleTime: 60_000,
+  })
+}
+
 function useFixtures(leagueId: string, groupIds: string[]) {
   return useQuery({
     queryKey: ['league-fixtures', leagueId],
@@ -1456,6 +1477,8 @@ export function LeagueDetailPage() {
   const { data: jerseys = [] } = useLeagueJerseys(id)
   const jerseyByUser = Object.fromEntries(jerseys.map((j) => [j.user_id, j.jersey_type]))
   const { data: entertainerRace = [] } = useEntertainerRace(id)
+  const { data: entertainerHistory = [] } = useEntertainerHistory(id)
+  const currentEntertainer = jerseys.find((j) => j.jersey_type === 'entertainer' || j.jersey_type === 'blue')
   const { data: leagueMembers = [] } = useLeagueMembers(id)
   const { data: currentRound = 0 } = useCurrentRound(id)
   const isSeasonComplete = league?.max_rounds != null && currentRound >= league.max_rounds
@@ -2022,36 +2045,74 @@ export function LeagueDetailPage() {
                   })}
                 </div>
               )}
-              {/* ── Entertainer race — this week ── */}
-              {entertainerRace.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[16px]">🔵</span>
-                    <div>
-                      <p className="text-[13px] font-bold text-navy">Entertainer race — this week</p>
-                      <p className="text-[10px] text-amber-600 italic">Verified votes only — updates as results are verified</p>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    {entertainerRace.map((entry, idx) => {
-                      const standingsPlayer = standings.find((s) => s.user_id === entry.user_id)
-                      const memberPlayer = !standingsPlayer ? leagueMembers.find((m: Record<string, unknown>) => m.user_id === entry.user_id) : null
-                      const name = standingsPlayer?.profile?.name ?? (((memberPlayer as Record<string, unknown>)?.name as string) || 'Player')
-                      return (
-                        <div key={entry.user_id} className="flex items-center gap-2.5">
-                          <span className={cn(
-                            'w-5 text-center text-[11px] font-bold',
-                            idx === 0 ? 'text-blue-600' : 'text-gray-400'
-                          )}>{idx + 1}</span>
-                          <span className="text-[12px] font-semibold text-gray-800 flex-1 truncate">{name.split(' ')[0]}</span>
-                          <span className={cn(
-                            'text-[12px] font-bold tabular-nums',
-                            idx === 0 ? 'text-blue-600' : 'text-gray-500'
-                          )}>{entry.vote_count}</span>
+              {/* ── Entertainer jersey ── */}
+              {(currentEntertainer || entertainerRace.length > 0 || entertainerHistory.length > 0) && (
+                <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">
+
+                  {/* Current holder */}
+                  {currentEntertainer && (() => {
+                    const holderPlayer = standings.find((s) => s.user_id === currentEntertainer.user_id)
+                    const holderName = holderPlayer?.profile?.name ?? 'Player'
+                    return (
+                      <div className="flex items-center gap-3">
+                        <span className="text-[20px]">🔵</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[13px] font-bold text-navy">Entertainer</p>
+                          <p className="text-[11px] text-gray-500 truncate">{holderName} holds the jersey</p>
                         </div>
-                      )
-                    })}
-                  </div>
+                      </div>
+                    )
+                  })()}
+
+                  {/* This week's race */}
+                  {entertainerRace.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">This week</p>
+                      <p className="text-[10px] text-amber-600 italic mb-2">Verified votes only — updates as results are verified</p>
+                      <div className="space-y-1.5">
+                        {entertainerRace.map((entry, idx) => {
+                          const standingsPlayer = standings.find((s) => s.user_id === entry.user_id)
+                          const memberPlayer = !standingsPlayer ? leagueMembers.find((m: Record<string, unknown>) => m.user_id === entry.user_id) : null
+                          const name = standingsPlayer?.profile?.name ?? (((memberPlayer as Record<string, unknown>)?.name as string) || 'Player')
+                          return (
+                            <div key={entry.user_id} className="flex items-center gap-2.5">
+                              <span className={cn(
+                                'w-5 text-center text-[11px] font-bold',
+                                idx === 0 ? 'text-blue-600' : 'text-gray-400'
+                              )}>{idx + 1}</span>
+                              <span className="text-[12px] font-semibold text-gray-800 flex-1 truncate">{name.split(' ')[0]}</span>
+                              <span className={cn(
+                                'text-[12px] font-bold tabular-nums',
+                                idx === 0 ? 'text-blue-600' : 'text-gray-500'
+                              )}>{entry.vote_count}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Past entertainers */}
+                  {entertainerHistory.length > 0 && (
+                    <div>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Past Entertainers</p>
+                      <div className="space-y-1">
+                        {entertainerHistory.slice(0, 4).map((h) => {
+                          const p = standings.find((s) => s.user_id === h.user_id)
+                          const nm = p?.profile?.name ?? 'Player'
+                          return (
+                            <div key={h.week_start} className="flex items-center gap-2 text-[11px]">
+                              <span className="text-gray-400 w-16 flex-shrink-0">
+                                {(() => { try { return format(parseISO(h.week_start), 'd MMM') } catch { return h.week_start } })()}
+                              </span>
+                              <span className="font-semibold text-gray-700 flex-1 truncate">{nm.split(' ')[0]}</span>
+                              <span className="text-gray-400 tabular-nums">{h.vote_count}</span>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               </div>

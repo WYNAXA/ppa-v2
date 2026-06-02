@@ -338,7 +338,7 @@ export function MatchDetailPage() {
     queryFn: async () => {
       const { data: votes } = await supabase
         .from('match_peer_votes')
-        .select('category, voted_for_id')
+        .select('vote_category, voted_for_id')
         .eq('match_id', id!)
         .eq('voter_id', profile!.id)
       return votes ?? []
@@ -353,7 +353,7 @@ export function MatchDetailPage() {
     queryFn: async () => {
       const { data: votes } = await supabase
         .from('match_peer_votes')
-        .select('category, voted_for_id')
+        .select('vote_category, voted_for_id')
         .eq('match_id', id!)
       return votes ?? []
     },
@@ -1336,7 +1336,7 @@ export function MatchDetailPage() {
             )}
             <div className="space-y-2.5">
               {PEER_VOTE_CATEGORIES.map((cat) => {
-                const catVotes = allPeerVotes.filter((v) => v.category === cat.id)
+                const catVotes = allPeerVotes.filter((v) => v.vote_category === cat.id)
                 if (catVotes.length === 0) return null
                 // Tally votes per votee
                 const tally = new Map<string, number>()

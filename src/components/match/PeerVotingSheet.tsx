@@ -28,7 +28,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
     queryFn: async () => {
       const { data, error } = await supabase
         .from('match_peer_votes')
-        .select('category, voted_for_id')
+        .select('vote_category, voted_for_id')
         .eq('match_id', matchId)
         .eq('voter_id', currentUserId)
       if (error) throw error
@@ -43,7 +43,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
     if (!existingVotes || existingVotes.length === 0) return null
     const map: Record<string, string> = {}
     for (const v of existingVotes) {
-      map[v.category] = v.voted_for_id
+      map[v.vote_category] = v.voted_for_id
     }
     return map
   }, [existingVotes])
@@ -57,16 +57,16 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
   // Step 5: Upsert with onConflict for safe re-submission
   const submitMutation = useMutation({
     mutationFn: async () => {
-      const rows = Object.entries(draftVotes).map(([category, votedForId]) => ({
+      const rows = Object.entries(draftVotes).map(([vote_category, votedForId]) => ({
         match_id: matchId,
         voter_id: currentUserId,
         voted_for_id: votedForId,
-        category,
+        vote_category,
       }))
       if (rows.length === 0) return
       const { error } = await supabase
         .from('match_peer_votes')
-        .upsert(rows, { onConflict: 'match_id,voter_id,category' })
+        .upsert(rows, { onConflict: 'match_id,voter_id,vote_category' })
       if (error) throw error
     },
     onSuccess: () => {

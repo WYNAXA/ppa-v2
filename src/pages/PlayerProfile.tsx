@@ -146,14 +146,14 @@ export function PlayerProfilePage() {
     staleTime: 5 * 60 * 1000,
   })
 
-  const { data: voteCounts = [] } = useQuery<{ category: string; vote_count: number }[]>({
+  const { data: voteCounts = [] } = useQuery<{ vote_category: string; vote_count: number }[]>({
     queryKey: ['peer-vote-totals', playerId],
     enabled: !!playerId,
     queryFn: async () => {
       const { data: rows, error } = await supabase.rpc('get_verified_peer_vote_counts', { p_user_id: playerId })
       if (error) return []
       return (rows ?? []).map((r: Record<string, unknown>) => ({
-        category: r.category as string,
+        vote_category: r.vote_category as string,
         vote_count: Number(r.vote_count),
       }))
     },
@@ -378,7 +378,7 @@ export function PlayerProfilePage() {
           <h3 className="text-[14px] font-bold text-gray-900 mb-3">Peer votes received</h3>
           <div className="grid grid-cols-3 gap-2">
             {PEER_VOTE_CATEGORIES.map((cat) => {
-              const count = voteCounts.find(v => v.category === cat.id)?.vote_count ?? 0
+              const count = voteCounts.find(v => v.vote_category === cat.id)?.vote_count ?? 0
               if (count === 0) return null
               const tier = count >= 40 ? 'gold' : count >= 15 ? 'silver' : count >= 5 ? 'bronze' : null
               const tierColors: Record<string, string> = {

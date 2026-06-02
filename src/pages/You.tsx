@@ -244,14 +244,14 @@ function useAchievements(userId: string) {
 }
 
 function useVerifiedVoteCounts(userId: string) {
-  return useQuery<{ category: string; vote_count: number }[]>({
+  return useQuery<{ vote_category: string; vote_count: number }[]>({
     queryKey: ['peer-vote-totals', userId],
     enabled: !!userId,
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_verified_peer_vote_counts', { p_user_id: userId })
       if (error) return []
       return (data ?? []).map((r: Record<string, unknown>) => ({
-        category: r.category as string,
+        vote_category: r.vote_category as string,
         vote_count: Number(r.vote_count),
       }))
     },
@@ -1217,7 +1217,7 @@ export function YouPage() {
             <h2 className="text-[16px] font-bold text-gray-900 mb-3">Peer votes received</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {PEER_VOTE_CATEGORIES.map((cat) => {
-                const count = voteCounts.find(v => v.category === cat.id)?.vote_count ?? 0
+                const count = voteCounts.find(v => v.vote_category === cat.id)?.vote_count ?? 0
                 if (count === 0) return null
                 const tier = count >= 40 ? 'gold' : count >= 15 ? 'silver' : count >= 5 ? 'bronze' : null
                 const tierColors: Record<string, string> = {

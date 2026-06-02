@@ -217,7 +217,7 @@ export async function checkAndAwardPeerVoteBadges(playerIds: string[]): Promise<
 
       // 3. For each category, determine highest tier reached
       for (const row of counts) {
-        const category = row.category as string
+        const category = row.vote_category as string
         if (!PEER_VOTE_CATEGORY_IDS.includes(category)) continue
         const count = Number(row.vote_count)
         const currentTier = existingMap.get(category)

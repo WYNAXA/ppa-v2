@@ -36,11 +36,11 @@ BEGIN
   FOREACH v_uid IN ARRAY p_user_ids LOOP
     -- Get verified vote counts for this user
     FOR v_row IN
-      SELECT category, vote_count
+      SELECT vote_category, vote_count
       FROM get_verified_peer_vote_counts(v_uid)
     LOOP
       -- Only process known peer-vote categories
-      IF NOT v_badges ? v_row.category THEN CONTINUE; END IF;
+      IF NOT v_badges ? v_row.vote_category THEN CONTINUE; END IF;
 
       -- Determine highest qualifying tier
       IF    v_row.vote_count >= 40 THEN v_new_tier := 'gold';
@@ -49,10 +49,10 @@ BEGIN
       ELSE  CONTINUE;
       END IF;
 
-      -- Get existing tier for this user + category
+      -- Get existing tier for this user + vote_category
       SELECT tier INTO v_existing_tier
       FROM user_badges
-      WHERE user_id = v_uid AND badge_key = v_row.category;
+      WHERE user_id = v_uid AND badge_key = v_row.vote_category;
 
       -- Rank tiers: gold=3, silver=2, bronze=1, null=0
       v_tier_rank_old := CASE v_existing_tier
@@ -68,16 +68,16 @@ BEGIN
         -- Upgrade existing
         UPDATE user_badges
         SET tier = v_new_tier, earned_at = now()
-        WHERE user_id = v_uid AND badge_key = v_row.category;
+        WHERE user_id = v_uid AND badge_key = v_row.vote_category;
       ELSE
         -- New badge
         INSERT INTO user_badges (user_id, badge_key, tier)
-        VALUES (v_uid, v_row.category, v_new_tier);
+        VALUES (v_uid, v_row.vote_category, v_new_tier);
       END IF;
 
       -- Notify the player (only on actual insert/upgrade — we're past the skip)
-      v_emoji := v_badges->v_row.category->>'emoji';
-      v_badge_name := v_badges->v_row.category->>'name';
+      v_emoji := v_badges->v_row.vote_category->>'emoji';
+      v_badge_name := v_badges->v_row.vote_category->>'name';
       v_tier_label := INITCAP(v_new_tier);
 
       INSERT INTO notifications (user_id, type, title, message, related_id, read)

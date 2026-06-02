@@ -17,6 +17,7 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
   { id: 'leagues', label: 'Leagues & competition' },
   { id: 'community', label: 'Community & groups' },
   { id: 'badges', label: 'Badges & rewards' },
+  { id: 'voting', label: 'Peer voting' },
   { id: 'account', label: 'Your account' },
   { id: 'privacy', label: 'Privacy & data' },
 ]
@@ -122,19 +123,56 @@ export const FAQS: FaqItem[] = [
     id: 'what-badges',
     topic: 'badges',
     q: 'What badges can I earn?',
-    a: 'Badges are earned automatically as you play. Current earnable badges include First Victory (your first win), On Fire (3-win streak), Consistent (10 matches), Sharp Shooter (70%+ win rate over 10+ matches), Social Butterfly (member of 3+ groups), Veteran (50+ matches), Perfectionist (winning 6-0, 6-0), and Giant Slayer (beating a team rated 200+ points above you).',
+    a: 'Badges are earned automatically as you play. Current earnable badges include First Victory (your first win), On Fire (3-win streak), Consistent (10 matches), Sharp Shooter (70%+ win rate over 10+ matches), Social Butterfly (member of 3+ groups), Veteran (50+ matches), Perfectionist (winning 6-0, 6-0), and Giant Slayer (beating a team rated 200+ points above you). Peer-vote badges (bronze, silver, gold per award category) are earned from the votes you receive across all your matches.',
+  },
+  /* Peer voting */
+  {
+    id: 'what-is-peer-voting',
+    topic: 'voting',
+    q: 'What is peer voting?',
+    a: 'After every match you give a few quick votes to the people you played with \u2014 small awards for things that stood out, like the best shot or the funniest moment. It takes seconds, and it\u2019s the social heart of the app: it turns a finished game into recognition for the people in it.',
   },
   {
-    id: 'peer-voting',
-    topic: 'badges',
-    q: 'How does post-match voting work?',
-    a: 'After recording a result, the submitter can rate the other players across five categories: Shot of the Match, Tactical Genius, Best Teammate, Comedy Gold, and Hustle Award. It\'s a fun way to recognise standout moments.',
+    id: 'vote-categories',
+    topic: 'voting',
+    q: 'What can I vote for?',
+    a: 'Five awards, one vote each: Shot of the Match (the single best shot anyone played), Tactical Genius (the smartest bit of thinking or positioning), Best Recovery Shot (kept the ball alive when the point looked lost), Comedy Gold (the funniest moment on court), and Hustle Award (whoever worked hardest and never gave up). You give one vote in each award, to any player who was in that match \u2014 including the opposing team.',
   },
   {
-    id: 'what-jerseys',
-    topic: 'badges',
-    q: 'What are league jerseys?',
-    a: 'League admins can award special jerseys to standout players within their league — colours like League Leader (yellow), Giant Killer (green), Most Improved (red), Entertainer (blue), and Wooden Spoon (black). They\'re a fun recognition tool for group organisers.',
+    id: 'who-can-vote',
+    topic: 'voting',
+    q: 'Who can vote, and is it anonymous?',
+    a: 'Everyone who played can vote, not just whoever entered the score. And it\u2019s completely anonymous: you\u2019ll see who won each award, but never who voted for whom. That keeps it honest and light-hearted.',
+  },
+  {
+    id: 'when-votes-count',
+    topic: 'voting',
+    q: 'When do my votes actually count?',
+    a: 'As soon as a result is entered, the other players are asked to confirm it\u2019s correct. Until that result is confirmed \u2014 or 24 hours pass and it\u2019s confirmed automatically \u2014 your votes are \u201cprovisional\u201d: they show on the match, but they don\u2019t yet count toward badges or jerseys. This makes sure nothing is awarded off a result that turns out wrong or disputed.',
+  },
+  {
+    id: 'where-see-votes',
+    topic: 'voting',
+    q: 'Where do I see the votes?',
+    a: 'Two places. On the match itself, you\u2019ll see the awards for that game \u2014 each category and who received the votes. On your own profile, you\u2019ll see your running totals: how many votes you\u2019ve received in each award across all your matches, plus any badges earned.',
+  },
+  {
+    id: 'vote-badges',
+    topic: 'voting',
+    q: 'What are badges, and how do I earn them?',
+    a: 'Badges are your long-term collection. For each of the five awards, the votes you receive add up across every match you play \u2014 friendly, group, or league. Reach the milestones and you earn a tier: bronze at 5 votes in that award, silver at 15, gold at 40. They live on your profile and never expire. (Only confirmed votes count.)',
+  },
+  {
+    id: 'entertainer-jersey',
+    topic: 'voting',
+    q: 'What\u2019s the Entertainer jersey?',
+    a: 'The jersey is a league-only, weekly prize. Within a league, whoever received the most peer votes that week wins the Entertainer jersey. It works like the leader\u2019s jersey in cycling: one person holds it at a time, and each week it can pass to whoever overtakes them. If two people tie at the top, the current holder keeps it. You can watch the race live through the week, and past winners are kept on record.',
+  },
+  {
+    id: 'how-it-fits-together',
+    topic: 'voting',
+    q: 'So how does it all fit together?',
+    a: 'You vote once, right after a match. Those same votes do two jobs: they build your personal badges (in any match, adding up over your whole time on the app), and in a league they also decide that week\u2019s Entertainer jersey. Think of badges as your lifetime trophy cabinet and the jersey as the league\u2019s weekly title \u2014 and both only count votes from matches whose result has been confirmed.',
   },
   /* Account */
   {

@@ -44,6 +44,48 @@ function FaqAccordion({ id, q, a, defaultOpen }: { id: string; q: string; a: str
   )
 }
 
+/* ── Lazy-loaded explainer iframe ── */
+function ExplainerEmbed() {
+  const containerRef = useRef<HTMLDivElement>(null)
+  const [loaded, setLoaded] = useState(false)
+
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setLoaded(true)
+          observer.disconnect()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+
+  return (
+    <div ref={containerRef} className="mb-4 rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm">
+      <div style={{ aspectRatio: '16 / 9', width: '100%' }}>
+        {loaded ? (
+          <iframe
+            src="/ppa-explainer.html"
+            title="How peer voting works"
+            className="w-full h-full"
+            style={{ border: 'none' }}
+            allow="autoplay; fullscreen"
+          />
+        ) : (
+          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── Page ── */
 export function FAQPage() {
   const { hash } = useLocation()
@@ -172,6 +214,7 @@ export function FAQPage() {
             return (
               <div key={topic} id={`cat-${topic}`} className="mb-6 scroll-mt-24">
                 <h2 className="font-display text-[15px] font-bold text-navy mb-2 px-1">{cat?.label ?? topic}</h2>
+                {topic === 'voting' && <ExplainerEmbed />}
                 <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden px-5">
                   {items.map((faq) => (
                     <FaqAccordion

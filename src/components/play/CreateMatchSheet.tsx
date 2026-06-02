@@ -760,7 +760,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
     const payload = {
       match_date:          form.date,
       match_time:          matchTime,
-      context_type:        'open' as const,
+      context_type:        (form.group?.id ?? defaultGroupId) ? 'group' as const : 'open' as const,
       match_type:          form.matchType!,
       status:              playerIds.length >= 4 ? 'scheduled' : 'pending',
       player_ids:          playerIds,

@@ -293,7 +293,8 @@ function useGroupPastMatches(groupId: string) {
         .from('matches')
         .select('*')
         .eq('group_id', groupId)
-        .lt('match_date', today)
+        .lte('match_date', today)
+        .eq('status', 'completed')
         .order('match_date', { ascending: false })
         .limit(50)
 

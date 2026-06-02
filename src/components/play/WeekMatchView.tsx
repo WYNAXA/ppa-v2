@@ -388,6 +388,58 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     },
   })
 
+  // ── Results to confirm (completed matches pending verification) ─────────
+  const thirtyDaysAgo = useMemo(() => {
+    const d = new Date()
+    d.setDate(d.getDate() - 30)
+    return d.toISOString().split('T')[0]
+  }, [])
+
+  const { data: pendingResultMatches = [] } = useQuery<{
+    id: string; match_date: string; match_time: string | null; booked_venue_name: string | null
+    verification_status: string
+  }[]>({
+    queryKey: ['results-to-confirm', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      // Step 1: completed matches the user is in, last 30 days
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('id, match_date, match_time, booked_venue_name')
+        .contains('player_ids', [userId])
+        .eq('status', 'completed')
+        .gte('match_date', thirtyDaysAgo)
+        .order('match_date', { ascending: false })
+        .limit(20)
+      if (!matches || matches.length === 0) return []
+
+      // Step 2: fetch verification status for those match ids
+      const matchIds = matches.map((m) => m.id)
+      const { data: results } = await supabase
+        .from('match_results')
+        .select('match_id, verification_status')
+        .in('match_id', matchIds)
+      const statusMap = Object.fromEntries(
+        (results ?? []).map((r) => [r.match_id, r.verification_status as string])
+      )
+
+      // Only include matches where result is pending or disputed (not verified)
+      return matches
+        .filter((m) => {
+          const vs = statusMap[m.id]
+          return vs && vs !== 'verified'
+        })
+        .map((m) => ({
+          id: m.id,
+          match_date: m.match_date,
+          match_time: m.match_time,
+          booked_venue_name: m.booked_venue_name,
+          verification_status: statusMap[m.id],
+        }))
+    },
+    staleTime: 30_000,
+  })
+
   // ── Select active data ─────────────────────────────────────────────────────
   const activeMatches = viewTab === 'mine' ? myMatches : viewTab === 'group' ? groupMatches : openMatches
   const isLoading = viewTab === 'mine' ? loadingMine : viewTab === 'group' ? loadingGroup : loadingOpen
@@ -472,6 +524,44 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
+      {/* ── Results to confirm ── */}
+      {pendingResultMatches.length > 0 && (
+        <div className="px-5 pt-3 pb-2">
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
+            <p className="text-[12px] font-bold text-amber-800 mb-2">
+              {t('play.results_to_confirm', { defaultValue: 'Results to confirm' })}
+            </p>
+            <div className="space-y-1.5">
+              {pendingResultMatches.map((m) => (
+                <button
+                  key={m.id}
+                  onClick={() => navigate(`/matches/${m.id}`)}
+                  className="w-full flex items-center justify-between rounded-xl bg-white border border-amber-100 px-3 py-2 text-left hover:border-amber-300 transition-colors"
+                >
+                  <div>
+                    <p className="text-[12px] font-semibold text-gray-800">
+                      {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
+                      {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
+                    </p>
+                    {m.booked_venue_name && (
+                      <p className="text-[10px] text-gray-500 truncate">{m.booked_venue_name}</p>
+                    )}
+                  </div>
+                  <span className={cn(
+                    'text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
+                    m.verification_status === 'disputed'
+                      ? 'bg-red-50 text-red-600 border border-red-100'
+                      : 'bg-yellow-50 text-yellow-700 border border-yellow-100'
+                  )}>
+                    {m.verification_status === 'disputed' ? 'Disputed' : 'Pending'}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── View toggle ── */}
       <div className="px-5 pt-3 pb-1">
         <div className="flex bg-gray-100 rounded-xl p-1 gap-1">

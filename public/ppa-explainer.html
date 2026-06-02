@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Padel Players — Every Match Counts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --teal:#009688; --teal-deep:#00695f; --teal-ink:#08332f; --teal-soft:#4db6ac;
+    --orange:#E65100; --orange-bright:#ff7a2f;
+    --jersey:#1e7fe0; --jersey-deep:#1565c0;
+    --bronze:#c87f3a; --silver:#9aa6b2; --gold:#f4b50b;
+    --amber:#e0901b;
+    --green:#1f9d63;
+    --paper:#f3fbfa; --cloud:#ffffff; --ink:#0c2e2b; --muted:#5d7d79;
+    --line:rgba(8,51,47,.10);
+    --shadow:0 24px 60px -22px rgba(8,51,47,.45);
+    --display:'Bricolage Grotesque',system-ui,sans-serif;
+    --body:'Hanken Grotesk',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--body); color:var(--ink); background:#dfeeec;
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; padding:26px 16px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- STAGE ---------- */
+  .wrap{width:min(960px,100%);}
+  .stage{
+    position:relative; width:100%; aspect-ratio:16/9; border-radius:26px; overflow:hidden;
+    background:
+      radial-gradient(120% 120% at 12% 8%, #e8fbf7 0%, rgba(232,251,247,0) 46%),
+      radial-gradient(120% 130% at 92% 96%, #d6f3ed 0%, rgba(214,243,237,0) 50%),
+      linear-gradient(160deg,#f6fdfc 0%, #e7f6f3 60%, #def2ee 100%);
+    box-shadow:var(--shadow); isolation:isolate;
+  }
+  /* faint court lines + grain atmosphere */
+  .stage::before{
+    content:""; position:absolute; inset:0; z-index:0; pointer-events:none; opacity:.5;
+    background:
+      linear-gradient(transparent 49.6%, rgba(0,150,136,.07) 49.6%, rgba(0,150,136,.07) 50.4%, transparent 50.4%),
+      linear-gradient(90deg, transparent 49.6%, rgba(0,150,136,.05) 49.6%, rgba(0,150,136,.05) 50.4%, transparent 50.4%);
+  }
+  .stage::after{
+    content:""; position:absolute; inset:0; z-index:6; pointer-events:none; mix-blend-mode:multiply; opacity:.05;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .scene{
+    position:absolute; inset:0; z-index:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; padding:6% 8% 13%;
+    opacity:0; visibility:hidden; transition:opacity .5s ease;
+  }
+  .scene.active{opacity:1; visibility:visible; z-index:3;}
+
+  /* caption / subtitle bar */
+  .caption{
+    position:absolute; left:50%; bottom:5.5%; transform:translateX(-50%);
+    z-index:7; max-width:84%; text-align:center;
+    font-size:clamp(13px,2.05vw,19px); font-weight:500; line-height:1.34; color:#fff;
+    background:rgba(8,51,47,.82); padding:.5em .95em; border-radius:12px;
+    backdrop-filter:blur(2px); letter-spacing:.1px;
+  }
+  .scene-tag{
+    position:absolute; top:5.5%; left:7%; z-index:7;
+    font-family:var(--display); font-weight:700; font-size:clamp(11px,1.5vw,14px);
+    letter-spacing:.14em; text-transform:uppercase; color:var(--teal-deep); opacity:.62;
+  }
+
+  h1,h2{font-family:var(--display); line-height:1.02; letter-spacing:-.02em;}
+
+  /* ===== reusable bits ===== */
+  .av{width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+      font-family:var(--display);font-weight:700;color:#fff;font-size:18px;flex:none;
+      box-shadow:0 6px 14px -6px rgba(8,51,47,.5)}
+  .av.j{background:linear-gradient(150deg,#00b3a1,#00897b)}
+  .av.c{background:linear-gradient(150deg,#ff8a3d,#e65100)}
+  .av.a{background:linear-gradient(150deg,#34b3e8,#1565c0)}
+  .av.z{background:linear-gradient(150deg,#8a6df0,#5e35b1)}
+
+  /* ---------- S1 : HOOK ---------- */
+  #s1 .ball{
+    width:clamp(46px,7vw,72px);height:clamp(46px,7vw,72px);border-radius:50%;
+    background:radial-gradient(circle at 34% 30%, #ffe27a, var(--gold) 62%, #d99700);
+    position:relative; margin-bottom:24px; box-shadow:0 16px 30px -10px rgba(217,151,0,.6);
+  }
+  #s1 .ball::after{content:"";position:absolute;inset:0;border-radius:50%;
+    border:2.5px solid rgba(255,255,255,.55);
+    clip-path:path('M 5 36 Q 36 10 67 36');transform:rotate(8deg)}
+  #s1.active .ball{animation:bounce 1.7s cubic-bezier(.5,.05,.4,1) .15s both}
+  #s1 h1{font-size:clamp(36px,7.4vw,80px);font-weight:800;color:var(--teal-ink);text-align:center}
+  #s1 h1 .o{color:var(--orange)}
+  #s1.active h1 span.w{display:inline-block;animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  #s1.active h1 span.w:nth-child(2){animation-delay:.12s}
+  #s1.active h1 span.w:nth-child(3){animation-delay:.24s}
+  #s1 .kick{margin-top:16px;font-family:var(--display);font-weight:700;letter-spacing:.34em;
+    text-transform:uppercase;font-size:clamp(11px,1.7vw,15px);color:var(--teal);opacity:0}
+  #s1.active .kick{animation:fade .6s ease .55s both}
+
+  /* ---------- PHONE (s2/s3) ---------- */
+  .phone{
+    width:clamp(220px,30vw,300px); background:#fff; border-radius:30px;
+    box-shadow:0 30px 60px -24px rgba(8,51,47,.55), 0 0 0 8px #fff, 0 0 0 10px rgba(8,51,47,.08);
+    padding:18px 16px 16px; position:relative;
+  }
+  .phone .bar{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 14px}
+  .phone .ph-title{font-family:var(--display);font-weight:700;font-size:16px;color:var(--teal-ink);margin-bottom:3px}
+  .phone .ph-sub{font-size:11.5px;color:var(--muted);margin-bottom:14px}
+
+  .award-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}
+  .award-row .em{font-size:17px;width:22px;text-align:center}
+  .award-row .nm{font-weight:600;font-size:12.5px;flex:1}
+  .pick{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:#fff;
+    font-family:var(--display);font-weight:700;font-size:11px;position:relative}
+  #s2.active .award-row .pick.sel::after{
+    content:"";position:absolute;inset:-5px;border-radius:50%;border:2.5px solid var(--orange);
+    animation:tap .55s ease both}
+  #s2.active .award-row{opacity:0;animation:slideUp .5s ease both}
+  #s2.active .award-row:nth-child(2){animation-delay:.2s}
+  #s2.active .award-row:nth-child(3){animation-delay:.5s}
+  #s2.active .award-row:nth-child(4){animation-delay:.8s}
+  #s2.active .award-row:nth-child(5){animation-delay:1.1s}
+  #s2.active .award-row:nth-child(6){animation-delay:1.4s}
+  #s2.active .award-row .pick.sel{animation:popsel .4s ease both}
+  #s2.active .award-row:nth-child(2) .pick.sel{animation-delay:.4s}
+  #s2.active .award-row:nth-child(3) .pick.sel{animation-delay:.7s}
+  #s2.active .award-row:nth-child(4) .pick.sel{animation-delay:1s}
+  #s2.active .award-row:nth-child(5) .pick.sel{animation-delay:1.3s}
+  #s2.active .award-row:nth-child(6) .pick.sel{animation-delay:1.6s}
+
+  /* ---------- S3 : TALLY ---------- */
+  .tally{width:clamp(260px,40vw,400px);background:#fff;border-radius:20px;padding:18px 20px;
+    box-shadow:0 26px 54px -24px rgba(8,51,47,.5)}
+  .tally h2{font-size:18px;color:var(--teal-ink);margin-bottom:2px}
+  .trow{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line);font-size:13px}
+  .trow:first-of-type{border-top:none}
+  .trow .lab{flex:1;font-weight:600;color:var(--teal-ink)}
+  .trow .win{display:flex;align-items:center;gap:6px}
+  .trow .mini{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:10px}
+  .trow .cnt{font-weight:700;color:var(--teal);font-size:12px}
+  .tied{font-size:9.5px;font-weight:700;color:var(--amber);background:rgba(224,144,27,.14);
+    padding:1px 6px;border-radius:8px;letter-spacing:.04em}
+  .status{margin-top:13px;display:flex;align-items:center;gap:8px;font-weight:700;font-size:12px;
+    padding:8px 12px;border-radius:11px}
+  .status.prov{background:rgba(224,144,27,.13);color:var(--amber)}
+  .status.conf{background:rgba(31,157,99,.14);color:var(--green)}
+  #s3.active .tally{animation:slideUp .55s ease both}
+  #s3 .status.conf{display:none}
+  #s3.active .status.prov{animation:flick .5s ease 2.6s forwards}
+  #s3.active .status.conf{display:flex;animation:popsel .5s ease 2.9s both}
+
+  /* ---------- S4 : BADGES ---------- */
+  .badgewrap{display:flex;flex-direction:column;align-items:center;gap:18px}
+  .shield{width:clamp(120px,18vw,168px);height:clamp(136px,21vw,196px);position:relative;
+    filter:drop-shadow(0 18px 30px rgba(8,51,47,.35))}
+  .shield svg{width:100%;height:100%}
+  .bdg-poly{transition:fill .6s ease}
+  .count{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,60px);color:var(--teal-ink);
+    line-height:1;letter-spacing:-.03em}
+  .tierlabel{font-family:var(--display);font-weight:700;letter-spacing:.18em;text-transform:uppercase;
+    font-size:clamp(13px,2vw,18px);transition:color .5s ease}
+  .tiermarks{display:flex;gap:14px;margin-top:4px}
+  .tiermarks span{font-size:11px;font-weight:700;color:var(--muted);opacity:.5;transition:.4s;display:flex;gap:5px;align-items:center}
+  .tiermarks span b{font-family:var(--display)}
+  .tiermarks span.on{opacity:1}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--line)}
+  #s4.active .shield{animation:popsel .6s ease both}
+
+  /* ---------- S5 : JERSEY ---------- */
+  .league{width:clamp(280px,42vw,420px);background:#fff;border-radius:20px;padding:18px 20px;
+    box-shadow:0 26px 54px -24px rgba(8,51,47,.5);position:relative}
+  .league .lh{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+  .league h2{font-size:16px;color:var(--teal-ink)}
+  .wk{font-size:11px;font-weight:700;color:var(--jersey);background:rgba(30,127,224,.12);padding:3px 9px;border-radius:9px}
+  .prow{display:flex;align-items:center;gap:10px;padding:8px 0;position:relative}
+  .prow .mini{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:11px;flex:none}
+  .prow .track{flex:1;height:11px;border-radius:6px;background:rgba(8,51,47,.07);overflow:hidden}
+  .prow .fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--teal-soft),var(--teal));width:0}
+  .prow .pv{font-family:var(--display);font-weight:700;font-size:12px;color:var(--teal-deep);width:18px;text-align:right}
+  #s5.active .prow .fill{animation:grow 1.6s cubic-bezier(.3,.8,.3,1) .3s both}
+  #s5 .prow:nth-child(2) .fill{--w:88%}
+  #s5 .prow:nth-child(3) .fill{--w:54%}
+  #s5 .prow:nth-child(4) .fill{--w:70%}
+  #s5 .prow:nth-child(5) .fill{--w:33%}
+  .jersey{position:absolute;right:-6px;font-size:24px;opacity:0;filter:drop-shadow(0 6px 8px rgba(30,127,224,.4))}
+  #s5.active .jersey{animation:jerseyIn 1s cubic-bezier(.3,.8,.3,1) 2.1s both, jerseyMove 1.3s cubic-bezier(.5,0,.4,1) 4.4s forwards}
+  .nextweek{position:absolute;top:14px;right:20px;font-size:11px;font-weight:700;color:var(--jersey);opacity:0}
+  #s5.active .nextweek{animation:fade .5s ease 4.2s both}
+
+  /* ---------- S6 : CONNECT ---------- */
+  .connect{display:flex;flex-direction:column;align-items:center;gap:0;width:100%;max-width:620px}
+  .node{background:var(--teal-ink);color:#fff;font-family:var(--display);font-weight:700;
+    padding:12px 26px;border-radius:14px;font-size:clamp(15px,2.4vw,21px);box-shadow:var(--shadow)}
+  .branchline{width:2px;height:34px;background:var(--line)}
+  .splits{display:flex;gap:clamp(18px,5vw,60px);align-items:flex-start;position:relative}
+  .splits::before{content:"";position:absolute;top:-1px;left:25%;right:25%;height:2px;background:var(--line)}
+  .leg{display:flex;flex-direction:column;align-items:center;gap:12px;flex:1}
+  .leg .stem{width:2px;height:28px;background:var(--line)}
+  .card{padding:16px 20px;border-radius:16px;text-align:center;min-width:clamp(120px,22vw,180px);box-shadow:0 16px 34px -20px rgba(8,51,47,.5)}
+  .card .ico{font-size:26px;margin-bottom:6px}
+  .card .t{font-family:var(--display);font-weight:700;font-size:clamp(14px,2.1vw,18px)}
+  .card .s{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .card.badges{background:#fff;border-bottom:4px solid var(--gold)}
+  .card.jrs{background:#fff;border-bottom:4px solid var(--jersey)}
+  #s6.active .node{animation:popsel .5s ease both}
+  #s6.active .branchline,#s6.active .splits::before,#s6.active .leg .stem{transform-origin:top;animation:gr02 .5s ease .35s both}
+  #s6.active .card{opacity:0;animation:slideUp .55s ease .7s both}
+  #s6.active .leg:nth-child(2) .card{animation-delay:.9s}
+
+  /* ---------- S7 : CLOSE ---------- */
+  #s7{gap:0}
+  .logo{display:flex;align-items:center;gap:13px;margin-bottom:14px}
+  .logo .mk{width:clamp(46px,7vw,64px);height:clamp(46px,7vw,64px);border-radius:18px;
+    background:linear-gradient(150deg,var(--teal),var(--teal-deep));display:grid;place-items:center;
+    box-shadow:0 16px 28px -12px rgba(0,150,136,.7);font-size:26px}
+  .logo .wm{font-family:var(--display);font-weight:800;font-size:clamp(26px,4.6vw,46px);color:var(--teal-ink);letter-spacing:-.02em;line-height:.98}
+  .logo .wm .o{color:var(--orange)}
+  #s7 .tag{font-family:var(--display);font-weight:500;font-size:clamp(15px,2.5vw,22px);color:var(--teal-deep);margin-bottom:22px}
+  #s7 .cta{background:var(--orange);color:#fff;font-family:var(--display);font-weight:700;
+    padding:13px 30px;border-radius:13px;font-size:clamp(14px,2vw,18px);box-shadow:0 16px 30px -12px rgba(230,81,0,.65)}
+  #s7.active .logo{animation:popsel .6s ease both}
+  #s7.active .tag{opacity:0;animation:fade .6s ease .4s both}
+  #s7.active .cta{opacity:0;animation:slideUp .6s ease .7s both}
+
+  /* ===== keyframes ===== */
+  @keyframes rise{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes slideUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes popsel{from{opacity:0;transform:scale(.86)}60%{transform:scale(1.04)}to{opacity:1;transform:scale(1)}}
+  @keyframes bounce{0%{transform:translateY(-120px)}40%{transform:translateY(8px)}60%{transform:translateY(-22px)}80%{transform:translateY(4px)}100%{transform:translateY(0)}}
+  @keyframes tap{0%{opacity:1;transform:scale(.6)}100%{opacity:0;transform:scale(1.5)}}
+  @keyframes flick{to{opacity:0;transform:translateY(-6px);height:0;padding:0;margin:0;overflow:hidden}}
+  @keyframes grow{to{width:var(--w,70%)}}
+  @keyframes gr02{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+  @keyframes jerseyIn{0%{opacity:0;transform:translateY(-30px) scale(.5);top:54px}100%{opacity:1;transform:translateY(0) scale(1);top:54px}}
+  @keyframes jerseyMove{0%{top:54px}100%{top:120px}}
+
+  /* ---------- CONTROLS ---------- */
+  .controls{display:flex;align-items:center;gap:14px;width:min(960px,100%);justify-content:center;flex-wrap:wrap}
+  .btn{border:none;cursor:pointer;font-family:var(--display);font-weight:700;font-size:14px;
+    background:var(--teal-ink);color:#fff;padding:11px 20px;border-radius:11px;display:flex;align-items:center;gap:8px;
+    transition:transform .15s ease, background .2s ease}
+  .btn:hover{transform:translateY(-2px)}
+  .btn.ghost{background:#fff;color:var(--teal-ink);box-shadow:0 8px 18px -10px rgba(8,51,47,.4)}
+  .dots{display:flex;gap:9px;align-items:center}
+  .sdot{width:11px;height:11px;border-radius:50%;background:#b7d4cf;cursor:pointer;border:none;transition:.25s}
+  .sdot.on{background:var(--orange);transform:scale(1.25)}
+  .hint{font-size:12.5px;color:#5d7d79;text-align:center;max-width:680px}
+  .hint b{color:var(--teal-deep)}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="stage" id="stage">
+
+      <!-- S1 HOOK -->
+      <section class="scene" id="s1" data-dur="5" data-vo="Great game. But the match isn't quite over.">
+        <div class="ball"></div>
+        <h1><span class="w">Every</span> <span class="w">match</span> <span class="w o">counts.</span></h1>
+        <div class="kick">Padel Players</div>
+      </section>
+
+      <!-- S2 VOTE -->
+      <section class="scene" id="s2" data-dur="13" data-vo="After every match you give quick awards to the people you played with — and it's anonymous, so it stays honest.">
+        <div class="scene-tag">Vote</div>
+        <div class="phone">
+          <div class="bar"></div>
+          <div class="ph-title">Rate your teammates</div>
+          <div class="ph-sub">Tap who deserves each award</div>
+          <div class="award-row"><span class="em">🎾</span><span class="nm">Shot of the Match</span>
+            <span class="pick av j" style="opacity:.35">J</span><span class="pick sel av j">J</span></div>
+          <div class="award-row"><span class="em">🧠</span><span class="nm">Tactical Genius</span>
+            <span class="pick sel av j">J</span><span class="pick av a" style="opacity:.35">A</span></div>
+          <div class="award-row"><span class="em">🪄</span><span class="nm">Best Recovery Shot</span>
+            <span class="pick sel av c">C</span><span class="pick av z" style="opacity:.35">Z</span></div>
+          <div class="award-row"><span class="em">😂</span><span class="nm">Comedy Gold</span>
+            <span class="pick av a" style="opacity:.35">A</span><span class="pick sel av c">C</span></div>
+          <div class="award-row"><span class="em">🔥</span><span class="nm">Hustle Award</span>
+            <span class="pick sel av z">Z</span><span class="pick av j" style="opacity:.35">J</span></div>
+        </div>
+      </section>
+
+      <!-- S3 TALLY -->
+      <section class="scene" id="s3" data-dur="12" data-vo="Everyone sees who got recognised — never who voted. Votes are provisional until the result's confirmed… then they count for real.">
+        <div class="scene-tag">The tally</div>
+        <div class="tally">
+          <h2>Match awards</h2>
+          <div class="ph-sub" style="margin-bottom:6px;color:var(--muted);font-size:11.5px">Tuesday · 10:05</div>
+          <div class="trow"><span class="lab">🧠 Tactical Genius</span><span class="win"><span class="mini av j">J</span><span class="cnt">2</span></span></div>
+          <div class="trow"><span class="lab">🎾 Shot of the Match</span><span class="win"><span class="mini av j">J</span><span class="mini av c">C</span><span class="tied">Tied</span></span></div>
+          <div class="trow"><span class="lab">😂 Comedy Gold</span><span class="win"><span class="mini av c">C</span><span class="mini av a">A</span><span class="tied">Tied</span></span></div>
+          <div class="trow"><span class="lab">🔥 Hustle Award</span><span class="win"><span class="mini av z">Z</span><span class="mini av c">C</span><span class="tied">Tied</span></span></div>
+          <div class="status prov">⏳ Provisional — confirms once the result is verified</div>
+          <div class="status conf">✓ Confirmed — votes now count</div>
+        </div>
+      </section>
+
+      <!-- S4 BADGES -->
+      <section class="scene" id="s4" data-dur="15" data-vo="Those votes add up across every game you play — into badges you keep for good. Five for bronze, fifteen for silver, forty for gold.">
+        <div class="scene-tag">Badges</div>
+        <div class="badgewrap">
+          <div class="shield">
+            <svg viewBox="0 0 120 140">
+              <path class="bdg-poly" d="M60 4 L112 24 V70 C112 104 88 126 60 136 C32 126 8 104 8 70 V24 Z" fill="#c87f3a"/>
+              <text x="60" y="62" text-anchor="middle" font-size="38">😂</text>
+              <text x="60" y="98" text-anchor="middle" fill="#fff" font-family="Bricolage Grotesque" font-weight="700" font-size="13" letter-spacing="1">COMEDY</text>
+            </svg>
+          </div>
+          <div style="text-align:center">
+            <div class="count" id="bcount">0</div>
+            <div class="tierlabel" id="tlabel" style="color:var(--bronze)">votes received</div>
+          </div>
+          <div class="tiermarks">
+            <span id="m5"><span class="dot"></span><b>5</b> Bronze</span>
+            <span id="m15"><span class="dot"></span><b>15</b> Silver</span>
+            <span id="m40"><span class="dot"></span><b>40</b> Gold</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- S5 JERSEY -->
+      <section class="scene" id="s5" data-dur="16" data-vo="Play in a league and those same votes decide the weekly Entertainer jersey. Top the votes that week and it's yours — wear it, defend it… or watch someone take it next week.">
+        <div class="scene-tag">League jersey</div>
+        <div class="league">
+          <div class="lh"><h2>🔵 Entertainer race</h2><span class="wk">This week</span></div>
+          <div class="ph-sub" style="font-size:11px;color:var(--muted);margin-bottom:6px">Most peer votes this week wins the jersey</div>
+          <div class="prow"><span class="mini av j">J</span><div class="track"><div class="fill"></div></div><span class="pv">8</span></div>
+          <div class="prow"><span class="mini av c">C</span><div class="track"><div class="fill"></div></div><span class="pv">5</span></div>
+          <div class="prow"><span class="mini av a">A</span><div class="track"><div class="fill"></div></div><span class="pv">6</span></div>
+          <div class="prow"><span class="mini av z">Z</span><div class="track"><div class="fill"></div></div><span class="pv">3</span></div>
+          <div class="jersey">🎽</div>
+          <div class="nextweek">Next week →</div>
+        </div>
+      </section>
+
+      <!-- S6 CONNECT -->
+      <section class="scene" id="s6" data-dur="9" data-vo="One vote, after the match. Two rewards — your lifetime trophy cabinet, and your league's weekly title.">
+        <div class="scene-tag">How it links</div>
+        <div class="connect">
+          <div class="node">Your votes</div>
+          <div class="branchline"></div>
+          <div class="splits">
+            <div class="leg"><div class="stem"></div>
+              <div class="card badges"><div class="ico">🏅</div><div class="t">Badges</div><div class="s">Yours forever · any match</div></div>
+            </div>
+            <div class="leg"><div class="stem"></div>
+              <div class="card jrs"><div class="ico">🎽</div><div class="t">Jersey</div><div class="s">Weekly · in leagues</div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- S7 CLOSE -->
+      <section class="scene" id="s7" data-dur="6" data-vo="Padel Players — where the game keeps going.">
+        <div class="logo">
+          <div class="mk">🎾</div>
+          <div class="wm">Padel<span class="o"> Players</span></div>
+        </div>
+        <div class="tag">Where the game keeps going.</div>
+        <div class="cta">Join your court →</div>
+      </section>
+
+      <div class="caption" id="caption"></div>
+    </div>
+
+    <div class="controls">
+      <button class="btn" id="playBtn">⏸ Pause</button>
+      <button class="btn ghost" id="replayBtn">↻ Replay</button>
+      <div class="dots" id="dots"></div>
+    </div>
+    <p class="hint">A working concept in your brand — <b>auto-plays once</b>, tap a dot to jump to any scene, and screen-record it for a video. Emoji avatars and the 🎽/🎾 marks are placeholders for real artwork &amp; your logo.</p>
+  </div>
+
+<script>
+  const scenes = Array.from(document.querySelectorAll('.scene'));
+  const durs = scenes.map(s => (+s.dataset.dur) * 1000);
+  const caption = document.getElementById('caption');
+  const playBtn = document.getElementById('playBtn');
+  const replayBtn = document.getElementById('replayBtn');
+  const dotsWrap = document.getElementById('dots');
+
+  let idx = 0, timer = null, remaining = 0, startTs = 0, paused = false, badgeTimers = [];
+
+  // build dots
+  scenes.forEach((s,i)=>{
+    const b = document.createElement('button');
+    b.className = 'sdot'; b.title = 'Scene ' + (i+1);
+    b.addEventListener('click', ()=> jumpTo(i));
+    dotsWrap.appendChild(b);
+  });
+  const dots = Array.from(dotsWrap.children);
+
+  function show(i){
+    badgeTimers.forEach(clearTimeout); badgeTimers = [];
+    scenes.forEach(s => s.classList.remove('active'));
+    const s = scenes[i];
+    void s.offsetWidth;            // reflow → restart CSS animations
+    s.classList.add('active');
+    caption.textContent = s.dataset.vo || '';
+    dots.forEach((d,n)=> d.classList.toggle('on', n===i));
+    if (s.id === 's4') runBadge();
+  }
+
+  // animated badge counter + tier morph
+  function runBadge(){
+    const cEl = document.getElementById('bcount');
+    const lbl = document.getElementById('tlabel');
+    const poly = document.querySelector('#s4 .bdg-poly');
+    const m5=document.getElementById('m5'), m15=document.getElementById('m15'), m40=document.getElementById('m40');
+    [m5,m15,m40].forEach(m=>m.classList.remove('on'));
+    let n = 0; const target = 40;
+    cEl.textContent = '0'; lbl.textContent='votes received'; lbl.style.color='var(--bronze)'; poly.setAttribute('fill','#c87f3a');
+    const step = ()=>{
+      n++; cEl.textContent = n;
+      if(n===5){ poly.setAttribute('fill','#c87f3a'); lbl.textContent='Bronze'; lbl.style.color='var(--bronze)'; m5.classList.add('on'); m5.querySelector('.dot').style.background='var(--bronze)'; }
+      if(n===15){ poly.setAttribute('fill','#9aa6b2'); lbl.textContent='Silver'; lbl.style.color='var(--silver)'; m15.classList.add('on'); m15.querySelector('.dot').style.background='var(--silver)'; }
+      if(n===40){ poly.setAttribute('fill','#f4b50b'); lbl.textContent='Gold'; lbl.style.color='var(--gold)'; m40.classList.add('on'); m40.querySelector('.dot').style.background='var(--gold)'; }
+      if(n<target){ const t=setTimeout(step, n<5?150 : n<15?120 : 90); badgeTimers.push(t);} 
+    };
+    const t0=setTimeout(step, 700); badgeTimers.push(t0);
+  }
+
+  function scheduleNext(){
+    clearTimeout(timer);
+    startTs = Date.now();
+    timer = setTimeout(()=>{
+      if(idx < scenes.length-1){ idx++; remaining = durs[idx]; show(idx); scheduleNext(); }
+      else { ended(); }
+    }, remaining);
+  }
+  function play(){
+    if(idx >= scenes.length-1 && remaining<=0){ idx=0; }
+    paused = false; playBtn.textContent = '⏸ Pause';
+    if(remaining<=0) remaining = durs[idx];
+    scheduleNext();
+  }
+  function pause(){
+    paused = true; playBtn.textContent = '▶ Play';
+    clearTimeout(timer);
+    remaining -= (Date.now() - startTs);
+    badgeTimers.forEach(clearTimeout);
+  }
+  function ended(){
+    paused = true; playBtn.textContent = '↻ Replay'; remaining = 0;
+  }
+  function jumpTo(i){
+    clearTimeout(timer); idx = i; remaining = durs[i]; show(i);
+    if(!paused) scheduleNext(); else { startTs = Date.now(); }
+    if(paused){ playBtn.textContent = '▶ Play'; }
+  }
+
+  playBtn.addEventListener('click', ()=>{
+    if(playBtn.textContent.includes('Replay')){ idx=0; remaining=durs[0]; show(0); play(); return; }
+    paused ? play() : pause();
+  });
+  replayBtn.addEventListener('click', ()=>{ clearTimeout(timer); idx=0; remaining=durs[0]; show(0); play(); });
+
+  // start
+  show(0); remaining = durs[0]; play();
+</script>
+</body>
+</html>

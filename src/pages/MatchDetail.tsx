@@ -1334,33 +1334,47 @@ export function MatchDetailPage() {
             {result?.verification_status !== 'verified' && (
               <p className="text-[11px] text-amber-600 mb-3 italic">{t('peer_voting.provisional_note')}</p>
             )}
-            <div className="space-y-2.5">
+            <div className="space-y-4">
               {PEER_VOTE_CATEGORIES.map((cat) => {
                 const catVotes = allPeerVotes.filter((v) => v.vote_category === cat.id)
-                if (catVotes.length === 0) return null
-                // Tally votes per votee
+                // Tally votes per recipient
                 const tally = new Map<string, number>()
                 for (const v of catVotes) {
                   tally.set(v.voted_for_id, (tally.get(v.voted_for_id) ?? 0) + 1)
                 }
-                // Find winner (most votes)
-                let winnerId = ''
-                let winnerCount = 0
-                for (const [pid, count] of tally) {
-                  if (count > winnerCount) { winnerId = pid; winnerCount = count }
-                }
-                const winner = players.find((p) => p.id === winnerId)
+                const sorted = [...tally.entries()].sort((a, b) => b[1] - a[1])
+                const topCount = sorted[0]?.[1] ?? 0
+                const isTied = sorted.filter(([, c]) => c === topCount).length > 1
+
                 return (
-                  <div key={cat.id} className="flex items-center gap-3">
-                    <span className="text-[16px] flex-shrink-0">{cat.emoji}</span>
-                    <div className="flex-1 min-w-0">
+                  <div key={cat.id}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[14px] flex-shrink-0">{cat.emoji}</span>
                       <p className="text-[12px] font-semibold text-gray-700">{t(`peer_voting.${cat.id}_name`, { defaultValue: cat.name })}</p>
                     </div>
-                    {winner && (
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <PlayerAvatar name={winner.name} avatarUrl={winner.avatar_url} size="sm" />
-                        <span className="text-[12px] font-semibold text-gray-800">{winner.name?.split(' ')[0]}</span>
-                        <span className="text-[11px] text-gray-400">({winnerCount})</span>
+                    {sorted.length === 0 ? (
+                      <p className="text-[11px] text-gray-400 ml-6">{t('peer_voting.no_votes_yet')}</p>
+                    ) : (
+                      <div className="ml-6 space-y-1">
+                        {sorted.map(([pid, count]) => {
+                          const player = players.find((p) => p.id === pid)
+                          if (!player) return null
+                          const isLeader = count === topCount
+                          return (
+                            <div key={pid} className="flex items-center gap-2">
+                              <PlayerAvatar name={player.name} avatarUrl={player.avatar_url} size="sm" />
+                              <span className={cn('text-[12px] flex-1 truncate', isLeader ? 'font-semibold text-gray-800' : 'text-gray-600')}>
+                                {player.name?.split(' ')[0]}
+                              </span>
+                              <span className={cn('text-[11px] tabular-nums', isLeader ? 'font-bold text-teal-600' : 'text-gray-400')}>
+                                {count}
+                              </span>
+                              {isLeader && isTied && (
+                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5 uppercase">Tied</span>
+                              )}
+                            </div>
+                          )
+                        })}
                       </div>
                     )}
                   </div>

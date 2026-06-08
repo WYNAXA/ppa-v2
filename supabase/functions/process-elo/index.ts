@@ -341,6 +341,36 @@ Deno.serve(async (req) => {
 
   // Update league_standings if this match belongs to a league
   if (leagueId) {
+    // ── Season ELO update (before win/draw RPC so matches_played is pre-increment) ──
+    try {
+      const { data: standRows } = await supabase
+        .from('league_standings')
+        .select('user_id, season_elo, matches_played')
+        .eq('league_id', leagueId)
+        .in('user_id', allPlayerIds)
+
+      if (standRows && standRows.length > 0) {
+        for (const row of standRows) {
+          const seasonK   = calculateKFactor(row.matches_played ?? 0)
+          const expected  = allResults[row.user_id].expectedScore
+          const actual    = team1.includes(row.user_id) ? team1Score : team2Score
+          const isWin     = actual === 1
+          const rawChange = seasonK * (actual - expected)
+          const change    = applyMultipliers(rawChange, expected, dominant, isWin)
+          const newElo    = Math.max(0, Math.min(3000, (row.season_elo ?? 1230) + change))
+
+          await supabase
+            .from('league_standings')
+            .update({ season_elo: newElo })
+            .eq('league_id', leagueId)
+            .eq('user_id', row.user_id)
+        }
+        console.warn(`[process-elo] season ELO updated for ${standRows.length} members in league ${leagueId}`)
+      }
+    } catch (err) {
+      console.warn('[process-elo] season ELO update failed, continuing:', err)
+    }
+
     if (isDraw) {
       await supabase.rpc('update_league_standings_draw', {
         p_league_id: leagueId,

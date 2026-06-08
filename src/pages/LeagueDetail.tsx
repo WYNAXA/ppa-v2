@@ -365,7 +365,7 @@ function useEntertainerHistory(leagueId: string) {
   })
 }
 
-function useFixtures(leagueId: string, groupIds: string[]) {
+function useFixtures(leagueId: string, _groupIds: string[]) {
   return useQuery({
     queryKey: ['league-fixtures', leagueId],
     enabled: !!leagueId,
@@ -383,16 +383,6 @@ function useFixtures(leagueId: string, groupIds: string[]) {
 
       if (byLeague && byLeague.length > 0) {
         matches = byLeague
-      } else if (groupIds.length > 0) {
-        // Fallback: matches in linked groups
-        const { data: byGroup } = await supabase
-          .from('matches')
-          .select('id, match_date, match_time, status, booked_venue_name, player_ids')
-          .in('group_id', groupIds)
-          .not('status', 'in', '("completed","cancelled")')
-          .order('match_date', { ascending: true })
-          .limit(20)
-        matches = byGroup
       }
 
       if (!matches || matches.length === 0) return []
@@ -2215,6 +2205,7 @@ export function LeagueDetailPage() {
                         )}
                         <button
                           onClick={async () => {
+                            if (!confirm('Cancel this match? It will be removed from the fixtures.')) return
                             await supabase.from('matches').update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
                             queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
                           }}

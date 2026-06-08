@@ -1420,6 +1420,159 @@ function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
   )
 }
 
+// ── QuickSessionSheet ────────────────────────────────────────────────────────
+
+function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, currentUserId, queryClient }: {
+  open: boolean
+  onClose: () => void
+  standings: Standing[]
+  leagueId: string
+  linkedGroupId: string | null
+  currentUserId: string
+  queryClient: ReturnType<typeof useQueryClient>
+}) {
+  const [selected, setSelected] = useState<Set<string>>(() => new Set(standings.map((s) => s.user_id)))
+  const [rounds, setRounds] = useState(3)
+  const [generating, setGenerating] = useState(false)
+
+  const selectedCount = selected.size
+  const maxRounds = Math.max(1, selectedCount - 1)
+  const effectiveRounds = Math.min(rounds, maxRounds)
+
+  const toggle = (uid: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(uid)) next.delete(uid); else next.add(uid)
+      return next
+    })
+  }
+
+  const handleGenerate = async () => {
+    const playerIds = standings.filter((s) => selected.has(s.user_id)).map((s) => s.user_id)
+    if (playerIds.length < 4) return
+    setGenerating(true)
+    try {
+      const today = format(new Date(), 'yyyy-MM-dd')
+      const matchesToCreate: Array<Record<string, unknown>> = []
+
+      for (let r = 0; r < effectiveRounds; r++) {
+        const { pairings } = generateRoundRobinRound(playerIds, r)
+        for (let i = 0; i + 1 < pairings.length; i += 2) {
+          const [a1, a2] = pairings[i]
+          const [b1, b2] = pairings[i + 1]
+          matchesToCreate.push({
+            match_date: today,
+            match_time: '12:00:00',
+            match_type: 'competitive',
+            status: 'scheduled',
+            player_ids: [a1, a2, b1, b2],
+            group_id: linkedGroupId,
+            league_id: leagueId,
+            round_number: null,
+            created_manually: false,
+            created_by: currentUserId,
+          })
+        }
+      }
+
+      const { error } = await supabase.from('matches').insert(matchesToCreate)
+      if (error) console.warn('[QuickSession] insert error:', error)
+      else console.warn(`[QuickSession] created ${matchesToCreate.length} matches for ${playerIds.length} players × ${effectiveRounds} rounds`)
+      queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
+      onClose()
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-[55] bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[80vh] flex flex-col"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="h-1 w-10 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 shrink-0">
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+              <h2 className="text-[15px] font-bold text-gray-900">Quick Session</h2>
+              <div className="w-9" />
+            </div>
+
+            {/* Player list */}
+            <div className="overflow-y-auto flex-1 px-5 pb-4">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide mb-2">Who's here today?</p>
+              <div className="space-y-1">
+                {standings.map((s) => (
+                  <button
+                    key={s.user_id}
+                    onClick={() => toggle(s.user_id)}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
+                      selected.has(s.user_id) ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50 border border-gray-100 opacity-50',
+                    )}
+                  >
+                    <PlayerAvatar name={s.profile?.name ?? '?'} avatarUrl={s.profile?.avatar_url ?? null} size="sm" />
+                    <span className="text-[13px] font-semibold text-gray-900 flex-1">{s.profile?.name ?? 'Unknown'}</span>
+                    <span className={cn(
+                      'text-[11px] font-bold',
+                      selected.has(s.user_id) ? 'text-teal-600' : 'text-gray-300',
+                    )}>
+                      {selected.has(s.user_id) ? '✓' : '—'}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rounds stepper + generate */}
+            <div className="shrink-0 border-t border-gray-100 px-5 py-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[13px] font-semibold text-gray-700">Rounds</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setRounds((r) => Math.max(1, r - 1))}
+                    disabled={effectiveRounds <= 1}
+                    className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[15px] font-bold text-gray-600 disabled:opacity-30"
+                  >−</button>
+                  <span className="text-[15px] font-bold text-gray-900 w-6 text-center">{effectiveRounds}</span>
+                  <button
+                    onClick={() => setRounds((r) => Math.min(maxRounds, r + 1))}
+                    disabled={effectiveRounds >= maxRounds}
+                    className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[15px] font-bold text-gray-600 disabled:opacity-30"
+                  >+</button>
+                </div>
+              </div>
+              <button
+                onClick={handleGenerate}
+                disabled={selectedCount < 4 || generating}
+                className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {generating ? 'Generating…' : selectedCount < 4 ? 'Select at least 4 players' : `Generate session (${effectiveRounds} round${effectiveRounds > 1 ? 's' : ''})`}
+              </button>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export function LeagueDetailPage() {
@@ -1434,6 +1587,8 @@ export function LeagueDetailPage() {
   const locale = useDateLocale()
   const [generatingRound, setGeneratingRound] = useState(false)
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
+  const [quickSessionKey, setQuickSessionKey] = useState(0)
+  const [showQuickSession, setShowQuickSession] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const { t: tPairs } = useTranslation('', { keyPrefix: 'pairs' })
 
@@ -2133,6 +2288,14 @@ export function LeagueDetailPage() {
                     )}
                     {!isSeasonComplete && (
                       <button
+                        onClick={() => { setQuickSessionKey((k) => k + 1); setShowQuickSession(true) }}
+                        className="flex-1 rounded-2xl bg-amber-500 py-3 text-[13px] font-bold text-white"
+                      >
+                        Quick session
+                      </button>
+                    )}
+                    {!isSeasonComplete && (
+                      <button
                         onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
                         className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-[13px] font-bold text-white"
                       >
@@ -2142,6 +2305,17 @@ export function LeagueDetailPage() {
                     )}
                   </div>
                 )}
+
+                <QuickSessionSheet
+                  key={quickSessionKey}
+                  open={showQuickSession}
+                  onClose={() => setShowQuickSession(false)}
+                  standings={standings}
+                  leagueId={id}
+                  linkedGroupId={league?.linked_group_ids?.[0] ?? null}
+                  currentUserId={currentUserId}
+                  queryClient={queryClient}
+                />
 
                 {/* Empty state */}
                 {fixtures.length === 0 ? (

@@ -240,10 +240,58 @@ Deno.serve(async (req) => {
 
   const team1Won = result.result_type === 'team1_win'
   const isDraw = result.result_type === 'draw'
-  const dominant = isDominantWin(result.sets_data as any[] || [])
+  const sets = (result.sets_data as any[]) || []
+  const isSingleSet = sets.length === 1
 
-  const team1Score = isDraw ? 0.5 : team1Won ? 1 : 0
-  const team2Score = isDraw ? 0.5 : team1Won ? 0 : 1
+  // ── Single-set classifier ──
+  let team1Score: number
+  let team2Score: number
+  let recordAsDraw: boolean
+  let dominant: boolean
+
+  if (isSingleSet) {
+    const g1 = (sets[0]?.team1_score ?? sets[0]?.team1 ?? 0) as number
+    const g2 = (sets[0]?.team2_score ?? sets[0]?.team2 ?? 0) as number
+    const total = g1 + g2
+    const maxG = Math.max(g1, g2)
+    const minG = Math.min(g1, g2)
+    const completed = (maxG >= 6 && Math.abs(g1 - g2) >= 2) || (maxG === 7 && minG === 6)
+    const isVoid = !completed && total < 6
+
+    // Void: fewer than 6 games total and set not completed — skip entirely
+    if (isVoid) {
+      await supabase
+        .from('match_results')
+        .update({ elo_processed: true })
+        .eq('id', match_result_id)
+
+      console.warn(`[process-elo] void set (${g1}-${g2}, <6 games), skipping match_result ${match_result_id}`)
+      return new Response(
+        JSON.stringify({ message: 'Void set (<6 games), skipped', skipped: true }),
+        { headers: corsHeaders }
+      )
+    }
+
+    if (completed) {
+      const t1Won = g1 > g2
+      team1Score = t1Won ? 1 : 0
+      team2Score = t1Won ? 0 : 1
+      recordAsDraw = false
+      dominant = isDominantWin(sets)
+    } else {
+      // unfinishedCounted: proportional ELO, recorded as draw for standings
+      team1Score = g1 / total
+      team2Score = g2 / total
+      recordAsDraw = true
+      dominant = false
+    }
+  } else {
+    // Multi-set / fallback — unchanged behaviour
+    team1Score = isDraw ? 0.5 : team1Won ? 1 : 0
+    team2Score = isDraw ? 0.5 : team1Won ? 0 : 1
+    recordAsDraw = isDraw
+    dominant = isDominantWin(sets)
+  }
 
   const team1Results = processTeamElo({
     playerIds: team1,
@@ -380,14 +428,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    if (isDraw) {
+    if (recordAsDraw) {
       await supabase.rpc('update_league_standings_draw', {
         p_league_id: leagueId,
         p_player_ids: [...team1, ...team2],
       })
     } else {
-      const winners = team1Won ? team1 : team2
-      const losers = team1Won ? team2 : team1
+      const winners = team1Score > team2Score ? team1 : team2
+      const losers = team1Score > team2Score ? team2 : team1
       await supabase.rpc('update_league_standings_win', {
         p_league_id: leagueId,
         p_winner_ids: winners,

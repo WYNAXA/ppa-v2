@@ -2553,12 +2553,33 @@ export function LeagueDetailPage() {
 
       {/* FAB for quick result entry */}
       {isAdmin && activeTab === 'standings' && (
-        <button
-          onClick={() => setShowFixturePicker(true)}
-          className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-[#009688] shadow-lg flex items-center justify-center z-40"
-        >
-          <Plus className="h-6 w-6 text-white" />
-        </button>
+        <>
+          <button
+            onClick={() => setShowFixturePicker(true)}
+            className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-[#009688] shadow-lg flex items-center justify-center z-40"
+          >
+            <Plus className="h-6 w-6 text-white" />
+          </button>
+          {league?.match_type === 'individual' && (
+            <div className="px-5 pb-4 mt-4">
+              <button
+                onClick={async () => {
+                  if (!window.confirm('Start a new season? This resets every member\u2019s season ELO to 1230 and clears season W/L and points for this league. Career ELO is not affected. This cannot be undone.')) return
+                  const { error } = await supabase.rpc('reset_league_season', { p_league_id: league.id })
+                  if (error) {
+                    console.warn('[LeagueDetail] reset_league_season error:', error)
+                    toast.error('Failed to reset season')
+                    return
+                  }
+                  queryClient.invalidateQueries({ queryKey: ['league-standings', id] })
+                }}
+                className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
+              >
+                Start new season
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {/* Fixture picker sheet */}

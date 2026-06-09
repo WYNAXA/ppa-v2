@@ -1045,6 +1045,7 @@ const LEAGUE_STATUS_STYLE: Record<string, string> = {
 interface QuickSetScore {
   team1: number | ''
   team2: number | ''
+  notFinished?: boolean
 }
 
 const SCORING_MIN_SETS: Record<string, number> = {
@@ -1130,10 +1131,10 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
       const team1Players = match.player_ids.slice(0, 2)
       const team2Players = match.player_ids.slice(2, 4)
 
-      function buildResult(matchId: string, g1: number, g2: number) {
-        const rt = g1 > g2 ? 'team1_win' : g2 > g1 ? 'team2_win' : 'draw'
-        const t1s = g1 > g2 ? 1 : 0
-        const t2s = g2 > g1 ? 1 : 0
+      function buildResult(matchId: string, g1: number, g2: number, notFinished: boolean) {
+        const rt = notFinished ? 'draw' : g1 > g2 ? 'team1_win' : g2 > g1 ? 'team2_win' : 'draw'
+        const t1s = notFinished ? 0 : g1 > g2 ? 1 : 0
+        const t2s = notFinished ? 0 : g2 > g1 ? 1 : 0
         return {
           match_id: matchId,
           team1_players: team1Players,
@@ -1150,10 +1151,11 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
       for (let i = 0; i < completedSets.length; i++) {
         const g1 = Number(completedSets[i].team1)
         const g2 = Number(completedSets[i].team2)
+        const nf = completedSets[i].notFinished === true
 
         if (i === 0) {
           // First set → reuse the fixture match
-          const { error: rErr } = await supabase.from('match_results').insert(buildResult(match.id, g1, g2))
+          const { error: rErr } = await supabase.from('match_results').insert(buildResult(match.id, g1, g2, nf))
           if (rErr) throw rErr
           const { error: mErr } = await supabase.from('matches')
             .update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
@@ -1167,7 +1169,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
             .select('id')
             .single()
           if (mErr || !newMatch) throw (mErr ?? new Error('failed to create set match'))
-          const { error: rErr } = await supabase.from('match_results').insert(buildResult(newMatch.id, g1, g2))
+          const { error: rErr } = await supabase.from('match_results').insert(buildResult(newMatch.id, g1, g2, nf))
           if (rErr) throw rErr
         }
       }
@@ -1274,6 +1276,15 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                           x
                         </button>
                       )}
+                      <button
+                        onClick={() => setSets((prev) => prev.map((x, j) => j === i ? { ...x, notFinished: !x.notFinished } : x))}
+                        className={cn(
+                          'text-[9px] font-semibold rounded-full px-2 py-0.5 border ml-1 whitespace-nowrap',
+                          s.notFinished ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-gray-50 text-gray-400 border-gray-200',
+                        )}
+                      >
+                        {s.notFinished ? "Couldn't finish" : 'Finished'}
+                      </button>
                     </div>
                   ))}
 
@@ -1320,17 +1331,17 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     </button>
                     <button
                       onClick={() => {
-                        // Validate set scores against scoring format
-                        const completedSetData = sets.filter((s) => s.team1 !== '' && s.team2 !== '').map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
-                        const validationError = validateSetScores(completedSetData, scoringFormat)
+                        // Validate only finished sets against scoring format
+                        const finishedSetData = sets.filter((s) => s.team1 !== '' && s.team2 !== '' && !s.notFinished).map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
+                        const validationError = validateSetScores(finishedSetData, scoringFormat)
                         if (validationError) {
                           toast.error(validationError)
                           return
                         }
                         const fmt = scoringFormat ?? 'standard'
                         const minSets = SCORING_MIN_SETS[fmt] ?? 2
-                        const completedSets = completedSetData.length
-                        if (completedSets < minSets) {
+                        const filledCount = sets.filter((s) => s.team1 !== '' && s.team2 !== '').length
+                        if (filledCount < minSets) {
                           setShowIncompleteConfirm(true)
                           return
                         }

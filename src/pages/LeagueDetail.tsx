@@ -1121,28 +1121,60 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
     setError(null)
     try {
       const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
+      if (completedSets.length === 0) return
 
-      // 1. Insert match_results
-      const { error: resultError } = await supabase.from('match_results').insert({
-        match_id: match.id,
-        team1_players: match.player_ids.slice(0, 2),
-        team2_players: match.player_ids.slice(2, 4),
-        team1_score: t1Wins,
-        team2_score: t2Wins,
-        result_type: resultType,
-        verification_status: 'verified',
-        submitted_by: currentUserId,
-        sets_data: completedSets.map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) })),
-      })
-      if (resultError) throw resultError
+      // Fetch source match to clone for extra set-matches
+      const { data: src, error: srcErr } = await supabase.from('matches').select('*').eq('id', match.id).single()
+      if (srcErr || !src) throw (srcErr ?? new Error('match not found'))
 
-      // 2. Update match status
-      const { error: matchError } = await supabase.from('matches').update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
-      if (matchError) throw matchError
+      const team1Players = match.player_ids.slice(0, 2)
+      const team2Players = match.player_ids.slice(2, 4)
 
-      // 3. Standings updated by process-elo via DB webhook — no client-side RPC
+      function buildResult(matchId: string, g1: number, g2: number) {
+        const rt = g1 > g2 ? 'team1_win' : g2 > g1 ? 'team2_win' : 'draw'
+        const t1s = g1 > g2 ? 1 : 0
+        const t2s = g2 > g1 ? 1 : 0
+        return {
+          match_id: matchId,
+          team1_players: team1Players,
+          team2_players: team2Players,
+          team1_score: t1s,
+          team2_score: t2s,
+          result_type: rt,
+          verification_status: 'verified',
+          submitted_by: currentUserId,
+          sets_data: [{ team1: g1, team2: g2 }],
+        }
+      }
 
-      // 4. Invalidate and close
+      for (let i = 0; i < completedSets.length; i++) {
+        const g1 = Number(completedSets[i].team1)
+        const g2 = Number(completedSets[i].team2)
+
+        if (i === 0) {
+          // First set → reuse the fixture match
+          const { error: rErr } = await supabase.from('match_results').insert(buildResult(match.id, g1, g2))
+          if (rErr) throw rErr
+          const { error: mErr } = await supabase.from('matches')
+            .update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
+            .eq('id', match.id)
+          if (mErr) throw mErr
+        } else {
+          // Subsequent sets → clone a new match, then insert its result
+          const { id: _id, created_at: _ca, ...rest } = src
+          const { data: newMatch, error: mErr } = await supabase.from('matches')
+            .insert({ ...rest, round_number: null, status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
+            .select('id')
+            .single()
+          if (mErr || !newMatch) throw (mErr ?? new Error('failed to create set match'))
+          const { error: rErr } = await supabase.from('match_results').insert(buildResult(newMatch.id, g1, g2))
+          if (rErr) throw rErr
+        }
+      }
+
+      console.warn(`[QuickResult] submitted ${completedSets.length} set(s) as individual matches for fixture ${match.id}`)
+
+      // Invalidate and close
       queryClient.invalidateQueries({ queryKey: ['league-standings', leagueId] })
       queryClient.invalidateQueries({ queryKey: ['league-team-standings', leagueId] })
       queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })

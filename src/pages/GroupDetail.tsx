@@ -282,9 +282,9 @@ function useGroupMatches(groupId: string) {
   })
 }
 
-function useGroupPastMatches(groupId: string) {
+function useGroupPastMatches(groupId: string, userId: string) {
   return useQuery({
-    queryKey: ['group-past-matches', groupId],
+    queryKey: ['group-past-matches', groupId, userId],
     enabled: !!groupId && groupId.length > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async (): Promise<MatchCardData[]> => {
@@ -301,22 +301,43 @@ function useGroupPastMatches(groupId: string) {
       if (error) throw error
       if (!matches || matches.length === 0) return []
 
+      const matchIds = matches.map((m) => m.id)
+      const { data: results } = await supabase
+        .from('match_results')
+        .select('match_id, result_type, team1_players, team2_players')
+        .in('match_id', matchIds)
+        .eq('verification_status', 'verified')
+      const resultByMatch = Object.fromEntries((results ?? []).map((r) => [r.match_id, r]))
+
       const allPlayerIds = [...new Set(matches.flatMap((m) => m.player_ids ?? []))]
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
         .in('id', allPlayerIds)
 
-      return matches.map((m) => ({
-        id:                m.id,
-        match_date:        m.match_date,
-        match_time:        m.match_time,
-        booked_venue_name: m.booked_venue_name,
-        player_ids:        m.player_ids ?? [],
-        match_type:        m.match_type,
-        status:            m.status,
-        players:           (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
-      }))
+      return matches.map((m) => {
+        const r = resultByMatch[m.id]
+        let didWin: boolean | undefined = undefined
+        if (r && r.result_type !== 'draw') {
+          const onTeam1 = (r.team1_players ?? []).includes(userId)
+          const onTeam2 = (r.team2_players ?? []).includes(userId)
+          if (onTeam1 || onTeam2) {
+            const team1Won = r.result_type === 'team1_win'
+            didWin = onTeam1 ? team1Won : !team1Won
+          }
+        }
+        return {
+          id:                m.id,
+          match_date:        m.match_date,
+          match_time:        m.match_time,
+          booked_venue_name: m.booked_venue_name,
+          player_ids:        m.player_ids ?? [],
+          match_type:        m.match_type,
+          status:            m.status,
+          players:           (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
+          didWin,
+        }
+      })
     },
   })
 }
@@ -617,8 +638,9 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
 
   // Personal stats in this group (only matches user participated in)
   const myPastMatches = past.filter(m => m.player_ids.includes(userId))
-  const pastCount = myPastMatches.length
   const winsCount = myPastMatches.filter(m => m.didWin === true).length
+  const lossesCount = myPastMatches.filter(m => m.didWin === false).length
+  const playedCount = winsCount + lossesCount
 
   if (isLoading) return <TabSkeleton />
 
@@ -699,14 +721,14 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
             ))}
           </div>
           {/* Stats summary */}
-          {pastCount > 0 && (
+          {playedCount > 0 && (
           <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 mb-3">
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{t('group_detail.your_record_in_group')}</p>
             <div className="flex gap-4">
-              <span className="text-[13px] font-bold text-gray-900">{t('group_detail.played', { count: pastCount })}</span>
+              <span className="text-[13px] font-bold text-gray-900">{t('group_detail.played', { count: playedCount })}</span>
               <span className="text-[13px] font-bold text-green-700">{winsCount}W</span>
-              <span className="text-[13px] font-bold text-red-500">{pastCount - winsCount}L</span>
-              <span className="text-[13px] font-bold text-gray-500">{pastCount > 0 ? Math.round((winsCount / pastCount) * 100) : 0}%</span>
+              <span className="text-[13px] font-bold text-red-500">{lossesCount}L</span>
+              <span className="text-[13px] font-bold text-gray-500">{playedCount > 0 ? Math.round((winsCount / playedCount) * 100) : 0}%</span>
             </div>
           </div>
           )}
@@ -1590,7 +1612,7 @@ export function GroupDetailPage() {
   const { data: group,   isLoading: loadingGroup   } = useGroup(groupId)
   const { data: members, isLoading: loadingMembers } = useGroupMembers(groupId)
   const { data: upcomingMatches, isLoading: loadingUpcoming } = useGroupMatches(groupId)
-  const { data: pastMatches, isLoading: loadingPast } = useGroupPastMatches(groupId)
+  const { data: pastMatches, isLoading: loadingPast } = useGroupPastMatches(groupId, userId)
   const loadingMatches = loadingUpcoming || loadingPast
   const { data: polls,   isLoading: loadingPolls   } = useGroupPolls(groupId)
   const { data: events,  isLoading: loadingEvents  } = useGroupEvents(groupId)

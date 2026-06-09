@@ -180,6 +180,7 @@ function useStandings(leagueId: string) {
           drawn:   (r.draws ?? r.drawn ?? 0) as number,
           points:  (r.ranking_points ?? r.points ?? 0) as number,
           game_difference: gd ? gd.won - gd.lost : 0,
+          season_elo: r.season_elo as number | undefined,
           profile: profileMap[r.user_id],
         }
       })

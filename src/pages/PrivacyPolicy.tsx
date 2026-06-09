@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -28,18 +28,17 @@ function Ul({ items }: { items: string[] }) {
 }
 
 export function PrivacyPolicyPage() {
-  const navigate = useNavigate()
   return (
     <div className="min-h-full bg-cream">
       <div className="bg-white border-b border-gray-100">
         <div className="mx-auto max-w-2xl flex items-center gap-3 px-5 pt-14 pb-4">
-          <button
-            onClick={() => navigate(-1)}
+          <Link
+            to="/"
             className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 hover:bg-gray-200 transition-colors"
-            aria-label="Go back"
+            aria-label="Back to home"
           >
             <ChevronLeft className="h-5 w-5 text-gray-600" />
-          </button>
+          </Link>
           <h1 className="text-[18px] font-bold text-navy">Privacy Policy</h1>
         </div>
       </div>

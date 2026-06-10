@@ -18,6 +18,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function sendOneSignal(userIds: string[], title: string, body: string, data?: Record<string, unknown>) {
+  const key = Deno.env.get('ONESIGNAL_REST_API_KEY')
+  const appId = Deno.env.get('ONESIGNAL_APP_ID')
+  if (!key || !appId || userIds.length === 0) return
+  try {
+    const res = await fetch('https://api.onesignal.com/notifications', {
+      method: 'POST',
+      headers: { 'Authorization': `Key ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        app_id: appId,
+        target_channel: 'push',
+        include_aliases: { external_id: userIds },
+        headings: { en: title },
+        contents: { en: body },
+        ...(data && Object.keys(data).length > 0 ? { data } : {}),
+      }),
+    })
+    if (!res.ok) console.error('OneSignal send failed', res.status, await res.text())
+  } catch (e) {
+    console.error('OneSignal send error', e)
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -54,6 +77,14 @@ Deno.serve(async (req) => {
       status: 400, headers: corsHeaders,
     })
   }
+
+  // ── OneSignal (iOS native push) — fire-and-forget alongside Web Push ──
+  sendOneSignal(
+    user_ids as string[],
+    title,
+    message ?? '',
+    { ...(url ? { url } : {}), ...(tag ? { tag } : {}) },
+  )
 
   // Fetch push tokens for all target users
   const { data: profiles } = await supabase

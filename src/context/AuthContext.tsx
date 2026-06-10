@@ -50,6 +50,16 @@ async function fetchProfile(userId: string): Promise<Profile | null> {
   }
 }
 
+function notifyOneSignalBridge(type: string, userId?: string) {
+  const handler = (window as any)?.webkit?.messageHandlers?.onesignal // eslint-disable-line @typescript-eslint/no-explicit-any
+  if (!handler) return
+  try {
+    handler.postMessage(userId ? { type, userId } : { type })
+  } catch (e) {
+    console.warn('OneSignal bridge post failed', e)
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
@@ -76,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (newSession?.user) {
           // Set Sentry user context (ID only — no PII)
           Sentry.setUser({ id: newSession.user.id })
+          notifyOneSignalBridge('login', newSession.user.id)
           // Load profile in background
           if (profileLoadedForRef.current !== newSession.user.id) {
             profileLoadedForRef.current = newSession.user.id
@@ -85,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           Sentry.setUser(null)
+          notifyOneSignalBridge('logout')
           profileLoadedForRef.current = ''
           setProfile(null)
         }

@@ -1045,8 +1045,10 @@ const LEAGUE_STATUS_STYLE: Record<string, string> = {
 interface QuickSetScore {
   team1: number | ''
   team2: number | ''
-  notFinished?: boolean
 }
+
+const isCompletedSet = (a: number, b: number) =>
+  (Math.max(a, b) >= 6 && Math.abs(a - b) >= 2) || (a === 7 && b === 6) || (a === 6 && b === 7)
 
 const SCORING_MIN_SETS: Record<string, number> = {
   standard: 2,
@@ -1153,7 +1155,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
         for (let i = 0; i < completedSets.length; i++) {
           const g1 = Number(completedSets[i].team1)
           const g2 = Number(completedSets[i].team2)
-          const nf = completedSets[i].notFinished === true
+          const nf = !isCompletedSet(g1, g2)
 
           if (i === 0) {
             const { error: rErr } = await supabase.from('match_results').insert(buildResult(match.id, g1, g2, nf))
@@ -1269,70 +1271,77 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                   </div>
 
                   {/* Set inputs */}
-                  {sets.map((s, i) => (
-                    <div
-                      key={i}
-                      className={cn(
-                        'flex items-center gap-2 mb-3 justify-center',
-                        setAsMatch && s.notFinished && 'bg-amber-50 border border-amber-200 rounded-xl px-2 py-1',
-                      )}
-                    >
-                      <span className="text-[12px] text-gray-400 w-12">Set {i + 1}</span>
-                      <input
-                        ref={(el) => { quickInputRefs.current[`${i}-team1`] = el }}
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={9}
-                        value={s.team1}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
-                          setSets((prev) => prev.map((x, j) => j === i ? { ...x, team1: val } : x))
-                          if (e.target.value !== '') setTimeout(() => quickInputRefs.current[`${i}-team2`]?.focus(), 0)
-                        }}
-                        className="w-[56px] rounded-xl border border-gray-200 bg-teal-50 py-2 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
-                      />
-                      <span className="text-gray-300">—</span>
-                      <input
-                        ref={(el) => { quickInputRefs.current[`${i}-team2`] = el }}
-                        type="number"
-                        inputMode="numeric"
-                        min={0}
-                        max={9}
-                        value={s.team2}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
-                          setSets((prev) => prev.map((x, j) => j === i ? { ...x, team2: val } : x))
-                          if (e.target.value !== '') setTimeout(() => quickInputRefs.current[`${i + 1}-team1`]?.focus(), 0)
-                        }}
-                        className="w-[56px] rounded-xl border border-gray-200 bg-orange-50 py-2 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
-                      />
-                      {sets.length > 1 && (
-                        <button onClick={() => setSets((prev) => prev.filter((_, j) => j !== i))} className="text-[10px] text-gray-300 hover:text-red-400 ml-1">
-                          x
-                        </button>
-                      )}
-                      {setAsMatch && (
-                        <button
-                          onClick={() => setSets((prev) => prev.map((x, j) => j === i ? { ...x, notFinished: !x.notFinished } : x))}
-                          className={cn(
-                            'text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5',
-                            s.notFinished
-                              ? 'bg-amber-100 text-amber-700 border-amber-300 font-semibold'
-                              : 'bg-gray-50 text-gray-500 border-gray-200',
-                          )}
-                        >
-                          <span className={cn(
-                            'inline-block w-2.5 h-2.5 rounded-[3px] border',
-                            s.notFinished ? 'bg-amber-500 border-amber-500' : 'border-gray-300 bg-white',
-                          )} />
-                          Couldn&apos;t finish
-                        </button>
-                      )}
-                    </div>
-                  ))}
+                  {sets.map((s, i) => {
+                    const hasBoth = s.team1 !== '' && s.team2 !== ''
+                    const a = Number(s.team1), b = Number(s.team2), total = a + b
+                    const completed = hasBoth && isCompletedSet(a, b)
+                    const unfinished = hasBoth && !completed
+                    return (
+                      <div
+                        key={i}
+                        className={cn(
+                          'flex items-center gap-2 mb-3 justify-center',
+                          setAsMatch && unfinished && 'bg-amber-50 border border-amber-200 rounded-xl px-2 py-1',
+                        )}
+                      >
+                        <span className="text-[12px] text-gray-400 w-12">Set {i + 1}</span>
+                        <input
+                          ref={(el) => { quickInputRefs.current[`${i}-team1`] = el }}
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={9}
+                          value={s.team1}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
+                            setSets((prev) => prev.map((x, j) => j === i ? { ...x, team1: val } : x))
+                            if (e.target.value !== '') setTimeout(() => quickInputRefs.current[`${i}-team2`]?.focus(), 0)
+                          }}
+                          className="w-[56px] rounded-xl border border-gray-200 bg-teal-50 py-2 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                        />
+                        <span className="text-gray-300">—</span>
+                        <input
+                          ref={(el) => { quickInputRefs.current[`${i}-team2`] = el }}
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          max={9}
+                          value={s.team2}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? '' : Math.min(9, Math.max(0, parseInt(e.target.value, 10)))
+                            setSets((prev) => prev.map((x, j) => j === i ? { ...x, team2: val } : x))
+                            if (e.target.value !== '') setTimeout(() => quickInputRefs.current[`${i + 1}-team1`]?.focus(), 0)
+                          }}
+                          className="w-[56px] rounded-xl border border-gray-200 bg-orange-50 py-2 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                        />
+                        {sets.length > 1 && (
+                          <button onClick={() => setSets((prev) => prev.filter((_, j) => j !== i))} className="text-[10px] text-gray-300 hover:text-red-400 ml-1">
+                            x
+                          </button>
+                        )}
+                        {setAsMatch && hasBoth && (
+                          completed ? (
+                            <span className="text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5 bg-teal-50 text-teal-700 border-teal-200">
+                              <span className="inline-block w-2.5 h-2.5 rounded-full bg-teal-500" />
+                              Finished
+                            </span>
+                          ) : total >= 6 ? (
+                            <span className="text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5 bg-amber-100 text-amber-700 border-amber-300 font-semibold">
+                              <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
+                              Couldn&apos;t finish
+                            </span>
+                          ) : (
+                            <span className="text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5 bg-amber-50 text-amber-600 border-amber-200">
+                              <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
+                              Couldn&apos;t finish &middot; won&apos;t count
+                            </span>
+                          )
+                        )}
+                      </div>
+                    )
+                  })}
                   {setAsMatch && (
-                    <p className="text-[11px] text-gray-400 text-center mt-1 mb-3">Tap &ldquo;Couldn&rsquo;t finish&rdquo; on any set you had to stop early — it still counts, scored on games played.</p>
+                    <p className="text-[11px] text-gray-400 text-center mt-1 mb-3">Each set is checked automatically — &lsquo;Finished&rsquo; means a complete set; &lsquo;Couldn&apos;t finish&rsquo; shows if you stopped early (it still counts, scored on games played).</p>
                   )}
 
                   {sets.length < 3 && (
@@ -1378,8 +1387,11 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     </button>
                     <button
                       onClick={() => {
-                        // Validate finished sets against scoring format (setAsMatch skips unfinished sets)
-                        const setsToValidate = sets.filter((s) => s.team1 !== '' && s.team2 !== '' && !(setAsMatch && s.notFinished)).map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
+                        // Validate completed sets against scoring format (setAsMatch skips incomplete sets)
+                        const filled = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
+                        const setsToValidate = filled
+                          .filter((s) => !setAsMatch || isCompletedSet(Number(s.team1), Number(s.team2)))
+                          .map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
                         const validationError = validateSetScores(setsToValidate, scoringFormat)
                         if (validationError) {
                           toast.error(validationError)
@@ -1387,8 +1399,12 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                         }
                         const fmt = scoringFormat ?? 'standard'
                         const minSets = SCORING_MIN_SETS[fmt] ?? 2
-                        const filledCount = sets.filter((s) => s.team1 !== '' && s.team2 !== '').length
-                        if (filledCount < minSets) {
+                        if (filled.length < minSets) {
+                          setShowIncompleteConfirm(true)
+                          return
+                        }
+                        // Warn if any entered set is incomplete (setAsMatch typo guard)
+                        if (setAsMatch && filled.some((s) => !isCompletedSet(Number(s.team1), Number(s.team2)))) {
                           setShowIncompleteConfirm(true)
                           return
                         }

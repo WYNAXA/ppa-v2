@@ -1062,13 +1062,14 @@ const SCORING_FORMAT_LABELS: Record<string, string> = {
   custom: 'Custom',
 }
 
-function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scoringFormat }: {
+function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scoringFormat, setAsMatch }: {
   open: boolean
   onClose: () => void
   match: { id: string; player_ids: string[]; players?: Array<{ id: string; name: string }> } | null
   leagueId: string
   currentUserId: string
   scoringFormat?: string | null
+  setAsMatch?: boolean
 }) {
   const [step, setStep] = useState(1)
   const [sets, setSets] = useState<QuickSetScore[]>([{ team1: '', team2: '' }])
@@ -1124,57 +1125,86 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
       const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
       if (completedSets.length === 0) return
 
-      // Fetch source match to clone for extra set-matches
-      const { data: src, error: srcErr } = await supabase.from('matches').select('*').eq('id', match.id).single()
-      if (srcErr || !src) throw (srcErr ?? new Error('match not found'))
-
       const team1Players = match.player_ids.slice(0, 2)
       const team2Players = match.player_ids.slice(2, 4)
 
-      function buildResult(matchId: string, g1: number, g2: number, notFinished: boolean) {
-        const rt = notFinished ? 'draw' : g1 > g2 ? 'team1_win' : g2 > g1 ? 'team2_win' : 'draw'
-        const t1s = notFinished ? 0 : g1 > g2 ? 1 : 0
-        const t2s = notFinished ? 0 : g2 > g1 ? 1 : 0
-        return {
-          match_id: matchId,
+      if (setAsMatch) {
+        // ── Set-as-match fan-out: one single-set match per completed set ──
+        const { data: src, error: srcErr } = await supabase.from('matches').select('*').eq('id', match.id).single()
+        if (srcErr || !src) throw (srcErr ?? new Error('match not found'))
+
+        function buildResult(matchId: string, g1: number, g2: number, notFinished: boolean) {
+          const rt = notFinished ? 'draw' : g1 > g2 ? 'team1_win' : g2 > g1 ? 'team2_win' : 'draw'
+          const t1s = notFinished ? 0 : g1 > g2 ? 1 : 0
+          const t2s = notFinished ? 0 : g2 > g1 ? 1 : 0
+          return {
+            match_id: matchId,
+            team1_players: team1Players,
+            team2_players: team2Players,
+            team1_score: t1s,
+            team2_score: t2s,
+            result_type: rt,
+            verification_status: 'verified',
+            submitted_by: currentUserId,
+            sets_data: [{ team1: g1, team2: g2 }],
+          }
+        }
+
+        for (let i = 0; i < completedSets.length; i++) {
+          const g1 = Number(completedSets[i].team1)
+          const g2 = Number(completedSets[i].team2)
+          const nf = completedSets[i].notFinished === true
+
+          if (i === 0) {
+            const { error: rErr } = await supabase.from('match_results').insert(buildResult(match.id, g1, g2, nf))
+            if (rErr) throw rErr
+            const { error: mErr } = await supabase.from('matches')
+              .update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
+              .eq('id', match.id)
+            if (mErr) throw mErr
+          } else {
+            const { id: _id, created_at: _ca, ...rest } = src
+            const { data: newMatch, error: mErr } = await supabase.from('matches')
+              .insert({ ...rest, round_number: null, status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
+              .select('id')
+              .single()
+            if (mErr || !newMatch) throw (mErr ?? new Error('failed to create set match'))
+            const { error: rErr } = await supabase.from('match_results').insert(buildResult(newMatch.id, g1, g2, nf))
+            if (rErr) throw rErr
+          }
+        }
+
+        console.warn(`[QuickResult] submitted ${completedSets.length} set(s) as individual matches for fixture ${match.id}`)
+      } else {
+        // ── Standard: single aggregated result on the fixture match ──
+        const setsData = completedSets.map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
+        let t1Wins = 0, t2Wins = 0
+        for (const s of setsData) {
+          if (s.team1 > s.team2) t1Wins++
+          else if (s.team2 > s.team1) t2Wins++
+        }
+        const rt = t1Wins > t2Wins ? 'team1_win' : t2Wins > t1Wins ? 'team2_win' : 'draw'
+
+        const { error: resultError } = await supabase.from('match_results').insert({
+          match_id: match.id,
           team1_players: team1Players,
           team2_players: team2Players,
-          team1_score: t1s,
-          team2_score: t2s,
+          team1_score: t1Wins,
+          team2_score: t2Wins,
           result_type: rt,
           verification_status: 'verified',
           submitted_by: currentUserId,
-          sets_data: [{ team1: g1, team2: g2 }],
-        }
+          sets_data: setsData,
+        })
+        if (resultError) throw resultError
+
+        const { error: matchError } = await supabase.from('matches')
+          .update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
+          .eq('id', match.id)
+        if (matchError) throw matchError
+
+        console.warn(`[QuickResult] submitted aggregated result (${t1Wins}-${t2Wins}) for fixture ${match.id}`)
       }
-
-      for (let i = 0; i < completedSets.length; i++) {
-        const g1 = Number(completedSets[i].team1)
-        const g2 = Number(completedSets[i].team2)
-        const nf = completedSets[i].notFinished === true
-
-        if (i === 0) {
-          // First set → reuse the fixture match
-          const { error: rErr } = await supabase.from('match_results').insert(buildResult(match.id, g1, g2, nf))
-          if (rErr) throw rErr
-          const { error: mErr } = await supabase.from('matches')
-            .update({ status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
-            .eq('id', match.id)
-          if (mErr) throw mErr
-        } else {
-          // Subsequent sets → clone a new match, then insert its result
-          const { id: _id, created_at: _ca, ...rest } = src
-          const { data: newMatch, error: mErr } = await supabase.from('matches')
-            .insert({ ...rest, round_number: null, status: 'completed', is_open: false, open_elo_min: null, open_elo_max: null })
-            .select('id')
-            .single()
-          if (mErr || !newMatch) throw (mErr ?? new Error('failed to create set match'))
-          const { error: rErr } = await supabase.from('match_results').insert(buildResult(newMatch.id, g1, g2, nf))
-          if (rErr) throw rErr
-        }
-      }
-
-      console.warn(`[QuickResult] submitted ${completedSets.length} set(s) as individual matches for fixture ${match.id}`)
 
       // Invalidate and close
       queryClient.invalidateQueries({ queryKey: ['league-standings', leagueId] })
@@ -1240,7 +1270,13 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
 
                   {/* Set inputs */}
                   {sets.map((s, i) => (
-                    <div key={i} className="flex items-center gap-2 mb-3 justify-center">
+                    <div
+                      key={i}
+                      className={cn(
+                        'flex items-center gap-2 mb-3 justify-center',
+                        setAsMatch && s.notFinished && 'bg-amber-50 border border-amber-200 rounded-xl px-2 py-1',
+                      )}
+                    >
                       <span className="text-[12px] text-gray-400 w-12">Set {i + 1}</span>
                       <input
                         ref={(el) => { quickInputRefs.current[`${i}-team1`] = el }}
@@ -1276,17 +1312,28 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                           x
                         </button>
                       )}
-                      <button
-                        onClick={() => setSets((prev) => prev.map((x, j) => j === i ? { ...x, notFinished: !x.notFinished } : x))}
-                        className={cn(
-                          'text-[9px] font-semibold rounded-full px-2 py-0.5 border ml-1 whitespace-nowrap',
-                          s.notFinished ? 'bg-amber-50 text-amber-600 border-amber-200' : 'bg-gray-50 text-gray-400 border-gray-200',
-                        )}
-                      >
-                        {s.notFinished ? "Couldn't finish" : 'Finished'}
-                      </button>
+                      {setAsMatch && (
+                        <button
+                          onClick={() => setSets((prev) => prev.map((x, j) => j === i ? { ...x, notFinished: !x.notFinished } : x))}
+                          className={cn(
+                            'text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5',
+                            s.notFinished
+                              ? 'bg-amber-100 text-amber-700 border-amber-300 font-semibold'
+                              : 'bg-gray-50 text-gray-500 border-gray-200',
+                          )}
+                        >
+                          <span className={cn(
+                            'inline-block w-2.5 h-2.5 rounded-[3px] border',
+                            s.notFinished ? 'bg-amber-500 border-amber-500' : 'border-gray-300 bg-white',
+                          )} />
+                          Couldn&apos;t finish
+                        </button>
+                      )}
                     </div>
                   ))}
+                  {setAsMatch && (
+                    <p className="text-[11px] text-gray-400 text-center mt-1 mb-3">Tap &ldquo;Couldn&rsquo;t finish&rdquo; on any set you had to stop early — it still counts, scored on games played.</p>
+                  )}
 
                   {sets.length < 3 && (
                     <button
@@ -1331,9 +1378,9 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     </button>
                     <button
                       onClick={() => {
-                        // Validate only finished sets against scoring format
-                        const finishedSetData = sets.filter((s) => s.team1 !== '' && s.team2 !== '' && !s.notFinished).map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
-                        const validationError = validateSetScores(finishedSetData, scoringFormat)
+                        // Validate finished sets against scoring format (setAsMatch skips unfinished sets)
+                        const setsToValidate = sets.filter((s) => s.team1 !== '' && s.team2 !== '' && !(setAsMatch && s.notFinished)).map((s) => ({ team1: Number(s.team1), team2: Number(s.team2) }))
+                        const validationError = validateSetScores(setsToValidate, scoringFormat)
                         if (validationError) {
                           toast.error(validationError)
                           return
@@ -2715,6 +2762,7 @@ export function LeagueDetailPage() {
         leagueId={id}
         currentUserId={currentUserId}
         scoringFormat={league?.scoring_format}
+        setAsMatch={league?.match_type === 'individual' && league?.format === 'round_robin'}
       />
 
       {/* Pair assignment sheet */}

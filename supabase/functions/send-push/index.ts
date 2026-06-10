@@ -35,9 +35,14 @@ async function sendOneSignal(userIds: string[], title: string, body: string, dat
         ...(data && Object.keys(data).length > 0 ? { data } : {}),
       }),
     })
-    if (!res.ok) console.error('OneSignal send failed', res.status, await res.text())
+    if (res.ok) {
+      const json = await res.json()
+      console.log(`[OneSignal] sent to ${userIds.length} recipient(s), status=${res.status}, id=${json.id ?? 'unknown'}`)
+    } else {
+      console.error(`[OneSignal] send failed, status=${res.status}, body=${await res.text()}`)
+    }
   } catch (e) {
-    console.error('OneSignal send error', e)
+    console.error('[OneSignal] send error', e)
   }
 }
 
@@ -78,13 +83,19 @@ Deno.serve(async (req) => {
     })
   }
 
-  // ── OneSignal (iOS native push) — fire-and-forget alongside Web Push ──
-  sendOneSignal(
+  // ── OneSignal (iOS native push) — runs alongside Web Push ──
+  const oneSignalPromise = sendOneSignal(
     user_ids as string[],
     title,
     message ?? '',
     { ...(url ? { url } : {}), ...(tag ? { tag } : {}) },
   )
+  // Ensure the promise completes even after the response is sent
+  if (typeof (globalThis as any).EdgeRuntime?.waitUntil === 'function') {
+    (globalThis as any).EdgeRuntime.waitUntil(oneSignalPromise)
+  } else {
+    await oneSignalPromise
+  }
 
   // Fetch push tokens for all target users
   const { data: profiles } = await supabase

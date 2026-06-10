@@ -606,16 +606,62 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
     queryClient.invalidateQueries({ queryKey: ['league-invite'] })
   }
 
+  const [linkCopied, setLinkCopied] = useState(false)
+  const [addingAll, setAddingAll] = useState(false)
+  const [addedAll, setAddedAll] = useState(false)
+
   async function handleShare() {
     const url = `${window.location.origin}/leagues/${league.id}/join`
-    if (navigator.share) {
-      try { await navigator.share({ title: league.name, text: `Join ${league.name} on Padel Players`, url }) } catch { /* cancelled */ }
-    } else {
-      await navigator.clipboard.writeText(url)
-    }
+    await navigator.clipboard.writeText(url)
+    setLinkCopied(true)
+    setTimeout(() => setLinkCopied(false), 2000)
   }
 
-  if (!groupId) return null
+  async function handleAddAll() {
+    if (notInLeague.length === 0) return
+    setAddingAll(true)
+    const { error: memErr } = await supabase.from('league_members').insert(
+      notInLeague.map((p) => ({
+        league_id: league.id, user_id: p.id, role: 'member', status: 'active',
+      }))
+    )
+    if (memErr) { console.warn('[LeagueInvite] bulk add members error:', memErr); setAddingAll(false); return }
+    const { error: stErr } = await supabase.from('league_standings').insert(
+      notInLeague.map((p) => ({
+        league_id: league.id, user_id: p.id,
+        wins: 0, losses: 0, draws: 0, matches_played: 0, ranking_points: 0, category: 'overall',
+      }))
+    )
+    if (stErr) console.warn('[LeagueInvite] bulk add standings error:', stErr)
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['league-standings', league.id] }),
+      queryClient.invalidateQueries({ queryKey: ['league-group-members', groupId] }),
+    ])
+    setAddingAll(false)
+    setAddedAll(true)
+    setTimeout(() => setAddedAll(false), 2000)
+  }
+
+  const [searchTerm, setSearchTerm] = useState('')
+  const trimmed = searchTerm.trim()
+
+  const { data: searchResults = [] } = useQuery({
+    queryKey: ['invite-search', trimmed],
+    enabled: trimmed.length >= 2,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, internal_ranking')
+        .ilike('name', `%${trimmed}%`)
+        .limit(10)
+      return data ?? []
+    },
+  })
+
+  const filteredSearch = searchResults.filter(
+    (p) => p.id !== profile?.id && !leagueMemberIds.has(p.id) && !invitedIds.includes(p.id)
+  )
 
   return (
     <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
@@ -625,12 +671,63 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
       </div>
 
       <button onClick={handleShare} className="w-full rounded-xl border border-teal-200 bg-teal-50 py-2.5 text-[13px] font-semibold text-teal-700 mb-2">
-        Share league link
+        {linkCopied ? 'Link copied!' : 'Copy invite link'}
       </button>
 
-      {notInLeague.length > 0 && (
+      {/* Search players */}
+      <div>
+        <input
+          type="text"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search players to invite…"
+          style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20"
+        />
+        {trimmed.length >= 2 && filteredSearch.length > 0 && (
+          <div className="space-y-1.5 mt-2 max-h-48 overflow-y-auto">
+            {filteredSearch.map(p => (
+              <div key={p.id} className="flex items-center gap-2.5 rounded-xl bg-gray-50 px-3 py-2">
+                <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[12px] font-semibold text-gray-800 truncate">{p.name}</p>
+                  {p.internal_ranking != null && <p className="text-[10px] text-gray-400">{(p.internal_ranking as number).toLocaleString()} ELO</p>}
+                </div>
+                <button
+                  onClick={() => handleInvite(p.id)}
+                  disabled={invitedIds.includes(p.id)}
+                  className={cn(
+                    'rounded-lg px-3 py-1 text-[11px] font-bold shrink-0',
+                    invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white'
+                  )}
+                >
+                  {invitedIds.includes(p.id) ? 'Invited ✓' : 'Invite'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {trimmed.length >= 2 && filteredSearch.length === 0 && (
+          <p className="text-[11px] text-gray-400 text-center mt-2">No players found</p>
+        )}
+      </div>
+
+      {/* Group members not yet in league */}
+      {groupId && notInLeague.length > 0 && (
         <>
-          <p className="text-[11px] text-gray-500">{notInLeague.length} group members not yet in league:</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[11px] text-gray-500">{notInLeague.length} group members not yet in league:</p>
+            <button
+              onClick={handleAddAll}
+              disabled={addingAll || addedAll}
+              className={cn(
+                'rounded-lg px-3 py-1 text-[11px] font-bold shrink-0',
+                addedAll ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white disabled:opacity-50'
+              )}
+            >
+              {addedAll ? 'Added!' : addingAll ? 'Adding…' : 'Add all'}
+            </button>
+          </div>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
             {notInLeague.map(p => (
               <div key={p.id} className="flex items-center gap-2.5 rounded-xl bg-gray-50 px-3 py-2">
@@ -643,7 +740,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
                   onClick={() => handleInvite(p.id)}
                   disabled={invitedIds.includes(p.id)}
                   className={cn(
-                    'rounded-lg px-3 py-1 text-[11px] font-bold flex-shrink-0',
+                    'rounded-lg px-3 py-1 text-[11px] font-bold shrink-0',
                     invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white'
                   )}
                 >
@@ -655,7 +752,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
         </>
       )}
 
-      {notInLeague.length === 0 && groupId && (
+      {groupId && notInLeague.length === 0 && (
         <p className="text-[12px] text-gray-400 text-center py-2">All group members are in this league</p>
       )}
     </div>

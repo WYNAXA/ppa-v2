@@ -115,6 +115,50 @@ function StepDots({ current, total }: { current: number; total: number }) {
   )
 }
 
+type PresetMode = 'padel_players_league' | 'custom'
+
+// ── Step 0 — Preset picker ───────────────────────────────────────────────────
+
+function StepPreset({ onSelect }: { onSelect: (mode: PresetMode) => void }) {
+  return (
+    <div>
+      <h2 className="text-xl font-bold text-gray-900 mb-1">Create a league</h2>
+      <p className="text-sm text-gray-500 mb-6">Choose a starting point</p>
+      <div className="space-y-3">
+        <button
+          onClick={() => onSelect('padel_players_league')}
+          className="w-full flex items-center gap-4 rounded-2xl border-2 border-teal-200 bg-teal-50/50 p-4 text-left transition-all hover:border-teal-400"
+        >
+          <div className="h-11 w-11 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
+            <Trophy className="h-5 w-5 text-[#009688]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-gray-900">Padel Players League</p>
+              <span className="text-[9px] font-bold uppercase tracking-wide bg-teal-100 text-teal-700 rounded-full px-1.5 py-0.5">Recommended</span>
+            </div>
+            <p className="text-[13px] text-gray-500 mt-0.5">Set-by-set scoring on a season ELO ladder — our flagship format.</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
+        </button>
+        <button
+          onClick={() => onSelect('custom')}
+          className="w-full flex items-center gap-4 rounded-2xl border-2 border-gray-100 bg-white p-4 text-left transition-all hover:border-gray-200"
+        >
+          <div className="h-11 w-11 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+            <Users className="h-5 w-5 text-gray-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-gray-900">Custom league</p>
+            <p className="text-[13px] text-gray-500 mt-0.5">Pick your own league type, format, and scoring rules.</p>
+          </div>
+          <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Step 1 — League type ──────────────────────────────────────────────────────
 
 const LEAGUE_TYPE_KEYS: Array<{ type: LeagueType; Icon: typeof Trophy }> = [
@@ -175,10 +219,12 @@ function Step2({
   form,
   setForm,
   userId,
+  hideTypeAndFormat,
 }: {
   form: FormState
   setForm: (f: FormState) => void
   userId: string
+  hideTypeAndFormat?: boolean
 }) {
   const [infoFormat, setInfoFormat] = useState<Format | null>(null)
   const { t } = useTranslation()
@@ -254,34 +300,41 @@ function Step2({
         )}
 
         {/* Tournament format */}
-        <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-2">{t('create_league.tournament_format_label')} <span className="text-red-400">*</span></label>
-          <div className="grid grid-cols-2 gap-2">
-            {FORMATS.map((id) => (
-              <div key={id} className="relative">
-                <button
-                  onClick={() => setForm({ ...form, format: id })}
-                  className={cn(
-                    'w-full rounded-xl border py-2.5 pl-3 pr-8 text-left text-[12px] font-medium transition-all',
-                    form.format === id
-                      ? 'border-teal-500 bg-teal-50 text-teal-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                  )}
-                >
-                  {form.format === id && <Check className="inline h-3 w-3 mr-1 flex-shrink-0" />}
-                  {t(`create_league.format_${id}_title`)}
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setInfoFormat(id) }}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  aria-label={t(`create_league.format_${id}_title`)}
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
+        {hideTypeAndFormat ? (
+          <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3">
+            <p className="text-[11px] font-bold text-teal-600 uppercase tracking-wide mb-0.5">Format</p>
+            <p className="text-[13px] font-semibold text-teal-800">Padel Players League &middot; individual, round-robin</p>
           </div>
-        </div>
+        ) : (
+          <div>
+            <label className="block text-[13px] font-medium text-gray-700 mb-2">{t('create_league.tournament_format_label')} <span className="text-red-400">*</span></label>
+            <div className="grid grid-cols-2 gap-2">
+              {FORMATS.map((id) => (
+                <div key={id} className="relative">
+                  <button
+                    onClick={() => setForm({ ...form, format: id })}
+                    className={cn(
+                      'w-full rounded-xl border py-2.5 pl-3 pr-8 text-left text-[12px] font-medium transition-all',
+                      form.format === id
+                        ? 'border-teal-500 bg-teal-50 text-teal-700'
+                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    )}
+                  >
+                    {form.format === id && <Check className="inline h-3 w-3 mr-1 flex-shrink-0" />}
+                    {t(`create_league.format_${id}_title`)}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setInfoFormat(id) }}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    aria-label={t(`create_league.format_${id}_title`)}
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Scoring format */}
         <div>
@@ -493,18 +546,36 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
   const [step, setStep]   = useState(1)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm]   = useState<FormState>(emptyForm(defaultGroupId))
+  const [presetMode, setPresetMode] = useState<PresetMode | null>(null)
 
   useEffect(() => {
     if (open) {
       setStep(1)
       setError(null)
       setForm(emptyForm(defaultGroupId))
+      setPresetMode(null)
     }
   }, [open, defaultGroupId])
 
+  const totalSteps = presetMode === 'padel_players_league' ? 3 : presetMode === 'custom' ? 4 : 3
+
+  function handlePresetSelect(mode: PresetMode) {
+    setPresetMode(mode)
+    if (mode === 'padel_players_league') {
+      setForm((f) => ({ ...f, leagueType: 'individual', format: 'round_robin' }))
+    }
+    setStep(2)
+  }
+
   const canNext = () => {
-    if (step === 1) return !!form.leagueType
-    if (step === 2) return !!form.name.trim() && !!form.format
+    if (step === 1) return !!presetMode
+    if (presetMode === 'padel_players_league') {
+      if (step === 2) return !!form.name.trim() // format is pre-set
+      return true
+    }
+    // custom: step 2 = type, step 3 = setup, step 4 = confirm
+    if (step === 2) return !!form.leagueType
+    if (step === 3) return !!form.name.trim() && !!form.format
     return true
   }
 
@@ -532,6 +603,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
       if (form.maxParticipants) payload.max_participants = parseInt(form.maxParticipants, 10)
       if (form.minElo) payload.min_elo = parseInt(form.minElo, 10)
       if (form.maxElo) payload.max_elo = parseInt(form.maxElo, 10)
+      if (presetMode === 'padel_players_league') payload.min_sets_per_fixture = 2
 
       console.log('[CreateLeague] payload:', JSON.stringify(payload))
 
@@ -674,20 +746,20 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
             {/* Header */}
             <div className="flex items-center justify-between px-5 pb-2 flex-shrink-0">
               <button
-                onClick={step > 1 ? () => setStep(step - 1) : onClose}
+                onClick={step > 1 ? () => { if (step === 2) setPresetMode(null); setStep(step - 1) } : onClose}
                 className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center"
               >
                 {step > 1
                   ? <ChevronLeft className="h-5 w-5 text-gray-600" />
                   : <X className="h-4 w-4 text-gray-600" />}
               </button>
-              <span className="text-[13px] text-gray-400 font-medium">{t('create_league.step_of', { step, total: 3 })}</span>
+              <span className="text-[13px] text-gray-400 font-medium">{t('create_league.step_of', { step, total: totalSteps })}</span>
               <div className="w-9" />
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto px-5 pb-4">
-              <StepDots current={step} total={3} />
+              <StepDots current={step} total={totalSteps} />
               <AnimatePresence mode="wait">
                 <motion.div
                   key={step}
@@ -696,9 +768,12 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   exit={{ opacity: 0, x: -24 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {step === 1 && <Step1 form={form} setForm={setForm} />}
-                  {step === 2 && <Step2 form={form} setForm={setForm} userId={user?.id ?? ''} />}
-                  {step === 3 && <Step3 form={form} setForm={setForm} />}
+                  {step === 1 && <StepPreset onSelect={handlePresetSelect} />}
+                  {presetMode === 'padel_players_league' && step === 2 && <Step2 form={form} setForm={setForm} userId={user?.id ?? ''} hideTypeAndFormat />}
+                  {presetMode === 'padel_players_league' && step === 3 && <Step3 form={form} setForm={setForm} />}
+                  {presetMode === 'custom' && step === 2 && <Step1 form={form} setForm={setForm} />}
+                  {presetMode === 'custom' && step === 3 && <Step2 form={form} setForm={setForm} userId={user?.id ?? ''} />}
+                  {presetMode === 'custom' && step === 4 && <Step3 form={form} setForm={setForm} />}
                 </motion.div>
               </AnimatePresence>
 
@@ -712,7 +787,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
               className="px-5 pt-4 flex-shrink-0 border-t border-gray-50"
               style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
             >
-              {step < 3 ? (
+              {step < totalSteps ? (
                 <button
                   onClick={() => setStep(step + 1)}
                   disabled={!canNext()}

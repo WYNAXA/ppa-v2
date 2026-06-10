@@ -37,6 +37,7 @@ interface LeagueInfo {
   city: string | null
   prizes: string | null
   max_rounds: number | null
+  min_sets_per_fixture: number | null
 }
 
 interface Standing {
@@ -104,7 +105,7 @@ function useLeague(id: string) {
     queryFn: async (): Promise<LeagueInfo | null> => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, match_type, format, scoring_format, visibility, season_start, season_end, max_participants, min_elo, max_elo, linked_group_ids, created_by, city, prizes, max_rounds')
+        .select('id, name, status, match_type, format, scoring_format, visibility, season_start, season_end, max_participants, min_elo, max_elo, linked_group_ids, created_by, city, prizes, max_rounds, min_sets_per_fixture')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -679,6 +680,10 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
   const [savingDate, setSavingDate] = useState(false)
   const [dateSaved, setDateSaved] = useState(false)
 
+  const [minSets, setMinSets] = useState(league.min_sets_per_fixture ?? 2)
+  const [savingMinSets, setSavingMinSets] = useState(false)
+  const [minSetsSaved, setMinSetsSaved] = useState(false)
+
   const [editingName, setEditingName] = useState(false)
   const [newName, setNewName] = useState(league.name)
   const [savingName, setSavingName] = useState(false)
@@ -758,6 +763,17 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     setSavingDate(false)
     setDateSaved(true)
     setTimeout(() => setDateSaved(false), 2000)
+  }
+
+  async function saveMinSets(value: number) {
+    setSavingMinSets(true)
+    setMinSets(value)
+    const { error } = await supabase.from('leagues').update({ min_sets_per_fixture: value }).eq('id', league.id)
+    if (error) console.warn('[League] min_sets_per_fixture update error:', error)
+    await queryClient.invalidateQueries({ queryKey: ['league', league.id] })
+    setSavingMinSets(false)
+    setMinSetsSaved(true)
+    setTimeout(() => setMinSetsSaved(false), 2000)
   }
 
   const playerOptions = standings.map(s => ({ id: s.user_id, name: s.profile?.name ?? s.user_id }))
@@ -905,6 +921,28 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
         >
           {dateSaved ? 'Saved!' : savingDate ? 'Saving…' : 'Update End Date'}
         </button>
+      </div>
+
+      {/* Minimum sets per fixture */}
+      <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Minimum Sets Per Fixture</p>
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] text-gray-600">How many sets must be entered before a result can be submitted</span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => { if (minSets > 1) saveMinSets(minSets - 1) }}
+              disabled={minSets <= 1 || savingMinSets}
+              className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[15px] font-bold text-gray-600 disabled:opacity-30"
+            >−</button>
+            <span className="text-[15px] font-bold text-gray-900 w-6 text-center">{minSets}</span>
+            <button
+              onClick={() => { if (minSets < 5) saveMinSets(minSets + 1) }}
+              disabled={minSets >= 5 || savingMinSets}
+              className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[15px] font-bold text-gray-600 disabled:opacity-30"
+            >+</button>
+          </div>
+        </div>
+        {minSetsSaved && <p className="text-[11px] text-teal-600 font-semibold">Saved!</p>}
       </div>
 
       {/* Invite from group */}
@@ -1064,7 +1102,7 @@ const SCORING_FORMAT_LABELS: Record<string, string> = {
   custom: 'Custom',
 }
 
-function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scoringFormat, setAsMatch }: {
+function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scoringFormat, setAsMatch, minSetsPerFixture }: {
   open: boolean
   onClose: () => void
   match: { id: string; player_ids: string[]; players?: Array<{ id: string; name: string }> } | null
@@ -1072,6 +1110,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
   currentUserId: string
   scoringFormat?: string | null
   setAsMatch?: boolean
+  minSetsPerFixture?: number
 }) {
   const [step, setStep] = useState(1)
   const [sets, setSets] = useState<QuickSetScore[]>([{ team1: '', team2: '' }])
@@ -1297,7 +1336,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     <p className="text-[11px] text-gray-400 text-center mt-1 mb-3">Each set is checked automatically — &lsquo;Finished&rsquo; means a complete set; &lsquo;Couldn&apos;t finish&rsquo; shows if you stopped early (it still counts, scored on games played).</p>
                   )}
 
-                  {sets.length < 3 && (
+                  {sets.length < 5 && (
                     <button
                       onClick={() => setSets((prev) => [...prev, { team1: '', team2: '' }])}
                       className="w-full rounded-xl border border-dashed border-gray-200 py-2 text-[12px] text-gray-400 hover:border-teal-300 hover:text-teal-600 transition-colors mb-3"
@@ -1351,7 +1390,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                           return
                         }
                         const fmt = scoringFormat ?? 'standard'
-                        const minSets = SCORING_MIN_SETS[fmt] ?? 2
+                        const minSets = minSetsPerFixture ?? SCORING_MIN_SETS[fmt] ?? 2
                         if (filled.length < minSets) {
                           setShowIncompleteConfirm(true)
                           return
@@ -2732,6 +2771,7 @@ export function LeagueDetailPage() {
         currentUserId={currentUserId}
         scoringFormat={league?.scoring_format}
         setAsMatch={league?.match_type === 'individual' && league?.format === 'round_robin'}
+        minSetsPerFixture={league?.min_sets_per_fixture ?? undefined}
       />
 
       {/* Pair assignment sheet */}

@@ -92,6 +92,12 @@ export const FAQS: FaqItem[] = [
     q: 'Can I see my rating change before it\'s confirmed?',
     a: 'Yes. As soon as a result is submitted you\'ll see an estimated change. It finalises once the other team verifies — or automatically after 24 hours if unchallenged.',
   },
+  {
+    id: 'career-vs-season-elo',
+    topic: 'ranking',
+    q: 'Why do I have two ratings — Career ELO and Season ELO?',
+    a: 'Career ELO is your overall, portable skill rating across everything you play. It updates once per game — one win is one win — and bigger wins move it more than narrow ones. Season ELO is your ranking on a specific league\'s ladder; it updates set by set and resets each season, so everyone starts level when a new season begins.',
+  },
   /* Leagues */
   {
     id: 'how-leagues-work',
@@ -104,6 +110,30 @@ export const FAQS: FaqItem[] = [
     topic: 'leagues',
     q: 'What league formats are available?',
     a: 'Round Robin (every team plays every other team) and Mexicano (rotating partners based on standings). Both are fully automated once set up.',
+  },
+  {
+    id: 'ppl-how-scored',
+    topic: 'leagues',
+    q: 'How is a Padel Players League scored?',
+    a: 'The set is the unit of competition. Every set you play counts towards your Season ELO and your league record of wins, losses and draws. Win more sets and you climb the ladder.',
+  },
+  {
+    id: 'completed-set',
+    topic: 'leagues',
+    q: 'What counts as a completed set?',
+    a: 'First to 6 games winning by 2 (like 6-2, 6-4 or 7-5), or a 7-6 tiebreak. A completed set is a full result — a full win or loss, with full points and a full move on the ladder.',
+  },
+  {
+    id: 'couldnt-finish-set',
+    topic: 'leagues',
+    q: 'What if we couldn\'t finish a set?',
+    a: 'When you record the result, tap "Couldn\'t finish" on that set. It still counts, but it\'s worth less than finishing. If you played 6 or more games (for example 4-2 or 4-4) it goes in as a draw on your record — so fewer points than a win — but on the ladder it still leans towards whoever was ahead. Stopping at 4-2 nudges the leader up a little, nowhere near as much as closing it out 6-2 would, and a 4-4 is roughly even. If you played fewer than 6 games, the set doesn\'t count at all — too little to mean anything.',
+  },
+  {
+    id: 'min-sets-per-fixture',
+    topic: 'leagues',
+    q: 'How many sets do we play per match?',
+    a: 'Each fixture has a minimum number of sets, set by your league admin (usually 2). It\'s a floor, not a cap — you can always play more, and every set counts.',
   },
   /* Community & groups */
   {

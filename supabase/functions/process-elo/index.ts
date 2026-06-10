@@ -396,8 +396,8 @@ Deno.serve(async (req) => {
       .single()
     const usesSeasonElo = leagueMeta?.match_type === 'individual' && leagueMeta?.format === 'round_robin'
 
-    // ── Season ELO update (before win/draw RPC so matches_played is pre-increment) ──
     if (usesSeasonElo) {
+      // ── Per-set season ELO + standings for set-as-match leagues ──
       try {
         const { data: standRows } = await supabase
           .from('league_standings')
@@ -405,42 +405,100 @@ Deno.serve(async (req) => {
           .eq('league_id', leagueId)
           .in('user_id', allPlayerIds)
 
-        if (standRows && standRows.length > 0) {
-          for (const row of standRows) {
-            const seasonK   = calculateKFactor(row.matches_played ?? 0)
-            const expected  = allResults[row.user_id].expectedScore
-            const actual    = team1.includes(row.user_id) ? team1Score : team2Score
-            const isWin     = actual === 1
+        // Build running maps from current standings
+        const runningElo: Record<string, number> = {}
+        const runningPlayed: Record<string, number> = {}
+        const memberIds: string[] = []
+        for (const row of standRows ?? []) {
+          runningElo[row.user_id] = row.season_elo ?? 1230
+          runningPlayed[row.user_id] = row.matches_played ?? 0
+          memberIds.push(row.user_id)
+        }
+
+        const setsData = (result.sets_data as any[]) || []
+        let setsProcessed = 0
+
+        for (const set of setsData) {
+          const g1 = (set.team1_score ?? set.team1 ?? 0) as number
+          const g2 = (set.team2_score ?? set.team2 ?? 0) as number
+          const total = g1 + g2
+          const maxG = Math.max(g1, g2)
+          const minG = Math.min(g1, g2)
+          const completed = (maxG >= 6 && Math.abs(g1 - g2) >= 2) || (maxG === 7 && minG === 6)
+          const isVoid = !completed && total < 6
+
+          if (isVoid) continue // skip void sets entirely
+
+          let setT1: number, setT2: number, setDraw: boolean, setDominant: boolean
+          if (completed) {
+            setT1 = g1 > g2 ? 1 : 0
+            setT2 = 1 - setT1
+            setDraw = false
+            setDominant = Math.abs(g1 - g2) >= 5
+          } else {
+            // Unfinished but ≥6 games: proportional
+            setT1 = g1 / total
+            setT2 = g2 / total
+            setDraw = true
+            setDominant = false
+          }
+
+          // Season ELO update for each member
+          for (const uid of memberIds) {
+            const expected  = allResults[uid].expectedScore
+            const actual    = team1.includes(uid) ? setT1 : setT2
+            const seasonK   = calculateKFactor(runningPlayed[uid])
             const rawChange = seasonK * (actual - expected)
-            const change    = applyMultipliers(rawChange, expected, dominant, isWin)
-            const newElo    = Math.max(0, Math.min(3000, (row.season_elo ?? 1230) + change))
+            const change    = applyMultipliers(rawChange, expected, setDominant, actual === 1)
+            runningElo[uid] = Math.max(0, Math.min(3000, runningElo[uid] + change))
+            runningPlayed[uid] += 1
 
             await supabase
               .from('league_standings')
-              .update({ season_elo: newElo })
+              .update({ season_elo: runningElo[uid] })
               .eq('league_id', leagueId)
-              .eq('user_id', row.user_id)
+              .eq('user_id', uid)
           }
-          console.warn(`[process-elo] season ELO updated for ${standRows.length} members in league ${leagueId}`)
-        }
-      } catch (err) {
-        console.warn('[process-elo] season ELO update failed, continuing:', err)
-      }
-    }
 
-    if (recordAsDraw) {
-      await supabase.rpc('update_league_standings_draw', {
-        p_league_id: leagueId,
-        p_player_ids: [...team1, ...team2],
-      })
+          // Standings RPC for this set
+          if (setDraw) {
+            await supabase.rpc('update_league_standings_draw', {
+              p_league_id: leagueId,
+              p_player_ids: [...team1, ...team2],
+            })
+          } else {
+            const winners = setT1 === 1 ? team1 : team2
+            const losers  = setT1 === 1 ? team2 : team1
+            await supabase.rpc('update_league_standings_win', {
+              p_league_id: leagueId,
+              p_winner_ids: winners,
+              p_loser_ids: losers,
+            })
+          }
+
+          setsProcessed++
+        }
+
+        console.warn(`[process-elo] per-set season ELO: ${setsProcessed}/${setsData.length} sets processed for ${memberIds.length} members in league ${leagueId}`)
+      } catch (err) {
+        console.warn('[process-elo] per-set season ELO failed, continuing:', err)
+      }
     } else {
-      const winners = team1Score > team2Score ? team1 : team2
-      const losers = team1Score > team2Score ? team2 : team1
-      await supabase.rpc('update_league_standings_win', {
-        p_league_id: leagueId,
-        p_winner_ids: winners,
-        p_loser_ids: losers,
-      })
+      // ── Non-ELO league: single match-level standings update ──
+      if (recordAsDraw) {
+        await supabase.rpc('update_league_standings_draw', {
+          p_league_id: leagueId,
+          p_player_ids: [...team1, ...team2],
+        })
+      } else {
+        const winners = team1Score > team2Score ? team1 : team2
+        const losers = team1Score > team2Score ? team2 : team1
+        await supabase.rpc('update_league_standings_win', {
+          p_league_id: leagueId,
+          p_winner_ids: winners,
+          p_loser_ids: losers,
+        })
+      }
     }
   }
 

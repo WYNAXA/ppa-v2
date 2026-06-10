@@ -40,7 +40,7 @@ export const FAQS: FaqItem[] = [
     id: 'what-devices',
     topic: 'getting-started',
     q: 'What devices does it work on?',
-    a: 'Padel Players works as a full-featured web app at app.padelplayersapp.com on any device with a browser. A native iOS app is coming soon to the App Store. Your data syncs across devices automatically.',
+    a: 'Padel Players works as a full-featured web app at app.padelplayersapp.com on any device with a browser. A native iOS app is available on the App Store. Your data syncs across devices automatically.',
   },
   /* Matches & scoring */
   {

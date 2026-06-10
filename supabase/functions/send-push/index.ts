@@ -18,34 +18,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-async function sendOneSignal(userIds: string[], title: string, body: string, data?: Record<string, unknown>) {
-  const key = Deno.env.get('ONESIGNAL_REST_API_KEY')
-  const appId = Deno.env.get('ONESIGNAL_APP_ID')
-  if (!key || !appId || userIds.length === 0) return
-  try {
-    const res = await fetch('https://api.onesignal.com/notifications', {
-      method: 'POST',
-      headers: { 'Authorization': `Key ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        app_id: appId,
-        target_channel: 'push',
-        include_aliases: { external_id: userIds },
-        headings: { en: title },
-        contents: { en: body },
-        ...(data && Object.keys(data).length > 0 ? { data } : {}),
-      }),
-    })
-    if (res.ok) {
-      const json = await res.json()
-      console.log(`[OneSignal] sent to ${userIds.length} recipient(s), status=${res.status}, id=${json.id ?? 'unknown'}`)
-    } else {
-      console.error(`[OneSignal] send failed, status=${res.status}, body=${await res.text()}`)
-    }
-  } catch (e) {
-    console.error('[OneSignal] send error', e)
-  }
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -81,20 +53,6 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: 'user_ids and title required' }), {
       status: 400, headers: corsHeaders,
     })
-  }
-
-  // ── OneSignal (iOS native push) — runs alongside Web Push ──
-  const oneSignalPromise = sendOneSignal(
-    user_ids as string[],
-    title,
-    message ?? '',
-    { ...(url ? { url } : {}), ...(tag ? { tag } : {}) },
-  )
-  // Ensure the promise completes even after the response is sent
-  if (typeof (globalThis as any).EdgeRuntime?.waitUntil === 'function') {
-    (globalThis as any).EdgeRuntime.waitUntil(oneSignalPromise)
-  } else {
-    await oneSignalPromise
   }
 
   // Fetch push tokens for all target users

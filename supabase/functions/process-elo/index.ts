@@ -436,10 +436,10 @@ Deno.serve(async (req) => {
             setDraw = false
             setDominant = Math.abs(g1 - g2) >= 5
           } else {
-            // Unfinished but ≥6 games: proportional
+            // Unfinished but ≥6 games: proportional ELO, W/L by game count
             setT1 = g1 / total
             setT2 = g2 / total
-            setDraw = true
+            setDraw = g1 === g2
             setDominant = false
           }
 
@@ -467,8 +467,8 @@ Deno.serve(async (req) => {
               p_player_ids: [...team1, ...team2],
             })
           } else {
-            const winners = setT1 === 1 ? team1 : team2
-            const losers  = setT1 === 1 ? team2 : team1
+            const winners = completed ? (setT1 === 1 ? team1 : team2) : (g1 > g2 ? team1 : team2)
+            const losers  = completed ? (setT1 === 1 ? team2 : team1) : (g1 > g2 ? team2 : team1)
             await supabase.rpc('update_league_standings_win', {
               p_league_id: leagueId,
               p_winner_ids: winners,

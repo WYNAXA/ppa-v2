@@ -443,9 +443,11 @@ Deno.serve(async (req) => {
             setDominant = false
           }
 
-          // Season ELO update for each member
+          // Season ELO update for each member (expected from running season ELO, not career)
           for (const uid of memberIds) {
-            const expected  = allResults[uid].expectedScore
+            const oppIds = team1.includes(uid) ? team2 : team1
+            const oppAvgSeason = oppIds.reduce((sum: number, oid: string) => sum + (runningElo[oid] ?? 1230), 0) / oppIds.length
+            const expected = calculateExpected(runningElo[uid], oppAvgSeason)
             const actual    = team1.includes(uid) ? setT1 : setT2
             const seasonK   = calculateKFactor(runningPlayed[uid])
             const rawChange = seasonK * (actual - expected)

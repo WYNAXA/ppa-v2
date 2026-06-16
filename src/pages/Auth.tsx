@@ -243,21 +243,21 @@ export function AuthPage() {
 
         {message && message.text === '__already_registered__' ? (
           <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
-            <p className="text-sm font-semibold text-amber-800">That email address is already in use</p>
-            <p className="text-[13px] text-amber-700">Sign in with your existing account, or reset your password if you've forgotten it.</p>
+            <p className="text-sm font-semibold text-amber-800">{t('auth.already_registered_title')}</p>
+            <p className="text-[13px] text-amber-700">{t('auth.already_registered_subtitle')}</p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => { setMode('signin'); setMessage(null) }}
                 className="text-[13px] font-semibold text-[#009688] hover:underline"
               >
-                Sign in
+                {t('auth.sign_in')}
               </button>
               <button
                 type="button"
                 onClick={async () => {
                   if (!email.trim()) {
-                    setMessage({ type: 'error', text: 'Enter your email above first.' })
+                    setMessage({ type: 'error', text: t('auth.already_registered_email_first') })
                     return
                   }
                   setSubmitting(true)
@@ -273,7 +273,7 @@ export function AuthPage() {
                 }}
                 className="text-[13px] font-semibold text-amber-700 hover:underline"
               >
-                Reset password
+                {t('auth.already_registered_reset')}
               </button>
             </div>
           </div>

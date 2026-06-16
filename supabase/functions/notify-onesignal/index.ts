@@ -40,6 +40,7 @@ Deno.serve(async (req) => {
   const userId = record?.user_id as string | undefined
   const title = record?.title as string | undefined
   const body = record?.message as string | undefined
+  const navUrl = record?.nav_url as string | undefined
 
   if (!userId) {
     console.log('[notify-onesignal] no user_id in record, skipping')
@@ -51,6 +52,10 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ skipped: true, reason: 'no title or message' }), { status: 200, headers: corsHeaders })
   }
 
+  const appOrigin = 'https://app.padelplayersapp.com'
+  const resolvedNavUrl = navUrl || '/notifications'
+  const absoluteUrl = `${appOrigin}${resolvedNavUrl}`
+
   try {
     const res = await fetch('https://api.onesignal.com/notifications', {
       method: 'POST',
@@ -61,10 +66,12 @@ Deno.serve(async (req) => {
         include_aliases: { external_id: [userId] },
         headings: { en: title ?? 'Padel Players' },
         contents: { en: body ?? '' },
+        url: absoluteUrl,
         data: {
           ...(record?.id ? { notification_id: record.id } : {}),
           ...(record?.related_id ? { related_id: record.related_id } : {}),
           ...(record?.type ? { type: record.type } : {}),
+          url: resolvedNavUrl,
         },
       }),
     })

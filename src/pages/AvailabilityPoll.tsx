@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, CheckCircle, Clock, Trophy, AlertTriangle, Star, Users, Shuffle, RefreshCw, Trash2 } from 'lucide-react'
+import { ChevronLeft, CheckCircle, Clock, AlertTriangle, Star, Users, Shuffle, RefreshCw, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
@@ -157,7 +157,6 @@ export function AvailabilityPollPage() {
   // ── Post-submit state ──
   const [submitted, setSubmitted] = useState(false)
   const [submittedUnavailable, setSubmittedUnavailable] = useState(false)
-  const [matchCreated, setMatchCreated] = useState<{ id: string } | null>(null)
 
   // ── Conflict dialog ──
   const [showConflictDialog, setShowConflictDialog] = useState(false)
@@ -275,7 +274,6 @@ export function AvailabilityPollPage() {
 
   // ── Conflict check ──
   async function checkHouseholdConflicts(): Promise<any[]> {
-    console.warn('[POLL-DIAG] checkHouseholdConflicts entered', { selectedSlots, poll: !!poll, userId })
     if (!poll || !userId || selectedSlots.length === 0) return []
     try {
       // Resolve each selected slot to a concrete date + time, then call the RPC
@@ -284,25 +282,22 @@ export function AvailabilityPollPage() {
 
       for (const slotId of selectedSlots) {
         const slot = timeSlots.find((s) => s.id === slotId)
-        if (!slot) { console.warn('[POLL-DIAG] slot not found for id:', slotId); continue }
+        if (!slot) continue
         const slotDate = getSlotDate(poll.week_start_date, slot.day)
         const dateStr = format(slotDate, 'yyyy-MM-dd')
         const key = `${dateStr}-${slot.start_time}`
         if (checkedDates.has(key)) continue
         checkedDates.add(key)
 
-        console.warn('[POLL-DIAG] calling RPC', { userId, date: dateStr, time: slot.start_time })
         const { data: result, error } = await supabase.rpc('get_household_conflicts', {
           _user_ids: [userId],
           _match_date: dateStr,
           _match_time: slot.start_time,
         })
-        console.warn('[POLL-DIAG] RPC response', { data: result, error })
-        if (error) { console.warn('[Conflicts] RPC error, skipping:', error.message); continue }
+        if (error) continue
         if (result && result.length > 0) allConflicts.push(...result)
       }
 
-      console.warn('[POLL-DIAG] total conflicts found:', allConflicts.length)
       return allConflicts
     } catch (e) {
       console.warn('[Conflicts] RPC not available, skipping', e)
@@ -313,7 +308,7 @@ export function AvailabilityPollPage() {
   // ── Submit ──
   const submitMutation = useMutation({
     mutationFn: async () => {
-      if (isRinger) return { newMatchId: null } // Ringers cannot submit votes
+      if (isRinger) throw new Error('Ringers cannot vote')
       const responseData = {
         poll_id: pollId!,
         user_id: userId,
@@ -337,23 +332,9 @@ export function AvailabilityPollPage() {
         throw error
       }
 
-      // Call auto-match edge function
-      let newMatchId: string | null = null
-      try {
-        const { data: autoMatch } = await supabase.functions.invoke('check-poll-auto-match', {
-          body: { poll_id: pollId },
-        })
-        if (autoMatch?.matches?.length > 0) {
-          newMatchId = autoMatch.matches[0].match_id ?? null
-        }
-      } catch {
-        // non-fatal
-      }
-
-      return { newMatchId }
+      return {}
     },
-    onSuccess: ({ newMatchId }) => {
-      setMatchCreated(newMatchId ? { id: newMatchId } : null)
+    onSuccess: () => {
       setSubmitted(true)
       setSubmittedUnavailable(cantDoWeek)
       setIsEditMode(false)
@@ -363,17 +344,13 @@ export function AvailabilityPollPage() {
   })
 
   async function handleSubmit() {
-    console.warn('[POLL-DIAG] handleSubmit invoked', { selectedSlots, cantDoWeek, pollId, isPending: submitMutation.isPending })
     if (submitMutation.isPending) return
     if (!cantDoWeek && selectedSlots.length === 0) return
 
     // Household conflict check
     if (!cantDoWeek && selectedSlots.length > 0) {
-      console.warn('[POLL-DIAG] about to call checkHouseholdConflicts', { selectedSlotsCount: selectedSlots.length })
       const conflicts = await checkHouseholdConflicts()
-      console.warn('[POLL-DIAG] conflicts result', { count: conflicts.length, conflicts })
       if (conflicts.length > 0) {
-        console.warn('[POLL-DIAG] would show dialog', { conflicts })
         setConflictDetails(conflicts)
         setShowConflictDialog(true)
         return
@@ -537,31 +514,7 @@ export function AvailabilityPollPage() {
             </motion.div>
           )}
 
-          {!submitMutation.isPending && matchCreated && (
-            <motion.div
-              key="match-found"
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              className="rounded-2xl bg-green-50 border border-green-200 px-4 py-3 flex items-center justify-between gap-3"
-            >
-              <div className="flex items-center gap-2">
-                <Trophy className="h-5 w-5 text-green-600 flex-shrink-0" />
-                <div>
-                  <p className="text-[13px] font-bold text-green-800">🎾 Match found!</p>
-                  <p className="text-[11px] text-green-600">You've been scheduled</p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate(`/matches/${matchCreated.id}`)}
-                className="rounded-xl bg-green-600 px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"
-              >
-                View Match
-              </button>
-            </motion.div>
-          )}
-
-          {!submitMutation.isPending && submitted && submittedUnavailable && !matchCreated && (
+          {!submitMutation.isPending && submitted && submittedUnavailable && (
             <motion.div
               key="unavailable"
               initial={{ opacity: 0, y: -8 }}
@@ -579,7 +532,7 @@ export function AvailabilityPollPage() {
             </motion.div>
           )}
 
-          {!submitMutation.isPending && submitted && !submittedUnavailable && !matchCreated && (
+          {!submitMutation.isPending && submitted && !submittedUnavailable && (
             <motion.div
               key="waiting"
               initial={{ opacity: 0, y: -8 }}

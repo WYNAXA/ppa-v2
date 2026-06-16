@@ -89,17 +89,28 @@ export function AuthPage() {
     setSubmitting(false)
 
     if (error) {
+      // Confirm-email OFF: Supabase returns an explicit error for duplicates
+      if (/already registered/i.test(error.message)) {
+        setMessage({ type: 'error', text: '__already_registered__' })
+        return
+      }
       setMessage({ type: 'error', text: error.message })
       return
     }
 
+    // Confirm-email ON: Supabase returns a user with empty identities for duplicates
+    if (data.user && (data.user.identities ?? []).length === 0) {
+      setMessage({ type: 'error', text: '__already_registered__' })
+      return
+    }
+
     if (data.session) {
-      // Email confirmation disabled \u2014 user is logged in immediately
+      // Email confirmation disabled — user is logged in immediately
       setMessage({ type: 'success', text: 'Account created. Redirecting\u2026' })
       return
     }
 
-    // Email confirmation pending
+    // Email confirmation pending (genuine new user)
     setMessage({
       type: 'success',
       text: 'Check your email to confirm your account, then come back here to sign in.',
@@ -230,7 +241,43 @@ export function AuthPage() {
           </div>
         )}
 
-        {message && (
+        {message && message.text === '__already_registered__' ? (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
+            <p className="text-sm font-semibold text-amber-800">That email address is already in use</p>
+            <p className="text-[13px] text-amber-700">Sign in with your existing account, or reset your password if you've forgotten it.</p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => { setMode('signin'); setMessage(null) }}
+                className="text-[13px] font-semibold text-[#009688] hover:underline"
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!email.trim()) {
+                    setMessage({ type: 'error', text: 'Enter your email above first.' })
+                    return
+                  }
+                  setSubmitting(true)
+                  const { error: resetErr } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: `${window.location.origin}/auth/reset`,
+                  })
+                  setSubmitting(false)
+                  if (resetErr) {
+                    setMessage({ type: 'error', text: resetErr.message })
+                    return
+                  }
+                  setMessage({ type: 'success', text: 'Password reset link sent — check your email.' })
+                }}
+                className="text-[13px] font-semibold text-amber-700 hover:underline"
+              >
+                Reset password
+              </button>
+            </div>
+          </div>
+        ) : message ? (
           <p
             className={`rounded-lg px-4 py-3 text-sm ${
               message.type === 'success'
@@ -240,7 +287,7 @@ export function AuthPage() {
           >
             {message.text}
           </p>
-        )}
+        ) : null}
 
         <button
           type="submit"

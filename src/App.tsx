@@ -17,7 +17,7 @@ import { LandingPage } from '@/pages/Landing'
 import { FAQPage } from '@/pages/FAQ'
 import { ContactPage } from '@/pages/Contact'
 
-// v1.1.2 — remove push-debug banner, fix trigger
+// v1.1.3 — force WKWebView cache refresh to drop stale debug banner
 
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))

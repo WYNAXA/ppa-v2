@@ -205,9 +205,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
     },
   })
 
-  // Auto-calculate result from set scores
+  // Auto-calculate result from set scores (runs on both score entry and confirm steps)
   useEffect(() => {
-    if (step !== 3) return
+    if (step !== 2 && step !== 3) return
     const completedSets = sets.filter((s) => s.team1 !== '' && s.team2 !== '')
     if (completedSets.length === 0) { setResultType(null); return }
     const [t1Wins, t2Wins] = countSetWins(completedSets)
@@ -595,6 +595,23 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       </button>
                     )}
 
+                    {/* Live result indicator */}
+                    {resultType && (() => {
+                      const t1Names = team1.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
+                      const t2Names = team2.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
+                      const label = resultType === 'team1_win' ? `${t1Names} win`
+                        : resultType === 'team2_win' ? `${t2Names} win`
+                        : 'Draw / unfinished'
+                      const color = resultType === 'team1_win' ? 'text-teal-700 bg-teal-50'
+                        : resultType === 'team2_win' ? 'text-orange-600 bg-orange-50'
+                        : 'text-gray-600 bg-gray-50'
+                      return (
+                        <div className={cn('rounded-xl py-2 px-3 text-center text-[12px] font-bold mt-2 mb-1', color)}>
+                          {label}
+                        </div>
+                      )
+                    })()}
+
                     <button
                       onClick={() => setStep(3)}
                       disabled={!canAdvanceStep2}
@@ -656,26 +673,15 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       })}
                     </div>
 
-                    {/* Outcome selection */}
-                    <p className="text-[11px] text-gray-400 text-center mb-2">
-                      If players agreed a different outcome, change it here.
-                    </p>
-                    <div className="space-y-2 mb-5">
-                      {outcomeOptions.map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => setResultType(opt.value)}
-                          className={cn(
-                            'w-full rounded-xl border-2 py-3 px-4 text-left text-[13px] font-semibold transition-colors',
-                            resultType === opt.value
-                              ? `${opt.bg} ${opt.border} ${opt.color}`
-                              : 'border-gray-100 bg-white text-gray-400'
-                          )}
-                        >
-                          {resultType === opt.value ? '\u25CF ' : '\u25CB '}{opt.label}
-                        </button>
-                      ))}
-                    </div>
+                    {/* Derived outcome (read-only) */}
+                    {resultType && (() => {
+                      const opt = outcomeOptions.find(o => o.value === resultType)!
+                      return (
+                        <div className={cn('rounded-xl border-2 py-3 px-4 text-center text-[14px] font-bold mb-5', opt.bg, opt.border, opt.color)}>
+                          {opt.label}
+                        </div>
+                      )
+                    })()}
 
                     {submitMutation.isError && (
                       <p className="text-[12px] text-red-500 text-center mb-3">{t('record_result.submit_failed')}</p>

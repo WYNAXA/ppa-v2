@@ -143,6 +143,14 @@ function AppShell() {
         console.warn('[push-click] no usable nav_url, falling back to /notifications', detail)
         navigate('/notifications')
       }
+
+      // Confirm to native that the click was handled — clears the pending buffer
+      // so it won't replay again on the next webview-ready.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const bridge = (window as any)?.webkit?.messageHandlers?.onesignal
+      if (bridge) {
+        try { bridge.postMessage({ type: 'push-click-handled' }) } catch { /* non-iOS */ }
+      }
     }
     window.addEventListener('push-notification-click', handleNativePushClick)
 

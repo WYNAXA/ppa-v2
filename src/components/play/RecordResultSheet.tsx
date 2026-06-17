@@ -9,7 +9,8 @@ import { checkAndAwardBadges, type BadgeAward } from '@/lib/achievements'
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
-import { SetScore, countSetWins } from '@/components/match/ScoreEntryPanel'
+import type { SetScore } from '@/components/match/ScoreEntryPanel'
+import { countSetWins } from '@/components/match/ScoreEntryPanel'
 import type { Match } from '@/lib/types'
 
 export type { SetScore }

@@ -14,7 +14,7 @@ import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { ReportButton } from '@/components/shared/ReportButton'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
-import { ScoreEntryPanel, countSetWins, deriveResultType, type SetScore } from '@/components/match/ScoreEntryPanel'
+import { ScoreEntryPanel, countSetWins, type SetScore } from '@/components/match/ScoreEntryPanel'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
@@ -1288,7 +1288,6 @@ export function MatchDetailPage() {
 
         const submittedBy = result.submitted_by ?? ''
         const submittingTeam = result.team1_players?.includes(submittedBy) ? result.team1_players : result.team2_players
-        const opposingTeam = result.team1_players?.includes(submittedBy) ? result.team2_players : result.team1_players
         const isOnSubmittingTeam = submittingTeam?.includes(currentUserId)
         const submitterName = players.find(p => p.id === submittedBy)?.name ?? 'Submitter'
 

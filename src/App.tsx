@@ -113,6 +113,29 @@ function ScrollToTop() {
 function AppShell() {
   const { session, loading } = useAuth()
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // ── Native iOS push-notification-click relay ──────────────────────────────
+  // The native wrapper (ppa-ios AppDelegate) dispatches a CustomEvent with the
+  // raw APNs userInfo when the user taps a notification. OneSignal nests our
+  // `data` payload under `custom.a` in the APNs dictionary.
+  useEffect(() => {
+    function handleNativePushClick(e: Event) {
+      const detail = (e as CustomEvent).detail
+      const navUrl: string | undefined =
+        detail?.custom?.a?.nav_url ??  // OneSignal APNs shape
+        detail?.data?.nav_url ??       // direct data (Android / future)
+        detail?.nav_url                // flat fallback
+      if (navUrl && typeof navUrl === 'string' && navUrl.startsWith('/')) {
+        navigate(navUrl)
+      } else {
+        console.warn('[push-click] no usable nav_url, falling back to /notifications', detail)
+        navigate('/notifications')
+      }
+    }
+    window.addEventListener('push-notification-click', handleNativePushClick)
+    return () => window.removeEventListener('push-notification-click', handleNativePushClick)
+  }, [navigate])
 
   if (loading) return <SplashScreen />
 

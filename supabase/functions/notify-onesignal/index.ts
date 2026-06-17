@@ -52,9 +52,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ skipped: true, reason: 'no title or message' }), { status: 200, headers: corsHeaders })
   }
 
-  const appOrigin = 'https://app.padelplayersapp.com'
   const resolvedNavUrl = navUrl || '/notifications'
-  const absoluteUrl = `${appOrigin}${resolvedNavUrl}`
 
   try {
     const res = await fetch('https://api.onesignal.com/notifications', {
@@ -66,12 +64,14 @@ Deno.serve(async (req) => {
         include_aliases: { external_id: [userId] },
         headings: { en: title ?? 'Padel Players' },
         contents: { en: body ?? '' },
-        url: absoluteUrl,
+        // No top-level `url` — that is a Launch URL that OneSignal iOS auto-opens
+        // in Safari. Pass the destination only as data.nav_url so the app handles
+        // routing internally on both iOS and Android.
         data: {
           ...(record?.id ? { notification_id: record.id } : {}),
           ...(record?.related_id ? { related_id: record.related_id } : {}),
           ...(record?.type ? { type: record.type } : {}),
-          url: resolvedNavUrl,
+          nav_url: resolvedNavUrl,
         },
       }),
     })

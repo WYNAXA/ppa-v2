@@ -17,7 +17,7 @@ import { LandingPage } from '@/pages/Landing'
 import { FAQPage } from '@/pages/FAQ'
 import { ContactPage } from '@/pages/Contact'
 
-// v1.1.1 — cache bust for push-debug banner
+// v1.1.2 — remove push-debug banner, fix trigger
 
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
@@ -115,33 +115,13 @@ function AppShell() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  // ── TEMP debug banner — confirms fresh code is running in WKWebView ──────
-  useEffect(() => {
-    let el = document.getElementById('push-debug')
-    if (!el) {
-      el = document.createElement('div')
-      el.id = 'push-debug'
-      Object.assign(el.style, {
-        position: 'fixed', top: '0', left: '0', right: '0', zIndex: '99999',
-        background: '#ff0', color: '#000', fontSize: '11px', padding: '6px 10px',
-        fontFamily: 'monospace', wordBreak: 'break-all', whiteSpace: 'pre-wrap',
-      })
-      el.textContent = 'PUSH-DEBUG build-A — waiting for tap'
-      document.body.appendChild(el)
-    }
-  }, [])
-
   // ── Native iOS push-notification-click relay ──────────────────────────────
+  // The native wrapper (ppa-ios AppDelegate) dispatches a CustomEvent with the
+  // raw APNs userInfo when the user taps a notification. OneSignal nests our
+  // `data` payload under `custom.a` in the APNs dictionary.
   useEffect(() => {
     function handleNativePushClick(e: Event) {
       const detail = (e as CustomEvent).detail
-
-      // TEMP: write raw shape to on-screen banner (WKWebView-safe, no alert())
-      const dbg = document.getElementById('push-debug')
-      if (dbg) {
-        dbg.textContent = 'typeof=' + (typeof detail) + ' | ' + JSON.stringify(detail)
-      }
-      console.warn('[push-click] detail type/value:', typeof detail, JSON.stringify(detail))
 
       // Parse custom safely: may be a JSON string or an object (or absent).
       let navUrl: string | undefined

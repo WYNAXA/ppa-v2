@@ -122,10 +122,23 @@ function AppShell() {
   useEffect(() => {
     function handleNativePushClick(e: Event) {
       const detail = (e as CustomEvent).detail
-      const navUrl: string | undefined =
-        detail?.custom?.a?.nav_url ??  // OneSignal APNs shape
-        detail?.data?.nav_url ??       // direct data (Android / future)
-        detail?.nav_url                // flat fallback
+      console.warn('[push-click] detail type/value:', typeof detail, JSON.stringify(detail))
+
+      // OneSignal APNs userInfo delivers `custom` as a JSON *string*, not an object.
+      // Parse it to reach additionalData at custom.a.nav_url.
+      let navUrl: string | undefined
+      try {
+        const custom = typeof detail?.custom === 'string'
+          ? JSON.parse(detail.custom)
+          : detail?.custom
+        navUrl =
+          custom?.a?.nav_url ??        // OneSignal APNs: custom (parsed).a.nav_url
+          detail?.data?.nav_url ??     // direct data (Android / future)
+          detail?.nav_url              // flat fallback
+      } catch {
+        navUrl = detail?.data?.nav_url ?? detail?.nav_url
+      }
+
       if (navUrl && typeof navUrl === 'string' && navUrl.startsWith('/')) {
         navigate(navUrl)
       } else {

@@ -9,7 +9,11 @@ import { checkAndAwardBadges, type BadgeAward } from '@/lib/achievements'
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
+import { SetScore, countSetWins } from '@/components/match/ScoreEntryPanel'
 import type { Match } from '@/lib/types'
+
+export type { SetScore }
+export { countSetWins }
 
 interface Player {
   id: string
@@ -24,33 +28,6 @@ interface RecordResultSheetProps {
   match: Match
   players: Player[]
   currentUserId: string
-}
-
-interface SetScore {
-  team1: number | ''
-  team2: number | ''
-  tiebreak?: { team1: number | ''; team2: number | '' } | null
-  time_limit?: boolean
-  note?: string
-}
-
-function countSetWins(sets: SetScore[]): [number, number] {
-  let t1Wins = 0, t2Wins = 0
-  for (const s of sets) {
-    if (s.team1 === '' || s.team2 === '') continue
-    const t1 = Number(s.team1)
-    const t2 = Number(s.team2)
-    if (t1 > t2) t1Wins++
-    else if (t2 > t1) t2Wins++
-    else if (t1 === 6 && t2 === 6 && s.tiebreak) {
-      const tb1 = Number(s.tiebreak.team1)
-      const tb2 = Number(s.tiebreak.team2)
-      if (tb1 > tb2) t1Wins++
-      else if (tb2 > tb1) t2Wins++
-    }
-    // If 6-6 time_limit or no tiebreak, it's a drawn set (neither gets a win)
-  }
-  return [t1Wins, t2Wins]
 }
 
 function initTeams(

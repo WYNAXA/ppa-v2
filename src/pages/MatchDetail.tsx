@@ -14,6 +14,7 @@ import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { ReportButton } from '@/components/shared/ReportButton'
 import { RecordResultSheet } from '@/components/play/RecordResultSheet'
+import { ScoreEntryPanel, countSetWins, deriveResultType, type SetScore } from '@/components/match/ScoreEntryPanel'
 import { EditMatchSheet } from '@/components/play/EditMatchSheet'
 import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
@@ -52,12 +53,32 @@ const STATUS_STYLES: Record<string, { label: string; className: string; dot: str
   cancelled:  { label: 'Cancelled',  className: 'bg-red-50 text-red-500 border-red-100',         dot: 'bg-red-400'    },
 }
 
+interface DisputeProposal {
+  sets_data: any
+  team1_score: number
+  team2_score: number
+  result_type: string
+  voter_id: string
+  voterName: string
+  reason: string | null
+}
+interface CounterProposal {
+  sets_data: any
+  team1_score: number
+  team2_score: number
+  result_type: string
+  voter_id: string
+  voterName: string
+}
+
 async function fetchMatchDetail(id: string): Promise<{
   match: Match
   players: Profile[]
   result: MatchResult | null
   myVote: string | null
   disputeInfo: { voterName: string; reason: string | null } | null
+  disputeProposal: DisputeProposal | null
+  counterProposal: CounterProposal | null
 }> {
   const { data: match, error } = await supabase
     .from('matches')
@@ -86,6 +107,8 @@ async function fetchMatchDetail(id: string): Promise<{
 
   let myVote: string | null = null
   let disputeInfo: { voterName: string; reason: string | null } | null = null
+  let disputeProposal: DisputeProposal | null = null
+  let counterProposal: CounterProposal | null = null
 
   if (result) {
     const { data: { user } } = await supabase.auth.getUser()
@@ -99,8 +122,55 @@ async function fetchMatchDetail(id: string): Promise<{
       myVote = myVoteRow?.vote ?? null
     }
 
-    // Fetch dispute details if disputed
-    if (result.verification_status === 'disputed') {
+    const status = result.verification_status
+    // New dispute flow states
+    if (status === 'submitter_review' || status === 'opponent_review' || status === 'admin_review') {
+      // Fetch round-1 dispute vote (the proposal)
+      const { data: disputeVote } = await supabase
+        .from('match_result_votes')
+        .select('voter_id, dispute_reason, proposed_sets_data, proposed_team1_score, proposed_team2_score, proposed_result_type')
+        .eq('match_result_id', result.id)
+        .eq('vote', 'dispute')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (disputeVote) {
+        const voter = players.find(p => p.id === disputeVote.voter_id)
+        disputeProposal = {
+          sets_data: disputeVote.proposed_sets_data,
+          team1_score: disputeVote.proposed_team1_score,
+          team2_score: disputeVote.proposed_team2_score,
+          result_type: disputeVote.proposed_result_type,
+          voter_id: disputeVote.voter_id,
+          voterName: voter?.name ?? 'A player',
+          reason: disputeVote.dispute_reason ?? null,
+        }
+      }
+
+      // Fetch round-2 counter vote if it exists
+      const { data: counterVote } = await supabase
+        .from('match_result_votes')
+        .select('voter_id, proposed_sets_data, proposed_team1_score, proposed_team2_score, proposed_result_type')
+        .eq('match_result_id', result.id)
+        .eq('vote', 'counter')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (counterVote) {
+        const voter = players.find(p => p.id === counterVote.voter_id)
+        counterProposal = {
+          sets_data: counterVote.proposed_sets_data,
+          team1_score: counterVote.proposed_team1_score,
+          team2_score: counterVote.proposed_team2_score,
+          result_type: counterVote.proposed_result_type,
+          voter_id: counterVote.voter_id,
+          voterName: voter?.name ?? 'A player',
+        }
+      }
+    }
+
+    // Legacy disputed status
+    if (status === 'disputed') {
       const { data: disputeVote } = await supabase
         .from('match_result_votes')
         .select('voter_id, dispute_reason')
@@ -119,7 +189,7 @@ async function fetchMatchDetail(id: string): Promise<{
     }
   }
 
-  return { match, players, result: result ?? null, myVote, disputeInfo }
+  return { match, players, result: result ?? null, myVote, disputeInfo, disputeProposal, counterProposal }
 }
 
 function ResultBanner({ result, players }: { result: MatchResult; players: Profile[] }) {
@@ -151,10 +221,19 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
             ? 'bg-green-50 text-green-700 border-green-100'
             : result.verification_status === 'disputed'
             ? 'bg-red-50 text-red-700 border-red-100'
+            : result.verification_status === 'submitter_review' || result.verification_status === 'opponent_review'
+            ? 'bg-yellow-50 text-yellow-700 border-yellow-100'
+            : result.verification_status === 'admin_review'
+            ? 'bg-orange-50 text-orange-700 border-orange-100'
+            : result.verification_status === 'cancelled'
+            ? 'bg-red-50 text-red-700 border-red-100'
             : 'bg-yellow-50 text-yellow-700 border-yellow-100'
         )}>
           {result.verification_status === 'verified' ? 'Verified'
             : result.verification_status === 'disputed' ? 'Disputed'
+            : result.verification_status === 'submitter_review' || result.verification_status === 'opponent_review' ? 'In Review'
+            : result.verification_status === 'admin_review' ? 'Admin Review'
+            : result.verification_status === 'cancelled' ? 'Cancelled'
             : 'Pending'}
         </span>
       </div>
@@ -252,6 +331,15 @@ export function MatchDetailPage() {
   const [showLiftChooser, setShowLiftChooser] = useState(false)
   const [showPeerVoting, setShowPeerVoting] = useState(false)
   const [disputeReason, setDisputeReason]     = useState('')
+  // Dispute resolution state
+  const [showEditScores, setShowEditScores] = useState(false)
+  const [editSets, setEditSets] = useState<SetScore[]>([])
+  const [editResultType, setEditResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
+  const [disputeSets, setDisputeSets] = useState<SetScore[]>([])
+  const [disputeResultType, setDisputeResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
+  const [showCounterProposal, setShowCounterProposal] = useState(false)
+  const [counterSets, setCounterSets] = useState<SetScore[]>([])
+  const [counterResultType, setCounterResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['match', id],
@@ -694,7 +782,7 @@ export function MatchDetailPage() {
     )
   }
 
-  const { match, players, result, myVote, disputeInfo } = data
+  const { match, players, result, myVote, disputeInfo, disputeProposal, counterProposal } = data
 
   // Venue distance from user's location
   const venueDistance = (() => {
@@ -1194,110 +1282,564 @@ export function MatchDetailPage() {
         )}
 
       {/* Verification card */}
-      {result && (result.verification_status === 'pending' || result.verification_status === 'disputed') && isParticipant && (() => {
+      {result && isParticipant && (() => {
+        const vStatus = result.verification_status
+        if (vStatus === 'verified') return null // ResultBanner handles this
+
         const submittedBy = result.submitted_by ?? ''
         const submittingTeam = result.team1_players?.includes(submittedBy) ? result.team1_players : result.team2_players
+        const opposingTeam = result.team1_players?.includes(submittedBy) ? result.team2_players : result.team1_players
         const isOnSubmittingTeam = submittingTeam?.includes(currentUserId)
-        // Auto-verify countdown
+        const submitterName = players.find(p => p.id === submittedBy)?.name ?? 'Submitter'
+
+        const t1Names = result.team1_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ') ?? '?'
+        const t2Names = result.team2_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ') ?? '?'
+
+        // Auto-verify countdown (for pending)
         const createdAt = result.created_at ? new Date(result.created_at).getTime() : 0
         const msUntilAutoVerify = createdAt + 24 * 60 * 60 * 1000 - Date.now()
         const hoursUntilAutoVerify = Math.max(0, Math.ceil(msUntilAutoVerify / (60 * 60 * 1000)))
-        return (
-        <div className="px-5 mb-4">
-          {result.verification_status === 'disputed' ? (
-            <div className="rounded-2xl border border-red-100 bg-red-50 p-3">
-              <p className="text-[13px] font-semibold text-red-700 text-center">Disputed — awaiting admin review</p>
-              {disputeInfo && (isParticipant || isGroupAdmin) && (
-                <div className="mt-2 pt-2 border-t border-red-100">
-                  <p className="text-[12px] text-red-600">
-                    <span className="font-semibold">{disputeInfo.voterName}</span>
-                    {disputeInfo.reason
-                      ? `: "${disputeInfo.reason}"`
-                      : ' disputed this result'}
+
+        // Review deadline countdown (for submitter_review / opponent_review)
+        const reviewDeadline = (result as any).review_deadline ? new Date((result as any).review_deadline).getTime() : 0
+        const msUntilDeadline = reviewDeadline - Date.now()
+        const hoursUntilDeadline = Math.max(0, Math.ceil(msUntilDeadline / (60 * 60 * 1000)))
+
+        // Helper: parse sets_data for display
+        const parseSetsData = (raw: any): SetScore[] => {
+          const parsed = typeof raw === 'string' ? (() => { try { return JSON.parse(raw) } catch { return [] } })() : raw
+          if (!Array.isArray(parsed)) return []
+          return parsed.map((s: any) => ({
+            team1: s.team1 ?? s.team1_score ?? '',
+            team2: s.team2 ?? s.team2_score ?? '',
+            ...(s.tiebreak ? { tiebreak: s.tiebreak } : {}),
+            ...(s.time_limit ? { time_limit: true } : {}),
+            ...(s.note ? { note: s.note } : {}),
+          }))
+        }
+
+        // Helper: render score summary
+        const renderScoreSummary = (setsData: any, t1Score: number, t2Score: number, rType: string) => {
+          const sets = parseSetsData(setsData)
+          return (
+            <div className="bg-gray-50 rounded-xl p-3 mb-2">
+              <div className="flex items-center justify-center gap-3 mb-1">
+                <span className={cn('text-[18px] font-black', rType === 'team1_win' ? 'text-teal-700' : 'text-gray-400')}>{t1Score}</span>
+                <span className="text-gray-300">{'\u2013'}</span>
+                <span className={cn('text-[18px] font-black', rType === 'team2_win' ? 'text-orange-600' : 'text-gray-400')}>{t2Score}</span>
+              </div>
+              {sets.length > 0 && (
+                <p className="text-[10px] text-gray-400 text-center">
+                  {sets.map((s: SetScore) => {
+                    const base = `${s.team1}-${s.team2}`
+                    return s.tiebreak ? `${base} (${s.tiebreak.team1}-${s.tiebreak.team2})` : base
+                  }).join('  ')}
+                </p>
+              )}
+            </div>
+          )
+        }
+
+        // ── LEGACY DISPUTED ──
+        if (vStatus === 'disputed') {
+          return (
+            <div className="px-5 mb-4">
+              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+                <p className="text-[13px] font-semibold text-gray-500 text-center">Legacy dispute — pending cleanup</p>
+                {disputeInfo && (isParticipant || isGroupAdmin) && (
+                  <div className="mt-2 pt-2 border-t border-gray-200">
+                    <p className="text-[12px] text-gray-500">
+                      <span className="font-semibold">{disputeInfo.voterName}</span>
+                      {disputeInfo.reason ? `: "${disputeInfo.reason}"` : ' disputed this result'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        // ── ADMIN REVIEW ──
+        if (vStatus === 'admin_review') {
+          return (
+            <div className="px-5 mb-4">
+              <div className="rounded-2xl border border-orange-200 bg-orange-50 p-3 text-center">
+                <p className="text-[13px] font-semibold text-orange-700">Escalated to group admin</p>
+                <p className="text-[11px] text-gray-500 mt-1">An admin will resolve this dispute.</p>
+              </div>
+            </div>
+          )
+        }
+
+        // ── SUBMITTER REVIEW — viewer is submitter ──
+        if (vStatus === 'submitter_review' && isOnSubmittingTeam) {
+          return (
+            <div className="px-5 mb-4">
+              <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+                <p className="text-[13px] font-bold text-gray-800 mb-2">Your result was disputed</p>
+
+                <p className="text-[11px] font-semibold text-gray-500 mb-1">Your original score</p>
+                {renderScoreSummary(result.sets_data, result.team1_score, result.team2_score, result.result_type)}
+
+                {disputeProposal && (
+                  <>
+                    <p className="text-[11px] font-semibold text-gray-500 mb-1">
+                      {disputeProposal.voterName}'s proposed score
+                    </p>
+                    {disputeProposal.reason && (
+                      <p className="text-[11px] text-red-600 italic mb-1">Reason: "{disputeProposal.reason}"</p>
+                    )}
+                    {renderScoreSummary(disputeProposal.sets_data, disputeProposal.team1_score, disputeProposal.team2_score, disputeProposal.result_type)}
+                  </>
+                )}
+
+                {hoursUntilDeadline > 0 && (
+                  <p className="text-[11px] text-gray-400 mb-3 text-center">
+                    Auto-accepts opponent's proposal in {hoursUntilDeadline}h
                   </p>
-                </div>
-              )}
-            </div>
-          ) : isOnSubmittingTeam ? (
-            <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
-              <p className="text-[13px] font-semibold text-green-700">You submitted this result</p>
-              <p className="text-[11px] text-gray-400 mt-1">
-                Awaiting verification from opposing team
-              </p>
-              {hoursUntilAutoVerify > 0 && (
-                <p className="text-[11px] text-gray-400 mt-0.5">Auto-verifies in {hoursUntilAutoVerify}h</p>
-              )}
-            </div>
-          ) : voteSubmitted || myVote ? (
-            <div className={cn(
-              'rounded-2xl border p-3 text-center',
-              myVote === 'dispute' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
-            )}>
-              <p className={cn('text-[13px] font-semibold', myVote === 'dispute' ? 'text-red-700' : 'text-green-700')}>
-                {myVote === 'dispute' ? 'Result disputed' : 'Result confirmed'}
-              </p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
-              <p className="text-[13px] font-bold text-gray-800 mb-1">Verify this result?</p>
-              {hoursUntilAutoVerify > 0 && (
-                <p className="text-[11px] text-gray-400 mb-2">Auto-verifies in {hoursUntilAutoVerify}h if no response</p>
-              )}
-              <p className="text-[12px] text-gray-500 mb-3">
-                {result.team1_score}–{result.team2_score} ·{' '}
-                {result.result_type === 'team1_win'
-                  ? `${result.team1_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ')} win`
-                  : `${result.team2_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ')} win`}
-              </p>
-              {showDisputeInput ? (
-                <div>
-                  <textarea
-                    value={disputeReason}
-                    onChange={(e) => setDisputeReason(e.target.value)}
-                    placeholder="Describe the issue (optional)"
-                    className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-red-300 mb-2 resize-none"
-                    rows={3}
-                  />
+                )}
+
+                {showCounterProposal ? (
+                  <div>
+                    <p className="text-[12px] font-semibold text-gray-700 mb-2">Your counter-proposal</p>
+                    <ScoreEntryPanel
+                      team1Names={t1Names}
+                      team2Names={t2Names}
+                      initialSets={parseSetsData(result.sets_data)}
+                      onChange={(sets, rt) => { setCounterSets(sets); setCounterResultType(rt) }}
+                    />
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => setShowCounterProposal(false)}
+                        className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!counterResultType || !result || !profile?.id) return
+                          const completedSets = counterSets.filter(s => s.team1 !== '' && s.team2 !== '')
+                          const [t1, t2] = countSetWins(completedSets)
+                          const setsData = completedSets.map(s => ({
+                            team1: Number(s.team1), team2: Number(s.team2),
+                            ...(s.tiebreak ? { tiebreak: { team1: Number(s.tiebreak.team1), team2: Number(s.tiebreak.team2) } } : {}),
+                            ...(s.time_limit ? { time_limit: true } : {}),
+                            ...(s.note?.trim() ? { note: s.note.trim() } : {}),
+                          }))
+
+                          const { error: voteErr } = await supabase.from('match_result_votes').insert({
+                            match_result_id: result.id,
+                            voter_id: profile.id,
+                            vote: 'counter',
+                            round: 2,
+                            proposed_sets_data: setsData,
+                            proposed_team1_score: t1,
+                            proposed_team2_score: t2,
+                            proposed_result_type: counterResultType,
+                          })
+                          if (voteErr) { console.warn('[Dispute] counter vote error:', voteErr); toast.error('Failed to submit counter'); return }
+
+                          const { error: updateErr } = await supabase.from('match_results').update({
+                            verification_status: 'opponent_review',
+                            review_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                            last_proposal_by: profile.id,
+                          }).eq('id', result.id)
+                          if (updateErr) console.warn('[Dispute] update error:', updateErr)
+
+                          // Notify disputer
+                          if (disputeProposal) {
+                            await supabase.from('notifications').insert({
+                              user_id: disputeProposal.voter_id,
+                              type: 'result_counter',
+                              title: 'Counter-proposal submitted',
+                              message: `${submitterName} proposed a different result. Tap to review.`,
+                              related_id: result.match_id,
+                              read: false,
+                            })
+                          }
+
+                          setShowCounterProposal(false)
+                          queryClient.invalidateQueries({ queryKey: ['match', id] })
+                          toast.success('Counter-proposal submitted')
+                        }}
+                        disabled={!counterResultType}
+                        className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-40"
+                      >
+                        Submit Counter
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <div className="flex gap-2">
                     <button
-                      onClick={() => setShowDisputeInput(false)}
+                      onClick={async () => {
+                        if (!disputeProposal || !result) return
+                        const { error } = await supabase.from('match_results').update({
+                          team1_score: disputeProposal.team1_score,
+                          team2_score: disputeProposal.team2_score,
+                          result_type: disputeProposal.result_type,
+                          sets_data: disputeProposal.sets_data,
+                          verification_status: 'verified',
+                          review_deadline: null,
+                          last_proposal_by: null,
+                        }).eq('id', result.id)
+                        if (error) { console.warn('[Dispute] accept error:', error); toast.error('Failed to accept'); return }
+                        queryClient.invalidateQueries({ queryKey: ['match', id] })
+                        toast.success('Proposal accepted')
+                      }}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => setShowCounterProposal(true)}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-orange-200 py-2.5 text-[13px] font-semibold text-orange-600"
+                    >
+                      Counter
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        // ── SUBMITTER REVIEW — viewer is disputer ──
+        if (vStatus === 'submitter_review' && !isOnSubmittingTeam) {
+          return (
+            <div className="px-5 mb-4">
+              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-3 text-center">
+                <p className="text-[13px] font-semibold text-yellow-700">Waiting for submitter to respond</p>
+                {hoursUntilDeadline > 0 && (
+                  <p className="text-[11px] text-gray-400 mt-1">Auto-accepts your proposal in {hoursUntilDeadline}h</p>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        // ── OPPONENT REVIEW — viewer is disputer ──
+        if (vStatus === 'opponent_review' && !isOnSubmittingTeam) {
+          return (
+            <div className="px-5 mb-4">
+              <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
+                <p className="text-[13px] font-bold text-gray-800 mb-2">Counter-proposal from {submitterName}</p>
+
+                {counterProposal && renderScoreSummary(counterProposal.sets_data, counterProposal.team1_score, counterProposal.team2_score, counterProposal.result_type)}
+
+                {hoursUntilDeadline > 0 && (
+                  <p className="text-[11px] text-gray-400 mb-3 text-center">
+                    Auto-accepts in {hoursUntilDeadline}h
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={async () => {
+                      if (!counterProposal || !result) return
+                      const { error } = await supabase.from('match_results').update({
+                        team1_score: counterProposal.team1_score,
+                        team2_score: counterProposal.team2_score,
+                        result_type: counterProposal.result_type,
+                        sets_data: counterProposal.sets_data,
+                        verification_status: 'verified',
+                        review_deadline: null,
+                        last_proposal_by: null,
+                      }).eq('id', result.id)
+                      if (error) { console.warn('[Dispute] accept counter error:', error); toast.error('Failed to accept'); return }
+                      queryClient.invalidateQueries({ queryKey: ['match', id] })
+                      toast.success('Counter-proposal accepted')
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Accept
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!result || !profile?.id) return
+                      // Escalate to admin
+                      const { error: escErr } = await supabase.from('match_results').update({
+                        verification_status: 'admin_review',
+                        review_deadline: null,
+                        last_proposal_by: null,
+                      }).eq('id', result.id)
+                      if (escErr) { console.warn('[Dispute] escalate error:', escErr); toast.error('Failed to escalate'); return }
+
+                      // Notify group admins
+                      if (match.group_id) {
+                        const { data: adminRows } = await supabase
+                          .from('group_members')
+                          .select('user_id')
+                          .eq('group_id', match.group_id)
+                          .eq('role', 'admin')
+                        const { data: groupRow } = await supabase
+                          .from('groups')
+                          .select('admin_id')
+                          .eq('id', match.group_id)
+                          .maybeSingle()
+                        const adminIds = new Set<string>()
+                        for (const r of adminRows ?? []) adminIds.add(r.user_id)
+                        if (groupRow?.admin_id) adminIds.add(groupRow.admin_id)
+                        if (adminIds.size > 0) {
+                          await supabase.from('notifications').insert(
+                            [...adminIds].map(uid => ({
+                              user_id: uid,
+                              type: 'result_escalated',
+                              title: 'Dispute escalated',
+                              message: "Players couldn't agree on a result. Tap to review.",
+                              related_id: result.match_id,
+                              read: false,
+                            }))
+                          )
+                        }
+                      }
+
+                      queryClient.invalidateQueries({ queryKey: ['match', id] })
+                      toast.success('Escalated to admin')
+                    }}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Escalate
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
+        }
+
+        // ── OPPONENT REVIEW — viewer is submitter ──
+        if (vStatus === 'opponent_review' && isOnSubmittingTeam) {
+          return (
+            <div className="px-5 mb-4">
+              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-3 text-center">
+                <p className="text-[13px] font-semibold text-yellow-700">Waiting for opponent to respond</p>
+                {hoursUntilDeadline > 0 && (
+                  <p className="text-[11px] text-gray-400 mt-1">Auto-accepts your counter in {hoursUntilDeadline}h</p>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        // ── PENDING — submitter view (with inline edit) ──
+        if (vStatus === 'pending' && isOnSubmittingTeam) {
+          return (
+            <div className="px-5 mb-4">
+              {showEditScores ? (
+                <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
+                  <p className="text-[13px] font-bold text-gray-800 mb-2">Edit scores</p>
+                  <ScoreEntryPanel
+                    team1Names={t1Names}
+                    team2Names={t2Names}
+                    initialSets={parseSetsData(result.sets_data)}
+                    onChange={(sets, rt) => { setEditSets(sets); setEditResultType(rt) }}
+                  />
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      onClick={() => setShowEditScores(false)}
                       className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
                     >
                       Cancel
                     </button>
                     <button
-                      onClick={() => voteMutation.mutate({ vote: 'dispute', reason: disputeReason })}
-                      disabled={voteMutation.isPending}
-                      className="flex-1 rounded-xl bg-red-500 py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                      onClick={async () => {
+                        if (!editResultType || !result || !profile?.id) return
+                        // Check no opponent vote exists
+                        const { data: voteCount } = await supabase
+                          .from('match_result_votes')
+                          .select('id', { count: 'exact', head: true })
+                          .eq('match_result_id', result.id)
+                          .neq('voter_id', profile.id)
+                        if (voteCount && (voteCount as any[]).length > 0) {
+                          toast.error("Can't edit — opponent has already responded")
+                          return
+                        }
+                        const completedSets = editSets.filter(s => s.team1 !== '' && s.team2 !== '')
+                        const [t1, t2] = countSetWins(completedSets)
+                        const setsData = completedSets.map(s => ({
+                          team1: Number(s.team1), team2: Number(s.team2),
+                          ...(s.tiebreak ? { tiebreak: { team1: Number(s.tiebreak.team1), team2: Number(s.tiebreak.team2) } } : {}),
+                          ...(s.time_limit ? { time_limit: true } : {}),
+                          ...(s.note?.trim() ? { note: s.note.trim() } : {}),
+                        }))
+                        const { error } = await supabase.from('match_results').update({
+                          sets_data: setsData,
+                          team1_score: t1,
+                          team2_score: t2,
+                          result_type: editResultType,
+                        }).eq('id', result.id)
+                        if (error) { console.warn('[EditResult] update error:', error); toast.error('Failed to update'); return }
+                        setShowEditScores(false)
+                        queryClient.invalidateQueries({ queryKey: ['match', id] })
+                        toast.success('Scores updated')
+                      }}
+                      disabled={!editResultType}
+                      className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-40"
                     >
-                      Submit Dispute
+                      Save
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-2">
+                <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
+                  <p className="text-[13px] font-semibold text-green-700">You submitted this result</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Awaiting verification from opposing team</p>
+                  {hoursUntilAutoVerify > 0 && (
+                    <p className="text-[11px] text-gray-400 mt-0.5">Auto-verifies in {hoursUntilAutoVerify}h</p>
+                  )}
                   <button
-                    onClick={() => voteMutation.mutate({ vote: 'confirm' })}
-                    disabled={voteMutation.isPending}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700 disabled:opacity-50"
+                    onClick={() => setShowEditScores(true)}
+                    className="mt-2 rounded-xl border border-green-200 bg-white px-4 py-1.5 text-[12px] font-semibold text-green-700"
                   >
-                    <CheckCircle className="h-4 w-4" />
-                    Confirm
-                  </button>
-                  <button
-                    onClick={() => setShowDisputeInput(true)}
-                    disabled={voteMutation.isPending}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
-                  >
-                    <XCircle className="h-4 w-4" />
-                    Dispute
+                    Edit scores
                   </button>
                 </div>
               )}
             </div>
-          )}
-        </div>
-        )
+          )
+        }
+
+        // ── PENDING — opponent view (confirm or dispute with proposal) ──
+        if (vStatus === 'pending' && !isOnSubmittingTeam) {
+          if (voteSubmitted || myVote) {
+            return (
+              <div className="px-5 mb-4">
+                <div className={cn(
+                  'rounded-2xl border p-3 text-center',
+                  myVote === 'dispute' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
+                )}>
+                  <p className={cn('text-[13px] font-semibold', myVote === 'dispute' ? 'text-red-700' : 'text-green-700')}>
+                    {myVote === 'dispute' ? 'Result disputed' : 'Result confirmed'}
+                  </p>
+                </div>
+              </div>
+            )
+          }
+
+          return (
+            <div className="px-5 mb-4">
+              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
+                <p className="text-[13px] font-bold text-gray-800 mb-1">Verify this result?</p>
+                {hoursUntilAutoVerify > 0 && (
+                  <p className="text-[11px] text-gray-400 mb-2">Auto-verifies in {hoursUntilAutoVerify}h if no response</p>
+                )}
+                <p className="text-[12px] text-gray-500 mb-3">
+                  {result.team1_score}{'\u2013'}{result.team2_score} {'\u00b7'}{' '}
+                  {result.result_type === 'team1_win'
+                    ? `${t1Names} win`
+                    : result.result_type === 'team2_win'
+                    ? `${t2Names} win`
+                    : 'Draw'}
+                </p>
+                {showDisputeInput ? (
+                  <div>
+                    <textarea
+                      value={disputeReason}
+                      onChange={(e) => setDisputeReason(e.target.value)}
+                      placeholder="Describe the issue (optional)"
+                      className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-red-300 mb-2 resize-none"
+                      rows={3}
+                    />
+                    <p className="text-[12px] font-semibold text-gray-700 mb-2">What was the correct score?</p>
+                    <ScoreEntryPanel
+                      team1Names={t1Names}
+                      team2Names={t2Names}
+                      initialSets={parseSetsData(result.sets_data)}
+                      onChange={(sets, rt) => { setDisputeSets(sets); setDisputeResultType(rt) }}
+                    />
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => setShowDisputeInput(false)}
+                        className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          if (!disputeResultType || !result || !profile?.id) return
+                          const completedSets = disputeSets.filter(s => s.team1 !== '' && s.team2 !== '')
+                          const [t1, t2] = countSetWins(completedSets)
+                          const setsData = completedSets.map(s => ({
+                            team1: Number(s.team1), team2: Number(s.team2),
+                            ...(s.tiebreak ? { tiebreak: { team1: Number(s.tiebreak.team1), team2: Number(s.tiebreak.team2) } } : {}),
+                            ...(s.time_limit ? { time_limit: true } : {}),
+                            ...(s.note?.trim() ? { note: s.note.trim() } : {}),
+                          }))
+
+                          const { error: voteErr } = await supabase.from('match_result_votes').insert({
+                            match_result_id: result.id,
+                            voter_id: profile.id,
+                            vote: 'dispute',
+                            dispute_reason: disputeReason || null,
+                            proposed_sets_data: setsData,
+                            proposed_team1_score: t1,
+                            proposed_team2_score: t2,
+                            proposed_result_type: disputeResultType,
+                            round: 1,
+                          })
+                          if (voteErr) { console.warn('[Dispute] vote error:', voteErr); toast.error('Failed to submit dispute'); return }
+
+                          const { error: updateErr } = await supabase.from('match_results').update({
+                            verification_status: 'submitter_review',
+                            review_deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+                            last_proposal_by: profile.id,
+                          }).eq('id', result.id)
+                          if (updateErr) console.warn('[Dispute] update error:', updateErr)
+
+                          // Notify submitter
+                          const voterName = profile.name ?? 'A player'
+                          if (submittedBy && submittedBy !== profile.id) {
+                            await supabase.from('notifications').insert({
+                              user_id: submittedBy,
+                              type: 'result_disputed',
+                              title: 'Match result disputed',
+                              message: `${voterName} proposed a different result. Tap to review.`,
+                              related_id: result.match_id,
+                              read: false,
+                            })
+                          }
+
+                          setVoteSubmitted(true)
+                          setShowDisputeInput(false)
+                          queryClient.invalidateQueries({ queryKey: ['match', id] })
+                          toast.success('Dispute submitted')
+                        }}
+                        disabled={!disputeResultType}
+                        className="flex-1 rounded-xl bg-red-500 py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                      >
+                        Submit Dispute
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => voteMutation.mutate({ vote: 'confirm' })}
+                      disabled={voteMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700 disabled:opacity-50"
+                    >
+                      <CheckCircle className="h-4 w-4" />
+                      Confirm
+                    </button>
+                    <button
+                      onClick={() => setShowDisputeInput(true)}
+                      disabled={voteMutation.isPending}
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
+                    >
+                      <XCircle className="h-4 w-4" />
+                      Dispute
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )
+        }
+
+        return null
       })()}
 
       {/* Step 4: Cast your votes entry — any participant of a completed match who hasn't voted */}

@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wynaxa.padelplayers",
+      "sha256_cert_fingerprints": [
+        "EA:B6:90:14:CA:85:FD:6F:54:05:C7:EC:A3:5C:6B:28:38:A4:22:10:47:3D:91:57:D5:DB:DC:9F:8D:C4:D1:7A",
+        "99:E7:3A:C9:DE:FE:59:6B:91:39:6C:36:C8:6E:36:8B:94:D1:F5:EF:39:51:90:F4:A3:76:78:7F:B5:BF:90:B7"
+      ]
+    }
+  }
+]

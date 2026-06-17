@@ -145,6 +145,15 @@ function AppShell() {
       }
     }
     window.addEventListener('push-notification-click', handleNativePushClick)
+
+    // Signal the native wrapper that JS is ready to receive push-click events.
+    // On cold start the native side buffers the payload and replays it now.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handler = (window as any)?.webkit?.messageHandlers?.onesignal
+    if (handler) {
+      try { handler.postMessage({ type: 'webview-ready' }) } catch { /* non-iOS */ }
+    }
+
     return () => window.removeEventListener('push-notification-click', handleNativePushClick)
   }, [navigate])
 

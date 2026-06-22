@@ -18,7 +18,6 @@ import { PEER_VOTE_CATEGORIES } from '@/lib/achievements'
 interface PlayerProfileData {
   id: string
   name: string
-  email: string
   avatar_url?: string | null
   internal_ranking?: number | null
   ranking_points?: number | null
@@ -55,7 +54,7 @@ async function fetchPlayerProfile(playerId: string, currentUserId: string) {
   const [{ data: player }, { data: myProfile }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, internal_ranking, ranking_points, playtomic_level, city')
+      .select('id, name, avatar_url, internal_ranking, ranking_points, playtomic_level, city')
       .eq('id', playerId)
       .single(),
     supabase

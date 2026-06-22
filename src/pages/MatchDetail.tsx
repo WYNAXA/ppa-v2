@@ -94,7 +94,7 @@ async function fetchMatchDetail(id: string): Promise<{
   if (playerIds.length > 0) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, playtomic_level, ranking_points, internal_ranking, matches_played')
+      .select('id, name, avatar_url, playtomic_level, ranking_points, internal_ranking, matches_played')
       .in('id', playerIds)
     players = data ?? []
   }
@@ -1133,10 +1133,10 @@ export function MatchDetailPage() {
   const SLOT_COUNT = 4
   const slots = Array.from({ length: SLOT_COUNT }, (_, i) => {
     const pid = playerIds[i]
-    if (pid) return players.find((p) => p.id === pid) ?? { id: pid, name: 'Unknown', email: '' }
+    if (pid) return players.find((p) => p.id === pid) ?? { id: pid, name: 'Unknown' }
     const guestIndex = i - playerIds.length
     if (guestIndex >= 0 && guestIndex < guestNames.length) {
-      return { id: `guest_${i}`, name: guestNames[guestIndex], email: '', isGuest: true as const }
+      return { id: `guest_${i}`, name: guestNames[guestIndex], isGuest: true as const }
     }
     return null
   })

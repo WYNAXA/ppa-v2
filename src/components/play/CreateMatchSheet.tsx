@@ -17,7 +17,7 @@ type Duration  = 60 | 90 | 120
 
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name?: string | null }
-interface Profile { id: string; name: string; email: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
+interface Profile { id: string; name: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
 
 interface GroupOption { id: string; name: string }
 
@@ -361,7 +361,7 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
     const selectedIds = new Set(form.players.map((p) => p.id))
     supabase
       .from('profiles')
-      .select('id, name, email, avatar_url, playtomic_level')
+      .select('id, name, avatar_url, playtomic_level')
       .ilike('name', `%${debouncedQ}%`)
       .limit(8)
       .then(({ data }) => {
@@ -379,7 +379,7 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
   const addGuest = () => {
     const name = guestName.trim()
     if (!name || form.players.length >= 4) return
-    const guest: Profile = { id: `guest_${Date.now()}`, name, email: '', isGuest: true }
+    const guest: Profile = { id: `guest_${Date.now()}`, name, isGuest: true }
     setForm({ ...form, players: [...form.players, guest] })
     setGuestName('')
     setShowGuestInput(false)
@@ -627,7 +627,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
   const { t } = useTranslation()
 
   const creatorProfile: Profile | null = profile
-    ? { id: user!.id, name: profile.name, email: profile.email, avatar_url: profile.avatar_url ?? null, playtomic_level: profile.playtomic_level ?? null }
+    ? { id: user!.id, name: profile.name, avatar_url: profile.avatar_url ?? null, playtomic_level: profile.playtomic_level ?? null }
     : null
 
   const [step, setStep]       = useState(1)

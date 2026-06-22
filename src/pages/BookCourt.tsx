@@ -422,7 +422,7 @@ export function BookCourtPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url, email')
+        .select('id, name, avatar_url')
         .in('id', matchPlayerIds)
       return data ?? []
     },
@@ -496,7 +496,7 @@ export function BookCourtPage() {
     }
     supabase
       .from('profiles')
-      .select('id, name, avatar_url, email')
+      .select('id, name, avatar_url')
       .ilike('name', `%${debouncedUserSearch}%`)
       .neq('id', userId)
       .limit(10)

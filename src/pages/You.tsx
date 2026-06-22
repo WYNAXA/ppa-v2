@@ -397,26 +397,16 @@ function LinkPartnerSheet({
 
   const linkMutation = useMutation({
     mutationFn: async (partnerId: string) => {
-      // Link both directions
-      const { error: e1 } = await supabase.from('profiles')
-        .update({ household_partner_id: partnerId }).eq('id', currentUserId)
-      if (e1) throw e1
-      await supabase.from('profiles')
-        .update({ household_partner_id: currentUserId }).eq('id', partnerId)
-      // Notify partner
-      await supabase.from('notifications').insert({
-        user_id:    partnerId,
-        type:       'household_link',
-        title:      t('you.notif_household_request_title'),
-        message:    t('you.notif_household_request_msg'),
-        related_id: currentUserId,
-      })
+      const { error } = await supabase.rpc('request_household_link', { p_partner_id: partnerId })
+      if (error) throw new Error(error.message)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['full-profile', currentUserId] })
+      queryClient.invalidateQueries({ queryKey: ['household-requests', currentUserId] })
       setSearch('')
       setSelected(null)
       onClose()
+      toast.success(t('you.link_request_sent', { defaultValue: 'Request sent' }))
     },
   })
 
@@ -487,7 +477,7 @@ function LinkPartnerSheet({
                 disabled={!selected || linkMutation.isPending}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
-                {linkMutation.isPending ? t('you.linking') : t('you.link_partner_btn')}
+                {linkMutation.isPending ? t('you.linking', { defaultValue: 'Sending...' }) : t('you.link_request_btn', { defaultValue: 'Send request' })}
               </button>
             </div>
           </motion.div>
@@ -876,6 +866,28 @@ export function YouPage() {
   const { data: householdPartner }      = useHouseholdPartner(fullProfile?.household_partner_id)
   const { data: adminGroups = [] }      = useAdminGroups(userId)
   const { data: myRewards = [] }        = useMyRewards(userId)
+  const { data: householdRequests = [] } = useQuery<Array<{ id: string; requester_id: string; requesterName: string; requesterAvatar: string | null }>>({
+    queryKey: ['household-requests', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('household_link_requests')
+        .select('id, requester_id')
+        .eq('target_id', userId)
+        .eq('status', 'pending')
+      if (!data || data.length === 0) return []
+      const ids = data.map((r) => r.requester_id)
+      const { data: profiles } = await supabase.from('profiles').select('id, name, avatar_url').in('id', ids)
+      const nameMap: Record<string, { name: string; avatar_url: string | null }> = {}
+      for (const p of profiles ?? []) nameMap[p.id] = { name: p.name, avatar_url: p.avatar_url }
+      return data.map((r) => ({
+        id: r.id,
+        requester_id: r.requester_id,
+        requesterName: nameMap[r.requester_id]?.name ?? 'Player',
+        requesterAvatar: nameMap[r.requester_id]?.avatar_url ?? null,
+      }))
+    },
+  })
   const { t, i18n }                     = useTranslation()
 
   const profile = fullProfile ?? authProfile
@@ -1096,6 +1108,48 @@ export function YouPage() {
             </span>
           </h2>
           <p className="text-[12px] text-gray-400 mb-3 leading-relaxed">{t('you.household_description')}</p>
+
+          {/* Pending incoming requests */}
+          {householdRequests.length > 0 && !householdPartner && (
+            <div className="space-y-2 mb-3">
+              {householdRequests.map((req) => (
+                <div key={req.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                  <div className="flex items-center gap-3 mb-3">
+                    <PlayerAvatar name={req.requesterName} avatarUrl={req.requesterAvatar} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-gray-800">{req.requesterName}</p>
+                      <p className="text-[11px] text-amber-700">wants to link as household partners</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        const { error } = await supabase.rpc('respond_household_link', { p_request_id: req.id, p_accept: true })
+                        if (error) { toast.error(error.message); return }
+                        queryClient.invalidateQueries({ queryKey: ['household-requests', userId] })
+                        queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
+                        toast.success('Household partner linked!')
+                      }}
+                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={async () => {
+                        const { error } = await supabase.rpc('respond_household_link', { p_request_id: req.id, p_accept: false })
+                        if (error) { toast.error(error.message); return }
+                        queryClient.invalidateQueries({ queryKey: ['household-requests', userId] })
+                      }}
+                      className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+                    >
+                      Decline
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {householdPartner ? (
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
               <div className="flex items-center gap-3 mb-3">
@@ -1107,10 +1161,7 @@ export function YouPage() {
               </div>
               <button
                 onClick={async () => {
-                  await supabase.from('profiles').update({ household_partner_id: null }).eq('id', userId)
-                  if (householdPartner?.id) {
-                    await supabase.from('profiles').update({ household_partner_id: null }).eq('id', householdPartner.id)
-                  }
+                  await supabase.rpc('unlink_household_partner')
                   queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                 }}
                 className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-100 py-2.5 text-[13px] font-semibold text-red-500 hover:bg-red-50 transition-colors"

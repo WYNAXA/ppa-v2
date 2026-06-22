@@ -281,6 +281,58 @@ function useRecentActivity(userId: string) {
 }
 
 
+// ── Setup progress (first-run guidance) ──────────────────────────────────────
+
+interface SetupProgress {
+  /** 'none' | 'solo' | 'usable' */
+  groupState: 'none' | 'solo' | 'usable'
+  hasPollOrMatch: boolean
+}
+
+function useSetupProgress(userId: string) {
+  return useQuery<SetupProgress>({
+    queryKey: ['setup-progress', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      // 1. User's approved group_ids
+      const { data: memberships } = await supabase
+        .from('group_members')
+        .select('group_id')
+        .eq('user_id', userId)
+        .eq('status', 'approved')
+      const groupIds = (memberships ?? []).map((m) => m.group_id as string)
+
+      let groupState: 'none' | 'solo' | 'usable' = 'none'
+      if (groupIds.length > 0) {
+        // 2. Are there other approved members in any of those groups?
+        const { count } = await supabase
+          .from('group_members')
+          .select('id', { count: 'exact', head: true })
+          .in('group_id', groupIds)
+          .eq('status', 'approved')
+          .neq('user_id', userId)
+        groupState = (count ?? 0) > 0 ? 'usable' : 'solo'
+      }
+
+      // 3. Poll responses or matches
+      const [pollResult, matchResult] = await Promise.all([
+        supabase
+          .from('poll_responses')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', userId),
+        supabase
+          .from('matches')
+          .select('id', { count: 'exact', head: true })
+          .contains('player_ids', [userId]),
+      ])
+      const hasPollOrMatch = ((pollResult.count ?? 0) > 0) || ((matchResult.count ?? 0) > 0)
+
+      return { groupState, hasPollOrMatch }
+    },
+  })
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const TYPE_BADGE: Record<string, { key: string; className: string }> = {
@@ -385,7 +437,115 @@ function NextMatchCard({
   )
 }
 
-function EmptyMatchCard({ onCreateMatch }: { onCreateMatch: () => void }) {
+function GettingStartedCard({ progress }: { progress: SetupProgress }) {
+  const navigate = useNavigate()
+  const groupDone = progress.groupState === 'usable'
+  const playDone = progress.hasPollOrMatch
+  const stepsComplete = 1 + (groupDone ? 1 : 0) + (playDone ? 1 : 0)
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-4"
+    >
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-[16px]">🎾</span>
+        <p className="text-[14px] font-bold text-gray-800">Getting started</p>
+        <span className="ml-auto text-[11px] font-semibold text-gray-400">{stepsComplete} of 3</span>
+      </div>
+
+      <div className="space-y-2.5">
+        {/* Step 1: Profile — always done */}
+        <div className="flex items-center gap-3">
+          <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
+          <p className="text-[13px] text-gray-500 line-through">You're all set up</p>
+        </div>
+
+        {/* Step 2: Group */}
+        <div className="flex items-start gap-3">
+          {groupDone ? (
+            <>
+              <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
+              <p className="text-[13px] text-gray-500 line-through">Create a group & invite friends</p>
+            </>
+          ) : (
+            <>
+              <span className="h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-[12px] text-teal-700 font-bold shrink-0">2</span>
+              <div className="flex-1 min-w-0">
+                {progress.groupState === 'none' ? (
+                  <>
+                    <p className="text-[13px] font-semibold text-gray-800">Create a group & invite friends</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">Groups let you find times to play and schedule matches</p>
+                    <div className="flex gap-2 mt-2">
+                      <button
+                        onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
+                        className="rounded-lg bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white"
+                      >
+                        Create a group
+                      </button>
+                      <button
+                        onClick={() => navigate('/community')}
+                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-[12px] font-semibold text-gray-600"
+                      >
+                        Browse groups
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* solo group — in progress */
+                  <>
+                    <p className="text-[13px] font-semibold text-amber-700">Group created — invite a friend to get started</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">You need at least one other member to schedule matches</p>
+                    <button
+                      onClick={() => navigate('/community')}
+                      className="mt-2 rounded-lg bg-amber-500 px-3 py-1.5 text-[12px] font-bold text-white"
+                    >
+                      Invite friends
+                    </button>
+                  </>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Step 3: Play */}
+        <div className="flex items-start gap-3">
+          {playDone ? (
+            <>
+              <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
+              <p className="text-[13px] text-gray-500 line-through">Find a time to play</p>
+            </>
+          ) : (
+            <>
+              <span className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[12px] text-gray-400 font-bold shrink-0">3</span>
+              <div className="flex-1 min-w-0">
+                <p className={cn('text-[13px] font-semibold', groupDone ? 'text-gray-800' : 'text-gray-400')}>Find a time to play</p>
+                {groupDone && (
+                  <>
+                    <p className="text-[11px] text-gray-400 mt-0.5">Share your availability so your group can find a time</p>
+                    <button
+                      onClick={() => navigate('/play/availability')}
+                      className="mt-2 rounded-lg border border-[#009688] px-3 py-1.5 text-[12px] font-bold text-[#009688]"
+                    >
+                      Check availability
+                    </button>
+                  </>
+                )}
+                {!groupDone && (
+                  <p className="text-[11px] text-gray-400 mt-0.5">Complete step 2 first</p>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () => void; hasUsableGroup: boolean }) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   return (
@@ -398,22 +558,42 @@ function EmptyMatchCard({ onCreateMatch }: { onCreateMatch: () => void }) {
         <Calendar className="h-6 w-6 text-gray-400" />
       </div>
       <p className="text-[14px] font-bold text-gray-700 mb-1">{t('home.no_matches')}</p>
-      <p className="text-[12px] text-gray-400 mb-4">{t('home.no_matches_sub')}</p>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          onClick={() => navigate('/play/availability')}
-          className="rounded-xl border border-[#009688] py-2.5 text-[13px] font-bold text-[#009688]"
-        >
-          {t('home.find_my_game')}
-        </button>
-        <button
-          onClick={onCreateMatch}
-          className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {t('home.create_match')}
-        </button>
-      </div>
+      <p className="text-[12px] text-gray-400 mb-4">
+        {hasUsableGroup ? t('home.no_matches_sub') : 'Create or join a group to start scheduling matches'}
+      </p>
+      {hasUsableGroup ? (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => navigate('/play/availability')}
+            className="rounded-xl border border-[#009688] py-2.5 text-[13px] font-bold text-[#009688]"
+          >
+            {t('home.find_my_game')}
+          </button>
+          <button
+            onClick={onCreateMatch}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t('home.create_match')}
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+          >
+            <Users className="h-3.5 w-3.5" />
+            Create a group
+          </button>
+          <button
+            onClick={() => navigate('/community')}
+            className="rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+          >
+            Browse groups
+          </button>
+        </div>
+      )}
     </motion.div>
   )
 }
@@ -669,6 +849,11 @@ export function HomePage() {
   const { data: quickStats                             } = useQuickStats(userId)
   const { data: activity = []                          } = useRecentActivity(userId)
   const { data: groupOpps = [] } = useGroupOpportunities(userId)
+  const { data: setupProgress } = useSetupProgress(userId)
+
+  const setupComplete = setupProgress
+    ? setupProgress.groupState === 'usable' && setupProgress.hasPollOrMatch
+    : true // hide card while loading (avoids flash)
 
   const today = new Date()
   const dateLabel = (() => {
@@ -704,6 +889,13 @@ export function HomePage() {
 
       <div className="px-5 space-y-5">
 
+        {/* ── Getting Started (self-dismissing) ── */}
+        {!setupComplete && setupProgress && (
+          <section>
+            <GettingStartedCard progress={setupProgress} />
+          </section>
+        )}
+
         {/* ── Next Match ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
@@ -724,7 +916,7 @@ export function HomePage() {
               onRecordResult={() => navigate(`/matches/${nextMatch.id}`)}
             />
           ) : (
-            <EmptyMatchCard onCreateMatch={() => setCreateMatchOpen(true)} />
+            <EmptyMatchCard onCreateMatch={() => setCreateMatchOpen(true)} hasUsableGroup={setupProgress?.groupState === 'usable'} />
           )}
         </section>
 

@@ -38,6 +38,7 @@ interface FullProfile {
   account_type: string | null
   is_verified: boolean | null
   push_token: string | null
+  push_opted_out: boolean
   is_provisional: boolean | null
   matches_played: number | null
 }
@@ -76,7 +77,7 @@ function useFullProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history, account_type, is_verified, push_token')
+        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, ranking_points, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history, account_type, is_verified, push_token, push_opted_out')
         .eq('id', userId)
         .single()
       if (error) return null
@@ -839,12 +840,10 @@ export function YouPage() {
 
   const { data: fullProfile }           = useFullProfile(userId)
 
-  // Persist push notification toggle from actual state
+  // Push toggle source of truth: profiles.push_opted_out (gates both OneSignal + Web Push)
   useEffect(() => {
     if (!fullProfile) return
-    const hasBrowserPermission = typeof Notification !== 'undefined' && Notification.permission === 'granted'
-    const hasToken = !!fullProfile.push_token
-    setNotifEnabled(hasBrowserPermission && hasToken)
+    setNotifEnabled(!fullProfile.push_opted_out)
   }, [fullProfile])
   const { data: stats, isLoading: loadingStats } = useYouStats(userId)
   const { data: history = [], isLoading: loadingHistory } = useMatchHistory(userId, historyLimit)
@@ -1274,20 +1273,22 @@ export function YouPage() {
               <button
                 onClick={async () => {
                   if (notifEnabled) {
+                    // Opt out: set DB flag (gates OneSignal + Web Push)
+                    await supabase.from('profiles').update({ push_opted_out: true }).eq('id', userId)
                     await unsubscribeFromPush(userId)
                     setNotifEnabled(false)
+                    queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                     return
                   }
+                  // Opt in: clear DB flag, then try Web Push as secondary channel
+                  await supabase.from('profiles').update({ push_opted_out: false }).eq('id', userId)
+                  setNotifEnabled(true)
+                  queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
+                  // Best-effort Web Push enrolment (OneSignal is already subscribed via native bridge)
                   const result = await subscribeToPush(userId)
-                  if (result.success) {
-                    setNotifEnabled(true)
-                  } else if (result.reason === 'ios-non-pwa') {
+                  if (!result.success && result.reason === 'ios-non-pwa') {
                     setIosHint(true)
                     setTimeout(() => setIosHint(false), 6000)
-                  } else if (result.reason === 'denied') {
-                    // User declined — do nothing, toggle stays off
-                  } else {
-                    toast.error(result.message)
                   }
                 }}
                 className={cn(

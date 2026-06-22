@@ -4,6 +4,8 @@
 // for every in-app bell notification.
 // ────────────────────────────────────────────────────────────────────────────
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -50,6 +52,22 @@ Deno.serve(async (req) => {
   if (!title && !body) {
     console.log(`[notify-onesignal] no title or message for notification ${record?.id}, skipping`)
     return new Response(JSON.stringify({ skipped: true, reason: 'no title or message' }), { status: 200, headers: corsHeaders })
+  }
+
+  // Check push_opted_out — single source of truth for all push channels
+  const supabase = createClient(
+    Deno.env.get('SUPABASE_URL')!,
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+  )
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('push_opted_out')
+    .eq('id', userId)
+    .single()
+
+  if (userProfile?.push_opted_out) {
+    console.log(`[notify-onesignal] user ${userId} opted out, skipping`)
+    return new Response(JSON.stringify({ skipped: true, reason: 'opted_out' }), { status: 200, headers: corsHeaders })
   }
 
   const resolvedNavUrl = navUrl || '/notifications'

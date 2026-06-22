@@ -55,12 +55,13 @@ Deno.serve(async (req) => {
     })
   }
 
-  // Fetch push tokens for all target users
+  // Fetch push tokens for all target users who haven't opted out
   const { data: profiles } = await supabase
     .from('profiles')
     .select('id, push_token')
     .in('id', user_ids)
     .not('push_token', 'is', null)
+    .neq('push_opted_out', true)
 
   if (!profiles?.length) {
     return new Response(JSON.stringify({ sent: 0, message: 'No push subscriptions found' }), {

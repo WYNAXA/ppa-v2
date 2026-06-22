@@ -505,7 +505,11 @@ export function OnboardingPage() {
           <>
             <button
               onClick={async () => {
-                if (user) await subscribeToPush(user.id)
+                if (user) {
+                  // Opt in: clear the DB flag (default is false, but be explicit)
+                  await supabase.from('profiles').update({ push_opted_out: false }).eq('id', user.id)
+                  await subscribeToPush(user.id)
+                }
                 await handleFinish()
               }}
               disabled={saving}
@@ -514,7 +518,13 @@ export function OnboardingPage() {
               {saving ? t('onboarding.saving') : t('onboarding.notifications_enable')}
             </button>
             <button
-              onClick={handleFinish}
+              onClick={async () => {
+                // User declined — set push_opted_out so OneSignal is also suppressed
+                if (user) {
+                  await supabase.from('profiles').update({ push_opted_out: true }).eq('id', user.id)
+                }
+                await handleFinish()
+              }}
               disabled={saving}
               className="w-full text-center text-[13px] text-gray-400"
             >

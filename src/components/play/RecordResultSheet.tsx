@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Trophy, Play } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import { checkAndAwardBadges, type BadgeAward } from '@/lib/achievements'
+import type { BadgeAward } from '@/lib/achievements'
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -177,8 +177,8 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       queryClient.invalidateQueries({ queryKey: ['compete-leaderboard'] })
       queryClient.invalidateQueries({ queryKey: ['home-ranking'] })
       queryClient.invalidateQueries({ queryKey: ['compete-stats'] })
-      const earned = await checkAndAwardBadges(currentUserId)
-      setNewBadges(earned)
+      // Career badges are now awarded server-side by trg_career_badges_on_verify
+      // when verification_status transitions to 'verified'.
       setStep(4)
     },
   })

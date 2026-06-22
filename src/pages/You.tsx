@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink } from 'lucide-react'
@@ -837,6 +837,28 @@ export function YouPage() {
   const achievementsRef = useRef<HTMLElement>(null)
   const settingsRef = useRef<HTMLElement>(null)
   const favPartnersRef = useRef<HTMLElement>(null)
+
+  const location = useLocation()
+
+  // Scroll to section when navigated with state (e.g. from Compete card)
+  useEffect(() => {
+    const scrollTo = (location.state as any)?.scrollTo as string | undefined
+    if (!scrollTo) return
+    const refMap: Record<string, React.RefObject<HTMLElement | null>> = {
+      achievements: achievementsRef,
+      matches: matchHistoryRef,
+      stats: statsRef,
+      rating: ratingRef,
+      settings: settingsRef,
+    }
+    const ref = refMap[scrollTo]
+    if (ref?.current) {
+      // Small delay so the page renders before scrolling
+      setTimeout(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150)
+    }
+    // Clear state so back-navigation doesn't re-scroll
+    window.history.replaceState({}, document.title)
+  }, [location.state]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const { data: fullProfile }           = useFullProfile(userId)
 

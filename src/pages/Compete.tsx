@@ -312,6 +312,7 @@ function RankingCard({
   achievementCount: number
 }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const elo = profile?.internal_ranking ?? 0
 
   return (
@@ -352,13 +353,20 @@ function RankingCard({
                 { label: t('compete.wins'),   value: stats.wins,   color: 'text-green-300' },
                 { label: t('compete.losses'), value: stats.losses, color: 'text-red-300'   },
                 { label: t('compete.draws'),  value: stats.draws,  color: 'text-gray-300'  },
-                { label: t('compete.my_badges'), value: achievementCount, color: 'text-yellow-300' },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-white/10 rounded-xl py-2.5 text-center">
                   <p className={cn('text-[18px] font-black', color)}>{value}</p>
                   <p className="text-teal-200 text-[10px] mt-0.5">{label}</p>
                 </div>
               ))}
+              <button
+                onClick={() => navigate('/you', { state: { scrollTo: 'achievements' } })}
+                className="bg-white/10 rounded-xl py-2.5 text-center hover:bg-white/20 active:bg-white/25 transition-colors relative"
+              >
+                <p className="text-[18px] font-black text-yellow-300">{achievementCount}</p>
+                <p className="text-teal-200 text-[10px] mt-0.5">{t('compete.my_badges')}</p>
+                <ChevronRight className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-teal-300/60" />
+              </button>
             </div>
 
             {/* Win rate + trend + form */}
@@ -392,15 +400,21 @@ function RankingCard({
                 </div>
               </div>
 
-              <div>
-                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1.5">{t('compete.recent_form')}</p>
+              <button
+                onClick={() => navigate('/you', { state: { scrollTo: 'matches' } })}
+                className="text-left hover:bg-white/10 active:bg-white/15 rounded-xl px-2 py-1.5 -mx-2 -my-1.5 transition-colors"
+              >
+                <div className="flex items-center gap-1 mb-1.5">
+                  <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide">{t('compete.recent_form')}</p>
+                  <ChevronRight className="h-3 w-3 text-teal-300/60" />
+                </div>
                 <div className="flex gap-1.5">
                   {stats.recentForm.length > 0
                     ? stats.recentForm.map((r, i) => <FormDot key={i} result={r} />)
                     : <span className="text-teal-300 text-[11px]">{t('compete.no_matches_yet')}</span>
                   }
                 </div>
-              </div>
+              </button>
             </div>
           </>
         ) : null}

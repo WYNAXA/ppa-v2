@@ -395,10 +395,23 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     return d.toISOString().split('T')[0]
   }, [])
 
-  const { data: pendingResultMatches = [] } = useQuery<{
-    id: string; match_date: string; match_time: string | null; booked_venue_name: string | null
+  interface PendingResultMatch {
+    id: string
+    match_date: string
+    match_time: string | null
+    booked_venue_name: string | null
     verification_status: string
-  }[]>({
+    submitted_by: string | null
+    team1_players: string[]
+    team2_players: string[]
+    created_at: string | null
+    /** true when the current user is on the opposing team and hasn't voted */
+    canConfirm: boolean
+    /** Names of opposing-team players who haven't voted yet */
+    waitingOnNames: string[]
+  }
+
+  const { data: pendingResultMatches = [] } = useQuery<PendingResultMatch[]>({
     queryKey: ['results-to-confirm', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -413,32 +426,84 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
         .limit(20)
       if (!matches || matches.length === 0) return []
 
-      // Step 2: fetch verification status for those match ids
+      // Step 2: fetch result details for those match ids
       const matchIds = matches.map((m) => m.id)
       const { data: results } = await supabase
         .from('match_results')
-        .select('match_id, verification_status')
+        .select('id, match_id, verification_status, submitted_by, team1_players, team2_players, created_at')
         .in('match_id', matchIds)
-      const statusMap = Object.fromEntries(
-        (results ?? []).map((r) => [r.match_id, r.verification_status as string])
-      )
+      if (!results || results.length === 0) return []
+
+      const resultByMatch = Object.fromEntries(results.map((r) => [r.match_id, r]))
+
+      // Step 3: fetch votes for pending/disputed results so we know who hasn't confirmed
+      const pendingResultIds = results
+        .filter((r) => r.verification_status !== 'verified')
+        .map((r) => r.id)
+      const { data: votes } = pendingResultIds.length > 0
+        ? await supabase
+            .from('match_result_votes')
+            .select('match_result_id, voter_id')
+            .in('match_result_id', pendingResultIds)
+        : { data: [] as { match_result_id: string; voter_id: string }[] }
+      const votesByResult = new Map<string, Set<string>>()
+      for (const v of votes ?? []) {
+        if (!votesByResult.has(v.match_result_id)) votesByResult.set(v.match_result_id, new Set())
+        votesByResult.get(v.match_result_id)!.add(v.voter_id)
+      }
+
+      // Step 4: collect all player IDs we need names for
+      const allPlayerIds = new Set<string>()
+      for (const r of results) {
+        for (const pid of [...(r.team1_players ?? []), ...(r.team2_players ?? [])]) allPlayerIds.add(pid)
+      }
+      const { data: profiles } = allPlayerIds.size > 0
+        ? await supabase.from('profiles').select('id, name').in('id', [...allPlayerIds])
+        : { data: [] as { id: string; name: string }[] }
+      const nameMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p.name]))
 
       // Only include matches where result is pending or disputed (not verified)
       return matches
         .filter((m) => {
-          const vs = statusMap[m.id]
-          return vs && vs !== 'verified'
+          const r = resultByMatch[m.id]
+          return r && r.verification_status !== 'verified'
         })
-        .map((m) => ({
-          id: m.id,
-          match_date: m.match_date,
-          match_time: m.match_time,
-          booked_venue_name: m.booked_venue_name,
-          verification_status: statusMap[m.id],
-        }))
+        .map((m): PendingResultMatch => {
+          const r = resultByMatch[m.id]
+          const t1 = (r.team1_players ?? []) as string[]
+          const t2 = (r.team2_players ?? []) as string[]
+          const submittedBy = r.submitted_by as string | null
+          const submittingTeam = t1.includes(submittedBy ?? '') ? t1 : t2
+          const opposingTeam = submittingTeam === t1 ? t2 : t1
+          const isOnOpposingTeam = opposingTeam.includes(userId)
+          const voterIds = votesByResult.get(r.id) ?? new Set<string>()
+          const hasVoted = voterIds.has(userId)
+
+          // Compute who on the opposing team hasn't voted yet
+          const waitingOnIds = opposingTeam.filter((pid) => !voterIds.has(pid))
+          const waitingOnNames = waitingOnIds.map((pid) => nameMap[pid]?.split(' ')[0] ?? '?')
+
+          return {
+            id: m.id,
+            match_date: m.match_date,
+            match_time: m.match_time,
+            booked_venue_name: m.booked_venue_name,
+            verification_status: r.verification_status as string,
+            submitted_by: submittedBy,
+            team1_players: t1,
+            team2_players: t2,
+            created_at: r.created_at as string | null,
+            canConfirm: isOnOpposingTeam && !hasVoted,
+            waitingOnNames,
+          }
+        })
     },
     staleTime: 30_000,
   })
+
+  // Split pending results into actionable vs waiting
+  const pendingCanConfirm = pendingResultMatches.filter((m) => m.canConfirm)
+  const pendingWaitingOn = pendingResultMatches.filter((m) => !m.canConfirm)
 
   // ── Select active data ─────────────────────────────────────────────────────
   const activeMatches = viewTab === 'mine' ? myMatches : viewTab === 'group' ? groupMatches : openMatches
@@ -524,39 +589,91 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div>
-      {/* ── Results to confirm ── */}
-      {pendingResultMatches.length > 0 && (
+      {/* ── Results to confirm (you can act) ── */}
+      {pendingCanConfirm.length > 0 && (
         <div className="px-5 pt-3 pb-2">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
             <p className="text-[12px] font-bold text-amber-800 mb-2">
               {t('play.results_to_confirm', { defaultValue: 'Results to confirm' })}
             </p>
             <div className="space-y-1.5">
-              {pendingResultMatches.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => navigate(`/matches/${m.id}`)}
-                  className="w-full flex items-center justify-between rounded-xl bg-white border border-amber-100 px-3 py-2 text-left hover:border-amber-300 transition-colors"
-                >
-                  <div>
-                    <p className="text-[12px] font-semibold text-gray-800">
-                      {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
-                      {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
-                    </p>
-                    {m.booked_venue_name && (
-                      <p className="text-[10px] text-gray-500 truncate">{m.booked_venue_name}</p>
-                    )}
-                  </div>
-                  <span className={cn(
-                    'text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
-                    m.verification_status === 'disputed'
-                      ? 'bg-red-50 text-red-600 border border-red-100'
-                      : 'bg-yellow-50 text-yellow-700 border border-yellow-100'
-                  )}>
-                    {m.verification_status === 'disputed' ? 'Disputed' : 'Pending'}
-                  </span>
-                </button>
-              ))}
+              {pendingCanConfirm.map((m) => {
+                const autoVerifyTime = m.created_at ? new Date(m.created_at).getTime() + 24 * 60 * 60 * 1000 : 0
+                const msUntil = autoVerifyTime - Date.now()
+                const hoursLeft = msUntil > 0 ? Math.ceil(msUntil / (60 * 60 * 1000)) : 0
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => navigate(`/matches/${m.id}`)}
+                    className="w-full flex items-center justify-between rounded-xl bg-white border border-amber-100 px-3 py-2 text-left hover:border-amber-300 transition-colors"
+                  >
+                    <div>
+                      <p className="text-[12px] font-semibold text-gray-800">
+                        {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
+                        {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
+                      </p>
+                      {m.booked_venue_name && (
+                        <p className="text-[10px] text-gray-500 truncate">{m.booked_venue_name}</p>
+                      )}
+                      {hoursLeft > 0 && (
+                        <p className="text-[10px] text-gray-400">Auto-confirms in {hoursLeft}h</p>
+                      )}
+                    </div>
+                    <span className={cn(
+                      'text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
+                      m.verification_status === 'disputed'
+                        ? 'bg-red-50 text-red-600 border border-red-100'
+                        : 'bg-amber-100 text-amber-700 border border-amber-200'
+                    )}>
+                      {m.verification_status === 'disputed' ? 'Disputed' : 'Confirm'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Results waiting on others ── */}
+      {pendingWaitingOn.length > 0 && (
+        <div className="px-5 pt-3 pb-2">
+          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
+            <p className="text-[12px] font-bold text-gray-500 mb-2">Awaiting the other team</p>
+            <div className="space-y-1.5">
+              {pendingWaitingOn.map((m) => {
+                const autoVerifyTime = m.created_at ? new Date(m.created_at).getTime() + 24 * 60 * 60 * 1000 : 0
+                const msUntil = autoVerifyTime - Date.now()
+                const hoursLeft = msUntil > 0 ? Math.ceil(msUntil / (60 * 60 * 1000)) : 0
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => navigate(`/matches/${m.id}`)}
+                    className="w-full flex items-center justify-between rounded-xl bg-white border border-gray-100 px-3 py-2 text-left hover:border-gray-300 transition-colors"
+                  >
+                    <div>
+                      <p className="text-[12px] font-semibold text-gray-800">
+                        {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
+                        {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        Waiting on {m.waitingOnNames.length > 0 ? m.waitingOnNames.join(' & ') : 'opponent'} to confirm
+                      </p>
+                      {hoursLeft > 0 && (
+                        <p className="text-[10px] text-gray-400">Auto-confirms in {hoursLeft}h</p>
+                      )}
+                    </div>
+                    <span className={cn(
+                      'text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
+                      m.verification_status === 'disputed'
+                        ? 'bg-red-50 text-red-600 border border-red-100'
+                        : 'bg-gray-100 text-gray-500 border border-gray-200'
+                    )}>
+                      {m.verification_status === 'disputed' ? 'Disputed' : 'Pending'}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>

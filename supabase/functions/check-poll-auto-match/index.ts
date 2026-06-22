@@ -483,22 +483,10 @@ serve(async (req: Request) => {
             });
           }
 
-          // Check if match already exists for this poll/date/time
+          // Create match — use upsert-style insert so the unique index
+          // (idx_matches_no_poll_duplicates) prevents duplicates atomically.
+          // No separate SELECT needed; the constraint handles the race.
           const matchDateStr = matchDate.toISOString().split('T')[0];
-          const { data: existingMatch } = await supabase
-            .from("matches")
-            .select("id")
-            .eq("poll_id", poll_id)
-            .eq("match_date", matchDateStr)
-            .eq("match_time", slot.start_time)
-            .maybeSingle();
-          
-          if (existingMatch) {
-            console.log(`Match already exists for ${matchDateStr} ${slot.start_time}, skipping`);
-            break;
-          }
-
-          // Create match
           const { data: newMatch, error: matchError } = await supabase
             .from("matches")
             .insert({
@@ -514,6 +502,11 @@ serve(async (req: Request) => {
             .single();
 
           if (matchError) {
+            // 23505 = unique_violation from idx_matches_no_poll_duplicates
+            if (matchError.code === '23505') {
+              console.log(`Match already exists for ${matchDateStr} ${slot.start_time}, skipping (dedup)`);
+              break;
+            }
             console.error("Failed to create match:", matchError);
             break;
           }

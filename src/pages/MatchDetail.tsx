@@ -192,7 +192,7 @@ async function fetchMatchDetail(id: string): Promise<{
   return { match, players, result: result ?? null, myVote, disputeInfo, disputeProposal, counterProposal }
 }
 
-function ResultBanner({ result, players }: { result: MatchResult; players: Profile[] }) {
+function ResultBanner({ result, players, currentUserId }: { result: MatchResult; players: Profile[]; currentUserId?: string }) {
   const getPlayer = (id: string) => players.find((p) => p.id === id)
   // sets_data may be stored as a JSON string in the DB — handle both key conventions
   const rawSets: Array<Record<string, unknown>> = (() => {
@@ -209,6 +209,15 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
       note: (s.note as string) || undefined,
     }))
     .filter((s) => !isNaN(s.team1) && !isNaN(s.team2))
+
+  // Viewer-oriented: show the viewer's team on the left / first
+  const viewerOnTeam1 = currentUserId ? result.team1_players.includes(currentUserId) : true
+  const leftPlayers = viewerOnTeam1 ? result.team1_players : result.team2_players
+  const rightPlayers = viewerOnTeam1 ? result.team2_players : result.team1_players
+  const leftScore = viewerOnTeam1 ? result.team1_score : result.team2_score
+  const rightScore = viewerOnTeam1 ? result.team2_score : result.team1_score
+  const leftWon = viewerOnTeam1 ? result.result_type === 'team1_win' : result.result_type === 'team2_win'
+  const rightWon = viewerOnTeam1 ? result.result_type === 'team2_win' : result.result_type === 'team1_win'
 
   return (
     <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-100 p-4">
@@ -241,32 +250,37 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 text-center">
           <div className="flex justify-center gap-1 mb-1">
-            {result.team1_players.map((pid) => {
+            {leftPlayers.map((pid) => {
               const p = getPlayer(pid)
               return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
             })}
           </div>
           <p className="text-[11px] text-gray-500">
-            {result.team1_players.map((pid) => getPlayer(pid)?.name?.split(' ')[0] ?? '?').join(' & ')}
+            {leftPlayers.map((pid) => getPlayer(pid)?.name?.split(' ')[0] ?? '?').join(' & ')}
           </p>
         </div>
 
         <div className="text-center">
           <div className="flex items-center gap-1.5">
-            <span className={cn('text-[22px] font-black', result.result_type === 'team1_win' ? 'text-teal-700' : 'text-gray-400')}>
-              {result.team1_score}
+            <span className={cn('text-[22px] font-black', leftWon ? 'text-teal-700' : 'text-gray-400')}>
+              {leftScore}
             </span>
             <span className="text-gray-300 text-sm">–</span>
-            <span className={cn('text-[22px] font-black', result.result_type === 'team2_win' ? 'text-orange-600' : 'text-gray-400')}>
-              {result.team2_score}
+            <span className={cn('text-[22px] font-black', rightWon ? 'text-orange-600' : 'text-gray-400')}>
+              {rightScore}
             </span>
           </div>
           {completedSets.length > 0 && (
             <div>
               <p className="text-[10px] text-gray-400">
                 {completedSets.map((s) => {
-                  const base = `${s.team1}-${s.team2}`
-                  return s.tiebreak ? `${base} (${s.tiebreak.team1}-${s.tiebreak.team2})` : base
+                  const sLeft = viewerOnTeam1 ? s.team1 : s.team2
+                  const sRight = viewerOnTeam1 ? s.team2 : s.team1
+                  const base = `${sLeft}-${sRight}`
+                  if (!s.tiebreak) return base
+                  const tbLeft = viewerOnTeam1 ? s.tiebreak.team1 : s.tiebreak.team2
+                  const tbRight = viewerOnTeam1 ? s.tiebreak.team2 : s.tiebreak.team1
+                  return `${base} (${tbLeft}-${tbRight})`
                 }).join('  ')}
               </p>
               {completedSets.some(s => s.note) && (
@@ -280,13 +294,13 @@ function ResultBanner({ result, players }: { result: MatchResult; players: Profi
 
         <div className="flex-1 text-center">
           <div className="flex justify-center gap-1 mb-1">
-            {result.team2_players.map((pid) => {
+            {rightPlayers.map((pid) => {
               const p = getPlayer(pid)
               return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
             })}
           </div>
           <p className="text-[11px] text-gray-500">
-            {result.team2_players.map((pid) => getPlayer(pid)?.name?.split(' ')[0] ?? '?').join(' & ')}
+            {rightPlayers.map((pid) => getPlayer(pid)?.name?.split(' ')[0] ?? '?').join(' & ')}
           </p>
         </div>
       </div>
@@ -693,19 +707,24 @@ export function MatchDetailPage() {
     mutationFn: async ({ vote, reason }: { vote: 'confirm' | 'dispute'; reason?: string }) => {
       const result = data?.result
       if (!result || !profile?.id) return
-      await supabase.from('match_result_votes').insert({
+
+      // Insert vote record
+      const { error: voteErr } = await supabase.from('match_result_votes').insert({
         match_result_id: result.id,
         voter_id: profile.id,
         vote,
         ...(reason ? { dispute_reason: reason } : {}),
       })
+      if (voteErr) throw new Error(`Vote failed: ${voteErr.message}`)
+
       if (vote === 'confirm') {
-        // Single opposing-team confirmation is sufficient to verify
-        await supabase
-          .from('match_results')
-          .update({ verification_status: 'verified' })
-          .eq('id', result.id)
-        // ELO processing is handled by the Database Webhook automatically
+        // Use RPC to verify — enforces opposing-team check at DB level
+        const { error: verifyErr } = await supabase.rpc('confirm_match_result', {
+          p_match_result_id: result.id,
+          p_voter_id: profile.id,
+        })
+        if (verifyErr) throw new Error(`Verification failed: ${verifyErr.message}`)
+        // ELO processing is handled by the process-elo-on-verify trigger
         // Peer-vote badges are awarded server-side by the
         // trg_peer_vote_badges_on_verify trigger (covers manual + auto-verify)
 
@@ -720,7 +739,7 @@ export function MatchDetailPage() {
         ].filter((pid: string) => pid !== profile.id)
         if (allPlayerIds.length > 0) {
           const score = `${result.team1_score}–${result.team2_score}`
-          await supabase.from('notifications').insert(
+          const { error: notifErr } = await supabase.from('notifications').insert(
             allPlayerIds.map((pid: string) => ({
               user_id: pid,
               type: 'result_verified',
@@ -730,12 +749,14 @@ export function MatchDetailPage() {
               read: false,
             }))
           )
+          if (notifErr) console.warn('Notification insert failed:', notifErr.message)
         }
       } else {
-        await supabase
+        const { error: disputeErr } = await supabase
           .from('match_results')
           .update({ verification_status: 'disputed' })
           .eq('id', result.id)
+        if (disputeErr) throw new Error(`Dispute failed: ${disputeErr.message}`)
 
         // Notify submitter that the result was disputed
         const submittedBy = result.submitted_by
@@ -762,6 +783,10 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['home-activity'] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+    },
+    onError: (err: Error) => {
+      console.error('[VoteMutation]', err)
+      toast.error(err.message || 'Something went wrong — please try again')
     },
   })
 
@@ -1143,7 +1168,7 @@ export function MatchDetailPage() {
       </motion.div>
 
       {/* Result banner */}
-      {result && <ResultBanner result={result} players={players} />}
+      {result && <ResultBanner result={result} players={players} currentUserId={profile?.id} />}
 
       {/* 4-players-ready banner (creator, not yet booked, no result) */}
       {isCreator && playerIds.length === 4 && !result && match.status !== 'completed' && match.status !== 'cancelled' && (
@@ -1317,21 +1342,31 @@ export function MatchDetailPage() {
           }))
         }
 
-        // Helper: render score summary
+        // Helper: render score summary (viewer-oriented — viewer's team score first)
+        const viewerOnTeam1 = result ? (result.team1_players ?? []).includes(currentUserId) : true
         const renderScoreSummary = (setsData: any, t1Score: number, t2Score: number, rType: string) => {
           const sets = parseSetsData(setsData)
+          const leftScore = viewerOnTeam1 ? t1Score : t2Score
+          const rightScore = viewerOnTeam1 ? t2Score : t1Score
+          const leftWon = viewerOnTeam1 ? rType === 'team1_win' : rType === 'team2_win'
+          const rightWon = viewerOnTeam1 ? rType === 'team2_win' : rType === 'team1_win'
           return (
             <div className="bg-gray-50 rounded-xl p-3 mb-2">
               <div className="flex items-center justify-center gap-3 mb-1">
-                <span className={cn('text-[18px] font-black', rType === 'team1_win' ? 'text-teal-700' : 'text-gray-400')}>{t1Score}</span>
+                <span className={cn('text-[18px] font-black', leftWon ? 'text-teal-700' : 'text-gray-400')}>{leftScore}</span>
                 <span className="text-gray-300">{'\u2013'}</span>
-                <span className={cn('text-[18px] font-black', rType === 'team2_win' ? 'text-orange-600' : 'text-gray-400')}>{t2Score}</span>
+                <span className={cn('text-[18px] font-black', rightWon ? 'text-orange-600' : 'text-gray-400')}>{rightScore}</span>
               </div>
               {sets.length > 0 && (
                 <p className="text-[10px] text-gray-400 text-center">
                   {sets.map((s: SetScore) => {
-                    const base = `${s.team1}-${s.team2}`
-                    return s.tiebreak ? `${base} (${s.tiebreak.team1}-${s.tiebreak.team2})` : base
+                    const sLeft = viewerOnTeam1 ? s.team1 : s.team2
+                    const sRight = viewerOnTeam1 ? s.team2 : s.team1
+                    const base = `${sLeft}-${sRight}`
+                    if (!s.tiebreak) return base
+                    const tbLeft = viewerOnTeam1 ? s.tiebreak.team1 : s.tiebreak.team2
+                    const tbRight = viewerOnTeam1 ? s.tiebreak.team2 : s.tiebreak.team1
+                    return `${base} (${tbLeft}-${tbRight})`
                   }).join('  ')}
                 </p>
               )}
@@ -1726,7 +1761,7 @@ export function MatchDetailPage() {
                   <p className="text-[11px] text-gray-400 mb-2">Auto-verifies in {hoursUntilAutoVerify}h if no response</p>
                 )}
                 <p className="text-[12px] text-gray-500 mb-3">
-                  {result.team1_score}{'\u2013'}{result.team2_score} {'\u00b7'}{' '}
+                  {viewerOnTeam1 ? result.team1_score : result.team2_score}{'\u2013'}{viewerOnTeam1 ? result.team2_score : result.team1_score} {'\u00b7'}{' '}
                   {result.result_type === 'team1_win'
                     ? `${t1Names} win`
                     : result.result_type === 'team2_win'

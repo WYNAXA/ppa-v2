@@ -617,17 +617,37 @@ export function MatchDetailPage() {
     },
   })
 
-  // Existing travel requests for this match
-  const { data: myTravelRequests = [] } = useQuery<Array<{ driver_id: string; status: string }>>({
+  // Existing travel requests for this match (rider's view)
+  const { data: myTravelRequests = [] } = useQuery<Array<{ driver_id: string; status: string; pickup_time: string | null }>>({
     queryKey: ['travel-requests', id, profile?.id],
     enabled: !!id && !!profile?.id,
     queryFn: async () => {
       const { data } = await supabase
         .from('travel_requests')
-        .select('driver_id, status')
+        .select('driver_id, status, pickup_time')
         .eq('match_id', id)
         .eq('requester_id', profile!.id)
       return data ?? []
+    },
+  })
+
+  // Confirmed riders for this match (driver's view — accepted requests where I'm the driver)
+  const { data: confirmedRiders = [] } = useQuery<Array<{ requester_id: string; requesterName: string; pickup_time: string | null }>>({
+    queryKey: ['confirmed-riders', id, profile?.id],
+    enabled: !!id && !!profile?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('travel_requests')
+        .select('requester_id, pickup_time')
+        .eq('match_id', id)
+        .eq('driver_id', profile!.id)
+        .eq('status', 'accepted')
+      if (!data || data.length === 0) return []
+      const riderIds = data.map((r) => r.requester_id)
+      const { data: names } = await supabase.from('profiles').select('id, name').in('id', riderIds)
+      const nameMap: Record<string, string> = {}
+      for (const p of names ?? []) nameMap[p.id] = p.name
+      return data.map((r) => ({ ...r, requesterName: nameMap[r.requester_id] ?? 'Player' }))
     },
   })
 
@@ -659,6 +679,41 @@ export function MatchDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incoming-travel-requests', id, profile?.id] })
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
+      queryClient.invalidateQueries({ queryKey: ['confirmed-riders', id, profile?.id] })
+    },
+  })
+
+  // Pickup time mutation (driver sets time for accepted rider)
+  const setPickupTimeMutation = useMutation({
+    mutationFn: async ({ riderId, time }: { riderId: string; time: string | null }) => {
+      if (!profile?.id || !id) throw new Error('Not signed in')
+      const { error } = await supabase
+        .from('travel_requests')
+        .update({ pickup_time: time, updated_at: new Date().toISOString() })
+        .eq('match_id', id)
+        .eq('requester_id', riderId)
+        .eq('driver_id', profile.id)
+      if (error) throw error
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['confirmed-riders', id, profile?.id] })
+      queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
+    },
+  })
+
+  // Rider address (privacy-gated RPC — only returns data if caller is accepted driver)
+  const [expandedRiderId, setExpandedRiderId] = useState<string | null>(null)
+  const { data: riderAddress } = useQuery<{ postal_code: string | null; city: string | null; latitude: number | null; longitude: number | null } | null>({
+    queryKey: ['rider-address', id, expandedRiderId],
+    enabled: !!id && !!expandedRiderId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_rider_address_for_driver', {
+        p_match_id: id,
+        p_rider_id: expandedRiderId!,
+      })
+      if (error) return null
+      const row = Array.isArray(data) ? data[0] : data
+      return row ?? null
     },
   })
 
@@ -1972,140 +2027,285 @@ export function MatchDetailPage() {
         />
       )}
 
-      {/* Getting there */}
-      {match.status !== 'completed' && match.status !== 'cancelled' && (playerIds.length > 0 || match.booked_venue_name) && (
-        <div className="px-5 mb-4">
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Car className="h-4 w-4 text-[#009688]" />
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Getting there</p>
-            </div>
+      {/* Getting there — visible on completed matches too (confirmed lifts are still useful) */}
+      {(() => {
+        const matchIsActive = match.status !== 'cancelled'
+        const hasTravel = (playerIds.length > 0 || match.booked_venue_name)
+        const myAccepted = myTravelRequests.find((r) => r.status === 'accepted')
+        const myAcceptedDriver = myAccepted ? travelInfo?.drivers.find((d) => d.id === myAccepted.driver_id) : null
+        const hasConfirmedLift = !!myAcceptedDriver || confirmedRiders.length > 0
+        const matchCompleted = match.status === 'completed'
 
-            {/* Incoming lift requests (driver sees) — always shown */}
-            {incomingRequests.length > 0 && (
-              <div className="mb-3">
-                <p className="text-[11px] font-semibold text-gray-500 mb-2">Lift requests</p>
-                <div className="space-y-2">
-                  {incomingRequests.map((req) => (
-                    <div key={req.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
-                      <p className="text-[12px] font-semibold text-orange-800">{req.requesterName} wants a lift</p>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
-                          className="rounded-lg bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white"
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
-                          className="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600"
-                        >
-                          Decline
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+        // Build Google Maps multi-stop URL for driver
+        const buildNavigateUrl = () => {
+          const parts: string[] = []
+          // Origin: driver's location
+          if (myLocation?.latitude && myLocation?.longitude) {
+            parts.push(`origin=${myLocation.latitude},${myLocation.longitude}`)
+          }
+          // Waypoints: confirmed riders' locations (from travelInfo profiles)
+          const waypoints = confirmedRiders
+            .map((r) => {
+              const p = travelInfo?.needsLift.find((nl) => nl.id === r.requester_id)
+              if (p?.latitude && p?.longitude) return `${p.latitude},${p.longitude}`
+              return null
+            })
+            .filter(Boolean)
+          if (waypoints.length > 0) parts.push(`waypoints=${waypoints.join('|')}`)
+          // Destination: venue
+          if (venueLatLng?.latitude && venueLatLng?.longitude) {
+            parts.push(`destination=${venueLatLng.latitude},${venueLatLng.longitude}`)
+          } else if (match.booked_venue_name) {
+            parts.push(`destination=${encodeURIComponent(match.booked_venue_name)}`)
+          }
+          if (parts.length < 2) return null // need at least origin + destination
+          return `https://www.google.com/maps/dir/?api=1&${parts.join('&')}&travelmode=driving`
+        }
+
+        if (!matchIsActive || !hasTravel) return null
+        // On completed matches, only show if there's a confirmed lift
+        if (matchCompleted && !hasConfirmedLift) return null
+
+        return (
+          <div className="px-5 mb-4">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Car className="h-4 w-4 text-[#009688]" />
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Getting there</p>
               </div>
-            )}
 
-            {/* Drivers — shown whenever poll travel data is available */}
-            {(travelInfo?.drivers.length ?? 0) > 0 && (
-              <div className="mb-3">
-                <p className="text-[11px] font-semibold text-gray-500 mb-2">Drivers</p>
-                <div className="space-y-1.5">
-                  {travelInfo!.drivers.map((driver) => (
-                    <div key={driver.id} className="flex items-center gap-2.5">
-                      <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name} is driving</p>
-                        <p className="text-[11px] text-gray-400">Can take {driver.max_passengers} passengers</p>
-                      </div>
-                      <span className="flex-shrink-0 rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Driver</span>
+              {/* ── PART 1: Confirmed-lift banner ── */}
+              {/* Rider view: driver is picking you up */}
+              {myAcceptedDriver && (
+                <div className="rounded-xl bg-green-50 border border-green-100 px-3 py-2.5 mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[16px]">🚗</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-green-800">
+                        {myAcceptedDriver.name.split(' ')[0]} is picking you up
+                        {myAccepted?.pickup_time && (
+                          <span className="text-green-600 font-normal"> at {myAccepted.pickup_time.slice(0, 5)}</span>
+                        )}
+                      </p>
                     </div>
-                  ))}
+                    <span className="shrink-0 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-[10px] font-bold text-green-700">Confirmed</span>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Needs a lift */}
-            {(travelInfo?.needsLift.length ?? 0) > 0 && (
-              <div className={(travelInfo?.drivers.length ?? 0) > 0 ? '' : 'mb-2'}>
-                <p className="text-[11px] font-semibold text-gray-500 mb-2">Need a lift</p>
-                <div className="space-y-1.5">
-                  {travelInfo!.needsLift.map((passenger) => {
-                    const isMe = passenger.id === profile?.id
-                    const acceptedRequest = myTravelRequests.find((r) => r.status === 'accepted')
-                    const pendingRequests = myTravelRequests.filter((r) => r.status === 'pending')
-                    const acceptedDriver = acceptedRequest
-                      ? travelInfo!.drivers.find((d) => d.id === acceptedRequest.driver_id)
-                      : null
+              {/* Driver view: you're driving these riders */}
+              {confirmedRiders.length > 0 && (
+                <div className="rounded-xl bg-green-50 border border-green-100 px-3 py-2.5 mb-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[16px]">🚗</span>
+                    <p className="text-[13px] font-semibold text-green-800 flex-1">
+                      You're driving {confirmedRiders.map((r) => r.requesterName.split(' ')[0]).join(' & ')}
+                    </p>
+                  </div>
 
+                  {/* Per-rider details: pickup time + address (Part 2 + 3) */}
+                  <div className="space-y-2 mt-2">
+                    {confirmedRiders.map((rider) => (
+                      <div key={rider.requester_id} className="rounded-lg bg-white border border-green-100 px-3 py-2">
+                        <button
+                          onClick={() => setExpandedRiderId(expandedRiderId === rider.requester_id ? null : rider.requester_id)}
+                          className="w-full flex items-center justify-between"
+                        >
+                          <p className="text-[12px] font-semibold text-gray-800">{rider.requesterName.split(' ')[0]}</p>
+                          <span className="text-[10px] text-gray-400">{expandedRiderId === rider.requester_id ? 'Hide' : 'Details'}</span>
+                        </button>
+
+                        {/* Pickup time (Part 2) */}
+                        {!matchCompleted && (
+                          <div className="flex items-center gap-2 mt-1.5">
+                            <Clock className="h-3 w-3 text-gray-400 shrink-0" />
+                            <input
+                              type="time"
+                              value={rider.pickup_time?.slice(0, 5) ?? ''}
+                              onChange={(e) => setPickupTimeMutation.mutate({
+                                riderId: rider.requester_id,
+                                time: e.target.value ? `${e.target.value}:00` : null,
+                              })}
+                              className="text-[12px] text-gray-700 bg-transparent border-none p-0 focus:outline-none"
+                              placeholder="Set pickup time"
+                            />
+                            {!rider.pickup_time && (
+                              <span className="text-[10px] text-gray-400 italic">Set pickup time</span>
+                            )}
+                          </div>
+                        )}
+                        {matchCompleted && rider.pickup_time && (
+                          <p className="text-[11px] text-gray-500 mt-1">Pickup: {rider.pickup_time.slice(0, 5)}</p>
+                        )}
+
+                        {/* Address (Part 3 — privacy-gated, expanded) */}
+                        {expandedRiderId === rider.requester_id && (
+                          <div className="mt-2 pt-2 border-t border-green-100">
+                            {riderAddress?.postal_code || riderAddress?.city ? (
+                              <p className="text-[11px] text-gray-600">
+                                <MapPin className="h-3 w-3 inline mr-1 text-gray-400" />
+                                {[riderAddress.postal_code, riderAddress.city].filter(Boolean).join(', ')}
+                              </p>
+                            ) : (
+                              <p className="text-[11px] text-gray-400 italic">No address saved</p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Navigate button (Part 4) */}
+                  {!matchCompleted && (() => {
+                    const url = buildNavigateUrl()
+                    if (!url) return null
                     return (
-                      <div key={passenger.id} className="flex items-center gap-2.5">
-                        <PlayerAvatar name={passenger.name} avatarUrl={passenger.avatar_url} size="sm" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
-                          {isMe && acceptedDriver && (
-                            <p className="text-[11px] text-green-600">Riding with {acceptedDriver.name.split(' ')[0]}</p>
-                          )}
-                          {isMe && !acceptedDriver && pendingRequests.length > 0 && (
-                            <p className="text-[11px] text-gray-400">Waiting for response</p>
-                          )}
-                        </div>
-                        {isMe && !acceptedDriver && (travelInfo!.drivers.length > 0) && (
-                          <button
-                            onClick={() => setShowLiftChooser(true)}
-                            className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white"
-                          >
-                            <Car className="h-3 w-3 inline mr-1" />
-                            Ask for a lift
-                          </button>
-                        )}
-                        {isMe && acceptedDriver && (
-                          <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">
-                            Lift confirmed
-                          </span>
-                        )}
-                      </div>
+                      <a
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 text-[12px] font-bold text-white"
+                      >
+                        <Navigation className="h-3.5 w-3.5" />
+                        Navigate (Google Maps)
+                      </a>
                     )
-                  })}
+                  })()}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* No location data — prompt to enable */}
-            {!travelInfo?.hasLocationData && (travelInfo?.drivers.length ?? 0) === 0 && (
-              <div className="text-center py-1">
-                <p className="text-[12px] text-gray-500 mb-2">Enable location to coordinate lifts</p>
-                <button
-                  onClick={() => {
-                    if (!navigator.geolocation || !profile?.id) return
-                    navigator.geolocation.getCurrentPosition(async (pos) => {
-                      await supabase.from('profiles').update({
-                        latitude:  pos.coords.latitude,
-                        longitude: pos.coords.longitude,
-                      }).eq('id', profile.id)
-                      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
-                      queryClient.invalidateQueries({ queryKey: ['my-location', profile.id] })
-                    })
-                  }}
-                  className="rounded-xl bg-[#009688] px-4 py-2 text-[12px] font-bold text-white"
-                >
-                  Enable location
-                </button>
-              </div>
-            )}
+              {/* ── Existing sections (hidden on completed matches) ── */}
+              {!matchCompleted && (
+                <>
+                  {/* Incoming lift requests (driver sees) */}
+                  {incomingRequests.length > 0 && (
+                    <div className="mb-3">
+                      <p className="text-[11px] font-semibold text-gray-500 mb-2">Lift requests</p>
+                      <div className="space-y-2">
+                        {incomingRequests.map((req) => (
+                          <div key={req.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
+                            <p className="text-[12px] font-semibold text-orange-800">{req.requesterName} wants a lift</p>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
+                                className="rounded-lg bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
+                                className="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-            {/* Nothing to show at all */}
-            {(travelInfo?.drivers.length ?? 0) === 0 &&
-             (travelInfo?.needsLift.length ?? 0) === 0 &&
-             travelInfo?.hasLocationData && (
-              <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
-            )}
+                  {/* Drivers */}
+                  {(travelInfo?.drivers.length ?? 0) > 0 && (
+                    <div className="mb-3">
+                      <p className="text-[11px] font-semibold text-gray-500 mb-2">Drivers</p>
+                      <div className="space-y-1.5">
+                        {travelInfo!.drivers.map((driver) => (
+                          <div key={driver.id} className="flex items-center gap-2.5">
+                            <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name} is driving</p>
+                              <p className="text-[11px] text-gray-400">Can take {driver.max_passengers} passengers</p>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Driver</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Needs a lift */}
+                  {(travelInfo?.needsLift.length ?? 0) > 0 && (
+                    <div className={(travelInfo?.drivers.length ?? 0) > 0 ? '' : 'mb-2'}>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-2">Need a lift</p>
+                      <div className="space-y-1.5">
+                        {travelInfo!.needsLift.map((passenger) => {
+                          const isMe = passenger.id === profile?.id
+                          const acceptedRequest = myTravelRequests.find((r) => r.status === 'accepted')
+                          const pendingRequests = myTravelRequests.filter((r) => r.status === 'pending')
+                          const acceptedDriverLocal = acceptedRequest
+                            ? travelInfo!.drivers.find((d) => d.id === acceptedRequest.driver_id)
+                            : null
+
+                          return (
+                            <div key={passenger.id} className="flex items-center gap-2.5">
+                              <PlayerAvatar name={passenger.name} avatarUrl={passenger.avatar_url} size="sm" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
+                                {isMe && acceptedDriverLocal && (
+                                  <p className="text-[11px] text-green-600">Riding with {acceptedDriverLocal.name.split(' ')[0]}</p>
+                                )}
+                                {isMe && !acceptedDriverLocal && pendingRequests.length > 0 && (
+                                  <p className="text-[11px] text-gray-400">Waiting for response</p>
+                                )}
+                              </div>
+                              {isMe && !acceptedDriverLocal && (travelInfo!.drivers.length > 0) && (
+                                <button
+                                  onClick={() => setShowLiftChooser(true)}
+                                  className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white"
+                                >
+                                  <Car className="h-3 w-3 inline mr-1" />
+                                  Ask for a lift
+                                </button>
+                              )}
+                              {isMe && acceptedDriverLocal && (
+                                <span className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">
+                                  Lift confirmed
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* No location data — prompt to enable */}
+                  {!travelInfo?.hasLocationData && (travelInfo?.drivers.length ?? 0) === 0 && !hasConfirmedLift && (
+                    <div className="text-center py-1">
+                      <p className="text-[12px] text-gray-500 mb-2">Enable location to coordinate lifts</p>
+                      <button
+                        onClick={() => {
+                          if (!navigator.geolocation || !profile?.id) return
+                          navigator.geolocation.getCurrentPosition(async (pos) => {
+                            await supabase.from('profiles').update({
+                              latitude:  pos.coords.latitude,
+                              longitude: pos.coords.longitude,
+                            }).eq('id', profile.id)
+                            queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
+                            queryClient.invalidateQueries({ queryKey: ['my-location', profile.id] })
+                          })
+                        }}
+                        className="rounded-xl bg-[#009688] px-4 py-2 text-[12px] font-bold text-white"
+                      >
+                        Enable location
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Nothing to show at all */}
+                  {(travelInfo?.drivers.length ?? 0) === 0 &&
+                   (travelInfo?.needsLift.length ?? 0) === 0 &&
+                   !hasConfirmedLift &&
+                   travelInfo?.hasLocationData && (
+                    <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
+                  )}
+                </>
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        )
+      })()}
 
       {/* Ringer response banner */}
       {myRingerRequest?.status === 'pending' && new Date(myRingerRequest.expires_at) > new Date() && (

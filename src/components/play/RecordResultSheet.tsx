@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Trophy, Play } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
-import type { BadgeAward } from '@/lib/achievements'
+// Badge awarding is now server-side (trg_career_badges_on_verify)
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -58,7 +58,6 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [team2, setTeam2] = useState<string[]>([])
   const [sets, setSets] = useState<SetScore[]>([{ team1: '', team2: '' }])
   const [resultType, setResultType] = useState<'team1_win' | 'team2_win' | 'draw' | null>(null)
-  const [newBadges, setNewBadges] = useState<BadgeAward[]>([])
   const [showPeerVoting, setShowPeerVoting] = useState(false)
   const [creatingNext, setCreatingNext] = useState(false)
   const [selectedForSwap, setSelectedForSwap] = useState<string | null>(null)
@@ -707,33 +706,6 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     <p className="text-[12px] text-gray-400 mb-5 text-center">
                       {t('record_result.waiting_verify')}
                     </p>
-
-                    {newBadges.length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 8 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="w-full bg-amber-50 rounded-2xl p-4 mb-4 border border-amber-100"
-                      >
-                        <p className="text-[11px] font-bold text-amber-600 uppercase tracking-wide mb-2">
-                          New Badge{newBadges.length > 1 ? 's' : ''} Earned!
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {newBadges.map((b) => (
-                            <motion.div
-                              key={b.badge_key}
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                              className="flex items-center gap-1.5 bg-white rounded-xl px-3 py-1.5 border border-amber-100"
-                            >
-                              <span className="text-lg">{b.emoji}</span>
-                              <span className="text-[12px] font-bold text-gray-800">{b.label}</span>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </motion.div>
-                    )}
 
                     {!showPeerVoting && (
                       <button

@@ -43,6 +43,9 @@ function getNavTarget(n: Notification): string | null {
     case 'league_invite':
       return `/compete/leagues/${n.related_id}`
     case 'achievement':
+    case 'household_link_request':
+    case 'household_link_accepted':
+    case 'household_link_declined':
       return '/you'
     case 'connection_request':
     case 'connection_accepted':

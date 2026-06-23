@@ -1,3 +1,23 @@
+-- ⚠️ ════════════════════════════════════════════════════════════════════════
+-- DEPRECATED — DO NOT RE-RUN. 2026-06-23.
+--
+-- This one-time reset was applied during early development. It is NOT
+-- idempotent: TRUNCATE rating_history + resetting elo_processed=false causes
+-- the whole match set to be reprocessed, and each reprocess cycle re-increments
+-- profiles.matches_played. Running it repeatedly during dev inflated
+-- matches_played for nearly every player (e.g. stored 65 vs ~15 actual),
+-- corrupting K-factors and ratings.
+--
+-- The corruption was repaired on 2026-06-23 via the canonical rebuild
+-- (rebuild-ratings edge function → atomic SQL), which reconstructs all ratings
+-- deterministically from verified match_results. That rebuild is the ONLY
+-- approved way to recompute ratings. process-elo (apply_match_elo RPC) handles
+-- incremental updates atomically and idempotently.
+--
+-- If you ever need to fully recompute ratings, use rebuild-ratings — NEVER this.
+-- This file is retained for migration history only and must not be re-executed.
+-- ════════════════════════════════════════════════════════════════════════════
+
 -- ── Reset all rating data and re-seed BS3 from Playtomic levels ─────────────
 -- This is intentionally destructive: legacy rating_history is 0-100 era data,
 -- and all internal_ranking values were computed by the broken legacy function.

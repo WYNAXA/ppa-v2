@@ -330,7 +330,9 @@ export function PlayerProfilePage() {
               const won = (m.currentUserTeam === 1 && m.result_type === 'team1_win') ||
                           (m.currentUserTeam === 2 && m.result_type === 'team2_win')
               const draw = m.result_type === 'draw'
-              const scoreStr = `${m.team1_score}–${m.team2_score}`
+              const scoreStr = m.currentUserTeam === 1
+                ? `${m.team1_score}–${m.team2_score}`
+                : `${m.team2_score}–${m.team1_score}`
               let dateLabel = m.match_date
               try { dateLabel = format(parseISO(m.match_date), 'EEE d MMM yyyy', { locale: getDateLocale() }) } catch {}
 

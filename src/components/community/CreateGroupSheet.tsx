@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Globe, Lock } from 'lucide-react'
 import { useMutation } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
@@ -100,6 +101,9 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
       reset()
       onClose()
       navigate(`/community/groups/${group.id}`)
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to create group — please try again')
     },
   })
 

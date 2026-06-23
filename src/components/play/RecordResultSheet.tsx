@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, Trophy, Play } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 // Badge awarding is now server-side (trg_career_badges_on_verify)
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
@@ -179,6 +180,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       // Career badges are now awarded server-side by trg_career_badges_on_verify
       // when verification_status transitions to 'verified'.
       setStep(4)
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to record result — please try again')
     },
   })
 

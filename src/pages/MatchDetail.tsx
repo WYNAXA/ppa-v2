@@ -476,6 +476,9 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       toast.success('Response sent')
     },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Something went wrong — please try again')
+    },
   })
 
   const claimOpenMutation = useMutation({
@@ -615,6 +618,9 @@ export function MatchDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
     },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to send lift request')
+    },
   })
 
   // Existing travel requests for this match (rider's view)
@@ -681,6 +687,9 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
       queryClient.invalidateQueries({ queryKey: ['confirmed-riders', id, profile?.id] })
     },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Something went wrong — please try again')
+    },
   })
 
   // Pickup time mutation (driver sets time for accepted rider)
@@ -698,6 +707,9 @@ export function MatchDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['confirmed-riders', id, profile?.id] })
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to save pickup time')
     },
   })
 

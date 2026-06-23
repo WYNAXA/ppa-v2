@@ -33,9 +33,15 @@ Deno.serve(async (req) => {
 
   let dryRun = true
   try {
-    const body = await req.json()
-    if (body?.dry_run === false) dryRun = false
-  } catch { /* default dry_run = true */ }
+    const text = await req.text()
+    console.log(`[rebuild-ratings] raw body: ${text}`)
+    if (text) {
+      const body = JSON.parse(text)
+      if (body?.dry_run === false) dryRun = false
+    }
+  } catch (e) {
+    console.warn(`[rebuild-ratings] body parse failed, defaulting to dry_run: ${e}`)
+  }
 
   console.log(`[rebuild-ratings] mode=${dryRun ? 'DRY_RUN' : 'COMMIT'}`)
 

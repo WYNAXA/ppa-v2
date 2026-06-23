@@ -49,7 +49,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
     const excluded = currentPlayerIds.length > 0 ? currentPlayerIds : ['00000000-0000-0000-0000-000000000000']
     supabase
       .from('profiles')
-      .select('id, name, avatar_url, playtomic_level, ranking_points')
+      .select('id, name, avatar_url, playtomic_level')
       .ilike('name', `%${debouncedQuery}%`)
       .not('id', 'in', `(${excluded.join(',')})`)
       .limit(10)
@@ -191,9 +191,6 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                       <PlayerAvatar name={player.name} avatarUrl={player.avatar_url} size="sm" />
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-gray-800 truncate">{player.name}</p>
-                        {player.ranking_points != null && (
-                          <p className="text-[11px] text-gray-400">{player.ranking_points} pts</p>
-                        )}
                       </div>
                       <UserPlus className="h-4 w-4 text-[#009688] flex-shrink-0" />
                     </button>

@@ -94,7 +94,7 @@ async function fetchMatchDetail(id: string): Promise<{
   if (playerIds.length > 0) {
     const { data } = await supabase
       .from('profiles')
-      .select('id, name, avatar_url, playtomic_level, ranking_points, internal_ranking, matches_played')
+      .select('id, name, avatar_url, playtomic_level, internal_ranking, matches_played')
       .in('id', playerIds)
     players = data ?? []
   }
@@ -1307,11 +1307,9 @@ export function MatchDetailPage() {
                   />
                   <div className="min-w-0 flex-1">
                     <p className="text-[12px] font-semibold text-gray-800 truncate">{player.name}</p>
-                    {'internal_ranking' in player && player.internal_ranking != null ? (
+                    {'internal_ranking' in player && player.internal_ranking != null && (
                       <p className="text-[10px] text-gray-400">{(player.internal_ranking as number).toLocaleString()} ELO</p>
-                    ) : 'ranking_points' in player && player.ranking_points != null ? (
-                      <p className="text-[10px] text-gray-400">{player.ranking_points} pts</p>
-                    ) : null}
+                    )}
                   </div>
                   {player.id === currentUserId && (
                     <span className="text-[9px] font-bold text-[#009688] bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">You</span>

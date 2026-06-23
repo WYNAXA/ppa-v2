@@ -43,7 +43,6 @@ interface Member {
   id: string
   name: string
   avatar_url: string | null
-  ranking_points: number | null
   internal_ranking: number | null
   role: string
   memberStatus: string
@@ -111,7 +110,7 @@ function useGroupMembers(groupId: string) {
       const userIds = memberRows.map((m) => m.user_id)
       const { data: profileRows } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url, ranking_points, internal_ranking')
+        .select('id, name, avatar_url, internal_ranking')
         .in('id', userIds)
 
       const profileMap = Object.fromEntries((profileRows ?? []).map((p) => [p.id, p]))
@@ -124,7 +123,6 @@ function useGroupMembers(groupId: string) {
             id:               p.id,
             name:             p.name,
             avatar_url:       p.avatar_url ?? null,
-            ranking_points:   p.ranking_points ?? null,
             internal_ranking: p.internal_ranking ?? null,
             role:             m.role as string,
             memberStatus:     m.status as string,
@@ -503,7 +501,6 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
               <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="md" />
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold text-gray-900 truncate">{m.name}</p>
-                {m.ranking_points != null && <p className="text-[11px] text-gray-400">{m.ranking_points} pts</p>}
               </div>
               {m.role === 'admin' && (
                 <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">{t('group_detail.badge_admin')}</span>

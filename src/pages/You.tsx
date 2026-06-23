@@ -758,14 +758,15 @@ function EditProfileSheet({
                     setLocating(true)
                     navigator.geolocation.getCurrentPosition(
                       async (pos) => {
-                        await supabase.from('profiles').update({
+                        const { error } = await supabase.from('profiles').update({
                           latitude:  pos.coords.latitude,
                           longitude: pos.coords.longitude,
                         }).eq('id', user.id)
                         setLocating(false)
+                        if (error) { toast.error('Failed to save location'); return }
                         queryClient.invalidateQueries({ queryKey: ['full-profile', user.id] })
                       },
-                      () => setLocating(false),
+                      () => { setLocating(false); toast.error('Could not get your location') },
                     )
                   }}
                   className="w-full rounded-xl border border-gray-200 bg-white py-2 text-[12px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
@@ -815,6 +816,11 @@ export function YouPage() {
   const [deleting, setDeleting] = useState(false)
   const [iosHint, setIosHint] = useState(false)
   const [resetSent, setResetSent]           = useState(false)
+  const [resettingPw, setResettingPw]       = useState(false)
+  const [savingLang, setSavingLang]         = useState(false)
+  const [savingPrivacy, setSavingPrivacy]   = useState<string | null>(null) // key being saved
+  const [savingPush, setSavingPush]         = useState(false)
+  const [householdPending, setHouseholdPending] = useState<string | null>(null) // request id being acted on
 
   const [showLinkPartner, setShowLinkPartner] = useState(false)
   const queryClient = useQueryClient()
@@ -1123,24 +1129,30 @@ export function YouPage() {
                   </div>
                   <div className="flex gap-2">
                     <button
+                      disabled={householdPending === req.id}
                       onClick={async () => {
+                        setHouseholdPending(req.id)
                         const { error } = await supabase.rpc('respond_household_link', { p_request_id: req.id, p_accept: true })
+                        setHouseholdPending(null)
                         if (error) { toast.error(error.message); return }
                         queryClient.invalidateQueries({ queryKey: ['household-requests', userId] })
                         queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                         toast.success('Household partner linked!')
                       }}
-                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
                     >
-                      Accept
+                      {householdPending === req.id ? 'Linking...' : 'Accept'}
                     </button>
                     <button
+                      disabled={householdPending === req.id}
                       onClick={async () => {
+                        setHouseholdPending(req.id)
                         const { error } = await supabase.rpc('respond_household_link', { p_request_id: req.id, p_accept: false })
+                        setHouseholdPending(null)
                         if (error) { toast.error(error.message); return }
                         queryClient.invalidateQueries({ queryKey: ['household-requests', userId] })
                       }}
-                      className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+                      className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 disabled:opacity-50"
                     >
                       Decline
                     </button>
@@ -1344,24 +1356,32 @@ export function YouPage() {
             <div className="flex items-center justify-between px-4 py-3.5">
               <span className="text-[13px] font-medium text-gray-700">{t('you.push_notifications')}</span>
               <button
+                disabled={savingPush}
                 onClick={async () => {
-                  if (notifEnabled) {
-                    // Opt out: set DB flag (gates OneSignal + Web Push)
-                    await supabase.from('profiles').update({ push_opted_out: true }).eq('id', userId)
-                    await unsubscribeFromPush(userId)
-                    setNotifEnabled(false)
+                  const prev = notifEnabled
+                  setSavingPush(true)
+                  try {
+                    if (prev) {
+                      setNotifEnabled(false)
+                      const { error } = await supabase.from('profiles').update({ push_opted_out: true }).eq('id', userId)
+                      if (error) throw error
+                      await unsubscribeFromPush(userId)
+                    } else {
+                      setNotifEnabled(true)
+                      const { error } = await supabase.from('profiles').update({ push_opted_out: false }).eq('id', userId)
+                      if (error) throw error
+                      const result = await subscribeToPush(userId)
+                      if (!result.success && result.reason === 'ios-non-pwa') {
+                        setIosHint(true)
+                        setTimeout(() => setIosHint(false), 6000)
+                      }
+                    }
                     queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
-                    return
-                  }
-                  // Opt in: clear DB flag, then try Web Push as secondary channel
-                  await supabase.from('profiles').update({ push_opted_out: false }).eq('id', userId)
-                  setNotifEnabled(true)
-                  queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
-                  // Best-effort Web Push enrolment (OneSignal is already subscribed via native bridge)
-                  const result = await subscribeToPush(userId)
-                  if (!result.success && result.reason === 'ios-non-pwa') {
-                    setIosHint(true)
-                    setTimeout(() => setIosHint(false), 6000)
+                  } catch {
+                    setNotifEnabled(prev) // revert
+                    toast.error('Failed to update notification preference')
+                  } finally {
+                    setSavingPush(false)
                   }
                 }}
                 className={cn(
@@ -1391,8 +1411,15 @@ export function YouPage() {
                 {SUPPORTED_LANGUAGES.map((lang) => (
                   <button
                     key={lang.code}
+                    disabled={savingLang}
                     onClick={async () => {
-                      await supabase.from('profiles').update({ preferred_language: lang.code }).eq('id', userId)
+                      setSavingLang(true)
+                      const { error } = await supabase.from('profiles').update({ preferred_language: lang.code }).eq('id', userId)
+                      if (error) {
+                        setSavingLang(false)
+                        toast.error('Failed to change language')
+                        return
+                      }
                       setLanguage(lang.code)
                       window.location.reload()
                     }}
@@ -1421,13 +1448,21 @@ export function YouPage() {
                 <div key={key} className="flex items-center justify-between px-4 py-3.5">
                   <span className="text-[13px] font-medium text-gray-700">{label}</span>
                   <button
+                    disabled={savingPrivacy === key}
                     onClick={async () => {
-                      await supabase.from('profiles').update({ [key]: !currentVal }).eq('id', userId)
+                      setSavingPrivacy(key)
+                      const { error } = await supabase.from('profiles').update({ [key]: !currentVal }).eq('id', userId)
+                      setSavingPrivacy(null)
+                      if (error) {
+                        toast.error('Failed to update setting')
+                        return
+                      }
                       queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                     }}
                     className={cn(
                       'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                      currentVal ? 'bg-[#009688]' : 'bg-gray-200'
+                      currentVal ? 'bg-[#009688]' : 'bg-gray-200',
+                      savingPrivacy === key && 'opacity-50'
                     )}
                     aria-label={label}
                   >
@@ -1442,15 +1477,24 @@ export function YouPage() {
 
             {/* Password reset */}
             <button
+              disabled={resettingPw}
               onClick={async () => {
                 const email = authProfile?.email
                 if (!email) return
                 if (!window.confirm(`Send a password reset email to ${email}?`)) return
-                await supabase.auth.resetPasswordForEmail(email)
-                setResetSent(true)
-                setTimeout(() => setResetSent(false), 4000)
+                setResettingPw(true)
+                try {
+                  const { error } = await supabase.auth.resetPasswordForEmail(email)
+                  if (error) throw error
+                  setResetSent(true)
+                  setTimeout(() => setResetSent(false), 4000)
+                } catch {
+                  toast.error('Failed to send reset email')
+                } finally {
+                  setResettingPw(false)
+                }
               }}
-              className="w-full flex items-center justify-between px-4 py-3.5"
+              className="w-full flex items-center justify-between px-4 py-3.5 disabled:opacity-50"
             >
               <span className="text-[13px] font-medium text-gray-700">
                 {resetSent ? t('you.reset_sent') : t('you.reset_password')}

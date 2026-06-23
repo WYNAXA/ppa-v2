@@ -10,7 +10,6 @@ interface PlayerResult {
   name: string
   avatar_url: string | null
   playtomic_level: number | null
-  ranking_points: number | null
 }
 
 interface InvitePlayerSheetProps {

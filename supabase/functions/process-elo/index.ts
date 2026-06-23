@@ -246,79 +246,55 @@ Deno.serve(async (req) => {
 
   const allResults = { ...team1Results, ...team2Results }
 
-  // Update profiles and insert rating history
-  for (const [playerId, data] of Object.entries(allResults)) {
-    const newMatchesPlayed = (matchesPlayed[playerId] || 0) + 1
-
-    const currentPeak = playerPeaks[playerId] ?? 0
-    const isPeakUpdate = data.ratingAfter > currentPeak
-
-    await supabase
-      .from('profiles')
-      .update({
-        internal_ranking: data.ratingAfter,
-        matches_played: newMatchesPlayed,
-        is_provisional: newMatchesPlayed < 10,
-        ...(isPeakUpdate ? {
-          peak_elo: data.ratingAfter,
-          peak_elo_date: new Date().toISOString().split('T')[0],
-        } : {}),
-      })
-      .eq('id', playerId)
-
+  // Build the updates array for the atomic RPC
+  const updates = Object.entries(allResults).map(([playerId, data]) => {
     const opponentIds = team1.includes(playerId) ? team2 : team1
     const opponentAvg = Math.round(
       opponentIds.reduce((s, id) => s + (playerRatings[id] || 1230), 0) / opponentIds.length
     )
-
-    await supabase.from('rating_history').upsert(
-      {
-        user_id: playerId,
-        match_result_id,
-        rating_before: data.ratingBefore,
-        rating_after: data.ratingAfter,
-        rating_change: data.ratingChange,
-        expected_score: data.expectedScore,
-        actual_score: team1.includes(playerId) ? team1Score : team2Score,
-        k_factor: data.kFactor,
-        opponent_ids: opponentIds,
-        opponent_avg_rating: opponentAvg,
-        is_provisional: (matchesPlayed[playerId] || 0) < 10,
-      },
-      { onConflict: 'user_id,match_result_id', ignoreDuplicates: true }
-    )
-
-    // Write ranking_changes row (drives Home 7-day and Compete 30-day ELO trend)
     const onTeam1 = team1.includes(playerId)
     const isWinner = onTeam1 ? team1Won : !team1Won && !isDraw
-    try {
-      await supabase.from('ranking_changes').upsert(
-        {
-          player_id: playerId,
-          match_id: result.match_id,
-          match_result_id,
-          previous_points: data.ratingBefore,
-          new_points: data.ratingAfter,
-          points_change: data.ratingChange,
-          opponent_ids: opponentIds,
-          opponent_avg_rating: opponentAvg,
-          is_winner: isWinner,
-        },
-        { onConflict: 'player_id,match_result_id', ignoreDuplicates: true }
-      )
-    } catch (err) {
-      console.error(`[process-elo] ranking_changes insert failed for ${playerId}:`, err)
+
+    return {
+      player_id: playerId,
+      rating_before: data.ratingBefore,
+      rating_after: data.ratingAfter,
+      rating_change: data.ratingChange,
+      expected_score: data.expectedScore,
+      actual_score: onTeam1 ? team1Score : team2Score,
+      k_factor: data.kFactor,
+      opponent_ids: opponentIds,
+      opponent_avg_rating: opponentAvg,
+      is_provisional: (matchesPlayed[playerId] || 0) < 10,
+      is_winner: isWinner,
     }
+  })
+
+  // Apply all writes atomically via a single DB transaction (RPC)
+  // Locks player rows with FOR UPDATE (sorted by id → no deadlock),
+  // applies rating DELTAS (not absolute overwrites → no concurrent race),
+  // inserts rating_history + ranking_changes, sets elo_processed = true,
+  // all in one transaction. Crash → full rollback; retry → idempotent.
+  const { data: rpcResult, error: rpcError } = await supabase.rpc('apply_match_elo', {
+    p_match_result_id: match_result_id,
+    p_match_id: result.match_id,
+    p_updates: updates,
+  })
+
+  if (rpcError) {
+    console.error(`[process-elo] apply_match_elo RPC failed:`, rpcError)
+    return new Response(
+      JSON.stringify({ error: 'ELO application failed', detail: rpcError.message }),
+      { status: 500, headers: corsHeaders }
+    )
   }
 
-  // Mark as processed (set verified_at if missing — admin Quick Result leaves it null)
-  await supabase
-    .from('match_results')
-    .update({
-      elo_processed: true,
-      ...(!result.verified_at ? { verified_at: new Date().toISOString() } : {}),
-    })
-    .eq('id', match_result_id)
+  if (rpcResult?.skipped) {
+    return new Response(
+      JSON.stringify({ message: 'Already processed', skipped: true }),
+      { headers: corsHeaders }
+    )
+  }
 
   // Update league_standings if this match belongs to a league
   if (leagueId) {

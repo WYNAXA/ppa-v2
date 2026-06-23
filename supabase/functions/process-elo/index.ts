@@ -1,99 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
+import {
+  calculateExpected,
+  calculateKFactor,
+  applyMultipliers,
+  isDominantWin,
+  processTeamElo,
+} from '../_shared/elo.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers':
     'authorization, x-client-info, apikey, content-type',
-}
-
-// ── Core ELO functions ──────────────────────────────────────────────────────
-
-function calculateExpected(
-  playerRating: number,
-  opponentRating: number,
-  homeAdvantage: number = 0
-): number {
-  return 1 / (1 + Math.pow(10, (opponentRating - playerRating + homeAdvantage) / 400))
-}
-
-function calculateKFactor(matchesPlayed: number): number {
-  if (matchesPlayed <= 20) return 40
-  if (matchesPlayed <= 50) return 20
-  if (matchesPlayed <= 200) return 10
-  return 5
-}
-
-function applyMultipliers(
-  ratingChange: number,
-  expected: number,
-  isDominant: boolean,
-  isWin: boolean
-): number {
-  let multiplier = 1.0
-
-  // Upset multipliers (only for wins)
-  if (isWin) {
-    if (expected < 0.15) multiplier *= 1.5
-    else if (expected < 0.3) multiplier *= 1.25
-  }
-
-  // Dominant win multiplier
-  if (isDominant && isWin) multiplier *= 1.1
-
-  return Math.round(ratingChange * multiplier)
-}
-
-function isDominantWin(setsData: any[]): boolean {
-  if (!setsData || setsData.length === 0) return false
-  return setsData.every((set: any) => {
-    const diff = Math.abs((set.team1_score || set.team1 || 0) - (set.team2_score || set.team2 || 0))
-    return diff >= 5
-  })
-}
-
-function processTeamElo(params: {
-  playerIds: string[]
-  opponentIds: string[]
-  playerRatings: Record<string, number>
-  matchesPlayed: Record<string, number>
-  actualScore: number // 1 = win, 0 = loss, 0.5 = draw
-  isDominant: boolean
-}): Record<string, {
-  ratingBefore: number
-  ratingAfter: number
-  ratingChange: number
-  expectedScore: number
-  kFactor: number
-}> {
-  const results: Record<string, any> = {}
-
-  const opponentAvgRating =
-    params.opponentIds.reduce((sum, id) => sum + (params.playerRatings[id] || 1230), 0) /
-    params.opponentIds.length
-
-  for (const playerId of params.playerIds) {
-    const playerRating = params.playerRatings[playerId] || 1230
-    const played = params.matchesPlayed[playerId] || 0
-
-    const expected = calculateExpected(playerRating, opponentAvgRating)
-    const kFactor = calculateKFactor(played)
-    const isWin = params.actualScore === 1
-
-    const rawChange = kFactor * (params.actualScore - expected)
-    const finalChange = applyMultipliers(rawChange, expected, params.isDominant, isWin)
-
-    const newRating = Math.max(0, Math.min(3000, playerRating + finalChange))
-
-    results[playerId] = {
-      ratingBefore: playerRating,
-      ratingAfter: newRating,
-      ratingChange: newRating - playerRating,
-      expectedScore: expected,
-      kFactor,
-    }
-  }
-
-  return results
 }
 
 // ── Main handler ────────────────────────────────────────────────────────────

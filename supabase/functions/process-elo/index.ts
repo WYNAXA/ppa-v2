@@ -145,6 +145,22 @@ Deno.serve(async (req) => {
     .select('id, internal_ranking, matches_played, peak_elo')
     .in('id', allPlayerIds)
 
+  // Skip matches containing ghost players (IDs not in profiles)
+  const foundIds = new Set((players ?? []).map((p: any) => p.id as string))
+  const hasGhost = allPlayerIds.some(id => !foundIds.has(id))
+  if (hasGhost) {
+    await supabase
+      .from('match_results')
+      .update({ elo_processed: true })
+      .eq('id', match_result_id)
+
+    console.warn(`[process-elo] ghost player detected, skipping match_result ${match_result_id}`)
+    return new Response(
+      JSON.stringify({ message: 'Ghost player in match, skipped', skipped: true }),
+      { headers: corsHeaders }
+    )
+  }
+
   const playerRatings: Record<string, number> = {}
   const matchesPlayed: Record<string, number> = {}
   const playerPeaks: Record<string, number> = {}

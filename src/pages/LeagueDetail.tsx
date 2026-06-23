@@ -50,6 +50,7 @@ interface Standing {
   drawn: number
   points: number
   game_difference: number
+  internal_ranking: number
   season_elo?: number
   profile?: { name: string; avatar_url: string | null }
 }
@@ -137,7 +138,7 @@ function useStandings(leagueId: string) {
       const userIds = rows.map((r) => r.user_id)
       const { data: profiles } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url')
+        .select('id, name, avatar_url, internal_ranking')
         .in('id', userIds)
 
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
@@ -160,13 +161,22 @@ function useStandings(leagueId: string) {
         }
       }
 
-      // Sort by ranking_points desc, then game_difference desc
+      // Canonical five-rung tiebreak (mirrors award_weekly_jerseys yellow):
+      // ranking_points DESC, wins DESC, losses ASC, game_diff DESC, internal_ranking ASC
       const sorted = [...rows].sort((a, b) => {
         const ptsDiff = ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number)
         if (ptsDiff !== 0) return ptsDiff
+        const winsDiff = ((b.wins ?? b.won ?? 0) as number) - ((a.wins ?? a.won ?? 0) as number)
+        if (winsDiff !== 0) return winsDiff
+        const lossesDiff = ((a.losses ?? a.lost ?? 0) as number) - ((b.losses ?? b.lost ?? 0) as number)
+        if (lossesDiff !== 0) return lossesDiff
         const aGd = (gdMap[a.user_id]?.won ?? 0) - (gdMap[a.user_id]?.lost ?? 0)
         const bGd = (gdMap[b.user_id]?.won ?? 0) - (gdMap[b.user_id]?.lost ?? 0)
-        return bGd - aGd
+        if (aGd !== bGd) return bGd - aGd
+        // Fifth rung: lower ELO ranks higher (underdog earned it)
+        const aElo = profileMap[a.user_id]?.internal_ranking ?? 9999
+        const bElo = profileMap[b.user_id]?.internal_ranking ?? 9999
+        return aElo - bElo
       })
 
       return sorted.map((r, i) => {
@@ -181,6 +191,7 @@ function useStandings(leagueId: string) {
           drawn:   (r.draws ?? r.drawn ?? 0) as number,
           points:  (r.ranking_points ?? r.points ?? 0) as number,
           game_difference: gd ? gd.won - gd.lost : 0,
+          internal_ranking: (profileMap[r.user_id]?.internal_ranking as number) ?? 1230,
           season_elo: r.season_elo as number | undefined,
           profile: profileMap[r.user_id],
         }

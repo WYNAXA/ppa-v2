@@ -2288,8 +2288,8 @@ export function LeagueDetailPage() {
               {isPairs ? (
                 <>
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Pair', 'P', 'W', 'L', 'GD', 'Pts'].map((h) => (
+                  <div className="grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    {['#', 'Pair', 'P', 'W', 'D', 'L', 'GD', 'Pts'].map((h) => (
                       <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
                     ))}
                   </div>
@@ -2299,7 +2299,7 @@ export function LeagueDetailPage() {
                       <div
                         key={row.team_id}
                         className={cn(
-                          'grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
+                          'grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
                           i < teamStandings.length - 1 && 'border-b border-gray-50',
                           isMyTeam && 'bg-teal-50/60'
                         )}
@@ -2327,6 +2327,7 @@ export function LeagueDetailPage() {
                         </div>
                         <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                        <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
                         <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
                           {row.game_difference > 0 ? '+' : ''}{row.game_difference}
@@ -2368,8 +2369,8 @@ export function LeagueDetailPage() {
               </>
               ) : isEloLeague ? (
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_52px_28px_28px_36px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Player', 'ELO', 'W', 'L', 'P'].map((h) => (
+                  <div className="grid grid-cols-[28px_1fr_52px_28px_28px_28px_36px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    {['#', 'Player', 'ELO', 'W', 'D', 'L', 'P'].map((h) => (
                       <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
                     ))}
                   </div>
@@ -2382,7 +2383,7 @@ export function LeagueDetailPage() {
                       <div
                         key={row.id}
                         className={cn(
-                          'grid grid-cols-[28px_1fr_52px_28px_28px_36px] gap-1 items-center px-3 py-2.5',
+                          'grid grid-cols-[28px_1fr_52px_28px_28px_28px_36px] gap-1 items-center px-3 py-2.5',
                           i < indStandings.length - 1 && 'border-b border-gray-50',
                           isMe && 'bg-teal-50/60'
                         )}
@@ -2414,6 +2415,7 @@ export function LeagueDetailPage() {
                           </span>
                         </div>
                         <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                        <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                       </div>
@@ -2422,8 +2424,8 @@ export function LeagueDetailPage() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Player', 'P', 'W', 'L', 'GD', 'Pts'].map((h) => (
+                  <div className="grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
+                    {['#', 'Player', 'P', 'W', 'D', 'L', 'GD', 'Pts'].map((h) => (
                       <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
                     ))}
                   </div>
@@ -2433,7 +2435,7 @@ export function LeagueDetailPage() {
                       <div
                         key={row.id}
                         className={cn(
-                          'grid grid-cols-[28px_1fr_36px_36px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
+                          'grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
                           i < standings.length - 1 && 'border-b border-gray-50',
                           isMe && 'bg-teal-50/60'
                         )}
@@ -2457,6 +2459,7 @@ export function LeagueDetailPage() {
                         </div>
                         <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                        <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
                         <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
                         <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
                           {row.game_difference > 0 ? '+' : ''}{row.game_difference}

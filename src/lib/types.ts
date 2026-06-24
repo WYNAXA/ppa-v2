@@ -6,7 +6,6 @@ export interface Profile {
   email?: string | null
   avatar_url?: string | null
   playtomic_level?: number | null
-  ranking_points?: number | null
 }
 
 export interface Match {

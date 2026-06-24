@@ -20,7 +20,6 @@ interface PlayerProfileData {
   name: string
   avatar_url?: string | null
   internal_ranking?: number | null
-  ranking_points?: number | null
   playtomic_level?: number | null
   city?: string | null
 }
@@ -54,7 +53,7 @@ async function fetchPlayerProfile(playerId: string, currentUserId: string) {
   const [{ data: player }, { data: myProfile }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, avatar_url, internal_ranking, ranking_points, playtomic_level, city')
+      .select('id, name, avatar_url, internal_ranking, playtomic_level, city')
       .eq('id', playerId)
       .single(),
     supabase

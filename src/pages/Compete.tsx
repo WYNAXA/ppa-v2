@@ -20,7 +20,6 @@ interface RankedProfile {
   name: string
   avatar_url: string | null
   internal_ranking: number | null
-  ranking_points: number | null
   is_provisional?: boolean | null
   matches_played?: number | null
 }
@@ -164,7 +163,7 @@ function useGlobalLeaderboard(limit: number, search: string) {
     queryFn: async () => {
       let query = supabase
         .from('profiles')
-        .select('id, name, avatar_url, internal_ranking, ranking_points, is_provisional, matches_played')
+        .select('id, name, avatar_url, internal_ranking, is_provisional, matches_played')
         .not('internal_ranking', 'is', null)
         .order('internal_ranking', { ascending: false })
       if (search.trim().length >= 2) {
@@ -217,7 +216,7 @@ function useGroupLeaderboard(userId: string, selectedGroupId: string) {
 
       const { data } = await supabase
         .from('profiles')
-        .select('id, name, avatar_url, internal_ranking, ranking_points, is_provisional, matches_played')
+        .select('id, name, avatar_url, internal_ranking, is_provisional, matches_played')
         .in('id', userIds)
         .not('internal_ranking', 'is', null)
         .order('internal_ranking', { ascending: false })

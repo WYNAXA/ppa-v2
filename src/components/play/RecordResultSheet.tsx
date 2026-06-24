@@ -22,7 +22,6 @@ interface Player {
   id: string
   name: string
   avatar_url?: string | null
-  ranking_points?: number | null
 }
 
 interface RecordResultSheetProps {

@@ -631,19 +631,15 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
   async function handleAddAll() {
     if (notInLeague.length === 0) return
     setAddingAll(true)
-    const { error: memErr } = await supabase.from('league_members').insert(
-      notInLeague.map((p) => ({
-        league_id: league.id, user_id: p.id, role: 'member', status: 'active',
-      }))
-    )
-    if (memErr) { console.warn('[LeagueInvite] bulk add members error:', memErr); setAddingAll(false); return }
-    const { error: stErr } = await supabase.from('league_standings').insert(
-      notInLeague.map((p) => ({
-        league_id: league.id, user_id: p.id,
-        wins: 0, losses: 0, draws: 0, matches_played: 0, ranking_points: 0, category: 'overall',
-      }))
-    )
-    if (stErr) console.warn('[LeagueInvite] bulk add standings error:', stErr)
+    const { error } = await supabase.rpc('join_league_bulk', {
+      p_league_id: league.id,
+      p_user_ids: notInLeague.map((p) => p.id),
+    })
+    if (error) {
+      toast.error(error.message || 'Failed to add members')
+      setAddingAll(false)
+      return
+    }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['league-standings', league.id] }),
       queryClient.invalidateQueries({ queryKey: ['league-group-members', groupId] }),
@@ -1875,17 +1871,18 @@ export function LeagueDetailPage() {
       await supabase.from('league_invitations')
         .update({ status: 'accepted' })
         .eq('league_id', id).eq('invited_user_id', currentUserId)
-      await supabase.from('league_members').insert({
-        league_id: id, user_id: currentUserId, role: 'member', status: 'active',
+      const { error } = await supabase.rpc('join_league', {
+        p_league_id: id,
+        p_user_id: currentUserId,
       })
-      await supabase.from('league_standings').insert({
-        league_id: id, user_id: currentUserId,
-        wins: 0, losses: 0, draws: 0, matches_played: 0, ranking_points: 0, category: 'overall',
-      })
+      if (error) throw new Error(error.message)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['league-invite', id] })
       queryClient.invalidateQueries({ queryKey: ['league-standings', id] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to join league')
     },
   })
 

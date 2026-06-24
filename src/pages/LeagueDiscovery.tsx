@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Search, Trophy, ChevronRight, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -107,22 +108,11 @@ export function LeagueDiscoveryPage() {
 
   const acceptMutation = useMutation({
     mutationFn: async (inv: Invitation) => {
-      await supabase.from('league_members').insert({
-        league_id: inv.league_id,
-        user_id: userId,
-        role: 'member',
-        status: 'active',
+      const { error: joinErr } = await supabase.rpc('join_league', {
+        p_league_id: inv.league_id,
+        p_user_id: userId,
       })
-      await supabase.from('league_standings').insert({
-        league_id: inv.league_id,
-        user_id: userId,
-        rank: 0,
-        played: 0,
-        won: 0,
-        lost: 0,
-        drawn: 0,
-        points: 0,
-      })
+      if (joinErr) throw new Error(joinErr.message)
       await supabase
         .from('league_invitations')
         .update({ status: 'accepted' })
@@ -131,6 +121,9 @@ export function LeagueDiscoveryPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-leagues-discovery'] })
       queryClient.invalidateQueries({ queryKey: ['league-invitations-discovery'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to join league')
     },
   })
 
@@ -188,26 +181,18 @@ export function LeagueDiscoveryPage() {
 
   const joinMutation = useMutation({
     mutationFn: async (leagueId: string) => {
-      await supabase.from('league_members').insert({
-        league_id: leagueId,
-        user_id: userId,
-        role: 'member',
-        status: 'active',
+      const { error } = await supabase.rpc('join_league', {
+        p_league_id: leagueId,
+        p_user_id: userId,
       })
-      await supabase.from('league_standings').insert({
-        league_id: leagueId,
-        user_id: userId,
-        rank: 0,
-        played: 0,
-        won: 0,
-        lost: 0,
-        drawn: 0,
-        points: 0,
-      })
+      if (error) throw new Error(error.message)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-leagues-discovery'] })
       queryClient.invalidateQueries({ queryKey: ['open-leagues'] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to join league')
     },
   })
 

@@ -2531,8 +2531,7 @@ export function LeagueDetailPage() {
                                       </span>
                                     </div>
                                   )
-                                })()
-                                ) : (
+                                })() : (
                                   <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                                 )}
                                 <span className="text-[12px] text-gray-500 text-center">{row.won}</span>

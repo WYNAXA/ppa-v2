@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { Bell, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Users, Zap, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { sendNotification, sendNotifications } from '@/lib/notifications'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { isUserAvailableForSlot, getSlotDate } from '@/lib/pollUtils'
@@ -286,13 +287,12 @@ export function PollAdminView({
 
   // ── Handlers ──
   async function handleRemind(userId: string) {
-    await supabase.from('notifications').insert({
+    sendNotification({
       user_id: userId,
       type: 'poll_reminder',
       title: "Don't forget to vote!",
       message: `${currentUserName} needs your availability for this week`,
       related_id: pollId,
-      read: false,
     })
     setRemindedUsers((prev) => new Set([...prev, userId]))
   }
@@ -300,14 +300,13 @@ export function PollAdminView({
   async function handleRemindAll() {
     const toRemind = notVotedMembers.filter((m) => !remindedUsers.has(m.id))
     if (toRemind.length === 0) return
-    await supabase.from('notifications').insert(
+    sendNotifications(
       toRemind.map((m) => ({
         user_id: m.id,
         type: 'poll_reminder',
         title: "Don't forget to vote!",
         message: `${currentUserName} needs your availability for this week`,
         related_id: pollId,
-        read: false,
       })),
     )
     setRemindedUsers((prev) => new Set([...prev, ...toRemind.map((m) => m.id)]))
@@ -369,11 +368,11 @@ export function PollAdminView({
       else {
         created++
         const matchId = insertedMatch?.[0]?.id ?? groupId
-        await supabase.from('notifications').insert(
+        sendNotifications(
           m.playerIds.map((pid: string) => ({
             user_id: pid, type: 'match_suggested', title: '🎾 Match scheduled!',
             message: `${m.dayOfWeek} ${m.timeSlot} match with ${(m.playerNames ?? []).join(', ')}`,
-            related_id: matchId, read: false,
+            related_id: matchId,
           }))
         )
       }

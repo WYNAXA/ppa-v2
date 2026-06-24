@@ -6,6 +6,7 @@ import { ChevronLeft, Plus, X, Clock, Calendar } from 'lucide-react'
 import { format, addHours, startOfWeek, addWeeks } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { sendNotifications } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
@@ -147,14 +148,13 @@ export function CreatePollPage() {
         .neq('user_id', user.id)
 
       if (members?.length) {
-        await supabase.from('notifications').insert(
+        sendNotifications(
           members.map((m: { user_id: string }) => ({
             user_id: m.user_id,
             type: 'poll_created',
             title: 'Time to set your availability 🎾',
             message: `${profile?.name ?? 'Your admin'} wants to know when you can play.`,
             related_id: data.id,
-            read: false,
           }))
         )
       }

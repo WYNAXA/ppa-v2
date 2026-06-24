@@ -8,6 +8,7 @@ import { ChevronLeft, Zap, Share2, Plus, X, AlertTriangle } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { PairAvatar } from '@/components/shared/PairAvatar'
@@ -611,10 +612,10 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
       league_id: league.id, invited_user_id: userId, invited_by: profile?.id, status: 'pending',
     })
     if (error) { console.error('[LeagueInvite]', error); return }
-    await supabase.from('notifications').insert({
+    sendNotification({
       user_id: userId, type: 'league_invite', title: 'League invitation',
       message: `${profile?.name ?? 'Someone'} invited you to join ${league.name}`,
-      related_id: league.id, read: false,
+      related_id: league.id,
     })
     setInvitedIds(prev => [...prev, userId])
     queryClient.invalidateQueries({ queryKey: ['league-invite'] })

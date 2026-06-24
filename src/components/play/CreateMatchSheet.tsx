@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, UserPlus, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -798,7 +799,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       }
 
       // Insert notification for match creator
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id:    user.id,
         type:       'match_created',
         title:      'Match created',

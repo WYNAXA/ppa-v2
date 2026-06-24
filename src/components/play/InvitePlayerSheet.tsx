@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, UserPlus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 
 interface PlayerResult {
@@ -75,13 +76,12 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
         .eq('id', matchId)
       if (error) throw error
 
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: player.id,
         type: 'match_created',
         title: 'Match invitation',
         message: 'You have been invited to a padel match',
         related_id: matchId,
-        read: false,
       })
     },
     onSuccess: () => {

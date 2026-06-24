@@ -6,6 +6,7 @@ import { X, ChevronLeft, Trophy, Play } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { sendNotifications } from '@/lib/notifications'
 // Badge awarding is now server-side (trg_career_badges_on_verify)
 import { PeerVotingSheet } from '@/components/match/PeerVotingSheet'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -152,14 +153,13 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       const opposingTeam = cleanTeam1.includes(currentUserId) ? cleanTeam2 : cleanTeam1
       const submitterName = players.find(p => p.id === currentUserId)?.name ?? 'Your opponent'
       if (opposingTeam.length > 0) {
-        await supabase.from('notifications').insert(
+        sendNotifications(
           opposingTeam.map(pid => ({
             user_id: pid,
             type: 'result_pending_verification',
             title: 'Confirm match result',
             message: `${submitterName} recorded the result. Tap to confirm or dispute.`,
             related_id: match.id,
-            read: false,
           }))
         )
       }

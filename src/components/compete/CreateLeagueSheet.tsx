@@ -5,6 +5,7 @@ import { X, ChevronLeft, ChevronRight, Users, User, Trophy, Check, Info } from '
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
+import { sendNotifications } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 
@@ -684,15 +685,14 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
               )
               if (invErr) console.error('[CreateLeague] invitation INSERT error:', invErr)
 
-              const { error: notifErr } = await supabase.from('notifications').insert(
+              sendNotifications(
                 members.map((m) => ({
                   user_id: m.user_id, type: 'league_invite',
                   title: t('create_league.league_invitation_title'),
                   message: `${creatorName} invited you to join ${form.name.trim()}`,
-                  related_id: league.id, read: false,
+                  related_id: league.id,
                 }))
               )
-              if (notifErr) console.error('[CreateLeague] notification INSERT error:', notifErr)
 
               console.log('[CreateLeague] invited', members.length, 'members')
             }

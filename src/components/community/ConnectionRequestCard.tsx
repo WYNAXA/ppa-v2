@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { ConnectionCard } from './ConnectionCard'
 
@@ -23,13 +24,12 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
       if (error) throw error
 
       // Notify the requester
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: request.user_id,
         type: 'connection_accepted',
         title: t('community.notif_connection_accepted'),
         message: `${profile?.name ?? 'A player'} accepted your connection request.`,
         related_id: userId,
-        read: false,
       })
     },
     onSuccess: () => {

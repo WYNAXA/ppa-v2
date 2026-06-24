@@ -16,6 +16,7 @@ import { ConnectionCard } from '@/components/community/ConnectionCard'
 import { InviteToMatchSheet } from '@/components/community/InviteToMatchSheet'
 import { InviteToGroupSheet } from '@/components/community/InviteToGroupSheet'
 import { toast } from 'sonner'
+import { sendNotification } from '@/lib/notifications'
 import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -894,13 +895,12 @@ export function CommunityPage() {
       })
       if (error) throw error
 
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: targetId,
         type: 'connection_request',
         title: t('community.notif_connection_request'),
         message: `${profile?.name ?? 'A player'} wants to connect with you.`,
         related_id: userId,
-        read: false,
       })
     },
     onSuccess: () => {
@@ -913,13 +913,12 @@ export function CommunityPage() {
     mutationFn: async (requesterId: string) => {
       const { error } = await supabase.rpc('accept_connection_request', { p_requester_id: requesterId })
       if (error) throw error
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: requesterId,
         type: 'connection_accepted',
         title: t('community.notif_connection_accepted'),
         message: `${profile?.name ?? 'A player'} accepted your connection request.`,
         related_id: userId,
-        read: false,
       })
     },
     onSuccess: () => {

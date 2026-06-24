@@ -8,6 +8,7 @@ import { format, parseISO, addHours, isBefore } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
+import { sendNotification, sendNotifications } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
@@ -605,15 +606,14 @@ export function MatchDetailPage() {
         status:       'pending',
       })
       if (error) throw error
-      // Notify the driver
-      await supabase.from('notifications').insert({
+      // Notify the driver (courtesy — never blocks)
+      sendNotification({
         user_id: driverId,
         type: 'lift_requested',
         title: 'Lift request',
         message: `${profile?.name ?? 'A player'} asked for a lift to the match.`,
         related_id: id,
-        read: false,
-      }).then(() => {}, () => {}) // non-blocking
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
@@ -673,14 +673,13 @@ export function MatchDetailPage() {
       const notifMsg = status === 'accepted'
         ? `${profile.name ?? 'A driver'} accepted your lift request.`
         : `${profile.name ?? 'A driver'} can't give you a lift this time.`
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: requesterId,
         type: notifType,
         title: notifTitle,
         message: notifMsg,
         related_id: id,
-        read: false,
-      }).then(() => {}, () => {}) // non-blocking
+      })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['incoming-travel-requests', id, profile?.id] })
@@ -806,17 +805,15 @@ export function MatchDetailPage() {
         ].filter((pid: string) => pid !== profile.id)
         if (allPlayerIds.length > 0) {
           const score = `${result.team1_score}–${result.team2_score}`
-          const { error: notifErr } = await supabase.from('notifications').insert(
+          sendNotifications(
             allPlayerIds.map((pid: string) => ({
               user_id: pid,
               type: 'result_verified',
               title: 'Match result verified',
               message: `Final: ${score}. ELO updated.`,
               related_id: result.match_id,
-              read: false,
             }))
           )
-          if (notifErr) console.warn('Notification insert failed:', notifErr.message)
         }
       } else {
         const { error: disputeErr } = await supabase
@@ -829,13 +826,12 @@ export function MatchDetailPage() {
         const submittedBy = result.submitted_by
         if (submittedBy && submittedBy !== profile.id) {
           const voterName = profile.name ?? 'A player'
-          await supabase.from('notifications').insert({
+          sendNotification({
             user_id: submittedBy,
             type: 'result_disputed',
             title: 'Match result disputed',
             message: `${voterName} disputed the result.${reason ? ` Reason: ${reason}` : ''}`,
             related_id: result.match_id,
-            read: false,
           })
         }
       }
@@ -1024,14 +1020,13 @@ export function MatchDetailPage() {
         const validIds = (realProfiles ?? []).map((p: any) => p.id)
         const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM', { locale }) } catch { return data.match.match_date } })()
         if (validIds.length > 0) {
-          await supabase.from('notifications').insert(
+          sendNotifications(
             validIds.map((pid: string) => ({
               user_id: pid,
               type: 'match_cancelled',
               title: 'Match cancelled',
               message: `${profile?.name ?? 'A player'} cancelled the match on ${dateStr}`,
               related_id: data.match.id,
-              read: false,
             }))
           )
         }
@@ -1081,12 +1076,11 @@ export function MatchDetailPage() {
         const validIds = (realProfiles ?? []).map((p: any) => p.id)
         const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM', { locale }) } catch { return data.match.match_date } })()
         if (validIds.length > 0) {
-          await supabase.from('notifications').insert(
+          sendNotifications(
             validIds.map((pid: string) => ({
               user_id: pid, type: 'match_deleted', title: 'Match deleted',
               message: `${profile?.name ?? 'A player'} deleted the match on ${dateStr}`,
               related_id: data.match.id,
-              read: false,
             }))
           )
         }
@@ -1547,13 +1541,12 @@ export function MatchDetailPage() {
 
                           // Notify disputer
                           if (disputeProposal) {
-                            await supabase.from('notifications').insert({
+                            sendNotification({
                               user_id: disputeProposal.voter_id,
                               type: 'result_counter',
                               title: 'Counter-proposal submitted',
                               message: `${submitterName} proposed a different result. Tap to review.`,
                               related_id: result.match_id,
-                              read: false,
                             })
                           }
 
@@ -1682,14 +1675,13 @@ export function MatchDetailPage() {
                         for (const r of adminRows ?? []) adminIds.add(r.user_id)
                         if (groupRow?.admin_id) adminIds.add(groupRow.admin_id)
                         if (adminIds.size > 0) {
-                          await supabase.from('notifications').insert(
+                          sendNotifications(
                             [...adminIds].map(uid => ({
                               user_id: uid,
                               type: 'result_escalated',
                               title: 'Dispute escalated',
                               message: "Players couldn't agree on a result. Tap to review.",
                               related_id: result.match_id,
-                              read: false,
                             }))
                           )
                         }
@@ -1891,13 +1883,12 @@ export function MatchDetailPage() {
                           // Notify submitter
                           const voterName = profile.name ?? 'A player'
                           if (submittedBy && submittedBy !== profile.id) {
-                            await supabase.from('notifications').insert({
+                            sendNotification({
                               user_id: submittedBy,
                               type: 'result_disputed',
                               title: 'Match result disputed',
                               message: `${voterName} proposed a different result. Tap to review.`,
                               related_id: result.match_id,
-                              read: false,
                             })
                           }
 

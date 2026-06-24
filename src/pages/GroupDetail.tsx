@@ -10,6 +10,7 @@ import { ReportButton } from '@/components/shared/ReportButton'
 import { format, parseISO, startOfWeek, endOfWeek, addDays, endOfMonth } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { sendNotification, sendNotifications } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
@@ -1082,13 +1083,12 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
   async function approveMember(userId: string) {
     await supabase.from('group_members').update({ status: 'approved' }).eq('group_id', group.id).eq('user_id', userId)
-    await supabase.from('notifications').insert({
+    sendNotification({
       user_id: userId,
       type: 'group_join',
       title: group.name,
       message: `Your request to join ${group.name} was approved.`,
       related_id: group.id,
-      read: false,
     })
     queryClient.invalidateQueries({ queryKey: ['pending-members', group.id] })
     queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
@@ -1096,13 +1096,12 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
   async function declineMember(member: PendingMember) {
     await supabase.from('group_members').update({ status: 'rejected' }).eq('group_id', group.id).eq('user_id', member.user_id)
-    await supabase.from('notifications').insert({
+    sendNotification({
       user_id: member.user_id,
       type: 'group_join',
       title: group.name,
       message: `Your request to join ${group.name} was declined.`,
       related_id: group.id,
-      read: false,
     })
     toast(t('group_detail.member_declined', { name: member.name }))
     queryClient.invalidateQueries({ queryKey: ['pending-members', group.id] })
@@ -1151,11 +1150,10 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
         title: group.name,
         message: announcement.trim(),
         related_id: group.id,
-        read: false,
       }))
     if (notifications.length > 0) {
-      const { error: notifErr } = await supabase.from('notifications').insert(notifications)
-      if (notifErr) { toast.error('Failed to send announcement'); setSending(false); return }
+      const ok = await sendNotifications(notifications)
+      if (!ok) { toast.error('Failed to send announcement'); setSending(false); return }
     }
     setSending(false)
     setSent(true)
@@ -1710,9 +1708,9 @@ export function GroupDetailPage() {
   const approveRingerMutation = useMutation({
     mutationFn: async (member: PendingMember) => {
       await supabase.from('group_members').update({ status: 'ringer' }).eq('group_id', groupId).eq('user_id', member.user_id)
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: member.user_id, type: 'ringer_approved', title: group?.name ?? '',
-        message: `You've been approved as a ringer for ${group?.name}.`, related_id: groupId, read: false,
+        message: `You've been approved as a ringer for ${group?.name}.`, related_id: groupId,
       })
       return member.name
     },
@@ -1727,9 +1725,9 @@ export function GroupDetailPage() {
   const declineRingerMutation = useMutation({
     mutationFn: async (member: PendingMember) => {
       await supabase.from('group_members').delete().eq('group_id', groupId).eq('user_id', member.user_id)
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: member.user_id, type: 'ringer_declined', title: group?.name ?? '',
-        message: `Your ringer offer for ${group?.name} was declined.`, related_id: groupId, read: false,
+        message: `Your ringer offer for ${group?.name} was declined.`, related_id: groupId,
       })
       return member.name
     },
@@ -1743,13 +1741,12 @@ export function GroupDetailPage() {
   const approveBannerMutation = useMutation({
     mutationFn: async (member: PendingMember) => {
       await supabase.from('group_members').update({ status: 'approved' }).eq('group_id', groupId).eq('user_id', member.user_id)
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: member.user_id,
         type: 'group_join',
         title: group?.name ?? '',
         message: `Your request to join ${group?.name} was approved.`,
         related_id: groupId,
-        read: false,
       })
       // Mark admin's join-request notification as read
       await supabase.from('notifications').update({ read: true })
@@ -1767,13 +1764,12 @@ export function GroupDetailPage() {
   const declineBannerMutation = useMutation({
     mutationFn: async (member: PendingMember) => {
       await supabase.from('group_members').update({ status: 'rejected' }).eq('group_id', groupId).eq('user_id', member.user_id)
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: member.user_id,
         type: 'group_join',
         title: group?.name ?? '',
         message: `Your request to join ${group?.name} was declined.`,
         related_id: groupId,
-        read: false,
       })
       await supabase.from('notifications').update({ read: true })
         .eq('user_id', userId).eq('type', 'group_join_request').eq('related_id', groupId).eq('read', false)

@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserMatchesSubscription } from '@/hooks/useRealtimeSubscription'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
@@ -131,13 +132,12 @@ function RingerOfferSheet({ match, userId, onClose }: {
         .from('profiles').select('name').eq('id', userId).single()
       const name = profile?.name ?? 'A player'
 
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: creatorId,
         type: 'ringer_offer',
         title: t('play.ringer_available_title'),
         message: `${name} is available to ringer for your match on ${format(parseISO(match.match_date), 'EEE d MMM', { locale })} at ${match.match_time?.slice(0, 5) ?? 'TBC'}`,
         related_id: match.id,
-        read: false,
       })
     },
     onSuccess: () => {

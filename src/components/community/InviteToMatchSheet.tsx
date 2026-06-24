@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { checkSelfConflict } from '@/lib/conflictCheck'
 
@@ -48,13 +49,12 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
       if (error) throw error
 
       const dateStr = (() => { try { return format(parseISO(match.match_date), 'EEE d MMM', { locale }) } catch { return match.match_date } })()
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: playerId,
         type: 'match_created',
         title: 'Match invitation',
         message: `${profile?.name ?? 'A player'} invited you to play on ${dateStr}`,
         related_id: match.id,
-        read: false,
       })
     },
     onSuccess: () => {

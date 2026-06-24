@@ -5,6 +5,7 @@ import { ChevronLeft, Search, UserPlus, Check, Clock } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 
@@ -55,9 +56,9 @@ export function AllPlayersPage() {
     mutationFn: async (targetId: string) => {
       const { error } = await supabase.from('player_connections').insert({ user_id: userId, connected_user_id: targetId, status: 'pending' })
       if (error) throw error
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: targetId, type: 'connection_request', title: t('community.notif_connection_request'),
-        message: `${profile?.name ?? 'A player'} wants to connect with you.`, related_id: userId, read: false,
+        message: `${profile?.name ?? 'A player'} wants to connect with you.`, related_id: userId,
       })
     },
     onSuccess: () => {
@@ -70,9 +71,9 @@ export function AllPlayersPage() {
     mutationFn: async (requesterId: string) => {
       const { error } = await supabase.rpc('accept_connection_request', { p_requester_id: requesterId })
       if (error) throw error
-      await supabase.from('notifications').insert({
+      sendNotification({
         user_id: requesterId, type: 'connection_accepted', title: t('community.notif_connection_accepted'),
-        message: `${profile?.name ?? 'A player'} accepted your connection request.`, related_id: userId, read: false,
+        message: `${profile?.name ?? 'A player'} accepted your connection request.`, related_id: userId,
       })
     },
     onSuccess: () => {

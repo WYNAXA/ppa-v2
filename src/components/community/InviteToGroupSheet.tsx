@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
+import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 
 interface InviteToGroupSheetProps {
@@ -51,13 +52,12 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
 
   const inviteMutation = useMutation({
     mutationFn: async (group: { id: string; name: string }) => {
-      await supabase.from('notifications').insert({
+      await sendNotification({
         user_id: playerId,
         type: 'group_invite',
         title: 'Group invitation',
         message: `${profile?.name ?? 'A player'} invited you to join ${group.name}`,
         related_id: group.id,
-        read: false,
       })
     },
     onSuccess: (_data, group) => {

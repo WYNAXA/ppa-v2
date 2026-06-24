@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { sendNotification, sendNotifications } from '@/lib/notifications'
 import i18n from '@/i18n'
 
 // ── Achievement Library ──────────────────────────────────────────────────────
@@ -159,14 +160,13 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
     await supabase.from('user_badges').insert(earned.map(badge_key => ({ user_id: userId, badge_key })))
 
     // Send notification for each earned achievement
-    await supabase.from('notifications').insert(
+    sendNotifications(
       earned.map(key => ({
         user_id: userId,
         type: 'achievement',
         title: `${ACHIEVEMENT_LIBRARY[key]?.emoji ?? '🏆'} ${ACHIEVEMENT_LIBRARY[key]?.name ?? key} earned!`,
         message: ACHIEVEMENT_LIBRARY[key]?.description ?? 'New achievement unlocked',
         related_id: userId,
-        read: false,
       }))
     )
 
@@ -259,13 +259,12 @@ export async function checkAndAwardPeerVoteBadges(playerIds: string[]): Promise<
         allAwarded.push(award)
 
         // 5. Notify the player
-        await supabase.from('notifications').insert({
+        sendNotification({
           user_id: userId,
           type: 'achievement',
           title: `${def?.emoji ?? '🏅'} ${tierLabel} ${def?.name ?? category}!`,
           message: `You've received ${count} verified votes — ${tierLabel} tier unlocked.`,
           related_id: userId,
-          read: false,
         })
       }
     }

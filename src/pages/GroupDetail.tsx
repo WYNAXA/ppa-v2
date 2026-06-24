@@ -444,6 +444,9 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
       setMenuMemberId(null)
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
     },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Something went wrong')
+    },
   })
 
   async function shareOrCopyInvite() {
@@ -976,6 +979,8 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   const { t } = useTranslation()
   const [adminSection, setAdminSection] = useState<AdminSection>('overview')
   const [confirmLeave, setConfirmLeave] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+  const [actionPending, setActionPending] = useState<string | null>(null) // memberId being acted on
 
   // Settings form state
   const [name, setName]             = useState(group.name)
@@ -1062,9 +1067,17 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   }
 
   async function leaveGroup() {
-    await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', currentUserId)
-    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
-    navigate('/community')
+    setLeaving(true)
+    try {
+      const { error } = await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', currentUserId)
+      if (error) throw error
+      queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+      navigate('/community')
+    } catch {
+      toast.error('Failed to leave group')
+    } finally {
+      setLeaving(false)
+    }
   }
 
   async function approveMember(userId: string) {
@@ -1096,14 +1109,30 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   }
 
   async function removeMember(memberId: string) {
-    await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', memberId)
-    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+    setActionPending(memberId)
+    try {
+      const { error } = await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', memberId)
+      if (error) throw error
+      queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+    } catch {
+      toast.error('Failed to remove member')
+    } finally {
+      setActionPending(null)
+    }
   }
 
   async function toggleRole(member: Member) {
-    const newRole = member.role === 'admin' ? 'member' : 'admin'
-    await supabase.from('group_members').update({ role: newRole }).eq('group_id', group.id).eq('user_id', member.id)
-    queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+    setActionPending(member.id)
+    try {
+      const newRole = member.role === 'admin' ? 'member' : 'admin'
+      const { error } = await supabase.from('group_members').update({ role: newRole }).eq('group_id', group.id).eq('user_id', member.id)
+      if (error) throw error
+      queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
+    } catch {
+      toast.error('Failed to update role')
+    } finally {
+      setActionPending(null)
+    }
   }
 
   async function sendAnnouncement() {
@@ -1126,7 +1155,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       }))
     if (notifications.length > 0) {
       const { error: notifErr } = await supabase.from('notifications').insert(notifications)
-      if (notifErr) console.error('[Announce] notification error:', notifErr)
+      if (notifErr) { toast.error('Failed to send announcement'); setSending(false); return }
     }
     setSending(false)
     setSent(true)
@@ -1251,13 +1280,15 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                         <div className="flex gap-1.5 flex-shrink-0">
                           <button
                             onClick={() => toggleRole(m)}
-                            className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-semibold text-gray-600"
+                            disabled={actionPending === m.id}
+                            className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-semibold text-gray-600 disabled:opacity-50"
                           >
                             {m.role === 'admin' ? t('group_detail.role_demote') : t('group_detail.role_make_admin')}
                           </button>
                           <button
                             onClick={() => removeMember(m.id)}
-                            className="rounded-lg border border-red-200 px-2.5 py-1 text-[10px] font-semibold text-red-500"
+                            disabled={actionPending === m.id}
+                            className="rounded-lg border border-red-200 px-2.5 py-1 text-[10px] font-semibold text-red-500 disabled:opacity-50"
                           >
                             {t('group_detail.remove')}
                           </button>
@@ -1487,7 +1518,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               <p className="text-[13px] text-gray-500 text-center mb-6">{t('group_detail.leave_group_help')}</p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">{t('group_detail.cancel')}</button>
-                <button onClick={leaveGroup} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white">{t('group_detail.leave')}</button>
+                <button onClick={leaveGroup} disabled={leaving} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-50">{leaving ? 'Leaving...' : t('group_detail.leave')}</button>
               </div>
             </motion.div>
           </>
@@ -1663,6 +1694,9 @@ export function GroupDetailPage() {
     onSuccess: () => {
       toast(t('group_detail.invite_declined'))
       queryClient.invalidateQueries({ queryKey: ['group-invite-notification', groupId, userId] })
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to decline invite')
     },
   })
 

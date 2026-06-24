@@ -426,8 +426,11 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
   const memberAction = useMutation({
     mutationFn: async ({ action, memberId }: { action: 'make_admin' | 'make_ringer' | 'remove_ringer' | 'remove'; memberId: string }) => {
       if (action === 'make_admin') {
-        await supabase.from('group_members').update({ role: 'admin' }).eq('group_id', groupId).eq('user_id', memberId)
-        await supabase.from('groups').update({ admin_id: memberId }).eq('id', groupId)
+        const { error } = await supabase.rpc('promote_to_group_admin', {
+          p_group_id: groupId,
+          p_new_admin_id: memberId,
+        })
+        if (error) throw new Error(error.message)
       } else if (action === 'make_ringer') {
         await supabase.from('group_members').update({ status: 'ringer' }).eq('group_id', groupId).eq('user_id', memberId)
       } else if (action === 'remove_ringer') {

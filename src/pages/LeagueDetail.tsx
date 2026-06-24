@@ -2448,7 +2448,7 @@ export function LeagueDetailPage() {
                 }
                 const viewGridCols: Record<string, string> = {
                   points:    isEloLeague
-                    ? 'grid-cols-[28px_1fr_52px_36px_28px_36px_36px_40px]'
+                    ? 'grid-cols-[28px_1fr_44px_36px_28px_36px_36px_40px]'
                     : 'grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px]',
                   win_rate:  'grid-cols-[28px_1fr_36px_36px_36px_48px]',
                   games_won: 'grid-cols-[28px_1fr_36px_40px_40px]',
@@ -2500,11 +2500,11 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
                               {standingsView === 'points' && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
                             </span>
-                            <div className="min-w-0">
+                            <div className="min-w-0 overflow-hidden">
                               <div className="flex justify-center mb-1">
                                 <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                               </div>
-                              <p className={cn('text-[11px] font-semibold leading-tight', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                              <p className={cn('text-[11px] font-semibold leading-tight break-words', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                                 {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
                                 {jerseyByUser[row.user_id] && (
                                   <span className="ml-0.5 text-[11px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
@@ -2520,13 +2520,18 @@ export function LeagueDetailPage() {
                             {/* View-specific columns */}
                             {standingsView === 'points' && (
                               <>
-                                {isEloLeague ? (
-                                  <div className="text-center">
-                                    <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{Math.round(row.season_elo ?? 1230)}</span>
-                                    <span className={cn('ml-0.5 text-[9px] font-semibold', (row.season_elo ?? 1230) > 1230 ? 'text-green-600' : (row.season_elo ?? 1230) < 1230 ? 'text-red-500' : 'text-gray-400')}>
-                                      {(row.season_elo ?? 1230) > 1230 ? `+${Math.round((row.season_elo ?? 1230) - 1230)}` : (row.season_elo ?? 1230) < 1230 ? `${Math.round((row.season_elo ?? 1230) - 1230)}` : '—'}
-                                    </span>
-                                  </div>
+                                {isEloLeague ? (() => {
+                                  const elo = Math.round(row.season_elo ?? 1230)
+                                  const delta = elo - 1230
+                                  return (
+                                    <div className="text-center">
+                                      <span className={cn('text-[11px] font-bold block', isMe ? 'text-[#009688]' : 'text-gray-800')}>{elo}</span>
+                                      <span className={cn('text-[9px] font-semibold', delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400')}>
+                                        {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '—'}
+                                      </span>
+                                    </div>
+                                  )
+                                })()
                                 ) : (
                                   <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                                 )}

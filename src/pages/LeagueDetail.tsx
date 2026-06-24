@@ -1854,6 +1854,7 @@ export function LeagueDetailPage() {
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
   const [standingsView, setStandingsView] = useState<'points' | 'win_rate' | 'games_won' | 'game_diff' | 'streak'>('points')
+  const [expandedStandingIds, setExpandedStandingIds] = useState<Set<string>>(new Set())
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
@@ -2481,106 +2482,161 @@ export function LeagueDetailPage() {
                     </div>
 
                     <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                      <div className={cn(viewGridCols[standingsView], 'gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100 grid')}>
-                        {viewHeaders[standingsView].map((h) => (
-                          <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
-                        ))}
-                      </div>
-                      {viewRows.map((row, i) => {
-                        const isMe = row.user_id === currentUserId
-                        return (
-                          <div
-                            key={row.id}
-                            className={cn(
-                              viewGridCols[standingsView], 'gap-1 items-center px-3 py-2 grid',
-                              i < viewRows.length - 1 && 'border-b border-gray-50',
-                              isMe && 'bg-teal-50/60'
-                            )}
-                          >
-                            <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
-                              {standingsView === 'points' && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
-                            </span>
-                            <div className="min-w-0 overflow-hidden">
-                              <div className="flex justify-center mb-1">
-                                <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                              </div>
-                              <p className={cn('text-[11px] font-semibold leading-tight break-words', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                                {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
-                                {jerseyByUser[row.user_id] && (
-                                  <span className="ml-0.5 text-[11px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
-                                    {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
-                                  </span>
-                                )}
-                              </p>
-                              {isEloLeague && row.played < 10 && (
-                                <span className="inline-block rounded bg-amber-100 px-1 py-0.5 text-[8px] font-bold text-amber-600 mt-0.5">Provisional</span>
-                              )}
-                            </div>
-
-                            {/* View-specific columns */}
-                            {standingsView === 'points' && (
-                              <>
-                                {isEloLeague ? (() => {
-                                  const elo = Math.round(row.season_elo ?? 1230)
-                                  const delta = elo - 1230
-                                  return (
-                                    <div className="text-center">
-                                      <span className={cn('text-[11px] font-bold block', isMe ? 'text-[#009688]' : 'text-gray-800')}>{elo}</span>
-                                      <span className={cn('text-[9px] font-semibold', delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400')}>
-                                        {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '—'}
-                                      </span>
-                                    </div>
-                                  )
-                                })() : (
-                                  <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                                )}
-                                <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
-                                <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
-                                  {row.game_difference > 0 ? '+' : ''}{row.game_difference}
-                                </span>
-                                <span className={cn('text-[12px] font-bold text-center', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                                  {row.points}
-                                </span>
-                              </>
-                            )}
-                            {standingsView === 'win_rate' && (
-                              <>
-                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
-                                <span className="text-[12px] font-bold text-center text-[#009688]">{row.win_rate}%</span>
-                              </>
-                            )}
-                            {standingsView === 'games_won' && (
-                              <>
-                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                                <span className="text-[12px] font-bold text-center text-[#009688]">{row.games_won}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.games_won - row.game_difference}</span>
-                              </>
-                            )}
-                            {standingsView === 'game_diff' && (
-                              <>
-                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.games_won}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.games_won - row.game_difference}</span>
-                                <span className={cn('text-[12px] font-bold text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
-                                  {row.game_difference > 0 ? '+' : ''}{row.game_difference}
-                                </span>
-                              </>
-                            )}
-                            {standingsView === 'streak' && (
-                              <>
-                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
-                                <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
-                                <span className="text-[12px] font-bold text-center text-orange-500">{row.win_streak > 0 ? `${row.win_streak}🔥` : '0'}</span>
-                              </>
-                            )}
+                      {/* Points view: accordion layout (compact + expand) */}
+                      {standingsView === 'points' && (
+                        <>
+                          <div className={cn('gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100 grid',
+                            isEloLeague ? 'grid-cols-[28px_1fr_44px_40px]' : 'grid-cols-[28px_1fr_36px_40px]'
+                          )}>
+                            {(isEloLeague ? ['#', 'Player', 'ELO', 'Pts'] : ['#', 'Player', 'P', 'Pts']).map((h) => (
+                              <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
+                            ))}
                           </div>
-                        )
-                      })}
+                          {viewRows.map((row, i) => {
+                            const isMe = row.user_id === currentUserId
+                            const isExpanded = expandedStandingIds.has(row.user_id)
+                            return (
+                              <div
+                                key={row.id}
+                                className={cn(
+                                  i < viewRows.length - 1 && 'border-b border-gray-50',
+                                  isMe && 'bg-teal-50/60'
+                                )}
+                              >
+                                <button
+                                  onClick={() => setExpandedStandingIds(prev => {
+                                    const next = new Set(prev)
+                                    if (next.has(row.user_id)) next.delete(row.user_id); else next.add(row.user_id)
+                                    return next
+                                  })}
+                                  className={cn('w-full gap-1 items-center px-3 py-2 grid text-left',
+                                    isEloLeague ? 'grid-cols-[28px_1fr_44px_40px]' : 'grid-cols-[28px_1fr_36px_40px]'
+                                  )}
+                                >
+                                  <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
+                                    {i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
+                                  </span>
+                                  <div className="min-w-0 overflow-hidden flex items-center gap-2">
+                                    <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                                    <div className="min-w-0 flex-1">
+                                      <p className={cn('text-[12px] font-semibold leading-tight', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                        {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                        {jerseyByUser[row.user_id] && (
+                                          <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                        )}
+                                      </p>
+                                      {isEloLeague && row.played < 10 && (
+                                        <span className="inline-block rounded bg-amber-100 px-1 py-0.5 text-[8px] font-bold text-amber-600 mt-0.5">Provisional</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  {isEloLeague ? (() => {
+                                    const elo = Math.round(row.season_elo ?? 1230)
+                                    const delta = elo - 1230
+                                    return (
+                                      <div className="text-center">
+                                        <span className={cn('text-[11px] font-bold block', isMe ? 'text-[#009688]' : 'text-gray-800')}>{elo}</span>
+                                        <span className={cn('text-[9px] font-semibold', delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400')}>
+                                          {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '—'}
+                                        </span>
+                                      </div>
+                                    )
+                                  })() : (
+                                    <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                  )}
+                                  <span className={cn('text-[12px] font-bold text-center', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                    {row.points}
+                                  </span>
+                                </button>
+                                {isExpanded && (
+                                  <div className="px-3 pb-2 pt-0">
+                                    <div className="flex items-center gap-3 text-[11px] text-gray-500 pl-[36px]">
+                                      <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
+                                      <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                                      <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
+                                      <span className={cn(row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                                        GD <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
+                                      </span>
+                                      {!isEloLeague && <span>P <span className="font-bold text-gray-700">{row.played}</span></span>}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </>
+                      )}
+
+                      {/* Other views: standard grid layout (unchanged) */}
+                      {standingsView !== 'points' && (
+                        <>
+                          <div className={cn(viewGridCols[standingsView], 'gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100 grid')}>
+                            {viewHeaders[standingsView].map((h) => (
+                              <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
+                            ))}
+                          </div>
+                          {viewRows.map((row, i) => {
+                            const isMe = row.user_id === currentUserId
+                            return (
+                              <div
+                                key={row.id}
+                                className={cn(
+                                  viewGridCols[standingsView], 'gap-1 items-center px-3 py-2 grid',
+                                  i < viewRows.length - 1 && 'border-b border-gray-50',
+                                  isMe && 'bg-teal-50/60'
+                                )}
+                              >
+                                <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
+                                  {i + 1}
+                                </span>
+                                <div className="min-w-0 overflow-hidden flex items-center gap-2">
+                                  <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                                  <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                    {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                    {jerseyByUser[row.user_id] && (
+                                      <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                    )}
+                                  </span>
+                                </div>
+
+                                {standingsView === 'win_rate' && (
+                                  <>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                                    <span className="text-[12px] font-bold text-center text-[#009688]">{row.win_rate}%</span>
+                                  </>
+                                )}
+                                {standingsView === 'games_won' && (
+                                  <>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                    <span className="text-[12px] font-bold text-center text-[#009688]">{row.games_won}</span>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.games_won - row.game_difference}</span>
+                                  </>
+                                )}
+                                {standingsView === 'game_diff' && (
+                                  <>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.games_won}</span>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.games_won - row.game_difference}</span>
+                                    <span className={cn('text-[12px] font-bold text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                                      {row.game_difference > 0 ? '+' : ''}{row.game_difference}
+                                    </span>
+                                  </>
+                                )}
+                                {standingsView === 'streak' && (
+                                  <>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                                    <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                                    <span className="text-[12px] font-bold text-center text-orange-500">{row.win_streak > 0 ? `${row.win_streak}🔥` : '0'}</span>
+                                  </>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </>
+                      )}
                       {standingsView === 'win_rate' && viewRows.length === 0 && (
                         <p className="text-[12px] text-gray-400 text-center py-4">No players with 4+ sets played yet</p>
                       )}

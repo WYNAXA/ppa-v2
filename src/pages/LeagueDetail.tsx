@@ -511,6 +511,9 @@ function MexicanoTab({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
     },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to generate matches')
+    },
   })
 
   if (standings.length < 4) {
@@ -1680,8 +1683,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
       }
 
       const { error } = await supabase.from('matches').insert(matchesToCreate)
-      if (error) console.warn('[QuickSession] insert error:', error)
-      else console.warn(`[QuickSession] created ${matchesToCreate.length} matches for ${playerIds.length} players × ${effectiveRounds} rounds`)
+      if (error) { toast.error('Failed to create matches'); return }
       queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
       onClose()
     } finally {
@@ -1938,7 +1940,8 @@ export function LeagueDetailPage() {
         const n = isPairs ? leagueTeams.length : standings.length
         if (n >= 2) {
           const autoMaxRounds = n % 2 === 0 ? n - 1 : n
-          await supabase.from('leagues').update({ max_rounds: autoMaxRounds }).eq('id', id)
+          const { error: mrErr } = await supabase.from('leagues').update({ max_rounds: autoMaxRounds }).eq('id', id)
+          if (mrErr) toast.error('Failed to set max rounds')
           queryClient.invalidateQueries({ queryKey: ['league', id] })
         }
       }
@@ -2659,7 +2662,8 @@ export function LeagueDetailPage() {
                         <button
                           onClick={async () => {
                             if (!confirm('Cancel this match? It will be removed from the fixtures.')) return
-                            await supabase.from('matches').update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
+                            const { error } = await supabase.from('matches').update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
+                            if (error) { toast.error('Failed to cancel match'); return }
                             queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
                           }}
                           className="rounded-lg border border-red-200 px-3 py-1 text-[11px] font-semibold text-red-500"
@@ -2748,7 +2752,8 @@ export function LeagueDetailPage() {
               hasTeams={leagueTeams.length > 0}
               hasMatches={fixtures.length > 0}
               onResetPairs={async () => {
-                await supabase.from('league_teams').delete().eq('league_id', id)
+                const { error } = await supabase.from('league_teams').delete().eq('league_id', id)
+                if (error) { toast.error('Failed to reset pairs'); return }
                 queryClient.invalidateQueries({ queryKey: ['league-teams', id] })
                 queryClient.invalidateQueries({ queryKey: ['league-team-standings', id] })
               }}

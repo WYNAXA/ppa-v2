@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
@@ -363,7 +364,7 @@ export function PollAdminView({
         status: m.status === 'ready' ? 'scheduled' : 'pending',
         player_ids: m.playerIds, group_id: groupId, poll_id: pollId, created_manually: false, created_by: currentUserId,
       }).select('id')
-      if (error && error.code !== '23505') console.error('[Confirm] error:', error)
+      if (error && error.code !== '23505') { toast.error('Failed to create match'); continue }
       else if (error?.code === '23505') { console.log('[Confirm] match exists, skipping'); created++ }
       else {
         created++
@@ -378,7 +379,8 @@ export function PollAdminView({
       }
     }
 
-    await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
+    const { error: pollErr } = await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
+    if (pollErr) { toast.error('Failed to mark poll as processed — it may re-fire'); setConfirming(false); return }
     setMatchSchedules([]); setSelectedSchedule(null); setConfirming(false)
     onRefetch()
   }

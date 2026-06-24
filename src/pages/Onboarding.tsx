@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy, Heart, Bell } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
@@ -102,9 +103,10 @@ export function OnboardingPage() {
   async function handleLanguageContinue() {
     if (!user) return
     setSaving(true)
-    setLanguage(selectedLang)
-    await supabase.from('profiles').update({ preferred_language: selectedLang }).eq('id', user.id)
+    const { error } = await supabase.from('profiles').update({ preferred_language: selectedLang }).eq('id', user.id)
     setSaving(false)
+    if (error) { toast.error('Failed to save language preference'); return }
+    setLanguage(selectedLang)
     goNext()
   }
 
@@ -141,35 +143,38 @@ export function OnboardingPage() {
   async function handleLocationContinue() {
     if (!user) return
     setSaving(true)
-    await supabase.from('profiles').update({
+    const { error } = await supabase.from('profiles').update({
       city: locationCity.trim() || null,
       postal_code: locationPostcode.trim() || null,
       latitude: locationLat,
       longitude: locationLng,
     }).eq('id', user.id)
     setSaving(false)
+    if (error) { toast.error('Failed to save location'); return }
     goNext()
   }
 
   async function handleLevelContinue() {
     if (!user) return
     setSaving(true)
+    let error: any = null
     if (levelBranch === 'playtomic') {
       const parsed = parseFloat(playtomicLevel)
       const elo = isNaN(parsed) ? 1230 : playtomicToElo(parsed)
-      await supabase.from('profiles').update({
+      ;({ error } = await supabase.from('profiles').update({
         internal_ranking: elo,
         is_provisional: true,
         playtomic_level: isNaN(parsed) ? null : parsed,
-      }).eq('id', user.id)
+      }).eq('id', user.id))
     } else {
-      await supabase.from('profiles').update({
+      ;({ error } = await supabase.from('profiles').update({
         internal_ranking: 1230,
         is_provisional: true,
         playtomic_level: null,
-      }).eq('id', user.id)
+      }).eq('id', user.id))
     }
     setSaving(false)
+    if (error) { toast.error('Failed to save your level — please try again'); return }
     goNext()
   }
 

@@ -2492,7 +2492,7 @@ export function LeagueDetailPage() {
                           <div
                             key={row.id}
                             className={cn(
-                              viewGridCols[standingsView], 'gap-1 items-center px-3 py-2.5 grid',
+                              viewGridCols[standingsView], 'gap-1 items-center px-3 py-2 grid',
                               i < viewRows.length - 1 && 'border-b border-gray-50',
                               isMe && 'bg-teal-50/60'
                             )}
@@ -2500,23 +2500,21 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
                               {standingsView === 'points' && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
                             </span>
-                            <div className="flex items-center gap-2 min-w-0">
-                              <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1">
-                                  <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                                    {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
-                                  </span>
-                                  {jerseyByUser[row.user_id] && (
-                                    <span className="shrink-0 text-[12px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
-                                      {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
-                                    </span>
-                                  )}
-                                </div>
-                                {isEloLeague && row.played < 10 && (
-                                  <span className="inline-block rounded bg-amber-100 px-1 py-0.5 text-[8px] font-bold text-amber-600 mt-0.5">Provisional</span>
-                                )}
+                            <div className="min-w-0">
+                              <div className="flex justify-center mb-1">
+                                <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                               </div>
+                              <p className={cn('text-[11px] font-semibold leading-tight', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                {jerseyByUser[row.user_id] && (
+                                  <span className="ml-0.5 text-[11px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
+                                    {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
+                                  </span>
+                                )}
+                              </p>
+                              {isEloLeague && row.played < 10 && (
+                                <span className="inline-block rounded bg-amber-100 px-1 py-0.5 text-[8px] font-bold text-amber-600 mt-0.5">Provisional</span>
+                              )}
                             </div>
 
                             {/* View-specific columns */}

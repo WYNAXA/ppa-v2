@@ -52,6 +52,9 @@ interface Standing {
   points: number
   game_difference: number
   internal_ranking: number
+  win_rate: number       // wins / matches_played * 100
+  games_won: number      // total games won across all sets
+  win_streak: number     // current consecutive set-wins
   season_elo?: number
   profile?: { name: string; avatar_url: string | null }
 }
@@ -129,8 +132,8 @@ function useStandings(leagueId: string) {
       ])
       const matchIds = (leagueMatches ?? []).map((m: any) => m.id)
       const { data: results } = matchIds.length > 0
-        ? await supabase.from('match_results').select('team1_players, team2_players, sets_data')
-            .in('match_id', matchIds).not('sets_data', 'is', null)
+        ? await supabase.from('match_results').select('team1_players, team2_players, sets_data, verified_at, created_at, verification_status')
+            .in('match_id', matchIds).eq('verification_status', 'verified').not('sets_data', 'is', null)
         : { data: [] }
 
       if (error) { console.error('[League] standings error:', error); return [] }
@@ -162,6 +165,50 @@ function useStandings(leagueId: string) {
         }
       }
 
+      // ── Compute current win streak per player ──
+      // Sort results chronologically: COALESCE(verified_at, created_at) ASC, id ASC
+      const orderedResults = [...(results ?? [])].sort((a: any, b: any) => {
+        const ta = a.verified_at ?? a.created_at ?? ''
+        const tb = b.verified_at ?? b.created_at ?? ''
+        if (ta < tb) return -1
+        if (ta > tb) return 1
+        return (a.id ?? '') < (b.id ?? '') ? -1 : (a.id ?? '') > (b.id ?? '') ? 1 : 0
+      })
+
+      const streakMap: Record<string, number> = {}
+      for (const uid of userIds) {
+        // Walk sets in REVERSE chronological order (newest first)
+        let streak = 0
+        let done = false
+        for (let ri = orderedResults.length - 1; ri >= 0 && !done; ri--) {
+          const mr = orderedResults[ri] as any
+          const t1 = (mr.team1_players ?? []) as string[]
+          const t2 = (mr.team2_players ?? []) as string[]
+          const isT1 = t1.includes(uid)
+          if (!isT1 && !t2.includes(uid)) continue
+          const sets = (mr.sets_data ?? []) as Array<{ team1?: number; team2?: number; team1_score?: number; team2_score?: number }>
+          for (let si = sets.length - 1; si >= 0 && !done; si--) {
+            const g1 = sets[si].team1 ?? sets[si].team1_score ?? 0
+            const g2 = sets[si].team2 ?? sets[si].team2_score ?? 0
+            const total = g1 + g2
+            const maxG = Math.max(g1, g2)
+            const minG = Math.min(g1, g2)
+            const completed = (maxG >= 6 && Math.abs(g1 - g2) >= 2) || (maxG === 7 && minG === 6)
+            const isVoid = !completed && total < 6
+            if (isVoid) continue
+            const myGames = isT1 ? g1 : g2
+            const theirGames = isT1 ? g2 : g1
+            if (completed) {
+              if (myGames > theirGames) { streak++ } else { done = true }
+            } else {
+              if (myGames === theirGames) continue // draw — hold
+              if (myGames > theirGames) { streak++ } else { done = true }
+            }
+          }
+        }
+        streakMap[uid] = streak
+      }
+
       // Canonical five-rung tiebreak (mirrors award_weekly_jerseys yellow):
       // ranking_points DESC, wins DESC, losses ASC, game_diff DESC, internal_ranking ASC
       const sorted = [...rows].sort((a, b) => {
@@ -182,17 +229,22 @@ function useStandings(leagueId: string) {
 
       return sorted.map((r, i) => {
         const gd = gdMap[r.user_id]
+        const played = (r.matches_played ?? r.played ?? 0) as number
+        const won = (r.wins ?? r.won ?? 0) as number
         return {
           id:      r.id,
           user_id: r.user_id,
           rank:    i + 1,
-          played:  (r.matches_played ?? r.played ?? 0) as number,
-          won:     (r.wins ?? r.won ?? 0) as number,
+          played,
+          won,
           lost:    (r.losses ?? r.lost ?? 0) as number,
           drawn:   (r.draws ?? r.drawn ?? 0) as number,
           points:  (r.ranking_points ?? r.points ?? 0) as number,
           game_difference: gd ? gd.won - gd.lost : 0,
           internal_ranking: (profileMap[r.user_id]?.internal_ranking as number) ?? 1230,
+          win_rate: played > 0 ? Math.round(won / played * 100) : 0,
+          games_won: gd?.won ?? 0,
+          win_streak: streakMap[r.user_id] ?? 0,
           season_elo: r.season_elo as number | undefined,
           profile: profileMap[r.user_id],
         }
@@ -1801,6 +1853,7 @@ export function LeagueDetailPage() {
   const queryClient       = useQueryClient()
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
+  const [standingsView, setStandingsView] = useState<'points' | 'win_rate' | 'games_won' | 'streak'>('points')
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
@@ -2423,56 +2476,140 @@ export function LeagueDetailPage() {
                     )
                   })}
                 </div>
-              ) : (
-                <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Player', 'P', 'W', 'D', 'L', 'GD', 'Pts'].map((h) => (
-                      <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
-                    ))}
-                  </div>
-                  {standings.map((row, i) => {
-                    const isMe = row.user_id === currentUserId
-                    return (
-                      <div
-                        key={row.id}
-                        className={cn(
-                          'grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
-                          i < standings.length - 1 && 'border-b border-gray-50',
-                          isMe && 'bg-teal-50/60'
-                        )}
-                      >
-                        <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
-                          {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
-                        </span>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                          <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                            {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
-                          </span>
-                          {jerseyByUser[row.user_id] && (
-                            <span
-                              className="shrink-0 text-[12px] leading-none"
-                              title={`${JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}`}
-                            >
-                              {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
-                            </span>
+              ) : (() => {
+                // Sort and filter standings based on active view
+                const viewRows = (() => {
+                  switch (standingsView) {
+                    case 'win_rate':
+                      return [...standings].filter(s => s.played >= 4).sort((a, b) => b.win_rate - a.win_rate || b.won - a.won)
+                    case 'games_won':
+                      return [...standings].sort((a, b) => b.games_won - a.games_won)
+                    case 'streak':
+                      return [...standings].sort((a, b) => b.win_streak - a.win_streak || b.won - a.won)
+                    default:
+                      return standings // already sorted by 5-rung
+                  }
+                })()
+
+                const viewHeaders: Record<string, string[]> = {
+                  points:    ['#', 'Player', 'P', 'W', 'D', 'L', 'GD', 'Pts'],
+                  win_rate:  ['#', 'Player', 'P', 'W', 'L', 'Win%'],
+                  games_won: ['#', 'Player', 'P', 'GW', 'GL', 'GD'],
+                  streak:    ['#', 'Player', 'P', 'W', 'L', '🔥'],
+                }
+                const viewGridCols: Record<string, string> = {
+                  points:    'grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px]',
+                  win_rate:  'grid-cols-[28px_1fr_36px_36px_36px_48px]',
+                  games_won: 'grid-cols-[28px_1fr_36px_40px_40px_40px]',
+                  streak:    'grid-cols-[28px_1fr_36px_36px_36px_40px]',
+                }
+
+                return (
+                  <>
+                    {/* View toggle */}
+                    <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
+                      {([
+                        { id: 'points' as const, label: 'Points' },
+                        { id: 'win_rate' as const, label: 'Win %' },
+                        { id: 'games_won' as const, label: 'Games' },
+                        { id: 'streak' as const, label: 'Streak' },
+                      ]).map((v) => (
+                        <button
+                          key={v.id}
+                          onClick={() => setStandingsView(v.id)}
+                          className={cn(
+                            'flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition-colors',
+                            standingsView === v.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                           )}
-                        </div>
-                        <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
-                        <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
-                          {row.game_difference > 0 ? '+' : ''}{row.game_difference}
-                        </span>
-                        <span className={cn('text-[12px] font-bold text-center', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                          {row.points}
-                        </span>
+                        >
+                          {v.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="rounded-2xl border border-gray-100 overflow-hidden">
+                      <div className={cn(viewGridCols[standingsView], 'gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100 grid')}>
+                        {viewHeaders[standingsView].map((h) => (
+                          <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
+                        ))}
                       </div>
-                    )
-                  })}
-                </div>
-              )}
+                      {viewRows.map((row, i) => {
+                        const isMe = row.user_id === currentUserId
+                        return (
+                          <div
+                            key={row.id}
+                            className={cn(
+                              viewGridCols[standingsView], 'gap-1 items-center px-3 py-2.5 grid',
+                              i < viewRows.length - 1 && 'border-b border-gray-50',
+                              isMe && 'bg-teal-50/60'
+                            )}
+                          >
+                            <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
+                              {standingsView === 'points' && i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
+                            </span>
+                            <div className="flex items-center gap-2 min-w-0">
+                              <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                              <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              </span>
+                              {jerseyByUser[row.user_id] && (
+                                <span className="shrink-0 text-[12px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
+                                  {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* View-specific columns */}
+                            {standingsView === 'points' && (
+                              <>
+                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                                <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                                  {row.game_difference > 0 ? '+' : ''}{row.game_difference}
+                                </span>
+                                <span className={cn('text-[12px] font-bold text-center', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                  {row.points}
+                                </span>
+                              </>
+                            )}
+                            {standingsView === 'win_rate' && (
+                              <>
+                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                                <span className="text-[12px] font-bold text-center text-[#009688]">{row.win_rate}%</span>
+                              </>
+                            )}
+                            {standingsView === 'games_won' && (
+                              <>
+                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                <span className="text-[12px] font-bold text-center text-[#009688]">{row.games_won}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.games_won - row.game_difference}</span>
+                                <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                                  {row.game_difference > 0 ? '+' : ''}{row.game_difference}
+                                </span>
+                              </>
+                            )}
+                            {standingsView === 'streak' && (
+                              <>
+                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
+                                <span className="text-[12px] font-bold text-center text-orange-500">{row.win_streak > 0 ? `${row.win_streak}🔥` : '0'}</span>
+                              </>
+                            )}
+                          </div>
+                        )
+                      })}
+                      {standingsView === 'win_rate' && viewRows.length === 0 && (
+                        <p className="text-[12px] text-gray-400 text-center py-4">No players with 4+ sets played yet</p>
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
               {/* ── Entertainer jersey ── */}
               {(currentEntertainer || entertainerRace.length > 0 || entertainerHistory.length > 0) && (
                 <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">

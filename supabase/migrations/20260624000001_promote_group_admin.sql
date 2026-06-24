@@ -1,7 +1,8 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Atomic group admin promotion.
--- Writes group_members.role AND groups.admin_id in a single transaction.
--- Does NOT demote the old admin — multiple admins are supported
+-- Promotion grants admin POWERS via group_members.role only.
+-- groups.admin_id is the founder/creator and must NOT change on promotion.
+-- Does NOT demote other admins — multiple admins are supported
 -- (useIsGroupAdmin checks both groups.admin_id and group_members.role).
 -- Run in the Supabase SQL Editor.
 -- ══════════════════════════════════════════════════════════════════════════════
@@ -22,8 +23,7 @@ BEGIN
     RAISE EXCEPTION 'Not authenticated';
   END IF;
 
-  -- Verify the caller is currently an admin of this group
-  -- (matches useIsGroupAdmin: checks groups.admin_id OR group_members.role)
+  -- Caller must currently be an admin (founder via groups.admin_id OR role='admin')
   IF NOT EXISTS (
     SELECT 1 FROM groups WHERE id = p_group_id AND admin_id = v_caller
   ) AND NOT EXISTS (
@@ -33,7 +33,7 @@ BEGIN
     RAISE EXCEPTION 'Only a group admin can promote members';
   END IF;
 
-  -- Verify the target is a member of the group
+  -- Target must be a member
   IF NOT EXISTS (
     SELECT 1 FROM group_members
     WHERE group_id = p_group_id AND user_id = p_new_admin_id
@@ -41,14 +41,11 @@ BEGIN
     RAISE EXCEPTION 'Player is not a member of this group';
   END IF;
 
-  -- Atomic: both writes in one transaction
+  -- Promotion grants admin POWERS via role only.
+  -- groups.admin_id is the founder/creator and must NOT change.
   UPDATE group_members
   SET role = 'admin'
   WHERE group_id = p_group_id AND user_id = p_new_admin_id;
-
-  UPDATE groups
-  SET admin_id = p_new_admin_id
-  WHERE id = p_group_id;
 END;
 $$;
 

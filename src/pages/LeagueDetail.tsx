@@ -1890,9 +1890,8 @@ export function LeagueDetailPage() {
   ]
 
   const { data: standings = [], isLoading: loadingStandings } = useStandings(id)
-  const indStandings = isEloLeague
-    ? [...standings].sort((a, b) => (b.season_elo ?? 1230) - (a.season_elo ?? 1230))
-    : standings
+  // indStandings = standings for all league types (5-rung points sort, jersey-consistent)
+  const indStandings = standings
   const { data: teamStandings = [] } = useTeamStandings(id, isPairs)
   const { data: leagueTeams = [] } = useLeagueTeams(id)
   const { data: jerseys = [] } = useLeagueJerseys(id)
@@ -2421,61 +2420,6 @@ export function LeagueDetailPage() {
                   )
                 })()}
               </>
-              ) : isEloLeague ? (
-                <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_52px_28px_28px_28px_36px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Player', 'ELO', 'W', 'D', 'L', 'P'].map((h) => (
-                      <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
-                    ))}
-                  </div>
-                  {indStandings.map((row, i) => {
-                    const isMe = row.user_id === currentUserId
-                    const elo = Math.round(row.season_elo ?? 1230)
-                    const delta = elo - 1230
-                    const isProvisional = (row.played ?? 0) < 10
-                    return (
-                      <div
-                        key={row.id}
-                        className={cn(
-                          'grid grid-cols-[28px_1fr_52px_28px_28px_28px_36px] gap-1 items-center px-3 py-2.5',
-                          i < indStandings.length - 1 && 'border-b border-gray-50',
-                          isMe && 'bg-teal-50/60'
-                        )}
-                      >
-                        <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-400')}>
-                          {i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
-                        </span>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                          <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                            {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
-                          </span>
-                          {isProvisional && (
-                            <span className="shrink-0 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-600">Prov</span>
-                          )}
-                          {jerseyByUser[row.user_id] && (
-                            <span
-                              className="shrink-0 text-[12px] leading-none"
-                              title={`${JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}`}
-                            >
-                              {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-center">
-                          <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{elo}</span>
-                          <span className={cn('ml-0.5 text-[9px] font-semibold', delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400')}>
-                            {delta > 0 ? `+${delta}` : delta === 0 ? '—' : `${delta}`}
-                          </span>
-                        </div>
-                        <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                      </div>
-                    )
-                  })}
-                </div>
               ) : (() => {
                 // Sort and filter standings based on active view
                 const viewRows = (() => {
@@ -2492,13 +2436,17 @@ export function LeagueDetailPage() {
                 })()
 
                 const viewHeaders: Record<string, string[]> = {
-                  points:    ['#', 'Player', 'P', 'W', 'D', 'L', 'GD', 'Pts'],
+                  points:    isEloLeague
+                    ? ['#', 'Player', 'ELO', 'W', 'D', 'L', 'GD', 'Pts']
+                    : ['#', 'Player', 'P', 'W', 'D', 'L', 'GD', 'Pts'],
                   win_rate:  ['#', 'Player', 'P', 'W', 'L', 'Win%'],
                   games_won: ['#', 'Player', 'P', 'GW', 'GL', 'GD'],
                   streak:    ['#', 'Player', 'P', 'W', 'L', '🔥'],
                 }
                 const viewGridCols: Record<string, string> = {
-                  points:    'grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px]',
+                  points:    isEloLeague
+                    ? 'grid-cols-[28px_1fr_52px_36px_28px_36px_36px_40px]'
+                    : 'grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px]',
                   win_rate:  'grid-cols-[28px_1fr_36px_36px_36px_48px]',
                   games_won: 'grid-cols-[28px_1fr_36px_40px_40px_40px]',
                   streak:    'grid-cols-[28px_1fr_36px_36px_36px_40px]',
@@ -2552,6 +2500,9 @@ export function LeagueDetailPage() {
                               <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                                 {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
                               </span>
+                              {isEloLeague && row.played < 10 && (
+                                <span className="shrink-0 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-600">Prov</span>
+                              )}
                               {jerseyByUser[row.user_id] && (
                                 <span className="shrink-0 text-[12px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
                                   {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
@@ -2562,7 +2513,16 @@ export function LeagueDetailPage() {
                             {/* View-specific columns */}
                             {standingsView === 'points' && (
                               <>
-                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                {isEloLeague ? (
+                                  <div className="text-center">
+                                    <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{Math.round(row.season_elo ?? 1230)}</span>
+                                    <span className={cn('ml-0.5 text-[9px] font-semibold', (row.season_elo ?? 1230) > 1230 ? 'text-green-600' : (row.season_elo ?? 1230) < 1230 ? 'text-red-500' : 'text-gray-400')}>
+                                      {(row.season_elo ?? 1230) > 1230 ? `+${Math.round((row.season_elo ?? 1230) - 1230)}` : (row.season_elo ?? 1230) < 1230 ? `${Math.round((row.season_elo ?? 1230) - 1230)}` : '—'}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                )}
                                 <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
                                 <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
                                 <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>

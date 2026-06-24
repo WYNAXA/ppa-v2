@@ -1853,7 +1853,7 @@ export function LeagueDetailPage() {
   const queryClient       = useQueryClient()
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
-  const [standingsView, setStandingsView] = useState<'points' | 'win_rate' | 'games_won' | 'streak'>('points')
+  const [standingsView, setStandingsView] = useState<'points' | 'win_rate' | 'games_won' | 'game_diff' | 'streak'>('points')
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
@@ -2428,6 +2428,8 @@ export function LeagueDetailPage() {
                       return [...standings].filter(s => s.played >= 4).sort((a, b) => b.win_rate - a.win_rate || b.won - a.won)
                     case 'games_won':
                       return [...standings].sort((a, b) => b.games_won - a.games_won)
+                    case 'game_diff':
+                      return [...standings].sort((a, b) => b.game_difference - a.game_difference || b.games_won - a.games_won)
                     case 'streak':
                       return [...standings].sort((a, b) => b.win_streak - a.win_streak || b.won - a.won)
                     default:
@@ -2440,7 +2442,8 @@ export function LeagueDetailPage() {
                     ? ['#', 'Player', 'ELO', 'W', 'D', 'L', 'GD', 'Pts']
                     : ['#', 'Player', 'P', 'W', 'D', 'L', 'GD', 'Pts'],
                   win_rate:  ['#', 'Player', 'P', 'W', 'L', 'Win%'],
-                  games_won: ['#', 'Player', 'P', 'GW', 'GL', 'GD'],
+                  games_won: ['#', 'Player', 'P', 'GW', 'GL'],
+                  game_diff: ['#', 'Player', 'P', 'GW', 'GL', 'GD'],
                   streak:    ['#', 'Player', 'P', 'W', 'L', '🔥'],
                 }
                 const viewGridCols: Record<string, string> = {
@@ -2448,25 +2451,27 @@ export function LeagueDetailPage() {
                     ? 'grid-cols-[28px_1fr_52px_36px_28px_36px_36px_40px]'
                     : 'grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px]',
                   win_rate:  'grid-cols-[28px_1fr_36px_36px_36px_48px]',
-                  games_won: 'grid-cols-[28px_1fr_36px_40px_40px_40px]',
+                  games_won: 'grid-cols-[28px_1fr_36px_40px_40px]',
+                  game_diff: 'grid-cols-[28px_1fr_36px_40px_40px_40px]',
                   streak:    'grid-cols-[28px_1fr_36px_36px_36px_40px]',
                 }
 
                 return (
                   <>
-                    {/* View toggle */}
-                    <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
+                    {/* View toggle — horizontally scrollable for 5 segments on mobile */}
+                    <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5 mb-3 overflow-x-auto no-scrollbar">
                       {([
-                        { id: 'points' as const, label: 'Points' },
-                        { id: 'win_rate' as const, label: 'Win %' },
-                        { id: 'games_won' as const, label: 'Games' },
-                        { id: 'streak' as const, label: 'Streak' },
+                        { id: 'points' as const, label: 'Pts' },
+                        { id: 'win_rate' as const, label: 'Win%' },
+                        { id: 'games_won' as const, label: 'GW' },
+                        { id: 'game_diff' as const, label: 'GD' },
+                        { id: 'streak' as const, label: '🔥' },
                       ]).map((v) => (
                         <button
                           key={v.id}
                           onClick={() => setStandingsView(v.id)}
                           className={cn(
-                            'flex-1 rounded-lg py-1.5 text-[11px] font-semibold transition-colors',
+                            'flex-1 min-w-[52px] rounded-lg py-1.5 text-[11px] font-semibold transition-colors whitespace-nowrap',
                             standingsView === v.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
                           )}
                         >
@@ -2497,17 +2502,21 @@ export function LeagueDetailPage() {
                             </span>
                             <div className="flex items-center gap-2 min-w-0">
                               <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                              <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                                {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
-                              </span>
-                              {isEloLeague && row.played < 10 && (
-                                <span className="shrink-0 rounded bg-amber-100 px-1 py-0.5 text-[9px] font-bold text-amber-600">Prov</span>
-                              )}
-                              {jerseyByUser[row.user_id] && (
-                                <span className="shrink-0 text-[12px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
-                                  {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
-                                </span>
-                              )}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-1">
+                                  <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                    {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                  </span>
+                                  {jerseyByUser[row.user_id] && (
+                                    <span className="shrink-0 text-[12px] leading-none" title={JERSEY_LABEL[jerseyByUser[row.user_id]] ?? 'Jersey'}>
+                                      {JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}
+                                    </span>
+                                  )}
+                                </div>
+                                {isEloLeague && row.played < 10 && (
+                                  <span className="inline-block rounded bg-amber-100 px-1 py-0.5 text-[8px] font-bold text-amber-600 mt-0.5">Provisional</span>
+                                )}
+                              </div>
                             </div>
 
                             {/* View-specific columns */}
@@ -2547,7 +2556,14 @@ export function LeagueDetailPage() {
                                 <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
                                 <span className="text-[12px] font-bold text-center text-[#009688]">{row.games_won}</span>
                                 <span className="text-[12px] text-gray-500 text-center">{row.games_won - row.game_difference}</span>
-                                <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                              </>
+                            )}
+                            {standingsView === 'game_diff' && (
+                              <>
+                                <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.games_won}</span>
+                                <span className="text-[12px] text-gray-500 text-center">{row.games_won - row.game_difference}</span>
+                                <span className={cn('text-[12px] font-bold text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
                                   {row.game_difference > 0 ? '+' : ''}{row.game_difference}
                                 </span>
                               </>

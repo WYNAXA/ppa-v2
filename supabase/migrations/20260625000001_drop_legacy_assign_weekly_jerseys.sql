@@ -1,0 +1,21 @@
+-- ══════════════════════════════════════════════════════════════════════════════
+-- Remove dead legacy jersey system: assign_weekly_jerseys.
+--
+-- It was created directly in the SQL Editor (never tracked in git), scheduled as
+-- a Monday 06:00 cron ('assign-weekly-jerseys'), and conflicted with the
+-- canonical award_weekly_jerseys (Tuesday 02:00) by writing the same league_jerseys
+-- table with DIFFERENT logic (2-rung yellow tiebreak vs the canonical 5-rung;
+-- INSERT instead of UPSERT).
+--
+-- It referenced columns that do not exist on league_standings
+-- (wins_vs_higher_rated, ranking_variance, entertainment_votes), so it ERRORED on
+-- every run and never wrote a single row (confirmed: zero green/red rows ever
+-- existed in league_jerseys; its cron exception handler swallowed the errors).
+--
+-- Canonical jersey system = award_weekly_jerseys() (Tuesday 02:00) +
+-- award_entertainer_jersey() (Tuesday 02:00).
+--
+-- Cron already unscheduled via: SELECT cron.unschedule('assign-weekly-jerseys');
+-- ══════════════════════════════════════════════════════════════════════════════
+
+DROP FUNCTION IF EXISTS public.assign_weekly_jerseys(uuid, date);

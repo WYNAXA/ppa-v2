@@ -148,13 +148,14 @@ function useStandings(leagueId: string) {
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
 
       // Compute game difference per player from match_results.sets_data
+      // Dual-key: legacy sets use {team1_score, team2_score}, newer use {team1, team2}
       const gdMap: Record<string, { won: number; lost: number }> = {}
       for (const r of results ?? []) {
         const t1Players = (r.team1_players ?? []) as string[]
         const t2Players = (r.team2_players ?? []) as string[]
-        const setsData = (r.sets_data ?? []) as Array<{ team1: number; team2: number }>
+        const setsData = (r.sets_data ?? []) as Array<{ team1?: number; team2?: number; team1_score?: number; team2_score?: number }>
         let t1Games = 0, t2Games = 0
-        for (const s of setsData) { t1Games += s.team1 ?? 0; t2Games += s.team2 ?? 0 }
+        for (const s of setsData) { t1Games += s.team1 ?? s.team1_score ?? 0; t2Games += s.team2 ?? s.team2_score ?? 0 }
         for (const pid of t1Players) {
           if (!gdMap[pid]) gdMap[pid] = { won: 0, lost: 0 }
           gdMap[pid].won += t1Games; gdMap[pid].lost += t2Games

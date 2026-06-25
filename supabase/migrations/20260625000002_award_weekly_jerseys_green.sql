@@ -178,8 +178,9 @@ BEGIN
         mr.team1_players,
         mr.team2_players,
         mr.verified_at,
-        (s.val->>'team1')::int AS g1,
-        (s.val->>'team2')::int AS g2,
+        -- Dual-key: legacy sets use team1_score/team2_score, newer use team1/team2
+        COALESCE((s.val->>'team1')::int, (s.val->>'team1_score')::int, 0) AS g1,
+        COALESCE((s.val->>'team2')::int, (s.val->>'team2_score')::int, 0) AS g2,
         s.ordinality AS set_num
       FROM match_results mr
       JOIN matches m ON m.id = mr.match_id AND m.league_id = v_league.id

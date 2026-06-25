@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════════════════════
--- award_weekly_jerseys v3: delete-then-insert + GREEN (Giant Killer) jersey.
+-- award_weekly_jerseys v4: delete-then-insert + GREEN (Giant Killer) + RED (Most Improved).
 --
 -- Changes:
 --   1. Constraint: UNIQUE (league_id, jersey_type) → (league_id, jersey_type, user_id)
@@ -10,7 +10,11 @@
 --      combined career ELO (at match time) was >=150 below the team they beat.
 --      Per-set, biggest qualifying gap wins, nobody if none qualify.
 --      Uses rating_history.rating_before for exact match-time ELO.
---   4. Gained/lost notifications for all three jersey types.
+--   4. RED (Most Improved): weekly award to the single player with the highest
+--      SUM of rating_history.rating_change across this league's verified,
+--      non-friendly matches in the just-completed week. Must be positive (>0).
+--      Nobody if no one gained. Single holder.
+--   5. Gained/lost notifications for all four jersey types.
 --
 -- NOTE: admin manual jersey assignment in LeagueDetail.tsx uses upsert with
 -- onConflict:'league_id,jersey_type' — will need a follow-up frontend fix to
@@ -49,12 +53,15 @@ DECLARE
   v_green_uid2     uuid;
   v_green_gap      int;
   v_green_reason   text;
+  v_red_uid        uuid;
+  v_red_gain       int;
   v_week_start     date := (date_trunc('week', CURRENT_DATE) - INTERVAL '7 days')::date;
   v_week_end       date := (date_trunc('week', CURRENT_DATE))::date;
   -- Prior holders (for notifications)
   v_prev_yellow    uuid;
   v_prev_black     uuid;
   v_prev_green     uuid[];
+  v_prev_red       uuid;
   v_lost_uid       uuid;
 BEGIN
   FOR v_league IN SELECT id FROM leagues WHERE status = 'active' LOOP
@@ -62,6 +69,7 @@ BEGIN
     -- Reset per-league state
     v_yellow_uid := NULL; v_black_uid := NULL;
     v_green_uid1 := NULL; v_green_uid2 := NULL; v_green_gap := NULL;
+    v_red_uid := NULL; v_red_gain := NULL;
 
     -- ── Capture prior holders BEFORE delete ──
     SELECT user_id INTO v_prev_yellow
@@ -79,11 +87,16 @@ BEGIN
       WHERE league_id = v_league.id AND jersey_type = 'green'
     ) INTO v_prev_green;
 
+    SELECT user_id INTO v_prev_red
+    FROM league_jerseys
+    WHERE league_id = v_league.id AND jersey_type = 'red'
+    LIMIT 1;
+
     -- ── Delete current jerseys for types this function manages ──
     -- Does NOT touch 'blue'/'entertainer' (managed by award_entertainer_jersey)
     DELETE FROM league_jerseys
     WHERE league_id = v_league.id
-      AND jersey_type IN ('yellow', 'black', 'green');
+      AND jersey_type IN ('yellow', 'black', 'green', 'red');
 
 
     -- ══════════════════════════════════════════════════════════════════════════
@@ -262,7 +275,35 @@ BEGIN
 
 
     -- ══════════════════════════════════════════════════════════════════════════
-    -- NOTIFICATIONS: gained / lost for yellow, black, green
+    -- RED: Most Improved — biggest SUM(rating_change) in this league this week.
+    -- Single holder. Must be positive. Nobody if no one gained.
+    -- ══════════════════════════════════════════════════════════════════════════
+
+    SELECT rh.user_id, SUM(rh.rating_change) AS total_gain
+    INTO v_red_uid, v_red_gain
+    FROM rating_history rh
+    JOIN match_results mr ON mr.id = rh.match_result_id
+    JOIN matches m ON m.id = mr.match_id AND m.league_id = v_league.id
+    WHERE mr.verification_status = 'verified'
+      AND NOT COALESCE(mr.is_friendly, false)
+      AND COALESCE(mr.verified_at, mr.created_at) >= v_week_start
+      AND COALESCE(mr.verified_at, mr.created_at) < v_week_end
+    GROUP BY rh.user_id
+    HAVING SUM(rh.rating_change) > 0
+    ORDER BY SUM(rh.rating_change) DESC,
+             (SELECT internal_ranking FROM profiles WHERE id = rh.user_id) ASC,
+             rh.user_id ASC
+    LIMIT 1;
+
+    IF v_red_uid IS NOT NULL THEN
+      INSERT INTO league_jerseys (league_id, user_id, jersey_color, jersey_type, awarded_week, reason)
+      VALUES (v_league.id, v_red_uid, 'red', 'red', CURRENT_DATE,
+              'Most Improved — +' || v_red_gain || ' ELO this week');
+    END IF;
+
+
+    -- ══════════════════════════════════════════════════════════════════════════
+    -- NOTIFICATIONS: gained / lost for yellow, black, green, red
     -- ══════════════════════════════════════════════════════════════════════════
 
     -- Yellow gained
@@ -322,6 +363,21 @@ BEGIN
                 'Another team pulled off a bigger upset this week.',
                 v_league.id, false);
       END LOOP;
+    END IF;
+
+    -- Red gained
+    IF v_red_uid IS NOT NULL AND (v_prev_red IS NULL OR v_prev_red <> v_red_uid) THEN
+      INSERT INTO notifications (user_id, type, title, message, related_id, read)
+      VALUES (v_red_uid, 'achievement', '🔴 Most Improved!',
+              'You gained the most ELO in your league this week — +' || v_red_gain || '!',
+              v_league.id, false);
+    END IF;
+    -- Red lost
+    IF v_prev_red IS NOT NULL AND (v_red_uid IS NULL OR v_prev_red <> v_red_uid) THEN
+      INSERT INTO notifications (user_id, type, title, message, related_id, read)
+      VALUES (v_prev_red, 'achievement', 'Most Improved jersey passed on',
+              'Someone else had a bigger ELO gain this week.',
+              v_league.id, false);
     END IF;
 
   END LOOP;

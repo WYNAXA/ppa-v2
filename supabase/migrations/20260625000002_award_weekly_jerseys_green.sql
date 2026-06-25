@@ -1,12 +1,12 @@
 -- ══════════════════════════════════════════════════════════════════════════════
--- award_weekly_jerseys v4: delete-then-insert + GREEN (Giant Killer) + RED (Most Improved).
+-- award_weekly_jerseys v4: delete-then-insert + GREEN (Underdog) + RED (Most Improved).
 --
 -- Changes:
 --   1. Constraint: UNIQUE (league_id, jersey_type) → (league_id, jersey_type, user_id)
 --      to allow green to have 2 holders (both players on the upset team).
 --   2. Write pattern: ON CONFLICT upsert → DELETE then INSERT.
 --      Prior holders captured before delete for gained/lost notifications.
---   3. GREEN (Giant Killer): weekly award to BOTH players on the team whose
+--   3. GREEN (Underdog): weekly award to BOTH players on the team whose
 --      combined career ELO (at match time) was >=150 below the team they beat.
 --      Per-set, biggest qualifying gap wins, nobody if none qualify.
 --      Uses rating_history.rating_before for exact match-time ELO.
@@ -159,7 +159,7 @@ BEGIN
 
 
     -- ══════════════════════════════════════════════════════════════════════════
-    -- GREEN: Giant Killer — biggest career-ELO upset this week, per set.
+    -- GREEN: Underdog — biggest career-ELO upset this week, per set.
     -- Both players on the winning team get the jersey.
     -- ══════════════════════════════════════════════════════════════════════════
 
@@ -265,7 +265,7 @@ BEGIN
     LIMIT 1;
 
     IF v_green_uid1 IS NOT NULL THEN
-      v_green_reason := 'Giant Killer — ' || v_green_gap || ' ELO gap upset';
+      v_green_reason := 'Underdog — ' || v_green_gap || ' ELO gap upset';
 
       INSERT INTO league_jerseys (league_id, user_id, jersey_color, jersey_type, awarded_week, reason)
       VALUES (v_league.id, v_green_uid1, 'green', 'green', CURRENT_DATE, v_green_reason);
@@ -345,13 +345,13 @@ BEGIN
       -- Only notify if not a prior holder
       IF v_prev_green IS NULL OR NOT (v_green_uid1 = ANY(v_prev_green)) THEN
         INSERT INTO notifications (user_id, type, title, message, related_id, read)
-        VALUES (v_green_uid1, 'achievement', '🟢 Giant Killer!',
+        VALUES (v_green_uid1, 'achievement', '🟢 Underdog!',
                 'Your team beat a much stronger pair — ' || v_green_gap || ' ELO gap upset!',
                 v_league.id, false);
       END IF;
       IF v_green_uid2 IS NOT NULL AND (v_prev_green IS NULL OR NOT (v_green_uid2 = ANY(v_prev_green))) THEN
         INSERT INTO notifications (user_id, type, title, message, related_id, read)
-        VALUES (v_green_uid2, 'achievement', '🟢 Giant Killer!',
+        VALUES (v_green_uid2, 'achievement', '🟢 Underdog!',
                 'Your team beat a much stronger pair — ' || v_green_gap || ' ELO gap upset!',
                 v_league.id, false);
       END IF;
@@ -363,7 +363,7 @@ BEGIN
         IF v_green_uid1 IS NOT NULL AND v_lost_uid = v_green_uid1 THEN CONTINUE; END IF;
         IF v_green_uid2 IS NOT NULL AND v_lost_uid = v_green_uid2 THEN CONTINUE; END IF;
         INSERT INTO notifications (user_id, type, title, message, related_id, read)
-        VALUES (v_lost_uid, 'achievement', 'Giant Killer jersey passed on',
+        VALUES (v_lost_uid, 'achievement', 'Underdog jersey passed on',
                 'Another team pulled off a bigger upset this week.',
                 v_league.id, false);
       END LOOP;

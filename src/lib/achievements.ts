@@ -52,7 +52,7 @@ export const BADGE_DEFINITIONS: Record<string, { label: string; emoji: string }>
 // ────────────────────────────────────────────────────────────────────
 export const JERSEY_LIBRARY: Record<string, { emoji: string; name: string; description: string }> = {
   yellow: { emoji: '🟡', name: 'League Leader',  description: 'Top of the standings' },
-  green:  { emoji: '🟢', name: 'Giant Killer',   description: 'Beat the highest ranked opponent' },
+  green:  { emoji: '🟢', name: 'Underdog',        description: 'Beat a much stronger team' },
   red:    { emoji: '🔴', name: 'Most Improved',  description: 'Biggest ELO gain this week' },
   blue:   { emoji: '🔵', name: 'Entertainer',    description: 'Most peer votes this week' },
   black:  { emoji: '⚫', name: 'Wooden Spoon',   description: 'Bottom of standings' },

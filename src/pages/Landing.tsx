@@ -205,7 +205,7 @@ function FeatureShowcase() {
               <span className="ml-2 text-[10px] font-semibold text-orange-600 bg-orange-50 px-1.5 py-0.5 rounded-full uppercase">Coming soon</span>
             </h3>
             <p className="text-[13px] text-gray-500 leading-relaxed">
-              Automated weekly jerseys for league standouts — League Leader, Giant Killer, Most Improved, and more. Currently available as manual admin awards.
+              Automated weekly jerseys for league standouts — League Leader, Underdog, Most Improved, and more. Currently available as manual admin awards.
             </p>
           </div>
         </div>

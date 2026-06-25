@@ -375,7 +375,7 @@ const JERSEY_EMOJI: Record<string, string> = {
 }
 const JERSEY_LABEL: Record<string, string> = {
   yellow: 'Leader',
-  green:  'Most Improved',
+  green:  'Underdog',
   red:    'Most Competitive',
   blue:   'Most Active',
   black:  'Veteran',

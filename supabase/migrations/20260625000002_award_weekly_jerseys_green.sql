@@ -104,14 +104,17 @@ BEGIN
     -- ══════════════════════════════════════════════════════════════════════════
 
     -- Compute per-player game diff for this league
+    -- Dual-key: legacy sets use {team1_score, team2_score}, newer use {team1, team2}
     DROP TABLE IF EXISTS tmp_game_diff;
     CREATE TEMP TABLE tmp_game_diff AS
       SELECT
         pid AS user_id,
-        SUM(CASE WHEN mr.team1_players @> ARRAY[pid] THEN COALESCE((s.val->>'team1')::int,0)
-                 ELSE COALESCE((s.val->>'team2')::int,0) END) AS games_won,
-        SUM(CASE WHEN mr.team1_players @> ARRAY[pid] THEN COALESCE((s.val->>'team2')::int,0)
-                 ELSE COALESCE((s.val->>'team1')::int,0) END) AS games_lost
+        SUM(CASE WHEN mr.team1_players @> ARRAY[pid]
+                 THEN COALESCE((s.val->>'team1')::int, (s.val->>'team1_score')::int, 0)
+                 ELSE COALESCE((s.val->>'team2')::int, (s.val->>'team2_score')::int, 0) END) AS games_won,
+        SUM(CASE WHEN mr.team1_players @> ARRAY[pid]
+                 THEN COALESCE((s.val->>'team2')::int, (s.val->>'team2_score')::int, 0)
+                 ELSE COALESCE((s.val->>'team1')::int, (s.val->>'team1_score')::int, 0) END) AS games_lost
       FROM match_results mr
       JOIN matches m ON m.id = mr.match_id AND m.league_id = v_league.id
       CROSS JOIN LATERAL jsonb_array_elements(mr.sets_data) AS s(val)

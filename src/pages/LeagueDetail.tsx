@@ -874,10 +874,9 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     setTimeout(() => setAdjustSaved(false), 2000)
   }
 
+  // Manual admin jersey types — green/red are auto-computed by cron, not manually assignable
   const JERSEY_COLOURS = [
     { id: 'yellow', emoji: '\u{1F7E1}', label: 'Leader', desc: 'Currently leading the league' },
-    { id: 'green', emoji: '\u{1F7E2}', label: 'Most Improved', desc: 'Most improved this season' },
-    { id: 'red', emoji: '\u{1F534}', label: 'Most Competitive', desc: 'Most competitive player' },
     { id: 'blue', emoji: '\u{1F535}', label: 'Most Active', desc: 'Most matches played' },
     { id: 'black', emoji: '\u26AB', label: 'Veteran', desc: 'Most experienced player' },
   ]
@@ -886,28 +885,37 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     if (!jerseyUserId || !jerseyNumber) return
     setSavingJersey(true)
 
-    // Find who currently holds this jersey type so we can set previous_holder
-    const { data: existing } = await supabase
+    // Capture current holder(s) before replacing (green can have 2, others 1)
+    const { data: existingRows } = await supabase
       .from('league_jerseys')
       .select('user_id')
       .eq('league_id', league.id)
       .eq('jersey_type', jerseyNumber)
-      .maybeSingle()
-    const previousHolder = existing?.user_id && existing.user_id !== jerseyUserId ? existing.user_id : null
+    const previousHolder = existingRows?.find(r => r.user_id !== jerseyUserId)?.user_id ?? null
 
-    const { error } = await supabase.from('league_jerseys').upsert(
-      {
-        league_id: league.id,
-        user_id: jerseyUserId,
-        jersey_type: jerseyNumber,
-        awarded_week: new Date().toISOString().split('T')[0],
-        previous_holder: previousHolder,
-      },
-      { onConflict: 'league_id,jersey_type' }
-    )
+    // Delete-then-insert: constraint is (league_id, jersey_type, user_id)
+    const { error: delError } = await supabase
+      .from('league_jerseys')
+      .delete()
+      .eq('league_id', league.id)
+      .eq('jersey_type', jerseyNumber)
+    if (delError) {
+      setSavingJersey(false)
+      console.error('[Jersey] delete error:', delError)
+      toast.error(delError.message ?? 'Failed to clear jersey')
+      return
+    }
+
+    const { error } = await supabase.from('league_jerseys').insert({
+      league_id: league.id,
+      user_id: jerseyUserId,
+      jersey_type: jerseyNumber,
+      awarded_week: new Date().toISOString().split('T')[0],
+      previous_holder: previousHolder,
+    })
     setSavingJersey(false)
     if (error) {
-      console.error('[Jersey] upsert error:', error)
+      console.error('[Jersey] insert error:', error)
       toast.error(error.message ?? 'Failed to assign jersey')
       return
     }

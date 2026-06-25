@@ -175,6 +175,9 @@ function useStandings(leagueId: string) {
         return (a.id ?? '') < (b.id ?? '') ? -1 : (a.id ?? '') > (b.id ?? '') ? 1 : 0
       })
 
+      // MIRROR of classifySet() in supabase/functions/_shared/elo.ts
+      // Canonical thresholds: completed = (max>=6 && |diff|>=2) || (7-6); void = !completed && total<6
+      // Cannot import — Vite frontend can't resolve Deno modules. Keep in sync manually.
       const streakMap: Record<string, number> = {}
       for (const uid of userIds) {
         // Walk sets in REVERSE chronological order (newest first)
@@ -1245,6 +1248,8 @@ interface QuickSetScore {
   team2: number | ''
 }
 
+// MIRROR of classifySet() completion check in supabase/functions/_shared/elo.ts
+// Canonical: completed = (max>=6 && |diff|>=2) || (max==7 && min==6). Keep in sync manually.
 const isCompletedSet = (a: number, b: number) =>
   (Math.max(a, b) >= 6 && Math.abs(a - b) >= 2) || (a === 7 && b === 6) || (a === 6 && b === 7)
 

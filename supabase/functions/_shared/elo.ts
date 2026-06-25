@@ -39,6 +39,49 @@ export function applyMultipliers(
   return Math.round(ratingChange * multiplier)
 }
 
+// ── Set classification — SINGLE SOURCE OF TRUTH ──────────────────────────────
+// Canonical void / completed / unfinished rule for ONE set.
+// Thresholds:
+//   completed = (max >= 6 AND |g1-g2| >= 2) OR (max == 7 AND min == 6)
+//   void      = NOT completed AND (g1 + g2) < 6    → return null (skip)
+//   completed → team1Score = g1>g2 ? 1 : 0, isDraw = false, isDominant = |g1-g2| >= 5
+//   unfinished (not void) → proportional scores, isDraw = (g1 === g2), isDominant = false
+//
+// MIRRORS that must stay in sync manually (can't import this module):
+//   - src/pages/LeagueDetail.tsx streak computation (~line 190) — frontend, Vite can't import Deno
+//   - src/pages/LeagueDetail.tsx isCompletedSet (~line 1248) — completion check only
+//   - supabase/migrations/20260624000003_rebuild_league_standings.sql — SQL, can't import TS
+// ─────────────────────────────────────────────────────────────────────────────
+export function classifySet(
+  g1: number,
+  g2: number,
+): { team1Score: number; team2Score: number; isDraw: boolean; isDominant: boolean } | null {
+  const total = g1 + g2
+  const maxG = Math.max(g1, g2)
+  const minG = Math.min(g1, g2)
+  const completed = (maxG >= 6 && Math.abs(g1 - g2) >= 2) || (maxG === 7 && minG === 6)
+  const isVoid = !completed && total < 6
+
+  if (isVoid) return null // caller should skip
+
+  if (completed) {
+    return {
+      team1Score: g1 > g2 ? 1 : 0,
+      team2Score: g1 > g2 ? 0 : 1,
+      isDraw: false,
+      isDominant: Math.abs(g1 - g2) >= 5,
+    }
+  }
+
+  // Unfinished but not void — proportional scores
+  return {
+    team1Score: g1 / total,
+    team2Score: g2 / total,
+    isDraw: g1 === g2,
+    isDominant: false,
+  }
+}
+
 export function isDominantWin(setsData: any[]): boolean {
   if (!setsData || setsData.length === 0) return false
   return setsData.every((set: any) => {
@@ -95,9 +138,10 @@ export function processTeamElo(params: {
 }
 
 /**
- * Classifies a single match result into team1Score, team2Score, recordAsDraw, dominant.
- * Handles single-set void/unfinished/completed classification and multi-set fallback.
- * Returns null for void sets (should be skipped entirely).
+ * Classifies a whole match result into team1Score, team2Score, recordAsDraw, dominant.
+ * Single-set matches delegate to classifySet() for the canonical void/completed/unfinished rule.
+ * Multi-set matches use resultType directly.
+ * Returns null for void single-set matches (should be skipped entirely).
  */
 export function classifyMatch(
   resultType: string,
@@ -111,29 +155,19 @@ export function classifyMatch(
   if (isSingleSet) {
     const g1 = (sets[0]?.team1_score ?? sets[0]?.team1 ?? 0) as number
     const g2 = (sets[0]?.team2_score ?? sets[0]?.team2 ?? 0) as number
-    const total = g1 + g2
-    const maxG = Math.max(g1, g2)
-    const minG = Math.min(g1, g2)
-    const completed = (maxG >= 6 && Math.abs(g1 - g2) >= 2) || (maxG === 7 && minG === 6)
-    const isVoid = !completed && total < 6
+    const setResult = classifySet(g1, g2)
 
-    if (isVoid) return null // caller should skip
+    if (setResult === null) return null // void — caller should skip
 
-    if (completed) {
-      const t1Won = g1 > g2
-      return {
-        team1Score: t1Won ? 1 : 0,
-        team2Score: t1Won ? 0 : 1,
-        recordAsDraw: false,
-        dominant: isDominantWin(sets),
-      }
-    } else {
-      return {
-        team1Score: g1 / total,
-        team2Score: g2 / total,
-        recordAsDraw: true,
-        dominant: false,
-      }
+    // For career ELO: all unfinished sets are recorded as draws (blanket),
+    // distinct from classifySet.isDraw which is true only when g1 === g2.
+    // Completed sets return integer scores (1 or 0); unfinished return fractional.
+    const isCompleted = setResult.team1Score === 1 || setResult.team1Score === 0
+    return {
+      team1Score: setResult.team1Score,
+      team2Score: setResult.team2Score,
+      recordAsDraw: !isCompleted,
+      dominant: setResult.isDominant,
     }
   }
 

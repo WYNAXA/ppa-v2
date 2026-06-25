@@ -1,12 +1,15 @@
 -- ══════════════════════════════════════════════════════════════════════════════
 -- Deterministic league standings rebuild from verified match_results.
--- Replicates process-elo Branch A per-set logic EXACTLY:
---   - Iterates sets_data for each verified match_result in the league
---   - Void rule: set is void if NOT completed AND total games < 6
---     where completed = (max >= 6 AND diff >= 2) OR (max == 7 AND min == 6)
---   - Non-void completed set: winner = team with more games → +1W +3pts
---   - Non-void unfinished set with equal games: draw → +1D +1pt each
---   - Non-void unfinished set with unequal games: W/L by game count
+-- MIRROR of classifySet() in supabase/functions/_shared/elo.ts (SQL, can't import TS).
+-- Canonical thresholds: completed = (max>=6 AND |diff|>=2) OR (max==7 AND min==6)
+--                       void = NOT completed AND total < 6
+-- Keep in sync with the TS canonical. See classifySet source-of-truth comment.
+--
+-- Per-set logic:
+--   - Void set → skip entirely
+--   - Completed set: winner = team with more games → +1W +3pts
+--   - Unfinished set with equal games: draw → +1D +1pt each
+--   - Unfinished set with unequal games: W/L by game count
 --   - Everyone in a non-void set: +1 matches_played
 --
 -- Also serves as calculate_league_standings (alias).

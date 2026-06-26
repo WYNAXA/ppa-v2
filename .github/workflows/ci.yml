@@ -27,6 +27,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Codegen check (no hand-edited generated files)
+        run: npm run codegen:check
+
       - name: Typecheck
         run: npx tsc --noEmit
 

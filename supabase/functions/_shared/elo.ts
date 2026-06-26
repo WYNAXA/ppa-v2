@@ -3,7 +3,11 @@
 //   - process-elo (live incremental processing)
 //   - rebuild-ratings (full deterministic rebuild)
 // ────────────────────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────────────────────
 
+import { classifyKernel } from './setClassification.ts'
+
+export function calculateExpected(
 export function calculateExpected(
   playerRating: number,
   opponentRating: number,
@@ -56,11 +60,7 @@ export function classifySet(
   g1: number,
   g2: number,
 ): { team1Score: number; team2Score: number; isDraw: boolean; isDominant: boolean } | null {
-  const total = g1 + g2
-  const maxG = Math.max(g1, g2)
-  const minG = Math.min(g1, g2)
-  const completed = (maxG >= 6 && Math.abs(g1 - g2) >= 2) || (maxG === 7 && minG === 6)
-  const isVoid = !completed && total < 6
+  const { completed, isVoid } = classifyKernel(g1, g2)
 
   if (isVoid) return null // caller should skip
 
@@ -74,6 +74,7 @@ export function classifySet(
   }
 
   // Unfinished but not void — proportional scores
+  const total = g1 + g2
   return {
     team1Score: g1 / total,
     team2Score: g2 / total,

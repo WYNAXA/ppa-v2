@@ -9,6 +9,7 @@ import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { sendNotification } from '@/lib/notifications'
+import { classifyKernel } from '@/lib/setClassification'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { PairAvatar } from '@/components/shared/PairAvatar'
@@ -194,11 +195,7 @@ function useStandings(leagueId: string) {
           for (let si = sets.length - 1; si >= 0 && !done; si--) {
             const g1 = sets[si].team1 ?? sets[si].team1_score ?? 0
             const g2 = sets[si].team2 ?? sets[si].team2_score ?? 0
-            const total = g1 + g2
-            const maxG = Math.max(g1, g2)
-            const minG = Math.min(g1, g2)
-            const completed = (maxG >= 6 && Math.abs(g1 - g2) >= 2) || (maxG === 7 && minG === 6)
-            const isVoid = !completed && total < 6
+            const { completed, isVoid } = classifyKernel(g1, g2)
             if (isVoid) continue
             const myGames = isT1 ? g1 : g2
             const theirGames = isT1 ? g2 : g1
@@ -1255,11 +1252,9 @@ interface QuickSetScore {
   team1: number | ''
   team2: number | ''
 }
+// Completion check via generated kernel (single source of truth).
+const isCompletedSet = (a: number, b: number) => classifyKernel(a, b).completed
 
-// MIRROR of classifySet() completion check in supabase/functions/_shared/elo.ts
-// Canonical: completed = (max>=6 && |diff|>=2) || (max==7 && min==6). Keep in sync manually.
-const isCompletedSet = (a: number, b: number) =>
-  (Math.max(a, b) >= 6 && Math.abs(a - b) >= 2) || (a === 7 && b === 6) || (a === 6 && b === 7)
 
 const SCORING_MIN_SETS: Record<string, number> = {
   standard: 2,

@@ -7,7 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "codegen": "node scripts/codegen/generate.ts",
+    "codegen:check": "node scripts/codegen/generate.ts && git diff --exit-code src/lib/setClassification.ts supabase/functions/_shared/setClassification.ts supabase/migrations/20260626000003_classify_set_sql.generated.sql",
+    "test:drift": "node scripts/codegen/drift-test.ts"
   },
   "dependencies": {
     "@radix-ui/react-slot": "^1.2.4",

@@ -2349,58 +2349,39 @@ export function LeagueDetailPage() {
               {/* Standings table — pairs or individual */}
               {isPairs ? (
                 <>
-                <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                  <div className="grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100">
-                    {['#', 'Pair', 'P', 'W', 'D', 'L', 'GD', 'Pts'].map((h) => (
-                      <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
-                    ))}
-                  </div>
-                  {teamStandings.map((row, i) => {
-                    const isMyTeam = row.player1_id === currentUserId || row.player2_id === currentUserId
-                    return (
-                      <div
-                        key={row.team_id}
-                        className={cn(
-                          'grid grid-cols-[28px_1fr_36px_36px_28px_36px_36px_40px] gap-1 items-center px-3 py-2.5',
-                          i < teamStandings.length - 1 && 'border-b border-gray-50',
-                          isMyTeam && 'bg-teal-50/60'
-                        )}
-                      >
-                        <span className={cn('text-[12px] font-bold', isMyTeam ? 'text-[#009688]' : 'text-gray-400')}>
-                          {row.rank <= 3 ? ['🥇', '🥈', '🥉'][row.rank - 1] : row.rank}
-                        </span>
-                        <div className="flex items-center gap-2 min-w-0">
-                          <PairAvatar
-                            player1={{ name: row.player1?.name, avatarUrl: row.player1?.avatar_url }}
-                            player2={{ name: row.player2?.name, avatarUrl: row.player2?.avatar_url }}
-                          />
-                          <span className={cn('text-[12px] font-semibold truncate', isMyTeam ? 'text-[#009688]' : 'text-gray-800')}>
-                            {row.team_name ?? `${row.player1?.name?.split(' ')[0] ?? '?'} & ${row.player2?.name?.split(' ')[0] ?? '?'}`}{isMyTeam ? ' ★' : ''}
-                          </span>
-                          {[row.player1_id, row.player2_id].map((pid) => jerseyByUser[pid] ? (
-                            <span
-                              key={pid}
-                              className="flex-shrink-0 text-[12px] leading-none"
-                              title={JERSEY_LABEL[jerseyByUser[pid]] ?? 'Jersey'}
-                            >
-                              {JERSEY_EMOJI[jerseyByUser[pid]] ?? ''}
-                            </span>
-                          ) : null)}
-                        </div>
-                        <span className="text-[12px] text-gray-500 text-center">{row.played}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.won}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.drawn}</span>
-                        <span className="text-[12px] text-gray-500 text-center">{row.lost}</span>
-                        <span className={cn('text-[12px] text-center', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
-                          {row.game_difference > 0 ? '+' : ''}{row.game_difference}
-                        </span>
-                        <span className={cn('text-[12px] font-bold text-center', isMyTeam ? 'text-[#009688]' : 'text-gray-800')}>
-                          {row.points}
-                        </span>
-                      </div>
-                    )
-                  })}
-                </div>
+                <StandingsAccordion<(typeof teamStandings)[number] & { id: string }>
+                  rows={teamStandings.map(t => ({ ...t, id: t.team_id }))}
+                  isMe={(row) => row.player1_id === currentUserId || row.player2_id === currentUserId}
+                  identity={(row, isMe) => (
+                    <>
+                      <PairAvatar
+                        player1={{ name: row.player1?.name, avatarUrl: row.player1?.avatar_url }}
+                        player2={{ name: row.player2?.name, avatarUrl: row.player2?.avatar_url }}
+                      />
+                      <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                        {row.team_name ?? `${row.player1?.name?.split(' ')[0] ?? '?'} & ${row.player2?.name?.split(' ')[0] ?? '?'}`}{isMe ? ' ★' : ''}
+                      </span>
+                      {[row.player1_id, row.player2_id].map((pid) => jerseyByUser[pid] ? (
+                        <span key={pid} className="flex-shrink-0 text-[12px] leading-none" title={JERSEY_LABEL[jerseyByUser[pid]] ?? 'Jersey'}>{JERSEY_EMOJI[jerseyByUser[pid]] ?? ''}</span>
+                      ) : null)}
+                    </>
+                  )}
+                  headlineLabel="Pts"
+                  headline={(row, isMe) => (
+                    <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.points}</span>
+                  )}
+                  detail={(row) => (
+                    <>
+                      <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                      <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
+                      <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                      <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
+                      <span className={cn(row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
+                        GD <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
+                      </span>
+                    </>
+                  )}
+                />
 
                 {/* Unpaired members (not in any league_team) */}
                 {(() => {
@@ -2474,9 +2455,18 @@ export function LeagueDetailPage() {
                     {standingsView === 'points' && (
                       <StandingsAccordion<Standing>
                         rows={viewRows}
-                        currentUserId={currentUserId}
-                        jerseyByUser={jerseyByUser}
-                        jerseyEmoji={JERSEY_EMOJI}
+                        isMe={(row) => row.user_id === currentUserId}
+                        identity={(row, isMe) => (
+                          <>
+                            <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {jerseyByUser[row.user_id] && (
+                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                              )}
+                            </span>
+                          </>
+                        )}
                         headlineLabel={isEloLeague ? 'ELO' : 'P'}
                         headline={(row, isMe) =>
                           isEloLeague ? (() => {
@@ -2519,9 +2509,18 @@ export function LeagueDetailPage() {
                       <>
                         <StandingsAccordion<Standing>
                           rows={viewRows}
-                          currentUserId={currentUserId}
-                          jerseyByUser={jerseyByUser}
-                          jerseyEmoji={JERSEY_EMOJI}
+                          isMe={(row) => row.user_id === currentUserId}
+                          identity={(row, isMe) => (
+                            <>
+                              <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                              <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                {jerseyByUser[row.user_id] && (
+                                  <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                )}
+                              </span>
+                            </>
+                          )}
                           headlineLabel="Win%"
                           headline={(row) => (
                             <span className="text-[12px] font-bold text-[#009688]">{row.win_rate}%</span>
@@ -2544,9 +2543,18 @@ export function LeagueDetailPage() {
                     {standingsView === 'games_won' && (
                       <StandingsAccordion<Standing>
                         rows={viewRows}
-                        currentUserId={currentUserId}
-                        jerseyByUser={jerseyByUser}
-                        jerseyEmoji={JERSEY_EMOJI}
+                        isMe={(row) => row.user_id === currentUserId}
+                        identity={(row, isMe) => (
+                          <>
+                            <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {jerseyByUser[row.user_id] && (
+                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                              )}
+                            </span>
+                          </>
+                        )}
                         headlineLabel="GW"
                         headline={(row) => (
                           <span className="text-[12px] font-bold text-[#009688]">{row.games_won}</span>
@@ -2564,9 +2572,18 @@ export function LeagueDetailPage() {
                     {standingsView === 'game_diff' && (
                       <StandingsAccordion<Standing>
                         rows={viewRows}
-                        currentUserId={currentUserId}
-                        jerseyByUser={jerseyByUser}
-                        jerseyEmoji={JERSEY_EMOJI}
+                        isMe={(row) => row.user_id === currentUserId}
+                        identity={(row, isMe) => (
+                          <>
+                            <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {jerseyByUser[row.user_id] && (
+                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                              )}
+                            </span>
+                          </>
+                        )}
                         headlineLabel="GD"
                         headline={(row) => (
                           <span className={cn('text-[12px] font-bold', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
@@ -2587,9 +2604,18 @@ export function LeagueDetailPage() {
                     {standingsView === 'streak' && (
                       <StandingsAccordion<Standing>
                         rows={viewRows}
-                        currentUserId={currentUserId}
-                        jerseyByUser={jerseyByUser}
-                        jerseyEmoji={JERSEY_EMOJI}
+                        isMe={(row) => row.user_id === currentUserId}
+                        identity={(row, isMe) => (
+                          <>
+                            <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {jerseyByUser[row.user_id] && (
+                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                              )}
+                            </span>
+                          </>
+                        )}
                         headlineLabel="🔥"
                         headline={(row) => (
                           <span className="text-[12px] font-bold text-orange-500">{row.win_streak > 0 ? `${row.win_streak}🔥` : '0'}</span>

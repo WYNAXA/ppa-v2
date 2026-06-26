@@ -376,9 +376,9 @@ const JERSEY_EMOJI: Record<string, string> = {
 const JERSEY_LABEL: Record<string, string> = {
   yellow: 'Leader',
   green:  'Underdog',
-  red:    'Most Competitive',
-  blue:   'Most Active',
-  black:  'Veteran',
+  red:    'Most Improved',
+  blue:   'Entertainer',
+  black:  'Wooden Spoon',
 }
 
 function useLeagueJerseys(leagueId: string) {
@@ -878,8 +878,8 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
   // Manual admin jersey types — green/red are auto-computed by cron, not manually assignable
   const JERSEY_COLOURS = [
     { id: 'yellow', emoji: '\u{1F7E1}', label: 'Leader', desc: 'Currently leading the league' },
-    { id: 'blue', emoji: '\u{1F535}', label: 'Most Active', desc: 'Most matches played' },
-    { id: 'black', emoji: '\u26AB', label: 'Veteran', desc: 'Most experienced player' },
+    { id: 'blue', emoji: '\u{1F535}', label: 'Entertainer', desc: 'Most entertaining (peer voted)' },
+    { id: 'black', emoji: '\u26AB', label: 'Wooden Spoon', desc: 'Bottom of the standings' },
   ]
 
   async function saveJersey() {

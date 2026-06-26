@@ -4,7 +4,7 @@
 import { classifyKernel } from './set-classification.spec.ts'
 import { execFileSync } from 'node:child_process'
 
-const PSQL = '/usr/local/opt/libpq/bin/psql'
+const PSQL = process.env.PSQL_BIN ?? '/usr/local/opt/libpq/bin/psql'
 const CONN = process.env.PPA_DB_URL ?? ''
 if (!CONN) {
   console.error('drift-test: set PPA_DB_URL (e.g. postgresql://user:pass@host:5432/postgres)')

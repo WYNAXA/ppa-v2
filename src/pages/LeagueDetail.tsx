@@ -875,10 +875,9 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     setTimeout(() => setAdjustSaved(false), 2000)
   }
 
-  // Manual admin jersey types — green/red are auto-computed by cron, not manually assignable
+  // Manual admin jersey types — green/red/blue are auto-computed by cron, not manually assignable
   const JERSEY_COLOURS = [
     { id: 'yellow', emoji: '\u{1F7E1}', label: 'Leader', desc: 'Currently leading the league' },
-    { id: 'blue', emoji: '\u{1F535}', label: 'Entertainer', desc: 'Most entertaining (peer voted)' },
     { id: 'black', emoji: '\u26AB', label: 'Wooden Spoon', desc: 'Bottom of the standings' },
   ]
 

@@ -42,9 +42,11 @@ interface ScoreEntryPanelProps {
   team2Names: string
   initialSets?: SetScore[]
   onChange: (sets: SetScore[], resultType: 'team1_win' | 'team2_win' | 'draw' | null) => void
+  // TUNABLE: max sets per result. Casual = best-of-3 (3); league set-as-match = high practical ceiling (9).
+  maxSets?: number
 }
 
-export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange }: ScoreEntryPanelProps) {
+export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange, maxSets = 3 }: ScoreEntryPanelProps) {
   const [sets, setSetsInternal] = useState<SetScore[]>(
     initialSets && initialSets.length > 0 ? initialSets : [{ team1: '', team2: '' }]
   )
@@ -99,7 +101,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange 
   }
 
   function addSet() {
-    if (sets.length < 3) setSets((prev) => [...prev, { team1: '', team2: '' }])
+    if (sets.length < maxSets) setSets((prev) => [...prev, { team1: '', team2: '' }])
   }
 
   function removeSet(index: number) {
@@ -269,7 +271,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange 
         )
       })}
 
-      {sets.length < 3 && (
+      {sets.length < maxSets && (
         <button
           onClick={addSet}
           className="w-full rounded-xl border border-dashed border-gray-200 py-2.5 text-[12px] text-gray-400 hover:border-teal-300 hover:text-teal-600 transition-colors mb-3"

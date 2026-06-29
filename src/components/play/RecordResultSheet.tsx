@@ -63,6 +63,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [creatingNext, setCreatingNext] = useState(false)
   const [selectedForSwap, setSelectedForSwap] = useState<string | null>(null)
 
+  // TUNABLE: max sets per result. Casual = best-of-3 (3); league set-as-match = high practical ceiling (9).
+  const maxSets = match?.league_id ? 9 : 3
+
   // Guard: initialise teams ONCE on open, never re-derived
   const initialisedRef = useRef(false)
   useEffect(() => {
@@ -269,7 +272,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   }
 
   function addSet() {
-    if (sets.length < 3) setSets((prev) => [...prev, { team1: '', team2: '' }])
+    if (sets.length < maxSets) setSets((prev) => [...prev, { team1: '', team2: '' }])
   }
 
   function removeSet(index: number) {
@@ -566,7 +569,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       )
                     })}
 
-                    {sets.length < 3 && (
+                    {sets.length < maxSets && (
                       <button
                         onClick={addSet}
                         className="w-full rounded-xl border border-dashed border-gray-200 py-2.5 text-[12px] text-gray-400 hover:border-teal-300 hover:text-teal-600 transition-colors mb-3"

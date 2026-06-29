@@ -1500,6 +1500,7 @@ export function MatchDetailPage() {
                       team2Names={t2Names}
                       initialSets={parseSetsData(result.sets_data)}
                       onChange={(sets, rt) => { setCounterSets(sets); setCounterResultType(rt) }}
+                      maxSets={match.league_id ? 9 : 3}
                     />
                     <div className="flex gap-2 mt-3">
                       <button
@@ -1727,6 +1728,7 @@ export function MatchDetailPage() {
                     team2Names={t2Names}
                     initialSets={parseSetsData(result.sets_data)}
                     onChange={(sets, rt) => { setEditSets(sets); setEditResultType(rt) }}
+                    maxSets={match.league_id ? 9 : 3}
                   />
                   <div className="flex gap-2 mt-3">
                     <button
@@ -1840,6 +1842,7 @@ export function MatchDetailPage() {
                       team2Names={t2Names}
                       initialSets={parseSetsData(result.sets_data)}
                       onChange={(sets, rt) => { setDisputeSets(sets); setDisputeResultType(rt) }}
+                      maxSets={match.league_id ? 9 : 3}
                     />
                     <div className="flex gap-2 mt-3">
                       <button

@@ -22,6 +22,7 @@ export interface Match {
   booked_court_number: number | null
   created_by: string | null
   group_id: string | null
+  league_id: string | null
   poll_id: string | null
   notes: string | null
   travel_notes: string | null

@@ -34,8 +34,7 @@ const STRIPE_APPEARANCE = {
 
 const MAX_ADVANCE_DAYS = 21
 const PPA_EXCLUSIVE_FROM_DAY = 15
-const PRICE_PER_PLAYER_PENCE = 900
-const TOTAL_PRICE_PENCE = 3600
+const PLAYERS_PER_COURT = 4
 
 const PLATFORM_LABELS: Record<string, { label: string; appScheme?: string }> = {
   Playtomic: { label: 'Playtomic', appScheme: 'playtomic://' },
@@ -58,6 +57,7 @@ interface Venue {
   latitude?: number | null
   longitude?: number | null
   ppa_bookable?: boolean | null
+  price_per_hour?: number | null
   price_pence?: number | null
   price_per_player_pence?: number | null
   website?: string | null
@@ -209,6 +209,8 @@ interface PaymentFormProps {
   setLoading: (v: boolean) => void
   error: string
   setError: (v: string) => void
+  depositPence: number
+  totalPence: number
 }
 
 function PaymentForm({
@@ -220,6 +222,8 @@ function PaymentForm({
   setLoading,
   error,
   setError,
+  depositPence,
+  totalPence,
 }: PaymentFormProps) {
   const stripe = useStripe()
   const elements = useElements()
@@ -264,11 +268,11 @@ function PaymentForm({
         </div>
         <div className="border-t border-teal-100 pt-2">
           <p className="text-[16px] font-bold text-teal-900">
-            You pay: {formatPence(PRICE_PER_PLAYER_PENCE)}{' '}
+            You pay: {formatPence(depositPence)}{' '}
             <span className="text-[12px] font-normal text-teal-600">(your deposit)</span>
           </p>
           <p className="text-[12px] text-teal-600 mt-0.5">
-            The remaining {formatPence(TOTAL_PRICE_PENCE - PRICE_PER_PLAYER_PENCE)} is split between
+            The remaining {formatPence(totalPence - depositPence)} is split between
             the other 3 players. They'll be asked to pay 48 hours before the match.
           </p>
         </div>
@@ -294,7 +298,7 @@ function PaymentForm({
         ) : (
           <>
             <CreditCard className="h-4 w-4" />
-            Pay {formatPence(PRICE_PER_PLAYER_PENCE)}
+            Pay {formatPence(depositPence)}
           </>
         )}
       </button>
@@ -351,6 +355,12 @@ export function BookCourtPage() {
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentError, setPaymentError] = useState('')
   const [fetchingPayment, setFetchingPayment] = useState(false)
+
+  // ── Derived pricing (scales with duration + venue price_per_hour) ────────────
+  const pricePerHour = selectedVenue?.price_per_hour ?? 0
+  const totalPence = pricePerHour > 0 ? Math.round(pricePerHour * (selectedDuration / 60)) : 0
+  const perPlayerPence = totalPence > 0 ? Math.round(totalPence / PLAYERS_PER_COURT) : 0
+  const pricingAvailable = pricePerHour > 0
 
   // ── Match details step (standalone bookings only) ───────────────────────────
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -477,7 +487,7 @@ export function BookCourtPage() {
     supabase
       .from('padel_venues')
       .select(
-        'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_pence, price_per_player_pence, website, phone',
+        'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone',
       )
       .or(`venue_name.ilike.%${debouncedVenueQuery}%,city.ilike.%${debouncedVenueQuery}%`)
       .limit(15)
@@ -583,7 +593,7 @@ export function BookCourtPage() {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          amount_pence: PRICE_PER_PLAYER_PENCE,
+          amount_pence: perPlayerPence,
           booker_id: userId,
           venue_name: selectedVenue.venue_name,
           match_date: selectedDate,
@@ -640,8 +650,8 @@ export function BookCourtPage() {
           player_ids: userPlayers,
           guest_players: guestPlayers,
           paid_player_ids: [userId],
-          total_price_pence: selectedVenue.price_pence ?? TOTAL_PRICE_PENCE,
-          price_per_player_pence: selectedVenue.price_per_player_pence ?? PRICE_PER_PLAYER_PENCE,
+          total_price_pence: totalPence,
+          price_per_player_pence: perPlayerPence,
           booker_stripe_pi_id: piId,
           payment_deadline: paymentDeadline,
         })
@@ -1224,9 +1234,8 @@ export function BookCourtPage() {
                         const priceP =
                           slot.price != null
                             ? slot.price
-                            : selectedVenue?.price_pence ?? TOTAL_PRICE_PENCE
-                        const pricePerPlayer =
-                          selectedVenue?.price_per_player_pence ?? PRICE_PER_PLAYER_PENCE
+                            : totalPence
+                        const pricePerPlayer = perPlayerPence
                         const isSelected = selectedSlot?.start_time === slot.start_time
                         return (
                           <button
@@ -1423,16 +1432,19 @@ export function BookCourtPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[14px] font-bold text-gray-800">
-                      Total: {formatPence(TOTAL_PRICE_PENCE)}
+                      Total: {formatPence(totalPence)}
                     </p>
                     <p className="text-[12px] text-gray-500">
-                      You pay {formatPence(PRICE_PER_PLAYER_PENCE)} now as your deposit
+                      You pay {formatPence(perPlayerPence)} now as your deposit
                     </p>
                   </div>
                   <Users className="h-5 w-5 text-gray-300" />
                 </div>
               </div>
 
+              {!pricingAvailable && (
+                <p className="text-[13px] text-red-500 text-center">Pricing not set for this venue — booking unavailable.</p>
+              )}
               <button
                 onClick={() => {
                   if (matchId) {
@@ -1442,7 +1454,8 @@ export function BookCourtPage() {
                     setStep('match-details')
                   }
                 }}
-                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+                disabled={!pricingAvailable}
+                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {matchId ? 'Continue to payment' : 'Next'}
                 <ChevronRight className="h-4 w-4" />
@@ -1505,12 +1518,16 @@ export function BookCourtPage() {
                 <p className="text-[11px] text-gray-400 mt-1">Affects how this match impacts your ranking.</p>
               </div>
 
+              {!pricingAvailable && (
+                <p className="text-[13px] text-red-500 text-center">Pricing not set for this venue — booking unavailable.</p>
+              )}
               <button
                 onClick={() => {
                   setStep('payment')
                   initPayment()
                 }}
-                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+                disabled={!pricingAvailable}
+                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 Continue to payment
                 <ChevronRight className="h-4 w-4" />
@@ -1580,6 +1597,8 @@ export function BookCourtPage() {
                     setLoading={setPaymentLoading}
                     error={paymentError}
                     setError={setPaymentError}
+                    depositPence={perPlayerPence}
+                    totalPence={totalPence}
                   />
                 </Elements>
               )}
@@ -1661,7 +1680,7 @@ export function BookCourtPage() {
                             )}
                           >
                             {isBooker
-                              ? `${formatPence(PRICE_PER_PLAYER_PENCE)} paid`
+                              ? `${formatPence(perPlayerPence)} paid`
                               : '⏳ Payment pending — link sent 48hrs before match'}
                           </p>
                         </div>

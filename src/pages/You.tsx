@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
 import { subscribeToPush, unsubscribeFromPush } from '@/lib/push'
 import { EloHistoryChart } from '@/components/compete/EloHistoryChart'
+import { EloStageCard } from '@/components/compete/EloStageCard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1083,6 +1084,13 @@ export function YouPage() {
         {userId && (
           <section ref={ratingRef} className="pb-2" style={{ scrollMarginTop: '80px' }}>
             <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.rating_history')}</h2>
+            {stats && (
+              <EloStageCard
+                userId={userId}
+                matchesPlayed={stats.totalMatches}
+                careerElo={(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) ?? 0}
+              />
+            )}
             <EloHistoryChart userId={userId} />
           </section>
         )}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -22,6 +22,15 @@ import { calculateDistance, formatDistance, driveMinutes } from '@/lib/travelUti
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
+
+const STRIPE_APPEARANCE = {
+  theme: 'stripe' as const,
+  variables: {
+    colorPrimary: '#009688',
+    borderRadius: '12px',
+    fontFamily: 'system-ui, sans-serif',
+  },
+}
 
 const MAX_ADVANCE_DAYS = 21
 const PPA_EXCLUSIVE_FROM_DAY = 15
@@ -335,6 +344,10 @@ export function BookCourtPage() {
 
   // ── Payment step ────────────────────────────────────────────────────────────
   const [clientSecret, setClientSecret] = useState<string | null>(null)
+  const stripeElementsOptions = useMemo(
+    () => (clientSecret ? { clientSecret, appearance: STRIPE_APPEARANCE } : undefined),
+    [clientSecret],
+  )
   const [paymentLoading, setPaymentLoading] = useState(false)
   const [paymentError, setPaymentError] = useState('')
   const [fetchingPayment, setFetchingPayment] = useState(false)
@@ -1554,18 +1567,9 @@ export function BookCourtPage() {
 
               {clientSecret && selectedVenue && selectedSlot && !fetchingPayment && (
                 <Elements
+                  key={clientSecret}
                   stripe={stripePromise}
-                  options={{
-                    clientSecret,
-                    appearance: {
-                      theme: 'stripe',
-                      variables: {
-                        colorPrimary: '#009688',
-                        borderRadius: '12px',
-                        fontFamily: 'system-ui, sans-serif',
-                      },
-                    },
-                  }}
+                  options={stripeElementsOptions}
                 >
                   <PaymentForm
                     onSuccess={handlePaymentSuccess}

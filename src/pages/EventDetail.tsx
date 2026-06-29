@@ -1,10 +1,12 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2 } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Trash2 } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
@@ -115,6 +117,8 @@ export function EventDetailPage() {
   const queryClient   = useQueryClient()
   const locale = useDateLocale()
 
+  const [deleting, setDeleting] = useState(false)
+
   const { data: event, isLoading }     = useEvent(id)
   const { data: myRsvp }               = useMyRsvp(id, userId)
   const { data: attendees = [] }       = useAttendees(id)
@@ -164,6 +168,16 @@ export function EventDetailPage() {
     }
   }
 
+  async function handleDelete() {
+    if (!window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) return
+    setDeleting(true)
+    const { error } = await supabase.from('events').delete().eq('id', ev.id)
+    setDeleting(false)
+    if (error) { toast.error(error.message ?? 'Failed to delete event'); return }
+    toast.success('Event deleted')
+    goBack(navigate, '/community')
+  }
+
   function addToCalendar() {
     try {
       const start = new Date(ev.start_time)
@@ -211,6 +225,16 @@ export function EventDetailPage() {
         >
           <Share2 className="h-4 w-4 text-gray-600" />
         </button>
+        {event.created_by === userId && (
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="h-9 w-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0"
+            title="Delete event"
+          >
+            <Trash2 className="h-4 w-4 text-red-500" />
+          </button>
+        )}
       </div>
 
       {/* Meta card */}

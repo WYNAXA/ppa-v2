@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
+import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 
 type RsvpStatus = 'going' | 'interested' | 'not_going'
 
@@ -118,6 +119,7 @@ export function EventDetailPage() {
   const locale = useDateLocale()
 
   const [deleting, setDeleting] = useState(false)
+  const [showCalendar, setShowCalendar] = useState(false)
 
   const { data: event, isLoading }     = useEvent(id)
   const { data: myRsvp }               = useMyRsvp(id, userId)
@@ -178,15 +180,12 @@ export function EventDetailPage() {
     goBack(navigate, '/community')
   }
 
-  function addToCalendar() {
-    try {
-      const start = new Date(ev.start_time)
-      const end   = ev.end_time ? new Date(ev.end_time) : new Date(start.getTime() + 3600_000)
-      const fmt   = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'
-      const url   = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(ev.title)}&dates=${fmt(start)}/${fmt(end)}${ev.location ? `&location=${encodeURIComponent(ev.location)}` : ''}${ev.description ? `&details=${encodeURIComponent(ev.description)}` : ''}`
-      window.open(url, '_blank')
-    } catch { /* ignore */ }
-  }
+  const calendarEvent = event ? {
+    title: event.title,
+    start: new Date(event.start_time),
+    end: event.end_time ? new Date(event.end_time) : new Date(new Date(event.start_time).getTime() + 3600_000),
+    location: event.location ?? '',
+  } : null
 
   const formattedStart = (() => {
     try { return format(parseISO(event.start_time), 'EEEE, d MMMM yyyy', { locale }) } catch { return event.start_time }
@@ -212,7 +211,7 @@ export function EventDetailPage() {
           <h1 className="text-[18px] font-bold text-gray-900 leading-tight truncate">{event.title}</h1>
         </div>
         <button
-          onClick={addToCalendar}
+          onClick={() => setShowCalendar(true)}
           className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
           title="Add to calendar"
         >
@@ -334,6 +333,9 @@ export function EventDetailPage() {
             ))}
           </div>
         </div>
+      )}
+      {calendarEvent && (
+        <AddToCalendarSheet open={showCalendar} onClose={() => setShowCalendar(false)} event={calendarEvent} />
       )}
     </div>
   )

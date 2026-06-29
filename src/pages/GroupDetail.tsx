@@ -1156,6 +1156,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       if (!ok) { toast.error('Failed to send announcement'); setSending(false); return }
     }
     setSending(false)
+    toast.success(`Announcement sent to ${notifications.length} member${notifications.length === 1 ? '' : 's'}`)
     setSent(true)
     setSentCount(notifications.length)
     setAnnouncement('')

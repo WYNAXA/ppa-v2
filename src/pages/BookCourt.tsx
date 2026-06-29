@@ -11,6 +11,7 @@ import {
   CheckCircle, Share2, Copy, Search, X, Plus, ChevronRight,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -612,10 +613,10 @@ export function BookCourtPage() {
       endAtDate.setMinutes(endAtDate.getMinutes() + selectedDuration)
       const endAt = endAtDate.toISOString()
 
-      const { data: booking } = await supabase
+      const { data: booking, error: bookingError } = await supabase
         .from('court_bookings')
         .insert({
-          venue_id: selectedVenue.venue_id,
+          venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
           court_id: selectedCourtId || null,
           match_id: matchId || null,
           booked_by: userId,
@@ -634,12 +635,19 @@ export function BookCourtPage() {
         .select()
         .single()
 
+      if (bookingError || !booking) {
+        console.error('[BookCourt] Booking insert failed:', bookingError)
+        toast.error('Payment succeeded but the booking could not be saved. Please contact support — your payment will be reviewed.')
+        setPaymentLoading(false)
+        return
+      }
+
       if (matchId && booking) {
         await supabase
           .from('matches')
           .update({
             booked_venue_name: selectedVenue.venue_name,
-            booked_venue_id: selectedVenue.venue_id,
+            booked_venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
             booked_court_number: null,
             booked_at: new Date().toISOString(),
             booked_by: userId,

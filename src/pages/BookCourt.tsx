@@ -269,12 +269,21 @@ function PaymentForm({
         <div className="border-t border-teal-100 pt-2">
           <p className="text-[16px] font-bold text-teal-900">
             You pay: {formatPence(depositPence)}{' '}
-            <span className="text-[12px] font-normal text-teal-600">(your deposit)</span>
+            <span className="text-[12px] font-normal text-teal-600">
+              ({Math.round(depositPence / (totalPence / PLAYERS_PER_COURT))} {Math.round(depositPence / (totalPence / PLAYERS_PER_COURT)) === 1 ? 'share' : 'shares'})
+            </span>
           </p>
-          <p className="text-[12px] text-teal-600 mt-0.5">
-            The remaining {formatPence(totalPence - depositPence)} is split between
-            the other 3 players. They'll be asked to pay 48 hours before the match.
-          </p>
+          {totalPence - depositPence > 0 && (
+            <p className="text-[12px] text-teal-600 mt-0.5">
+              The remaining {formatPence(totalPence - depositPence)} is split between
+              the other players. They'll be asked to pay 48 hours before the match.
+            </p>
+          )}
+          {totalPence - depositPence === 0 && (
+            <p className="text-[12px] text-teal-600 mt-0.5">
+              You're covering the full court cost. No payments needed from other players.
+            </p>
+          )}
         </div>
       </div>
 
@@ -347,6 +356,7 @@ export function BookCourtPage() {
   const debouncedUserSearch = useDebounce(userSearch, 300)
 
   // ── Payment step ────────────────────────────────────────────────────────────
+  const [coveredIds, setCoveredIds] = useState<Set<string>>(new Set(userId ? [userId] : []))
   const [clientSecret, setClientSecret] = useState<string | null>(null)
   const stripeElementsOptions = useMemo(
     () => (clientSecret ? { clientSecret, appearance: STRIPE_APPEARANCE } : undefined),
@@ -361,6 +371,9 @@ export function BookCourtPage() {
   const totalPence = pricePerHour > 0 ? Math.round(pricePerHour * (selectedDuration / 60)) : 0
   const perPlayerPence = totalPence > 0 ? Math.round(totalPence / PLAYERS_PER_COURT) : 0
   const pricingAvailable = pricePerHour > 0
+  const coveredCount = coveredIds.size
+  const depositPence = coveredCount * perPlayerPence
+  const otherPlayers = selectedPlayers.filter((p) => p.id !== userId)
 
   // ── Match details step (standalone bookings only) ───────────────────────────
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
@@ -593,7 +606,8 @@ export function BookCourtPage() {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
-          amount_pence: perPlayerPence,
+          amount_pence: coveredCount * perPlayerPence,
+          share_count: coveredCount,
           venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
           booker_id: userId,
           venue_name: selectedVenue.venue_name,
@@ -650,7 +664,7 @@ export function BookCourtPage() {
           status: 'confirmed',
           player_ids: userPlayers,
           guest_players: guestPlayers,
-          paid_player_ids: [userId],
+          paid_player_ids: [...new Set([userId, ...coveredIds])],
           total_price_pence: totalPence,
           price_per_player_pence: perPlayerPence,
           booker_stripe_pi_id: piId,
@@ -793,6 +807,16 @@ export function BookCourtPage() {
     await navigator.clipboard.writeText(url).catch(() => {})
     setCopiedId(player.id)
     setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  function toggleCoveredPlayer(id: string) {
+    setCoveredIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+    setClientSecret(null)
   }
 
   function closeModal() {
@@ -1450,7 +1474,6 @@ export function BookCourtPage() {
                 onClick={() => {
                   if (matchId) {
                     setStep('payment')
-                    initPayment()
                   } else {
                     setStep('match-details')
                   }
@@ -1523,10 +1546,7 @@ export function BookCourtPage() {
                 <p className="text-[13px] text-red-500 text-center">Pricing not set for this venue — booking unavailable.</p>
               )}
               <button
-                onClick={() => {
-                  setStep('payment')
-                  initPayment()
-                }}
+                onClick={() => setStep('payment')}
                 disabled={!pricingAvailable}
                 className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
               >
@@ -1546,6 +1566,77 @@ export function BookCourtPage() {
               transition={{ duration: 0.22 }}
               className="px-5 pt-2 space-y-4"
             >
+              {/* Cover additional players */}
+              {otherPlayers.length > 0 && !clientSecret && !fetchingPayment && (
+                <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
+                  <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">
+                    Cover additional players?
+                  </p>
+                  <div className="space-y-2">
+                    {/* Booker — locked */}
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-teal-100 bg-teal-50/60">
+                      <input
+                        type="checkbox"
+                        checked
+                        disabled
+                        className="w-4 h-4 rounded border-gray-300 text-[#009688] disabled:opacity-70"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[14px] font-semibold text-gray-900 truncate">
+                          {myProfile?.name ?? 'You'}
+                          <span className="text-[11px] text-gray-400 font-normal ml-1.5">(you)</span>
+                        </p>
+                      </div>
+                      <span className="text-[12px] font-semibold text-teal-600">{formatPence(perPlayerPence)}</span>
+                    </div>
+                    {/* Other players */}
+                    {otherPlayers.map((p) => (
+                      <label
+                        key={p.id}
+                        className={cn(
+                          'flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer',
+                          coveredIds.has(p.id) ? 'border-teal-200 bg-teal-50/40' : 'border-gray-100',
+                        )}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={coveredIds.has(p.id)}
+                          onChange={() => toggleCoveredPlayer(p.id)}
+                          className="w-4 h-4 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[14px] font-semibold text-gray-900 truncate">
+                            {p.name}
+                          </p>
+                          {p.type === 'guest' && (
+                            <p className="text-[11px] text-gray-400">Guest</p>
+                          )}
+                        </div>
+                        <span className="text-[12px] font-semibold text-gray-400">{formatPence(perPlayerPence)}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {/* Running total */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <p className="text-[13px] font-semibold text-gray-700">
+                      Paying {coveredCount} {coveredCount === 1 ? 'share' : 'shares'}
+                    </p>
+                    <p className="text-[20px] font-black text-[#009688]">{formatPence(depositPence)}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Proceed to pay button (before Stripe form is loaded) */}
+              {!clientSecret && !fetchingPayment && !paymentError && (
+                <button
+                  onClick={initPayment}
+                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  Proceed to pay {formatPence(depositPence)}
+                </button>
+              )}
+
               {fetchingPayment && (
                 <div className="flex items-center justify-center py-16 gap-2">
                   <svg
@@ -1598,7 +1689,7 @@ export function BookCourtPage() {
                     setLoading={setPaymentLoading}
                     error={paymentError}
                     setError={setPaymentError}
-                    depositPence={perPlayerPence}
+                    depositPence={depositPence}
                     totalPence={totalPence}
                   />
                 </Elements>
@@ -1655,6 +1746,7 @@ export function BookCourtPage() {
                 </div>
                 <div className="divide-y divide-gray-50">
                   {selectedPlayers.map((player) => {
+                    const isCovered = coveredIds.has(player.id)
                     const isBooker = player.id === userId
                     return (
                       <div key={player.id} className="flex items-center gap-3 px-4 py-3">
@@ -1677,15 +1769,15 @@ export function BookCourtPage() {
                           <p
                             className={cn(
                               'text-[12px]',
-                              isBooker ? 'text-teal-600 font-medium' : 'text-gray-400',
+                              isCovered ? 'text-teal-600 font-medium' : 'text-gray-400',
                             )}
                           >
-                            {isBooker
-                              ? `${formatPence(perPlayerPence)} paid`
-                              : '⏳ Payment pending — link sent 48hrs before match'}
+                            {isCovered
+                              ? `${formatPence(perPlayerPence)} paid${!isBooker ? ' (covered by you)' : ''}`
+                              : '\u23F3 Payment pending \u2014 link sent 48hrs before match'}
                           </p>
                         </div>
-                        {isBooker && (
+                        {isCovered && (
                           <CheckCircle className="h-4 w-4 text-teal-500 flex-shrink-0" />
                         )}
                       </div>
@@ -1715,13 +1807,13 @@ export function BookCourtPage() {
               </div>
 
               {/* Share payment links */}
-              {createdBooking && selectedPlayers.filter((p) => p.id !== userId).length > 0 && (
+              {createdBooking && selectedPlayers.filter((p) => !coveredIds.has(p.id)).length > 0 && (
                 <div className="space-y-2">
                   <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">
                     Share payment links
                   </p>
                   {selectedPlayers
-                    .filter((p) => p.id !== userId)
+                    .filter((p) => !coveredIds.has(p.id))
                     .map((player) => (
                       <div
                         key={player.id}

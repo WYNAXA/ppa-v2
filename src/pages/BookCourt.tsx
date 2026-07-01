@@ -338,7 +338,7 @@ export function BookCourtPage() {
 
   // ── Date & slot step ────────────────────────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState<string>('')
-  const [selectedDuration, setSelectedDuration] = useState<number>(90)
+  const [selectedDuration, setSelectedDuration] = useState<number>(60)
   const [slots, setSlots] = useState<TimeSlot[]>([])
   const [loadingSlots, setLoadingSlots] = useState(false)
   const [slotsError, setSlotsError] = useState('')

@@ -1535,7 +1535,7 @@ export function BookCourtPage() {
               initial={{ opacity: 0, x: 40 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -40 }}
-              className="space-y-5"
+              className="px-5 pt-2 space-y-4"
             >
               <p className="text-[13px] text-gray-500 text-center">This booking will create a match so it appears in your match history and rankings.</p>
 

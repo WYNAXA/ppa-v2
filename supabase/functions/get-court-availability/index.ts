@@ -162,7 +162,7 @@ Deno.serve(async (req) => {
       .from('court_bookings')
       .select('court_id, start_at, end_at')
       .eq('venue_id', venue_id)
-      .in('status', ['payment_pending', 'confirmed'])
+      .in('status', ['payment_pending', 'confirmed', 'held'])
       .lt('start_at', dayEnd)
       .gt('end_at', dayStart);
 

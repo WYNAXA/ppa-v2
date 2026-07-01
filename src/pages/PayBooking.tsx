@@ -305,7 +305,7 @@ export function PayBookingPage() {
         const { data: v } = await supabase
           .from('padel_venues')
           .select('venue_id, venue_name, city, full_address')
-          .eq('venue_id', b.venue_id)
+          .eq('venues_id', b.venue_id)
           .single()
 
         setVenue(v as PadelVenue | null)

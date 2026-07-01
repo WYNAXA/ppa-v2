@@ -58,6 +58,7 @@ interface UnpaidPlayer {
 
 interface PaymentFormProps {
   bookingId: string
+  playerId: string
   coveredPlayerIds: string[]
   totalPence: number
   onSuccess: () => void
@@ -65,6 +66,7 @@ interface PaymentFormProps {
 
 function PaymentForm({
   bookingId,
+  playerId,
   coveredPlayerIds,
   totalPence,
   onSuccess,
@@ -89,7 +91,7 @@ function PaymentForm({
         return
       }
 
-      const { error: confirmError } = await stripe.confirmPayment({
+      const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
         elements,
         redirect: 'if_required',
       })
@@ -98,6 +100,23 @@ function PaymentForm({
         setError(confirmError.message ?? 'Payment failed')
         setSubmitting(false)
         return
+      }
+
+      // Record payment in ledger (best-effort, idempotent)
+      const piId = paymentIntent?.id
+      if (piId) {
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/record-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({
+              booking_id: bookingId,
+              payment_intent_id: piId,
+              covered_player_ids: coveredPlayerIds,
+              payer_id: playerId,
+            }),
+          })
+        } catch (e) { console.warn('record-payment failed', e) }
       }
 
       // Append ALL covered player ids to paid_player_ids (deduped)
@@ -544,6 +563,7 @@ export function PayBookingPage() {
             >
               <PaymentForm
                 bookingId={bookingId!}
+                playerId={playerId!}
                 coveredPlayerIds={[...selectedIds]}
                 totalPence={totalPence}
                 onSuccess={() => setSucceeded(true)}

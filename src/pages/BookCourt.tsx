@@ -733,6 +733,22 @@ export function BookCourtPage() {
         }
       }
 
+      // Record payment in ledger (best-effort, idempotent)
+      if (booking) {
+        try {
+          await fetch(`${SUPABASE_URL}/functions/v1/record-payment`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${SUPABASE_ANON_KEY}` },
+            body: JSON.stringify({
+              booking_id: booking.id,
+              payment_intent_id: piId,
+              covered_player_ids: [...new Set([userId, ...coveredIds])],
+              payer_id: userId,
+            }),
+          })
+        } catch (e) { console.warn('record-payment failed', e) }
+      }
+
       setCreatedBooking(booking as CourtBooking)
       setStep('confirmation')
     } catch {

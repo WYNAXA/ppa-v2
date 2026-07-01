@@ -276,6 +276,7 @@ export function PayBookingPage() {
           },
           body: JSON.stringify({
             amount_pence: b.price_per_player_pence,
+            venue_id: b.venue_id,
             player_id: playerId,
             booking_id: bookingId,
             venue_name: v?.venue_name ?? 'Padel Court',

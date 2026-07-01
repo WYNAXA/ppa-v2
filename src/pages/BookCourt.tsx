@@ -594,6 +594,7 @@ export function BookCourtPage() {
         },
         body: JSON.stringify({
           amount_pence: perPlayerPence,
+          venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
           booker_id: userId,
           venue_name: selectedVenue.venue_name,
           match_date: selectedDate,

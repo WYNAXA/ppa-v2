@@ -633,14 +633,13 @@ export function BookCourtPage() {
       const userPlayers = selectedPlayers.filter((p) => p.type === 'user').map((p) => p.id)
       const guestPlayers = selectedPlayers.filter((p) => p.type === 'guest')
 
-      const paymentDeadline = (() => {
-        try {
-          const dt = new Date(`${selectedDate}T${selectedSlot.start_time}`)
-          return new Date(dt.getTime() - 24 * 60 * 60 * 1000).toISOString()
-        } catch {
-          return null
-        }
-      })()
+      // Fetch venue's configured deadline (default 72h before match)
+      const { data: settings } = await supabase
+        .from('court_availability_settings')
+        .select('payment_deadline_hours')
+        .eq('venue_id', selectedVenue.venues_id ?? selectedVenue.venue_id)
+        .maybeSingle()
+      const deadlineHours = settings?.payment_deadline_hours ?? 72
 
       const normalizedStartTime =
         selectedSlot.start_time.length === 5
@@ -652,6 +651,14 @@ export function BookCourtPage() {
       endAtDate.setMinutes(endAtDate.getMinutes() + selectedDuration)
       const endAt = endAtDate.toISOString()
 
+      const paymentDeadline = (() => {
+        try {
+          return new Date(new Date(startAt).getTime() - deadlineHours * 60 * 60 * 1000).toISOString()
+        } catch {
+          return null
+        }
+      })()
+
       const { data: booking, error: bookingError } = await supabase
         .from('court_bookings')
         .insert({
@@ -662,7 +669,7 @@ export function BookCourtPage() {
           start_at: startAt,
           end_at: endAt,
           duration_minutes: selectedDuration,
-          status: 'confirmed',
+          status: coveredIds.size >= PLAYERS_PER_COURT ? 'confirmed' : 'held',
           player_ids: userPlayers,
           guest_players: guestPlayers,
           paid_player_ids: [...new Set([userId, ...coveredIds])],
@@ -1757,7 +1764,12 @@ export function BookCourtPage() {
                 >
                   <CheckCircle className="h-10 w-10 text-[#009688]" />
                 </motion.div>
-                <h1 className="text-[26px] font-bold text-gray-900">Court secured! 🎾</h1>
+                <h1 className="text-[26px] font-bold text-gray-900">
+                  {coveredIds.size >= PLAYERS_PER_COURT ? 'Court secured! 🎾' : 'Court held 🎾'}
+                </h1>
+                {coveredIds.size < PLAYERS_PER_COURT && (
+                  <p className="text-[14px] text-gray-500">Pay all 4 shares before the deadline to lock it in.</p>
+                )}
                 {selectedVenue && (
                   <p className="text-[16px] font-semibold text-gray-700">{selectedVenue.venue_name}</p>
                 )}
@@ -1782,7 +1794,7 @@ export function BookCourtPage() {
               <div className="rounded-2xl border border-gray-100 overflow-hidden">
                 <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
                   <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
-                    Player payments
+                    Player payments {'\u2014'} {coveredIds.size} of {PLAYERS_PER_COURT} paid
                   </p>
                 </div>
                 <div className="divide-y divide-gray-50">
@@ -1815,7 +1827,7 @@ export function BookCourtPage() {
                           >
                             {isCovered
                               ? `${formatPence(perPlayerPence)} paid${!isBooker ? ' (covered by you)' : ''}`
-                              : '\u23F3 Payment pending \u2014 link sent 48hrs before match'}
+                              : '\u23F3 Payment pending'}
                           </p>
                         </div>
                         {isCovered && (
@@ -1839,11 +1851,11 @@ export function BookCourtPage() {
                 </div>
               </div>
 
-              {/* 48hr info */}
+              {/* Payment info */}
               <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 flex gap-3">
                 <Clock className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <p className="text-[12px] text-amber-700">
-                  Payment links will be sent to all players 48 hours before the match.
+                  Share the payment links below {'\u2014'} each player pays their own {formatPence(perPlayerPence)} share before the deadline.
                 </p>
               </div>
 

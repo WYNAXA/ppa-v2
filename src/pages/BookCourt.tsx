@@ -70,6 +70,7 @@ interface TimeSlot {
   available: boolean
   court_id?: string | null
   court_label?: string | null
+  courts?: { id: string; name: string }[]
   price?: number | null
 }
 
@@ -1268,7 +1269,7 @@ export function BookCourtPage() {
                             onClick={() => {
                               if (!slot.available) return
                               setSelectedSlot(slot)
-                              setSelectedCourtId(slot.court_id ?? '')
+                              setSelectedCourtId(slot.courts?.[0]?.id ?? slot.court_id ?? '')
                             }}
                             disabled={!slot.available}
                             className={cn(
@@ -1297,8 +1298,10 @@ export function BookCourtPage() {
                               <span className="text-[11px] text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">
                                 {selectedDuration} min
                               </span>
-                              {slot.court_label && (
-                                <span className="text-[11px] text-gray-400">{slot.court_label}</span>
+                              {(slot.courts?.length ?? 0) > 0 && (
+                                <span className="text-[11px] text-gray-400">
+                                  {slot.courts!.length} {slot.courts!.length === 1 ? 'court' : 'courts'} free
+                                </span>
                               )}
                             </div>
                             <p className="text-[12px] font-semibold text-[#009688] mt-1">
@@ -1321,6 +1324,41 @@ export function BookCourtPage() {
                 </div>
               )}
 
+              {/* Choose a court */}
+              <AnimatePresence>
+                {selectedSlot && (selectedSlot.courts?.length ?? 0) > 1 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                  >
+                    <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+                      Choose a court
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSlot.courts!.map((c) => {
+                        const isSelected = selectedCourtId === c.id
+                        return (
+                          <button
+                            key={c.id}
+                            onClick={() => setSelectedCourtId(c.id)}
+                            className={cn(
+                              'flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.98]',
+                              isSelected
+                                ? 'border-[#009688] bg-teal-50 text-[#009688]'
+                                : 'border-gray-200 bg-white text-gray-600 hover:border-teal-300',
+                            )}
+                          >
+                            {c.name}
+                            {isSelected && <CheckCircle className="h-3.5 w-3.5 text-[#009688]" />}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Continue CTA */}
               <AnimatePresence>
                 {selectedSlot && (
@@ -1331,6 +1369,9 @@ export function BookCourtPage() {
                     className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
                   >
                     Continue with {formatSlotTime(selectedSlot.start_time)}
+                    {selectedSlot.courts?.find(c => c.id === selectedCourtId)?.name
+                      ? ` · ${selectedSlot.courts.find(c => c.id === selectedCourtId)!.name}`
+                      : ''}
                     <ChevronRight className="h-4 w-4" />
                   </motion.button>
                 )}

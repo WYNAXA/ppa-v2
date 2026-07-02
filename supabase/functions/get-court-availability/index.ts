@@ -159,10 +159,10 @@ Deno.serve(async (req) => {
 
     // ── 5. Fetch existing bookings overlapping the requested date ─────────────
     const { data: bookings, error: bookingsError } = await supabase
-      .from('court_bookings')
+      .from('bookings')
       .select('court_id, start_at, end_at')
       .eq('venue_id', venue_id)
-      .in('status', ['payment_pending', 'confirmed', 'held'])
+      .eq('reservation_state', 'active')
       .lt('start_at', dayEnd)
       .gt('end_at', dayStart);
 

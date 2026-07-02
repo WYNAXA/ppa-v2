@@ -38,6 +38,8 @@ import {
   type MatchTravelInfo,
 } from '@/lib/travelUtils'
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+
 const TYPE_STYLES: Record<string, { label: string; className: string }> = {
   competitive: { label: 'Competitive', className: 'bg-orange-50 text-orange-600 border-orange-100' },
   friendly:    { label: 'Friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100'     },
@@ -1003,13 +1005,24 @@ export function MatchDetailPage() {
   const handleCancelBooking = async () => {
     if (!data) return
     setCancellingBooking(true)
-    const { error } = await supabase.rpc('cancel_booking', { p_match_id: data.match.id })
-    setCancellingBooking(false)
-    setConfirmCancelBooking(false)
-    if (error) {
-      console.error('Cancel booking failed:', error)
+
+    const { data: { session } } = await supabase.auth.getSession()
+    const token = session?.access_token
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/cancel-booking`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ match_id: data.match.id }),
+    })
+    const resBody = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      console.warn('Cancel booking failed:', resBody)
+      setCancellingBooking(false)
+      setConfirmCancelBooking(false)
       return
     }
+
+    setCancellingBooking(false)
+    setConfirmCancelBooking(false)
     if (navigator.vibrate) navigator.vibrate(10)
     queryClient.invalidateQueries({ queryKey: ['match', id] })
     queryClient.invalidateQueries({ queryKey: ['matches'] })

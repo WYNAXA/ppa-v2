@@ -373,6 +373,7 @@ export function MatchDetailPage() {
         .from('court_bookings')
         .select('id, status')
         .eq('match_id', id!)
+        .in('status', ['held', 'confirmed', 'payment_pending'])
         .maybeSingle()
       return row ?? null
     },
@@ -2441,56 +2442,63 @@ export function MatchDetailPage() {
         )}
 
         <div className="grid grid-cols-2 gap-2">
-          {(match as any).booking_status === 'booked' ? (
-            <div className="col-span-2 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-[14px] font-bold text-teal-800">{match.booked_venue_name}</p>
-                  {match.booked_court_number != null && (
-                    <p className="text-[12px] text-teal-600">Court {match.booked_court_number}</p>
-                  )}
-                  {(match as any).booking_reference && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">Ref: {(match as any).booking_reference}</p>
-                  )}
+          {(() => {
+            const matchActive = match.status !== 'cancelled' && match.status !== 'completed'
+            if (matchActive && linkedBooking) {
+              return (
+                <div className="col-span-2 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-[14px] font-bold text-teal-800">{match.booked_venue_name}</p>
+                      {match.booked_court_number != null && (
+                        <p className="text-[12px] text-teal-600">Court {match.booked_court_number}</p>
+                      )}
+                      {(match as any).booking_reference && (
+                        <p className="text-[11px] text-gray-400 mt-0.5">Ref: {(match as any).booking_reference}</p>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">Booked</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <button
+                      onClick={() => navigate(`/booking/${linkedBooking.id}`)}
+                      className="text-[11px] text-[#009688] font-semibold"
+                    >
+                      Payment & booking
+                    </button>
+                    {(match as any).booked_by === currentUserId && (
+                      <button
+                        onClick={() => setConfirmCancelBooking(true)}
+                        className="text-[11px] text-red-500 font-semibold"
+                      >
+                        Cancel booking
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">Booked</span>
-              </div>
-              <div className="flex items-center gap-3 mt-2">
-                {linkedBooking && (
+              )
+            }
+            if (matchActive && !linkedBooking && isParticipant) {
+              return (
+                <>
                   <button
-                    onClick={() => navigate(`/booking/${linkedBooking.id}`)}
-                    className="text-[11px] text-[#009688] font-semibold"
+                    onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
                   >
-                    Payment & booking
+                    <BookOpen className="h-4 w-4" />
+                    Book Court
                   </button>
-                )}
-                {(match as any).booked_by === currentUserId && (
                   <button
-                    onClick={() => setConfirmCancelBooking(true)}
-                    className="text-[11px] text-red-500 font-semibold"
+                    onClick={() => setShowSelfReportSheet(true)}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-medium text-gray-600"
                   >
-                    Cancel booking
+                    I booked elsewhere
                   </button>
-                )}
-              </div>
-            </div>
-          ) : match.status !== 'completed' && match.status !== 'cancelled' && isParticipant ? (
-            <>
-              <button
-                onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
-              >
-                <BookOpen className="h-4 w-4" />
-                Book Court
-              </button>
-              <button
-                onClick={() => setShowSelfReportSheet(true)}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-medium text-gray-600"
-              >
-                I booked elsewhere
-              </button>
-            </>
-          ) : null}
+                </>
+              )
+            }
+            return null
+          })()}
           {playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
               onClick={() => setShowAskRingers(true)}

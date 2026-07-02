@@ -4,7 +4,7 @@ import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
 import {
   ChevronLeft, CheckCircle, Clock, AlertTriangle, XCircle,
-  Plus, CreditCard, MapPin, Calendar,
+  Plus, CreditCard, MapPin, Calendar, Users,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -37,6 +37,7 @@ interface BookingData {
   payment_deadline: string | null
   total_price_pence: number | null
   price_per_player_pence: number | null
+  match_id: string | null
 }
 
 interface ResolvedPlayer {
@@ -105,7 +106,7 @@ export function BookingStatusPage() {
 
     const { data: b, error: bErr } = await supabase
       .from('court_bookings')
-      .select('id, status, start_at, end_at, venue_id, court_id, booked_by, player_ids, guest_players, paid_player_ids, payment_deadline, total_price_pence, price_per_player_pence')
+      .select('id, status, start_at, end_at, venue_id, court_id, booked_by, player_ids, guest_players, paid_player_ids, payment_deadline, total_price_pence, price_per_player_pence, match_id')
       .eq('id', bookingId)
       .single()
 
@@ -305,7 +306,7 @@ export function BookingStatusPage() {
           </div>
           <div className="flex items-center gap-2.5">
             <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700">{timeFormatted} \u2013 {endTimeFormatted}</p>
+            <p className="text-[13px] text-gray-700">{timeFormatted} {'\u2013'} {endTimeFormatted}</p>
           </div>
         </div>
 
@@ -378,6 +379,17 @@ export function BookingStatusPage() {
               ))}
           </div>
         </div>
+
+        {/* Match cross-link */}
+        {booking.match_id && (
+          <button
+            onClick={() => navigate(`/matches/${booking.match_id}`)}
+            className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688] flex items-center justify-center gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Manage players on match
+          </button>
+        )}
 
         {/* Cancel button */}
         {canCancel && (

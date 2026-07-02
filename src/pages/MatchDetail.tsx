@@ -362,6 +362,20 @@ export function MatchDetailPage() {
     enabled: !!id,
   })
 
+  // Linked booking (for cross-link to booking status)
+  const { data: linkedBooking } = useQuery<{ id: string; status: string } | null>({
+    queryKey: ['match-booking', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data: row } = await supabase
+        .from('court_bookings')
+        .select('id, status')
+        .eq('match_id', id!)
+        .maybeSingle()
+      return row ?? null
+    },
+  })
+
   // Travel coordination
   const { data: travelInfo } = useQuery<MatchTravelInfo | null>({
     queryKey: ['match-travel', id, data?.match?.poll_id],
@@ -2443,14 +2457,24 @@ export function MatchDetailPage() {
                 </div>
                 <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">Booked</span>
               </div>
-              {(match as any).booked_by === currentUserId && (
-                <button
-                  onClick={() => setConfirmCancelBooking(true)}
-                  className="text-[11px] text-red-500 font-semibold mt-2"
-                >
-                  Cancel booking
-                </button>
-              )}
+              <div className="flex items-center gap-3 mt-2">
+                {linkedBooking && (
+                  <button
+                    onClick={() => navigate(`/booking/${linkedBooking.id}`)}
+                    className="text-[11px] text-[#009688] font-semibold"
+                  >
+                    Payment & booking
+                  </button>
+                )}
+                {(match as any).booked_by === currentUserId && (
+                  <button
+                    onClick={() => setConfirmCancelBooking(true)}
+                    className="text-[11px] text-red-500 font-semibold"
+                  >
+                    Cancel booking
+                  </button>
+                )}
+              </div>
             </div>
           ) : match.status !== 'completed' && match.status !== 'cancelled' && isParticipant ? (
             <>

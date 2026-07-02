@@ -1928,10 +1928,19 @@ export function BookCourtPage() {
                 Share booking
               </button>
 
+              {createdBooking && (
+                <button
+                  onClick={() => navigate(`/booking/${createdBooking.id}`)}
+                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+                >
+                  Manage booking
+                </button>
+              )}
+
               {(matchId || createdMatchId) && (
                 <button
                   onClick={() => navigate(`/matches/${matchId || createdMatchId}`)}
-                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+                  className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688]"
                 >
                   View match
                 </button>

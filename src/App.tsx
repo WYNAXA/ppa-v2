@@ -37,6 +37,7 @@ const NotificationsPage = lazy(() => import('@/pages/Notifications').then(m => (
 const SearchPage = lazy(() => import('@/pages/Search').then(m => ({ default: m.SearchPage })))
 const PlayerProfilePage = lazy(() => import('@/pages/PlayerProfile').then(m => ({ default: m.PlayerProfilePage })))
 const PayBookingPage = lazy(() => import('@/pages/PayBooking').then(m => ({ default: m.PayBookingPage })))
+const BookingStatusPage = lazy(() => import('@/pages/BookingStatus').then(m => ({ default: m.BookingStatusPage })))
 const VenueDetailPage = lazy(() => import('@/pages/VenueDetail').then(m => ({ default: m.VenueDetailPage })))
 const TournamentModePage = lazy(() => import('@/pages/TournamentMode').then(m => ({ default: m.TournamentModePage })))
 const LeagueDiscoveryPage = lazy(() => import('@/pages/LeagueDiscovery').then(m => ({ default: m.LeagueDiscoveryPage })))
@@ -235,6 +236,9 @@ function AppShell() {
 
             {/* Player profiles */}
             <Route path="/players/:playerId" element={<Guard><PlayerProfilePage /></Guard>} />
+
+            {/* Booking status */}
+            <Route path="/booking/:bookingId" element={<Guard><BookingStatusPage /></Guard>} />
 
             {/* Venue detail */}
             <Route path="/venues/:venueId" element={<Guard><VenueDetailPage /></Guard>} />

@@ -89,7 +89,19 @@ Deno.serve(async (req: Request) => {
     // Booking settled — now kill the match (guarded so a concurrent cancel is a no-op).
     const { data: killed } = await supabaseAdmin
       .from('matches')
-      .update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null })
+      .update({
+        status: 'cancelled',
+        is_open: false,
+        open_elo_min: null,
+        open_elo_max: null,
+        booked_venue_name: null,
+        booked_venue_id: null,
+        booked_court_number: null,
+        booking_reference: null,
+        booked_at: null,
+        booked_by: null,
+        booking_status: 'not_booked',
+      })
       .eq('id', match_id)
       .neq('status', 'cancelled')
       .select('id')

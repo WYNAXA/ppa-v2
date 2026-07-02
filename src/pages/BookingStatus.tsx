@@ -257,15 +257,15 @@ export function BookingStatusPage() {
 
   // ── Format ──────────────────────────────────────────────────────────────
 
+  // start_at/end_at are stored as UK wall-clock tagged +00. Render the ISO string's
+  // own components directly (no Date/zone conversion) so the browser timezone can
+  // never shift them — matching how MatchDetail renders match_time.
   const dateFormatted = (() => {
-    try { return format(parseISO(booking.start_at), 'EEEE d MMMM yyyy', { locale: getDateLocale() }) } catch { return '' }
+    // Date-only (chars 0-10) parsed zone-neutral, so the calendar day can't shift.
+    try { return format(parseISO(booking.start_at.slice(0, 10)), 'EEEE d MMMM yyyy', { locale: getDateLocale() }) } catch { return '' }
   })()
-  const timeFormatted = (() => {
-    try { return format(parseISO(booking.start_at), 'HH:mm', { locale: getDateLocale() }) } catch { return '' }
-  })()
-  const endTimeFormatted = (() => {
-    try { return format(parseISO(booking.end_at), 'HH:mm', { locale: getDateLocale() }) } catch { return '' }
-  })()
+  const timeFormatted = booking.start_at ? booking.start_at.slice(11, 16) : ''
+  const endTimeFormatted = booking.end_at ? booking.end_at.slice(11, 16) : ''
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -324,7 +324,7 @@ export function BookingStatusPage() {
             <div className="flex items-center justify-between">
               <p className="text-[12px] font-semibold text-gray-500">Free cancellation until</p>
               <p className="text-[13px] font-semibold text-gray-700">
-                {(() => { try { return format(new Date(cutoffMs), 'EEE d MMM, HH:mm', { locale: getDateLocale() }) } catch { return '\u2014' } })()}
+                {(() => { try { const iso = new Date(cutoffMs).toISOString(); const d = format(parseISO(iso.slice(0, 10)), 'EEE d MMM', { locale: getDateLocale() }); return `${d}, ${iso.slice(11, 16)}` } catch { return '\u2014' } })()}
               </p>
             </div>
           </div>

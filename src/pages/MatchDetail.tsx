@@ -1034,30 +1034,15 @@ export function MatchDetailPage() {
     setCancelling(true)
     setCancelError(null)
     try {
-      const { error: cancelErr } = await supabase
-        .from('matches')
-        .update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null })
-        .eq('id', data.match.id)
-      if (cancelErr) throw cancelErr
-
-      // Notify real participants (skip guest UUIDs)
-      const realPlayerIds = (data.match.player_ids ?? []).filter((pid: string) => pid !== currentUserId)
-      if (realPlayerIds.length > 0) {
-        const { data: realProfiles } = await supabase.from('profiles').select('id').in('id', realPlayerIds)
-        const validIds = (realProfiles ?? []).map((p: any) => p.id)
-        const dateStr = (() => { try { return format(parseISO(data.match.match_date), 'EEE d MMM', { locale }) } catch { return data.match.match_date } })()
-        if (validIds.length > 0) {
-          sendNotifications(
-            validIds.map((pid: string) => ({
-              user_id: pid,
-              type: 'match_cancelled',
-              title: 'Match cancelled',
-              message: `${profile?.name ?? 'A player'} cancelled the match on ${dateStr}`,
-              related_id: data.match.id,
-            }))
-          )
-        }
-      }
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/cancel-match`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ match_id: data.match.id }),
+      })
+      const resBody = await res.json().catch(() => ({}))
+      if (!res.ok) { throw new Error(resBody.error || 'Failed to cancel match') }
       if (navigator.vibrate) navigator.vibrate(10)
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })

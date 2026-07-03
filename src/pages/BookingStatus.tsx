@@ -26,6 +26,10 @@ interface GuestPlayer {
 interface BookingData {
   id: string
   status: string
+  reservation_state: string | null
+  payment_state: string | null
+  source: string | null
+  purpose: string | null
   start_at: string
   end_at: string
   venue_id: string
@@ -65,12 +69,17 @@ function formatCountdown(ms: number): string {
   return `${mins}m`
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
-  held:      { label: 'Court held',    color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-200',  icon: Clock },
-  confirmed: { label: 'Court secured', color: 'text-teal-700',   bg: 'bg-teal-50 border-teal-200',    icon: CheckCircle },
-  released:  { label: 'Released',      color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200',    icon: XCircle },
+const RESERVATION_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
+  active:    { label: 'Court booked',  color: 'text-teal-700',   bg: 'bg-teal-50 border-teal-200',    icon: CheckCircle },
   cancelled: { label: 'Cancelled',     color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200',    icon: XCircle },
-  completed: { label: 'Played',        color: 'text-teal-700',   bg: 'bg-teal-50 border-teal-200',    icon: CheckCircle },
+  completed: { label: 'Played',        color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200',    icon: CheckCircle },
+}
+
+const PAYMENT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
+  held:     { label: 'held',                color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-200' },
+  paid:     { label: 'Fully paid',          color: 'text-teal-700',   bg: 'bg-teal-50 border-teal-200' },
+  released: { label: 'Released \u2014 refunded', color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200' },
+  refunded: { label: 'Refunded',            color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200' },
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -105,8 +114,8 @@ export function BookingStatusPage() {
     if (!bookingId) { setError('Invalid link.'); setLoading(false); return }
 
     const { data: b, error: bErr } = await supabase
-      .from('court_bookings')
-      .select('id, status, start_at, end_at, venue_id, court_id, booked_by, player_ids, guest_players, paid_player_ids, payment_deadline, total_price_pence, price_per_player_pence, match_id')
+      .from('bookings')
+      .select('id, status, reservation_state, payment_state, source, purpose, start_at, end_at, venue_id, court_id, booked_by, player_ids, guest_players, paid_player_ids, payment_deadline, total_price_pence, price_per_player_pence, match_id')
       .eq('id', bookingId)
       .single()
 
@@ -222,7 +231,10 @@ export function BookingStatusPage() {
 
   const paidCount = players.filter((p) => p.isPaid).length
   const isBooker = booking?.booked_by === userId
-  const canCancel = isBooker && (booking?.status === 'held' || booking?.status === 'confirmed')
+  const resState = booking?.reservation_state ?? 'active'
+  const payState = booking?.payment_state ?? null
+  const isInApp = booking?.source === 'in_app'
+  const canCancel = isBooker && resState === 'active'
   const startMs = booking?.start_at ? new Date(booking.start_at).getTime() : 0
   const cutoffMs = startMs - cancellationNoticeHours * 60 * 60 * 1000
   const beforeCutoff = now < cutoffMs
@@ -230,8 +242,9 @@ export function BookingStatusPage() {
   const deadlineRemaining = deadlineMs - now
   const perPlayer = booking?.price_per_player_pence ?? 0
 
-  const statusCfg = STATUS_CONFIG[booking?.status ?? ''] ?? STATUS_CONFIG.cancelled
-  const StatusIcon = statusCfg.icon
+  const resCfg = RESERVATION_CONFIG[resState] ?? RESERVATION_CONFIG.cancelled
+  const ResIcon = resCfg.icon
+  const payCfg = isInApp && payState ? PAYMENT_CONFIG[payState] ?? null : null
 
   // ── Loading ─────────────────────────────────────────────────────────────
 
@@ -285,11 +298,21 @@ export function BookingStatusPage() {
       </div>
 
       <div className="px-5 py-5 space-y-4 max-w-lg mx-auto">
-        {/* Status badge */}
-        <div className={cn('rounded-2xl border p-4 flex items-center gap-3', statusCfg.bg)}>
-          <StatusIcon className={cn('h-5 w-5 flex-shrink-0', statusCfg.color)} />
-          <p className={cn('text-[15px] font-bold', statusCfg.color)}>{statusCfg.label}</p>
+        {/* Reservation state */}
+        <div className={cn('rounded-2xl border p-4 flex items-center gap-3', resCfg.bg)}>
+          <ResIcon className={cn('h-5 w-5 flex-shrink-0', resCfg.color)} />
+          <p className={cn('text-[15px] font-bold', resCfg.color)}>{resCfg.label}</p>
         </div>
+
+        {/* Payment state (in-app bookings only) */}
+        {payCfg && (
+          <div className={cn('rounded-2xl border p-4 flex items-center gap-3', payCfg.bg)}>
+            <CreditCard className={cn('h-5 w-5 flex-shrink-0', payCfg.color)} />
+            <p className={cn('text-[15px] font-bold', payCfg.color)}>
+              {payState === 'held' ? `${paidCount} of ${PLAYERS_PER_COURT} paid` : payCfg.label}
+            </p>
+          </div>
+        )}
 
         {/* Venue / date / time */}
         <div className="rounded-2xl bg-white border border-gray-100 p-4 space-y-2.5">
@@ -310,8 +333,8 @@ export function BookingStatusPage() {
           </div>
         </div>
 
-        {/* Countdown timers (held only) */}
-        {booking.status === 'held' && (
+        {/* Countdown timers (active + held payment only) */}
+        {resState === 'active' && payState === 'held' && (
           <div className="rounded-2xl bg-white border border-gray-100 p-4 space-y-3">
             {deadlineMs > 0 && (
               <div className="flex items-center justify-between">
@@ -357,7 +380,7 @@ export function BookingStatusPage() {
                 </div>
                 {p.isPaid ? (
                   <CheckCircle className="h-4 w-4 text-teal-500 flex-shrink-0" />
-                ) : (booking.status === 'held' || booking.status === 'confirmed') ? (
+                ) : resState === 'active' ? (
                   <button
                     onClick={() => navigate(`/pay/booking/${bookingId}/player/${p.id}`)}
                     className="flex items-center gap-1 rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"

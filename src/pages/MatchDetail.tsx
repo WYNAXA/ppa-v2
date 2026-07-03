@@ -365,15 +365,15 @@ export function MatchDetailPage() {
   })
 
   // Linked booking (for cross-link to booking status)
-  const { data: linkedBooking } = useQuery<{ id: string; status: string } | null>({
+  const { data: linkedBooking } = useQuery<{ id: string; status: string; reservation_state: string | null; payment_state: string | null; source: string | null } | null>({
     queryKey: ['match-booking', id],
     enabled: !!id,
     queryFn: async () => {
       const { data: row } = await supabase
-        .from('court_bookings')
-        .select('id, status')
+        .from('bookings')
+        .select('id, status, reservation_state, payment_state, source')
         .eq('match_id', id!)
-        .in('status', ['held', 'confirmed', 'payment_pending'])
+        .eq('reservation_state', 'active')
         .maybeSingle()
       return row ?? null
     },

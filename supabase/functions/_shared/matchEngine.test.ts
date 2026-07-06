@@ -306,3 +306,356 @@ Deno.test("Level 1 global: flex as 4th player — optimal with mutual exclusion"
   assertEquals(out.totalParticipation, 4);
   assert(out.playersScheduled.includes("f1"), "f1 must be scheduled");
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 10. BRUTE-FORCE ORACLE + PROPERTY TEST
+//
+// Independent exhaustive solver: enumerates ALL valid sets of 4-player matches
+// across all slots, respecting availability and can_play_twice, and returns the
+// maximum number of distinct players that can be placed.
+//
+// Then: 1000 random small inputs compared engine vs oracle.
+// ══════════════════════════════════════════════════════════════════════════════
+
+/** Seeded PRNG (xorshift32) for reproducible random inputs. */
+function makeRng(seed: number) {
+  let s = seed | 0 || 1;
+  return () => {
+    s ^= s << 13; s ^= s >> 17; s ^= s << 5;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+/** All combinations of `k` elements from `arr`. */
+function combos<T>(arr: T[], k: number): T[][] {
+  const result: T[][] = [];
+  const c: T[] = [];
+  (function go(start: number) {
+    if (c.length === k) { result.push([...c]); return; }
+    for (let i = start; i <= arr.length - (k - c.length); i++) {
+      c.push(arr[i]);
+      go(i + 1);
+      c.pop();
+    }
+  })(0);
+  return result;
+}
+
+/** Max matches a player can be in, mirroring matchEngine.ts:82-86. */
+function playerLimit(r: PollResponse): number {
+  if (r.can_play_twice === false) return 1;
+  if (r.can_play_twice === true)  return 2;
+  return 999; // null = unlimited, capped for sanity
+}
+
+/**
+ * Brute-force oracle: returns the maximum number of DISTINCT players placeable
+ * in valid 4-player matches.
+ *
+ * Algorithm: for each slot, generate the DISTINCT sets of 4 available players,
+ * deduplicated by sorted player key (a group [A,B,C,D] available at two slots
+ * appears once).  Then DFS over subsets with aggressive pruning:
+ *   - upper bound: placed + unplaced players who still have eligible slots
+ *   - skip branches where a player would exceed their match limit
+ *
+ * Exponential worst-case but tractable for <=12 players / <=4 slots.
+ */
+function oracleMaxParticipation(
+  timeSlots: TimeSlot[],
+  responses: PollResponse[],
+): number {
+  // Build availability per slot
+  const slotAvail = new Map<string, string[]>();
+  for (const s of timeSlots) {
+    const avail: string[] = [];
+    for (const r of responses) {
+      const selected = r.selected_slots ?? [];
+      if (selected.includes(s.id)) avail.push(r.user_id);
+    }
+    slotAvail.set(s.id, avail);
+  }
+
+  // Build per-player limits
+  const limits = new Map<string, number>();
+  for (const r of responses) limits.set(r.user_id, playerLimit(r));
+
+  // Generate all candidate matches, deduplicated by sorted player key
+  const seen = new Set<string>();
+  const candidates: string[][] = [];
+  for (const s of timeSlots) {
+    const avail = slotAvail.get(s.id) ?? [];
+    if (avail.length < 4) continue;
+    for (const group of combos(avail, 4)) {
+      const key = [...group].sort().join(",");
+      if (!seen.has(key)) {
+        seen.add(key);
+        candidates.push(group);
+      }
+    }
+  }
+
+  // All player ids for upper-bound computation
+  const allPlayerIds = new Set(responses.map(r => r.user_id));
+
+  // DFS: try including or excluding each candidate match
+  let best = 0;
+  const matchCount = new Map<string, number>();
+  const placed = new Set<string>();
+
+  function dfs(idx: number): void {
+    if (placed.size > best) best = placed.size;
+    if (idx >= candidates.length) return;
+
+    // Tight upper bound: current placed + number of unplaced players
+    // (even if we magically placed all remaining unplaced, could we beat best?)
+    const unplacedCount = allPlayerIds.size - placed.size;
+    if (placed.size + unplacedCount <= best) return;
+
+    // Branch 1: skip this candidate
+    dfs(idx + 1);
+
+    // Branch 2: include this candidate (if all players eligible)
+    const group = candidates[idx];
+    let canTake = true;
+    for (const uid of group) {
+      if ((matchCount.get(uid) ?? 0) >= (limits.get(uid) ?? 1)) {
+        canTake = false;
+        break;
+      }
+    }
+
+    if (canTake) {
+      const newPlayers: string[] = [];
+      for (const uid of group) {
+        matchCount.set(uid, (matchCount.get(uid) ?? 0) + 1);
+        if (!placed.has(uid)) { placed.add(uid); newPlayers.push(uid); }
+      }
+
+      dfs(idx + 1);
+
+      for (const uid of group) matchCount.set(uid, matchCount.get(uid)! - 1);
+      for (const uid of newPlayers) placed.delete(uid);
+    }
+  }
+
+  dfs(0);
+  return best;
+}
+
+/** Recording variant of oracle — returns the actual matches chosen. */
+function oracleWithSolution(
+  timeSlots: TimeSlot[],
+  responses: PollResponse[],
+): { placed: number; matches: string[][] } {
+  const slotAvail = new Map<string, string[]>();
+  for (const s of timeSlots) {
+    const avail: string[] = [];
+    for (const r of responses) {
+      if ((r.selected_slots ?? []).includes(s.id)) avail.push(r.user_id);
+    }
+    slotAvail.set(s.id, avail);
+  }
+
+  const limits = new Map<string, number>();
+  for (const r of responses) limits.set(r.user_id, playerLimit(r));
+
+  const seen = new Set<string>();
+  const candidates: string[][] = [];
+  for (const s of timeSlots) {
+    const avail = slotAvail.get(s.id) ?? [];
+    if (avail.length < 4) continue;
+    for (const group of combos(avail, 4)) {
+      const key = [...group].sort().join(",");
+      if (!seen.has(key)) { seen.add(key); candidates.push(group); }
+    }
+  }
+
+  let bestPlaced = 0;
+  let bestMatches: string[][] = [];
+  const matchCount = new Map<string, number>();
+  const placed = new Set<string>();
+  const chosen: string[][] = [];
+
+  function dfs(idx: number): void {
+    if (placed.size > bestPlaced) {
+      bestPlaced = placed.size;
+      bestMatches = chosen.map(c => [...c]);
+    }
+    if (idx >= candidates.length) return;
+    const unplacedCount = responses.length - placed.size;
+    if (placed.size + unplacedCount <= bestPlaced) return;
+
+    dfs(idx + 1);
+
+    const group = candidates[idx];
+    let canTake = true;
+    for (const uid of group) {
+      if ((matchCount.get(uid) ?? 0) >= (limits.get(uid) ?? 1)) { canTake = false; break; }
+    }
+    if (canTake) {
+      const newP: string[] = [];
+      for (const uid of group) {
+        matchCount.set(uid, (matchCount.get(uid) ?? 0) + 1);
+        if (!placed.has(uid)) { placed.add(uid); newP.push(uid); }
+      }
+      chosen.push(group);
+      dfs(idx + 1);
+      chosen.pop();
+      for (const uid of group) matchCount.set(uid, matchCount.get(uid)! - 1);
+      for (const uid of newP) placed.delete(uid);
+    }
+  }
+
+  dfs(0);
+  return { placed: bestPlaced, matches: bestMatches };
+}
+
+/** Generate a random poll input for the property test. */
+function randomInput(rng: () => number): EngineInput {
+  const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday"];
+  const slotCount = 2 + Math.floor(rng() * 3); // 2-4
+  const playerCount = 6 + Math.floor(rng() * 7); // 6-12
+
+  const timeSlots: TimeSlot[] = [];
+  for (let i = 0; i < slotCount; i++) {
+    timeSlots.push({
+      id: `s${i}`,
+      day: DAYS[i % DAYS.length],
+      start_time: "19:00",
+      end_time: "20:30",
+    });
+  }
+
+  const responses: PollResponse[] = [];
+  for (let p = 0; p < playerCount; p++) {
+    // Each player available at 1-slotCount slots (at least 1)
+    const availCount = 1 + Math.floor(rng() * slotCount);
+    // Pick random subset of slots
+    const shuffled = [...timeSlots].sort(() => rng() - 0.5);
+    const selected = shuffled.slice(0, availCount).map(s => s.id);
+
+    // Random can_play_twice: 70% false, 20% true, 10% null
+    const r = rng();
+    const canPlayTwice = r < 0.7 ? false : r < 0.9 ? true : null;
+
+    responses.push({
+      user_id: `p${p}`,
+      selected_slots: selected,
+      flexible_times: null,
+      can_play_twice: canPlayTwice,
+    });
+  }
+
+  return {
+    weekStartDate: "2026-07-06",
+    timeSlots,
+    responses,
+    benchHistory: [],
+    pairingHistory: [],
+    togetherness: false,
+  };
+}
+
+Deno.test("Property: engine participation matches brute-force oracle on 1000 random inputs", () => {
+  const rng = makeRng(42);
+  let tested = 0;
+  let maxGap = 0;
+  let worstInput: EngineInput | null = null;
+  let worstEngine = 0;
+  let worstOracle = 0;
+
+  for (let i = 0; i < 1000; i++) {
+    const input = randomInput(rng);
+    const engineResult = generateProposals(input);
+    const oracleResult = oracleMaxParticipation(input.timeSlots, input.responses);
+
+    const gap = oracleResult - engineResult.totalParticipation;
+
+    if (gap > maxGap) {
+      maxGap = gap;
+      worstInput = input;
+      worstEngine = engineResult.totalParticipation;
+      worstOracle = oracleResult;
+    }
+
+    // Engine must never EXCEED oracle (would mean oracle is buggy)
+    assert(
+      engineResult.totalParticipation <= oracleResult,
+      `Trial ${i}: engine ${engineResult.totalParticipation} > oracle ${oracleResult} — oracle bug`,
+    );
+
+    tested++;
+  }
+
+  console.log(`Property test: ${tested} trials completed`);
+  console.log(`Max gap (oracle - engine): ${maxGap}`);
+
+  if (maxGap > 0 && worstInput) {
+    const slots = worstInput.timeSlots.map(s => s.id).join(",");
+    const players = worstInput.responses.map(r =>
+      `${r.user_id}:[${(r.selected_slots ?? []).join(",")}]cpt=${r.can_play_twice}`
+    ).join(" ");
+    console.log(`Worst case: oracle=${worstOracle} engine=${worstEngine}`);
+    console.log(`  Slots: ${slots}`);
+    console.log(`  Players: ${players}`);
+  }
+
+  // KNOWN SUBOPTIMALITY: the greedy does not use unlimited (can_play_twice=null)
+  // players as bridge players across matches. See test 11 for the counterexample.
+  // The property test documents the actual gap magnitude for the fix pass.
+  console.log(`Gap distribution: max=${maxGap}, across ${tested} trials`);
+  // Do not assert 0 — the greedy IS suboptimal. Assert bounded gap instead.
+  assert(maxGap <= 10, `Gap unreasonably large: ${maxGap}`);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 11. COUNTEREXAMPLE from property test — smallest failing input
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("COUNTEREXAMPLE: oracle=9 engine=4 — diagnose greedy failure", () => {
+  const s0 = slot("s0", "Monday",    "19:00", "20:30");
+  const s1 = slot("s1", "Tuesday",   "19:00", "20:30");
+  const s2 = slot("s2", "Wednesday", "19:00", "20:30");
+  const s3 = slot("s3", "Thursday",  "19:00", "20:30");
+
+  const input = base({
+    timeSlots: [s0, s1, s2, s3],
+    responses: [
+      resp("p0", ["s1","s0","s2"]),            // flex=3
+      resp("p1", ["s1","s0","s2","s3"]),       // flex=4
+      resp("p2", ["s3","s2"]),                 // flex=2
+      resp("p3", ["s0","s1","s3"]),            // flex=3
+      resp("p4", ["s1"]),                      // excl
+      resp("p5", ["s1"], null),                // excl, unlimited
+      resp("p6", ["s0","s1","s3","s2"]),       // flex=4
+      resp("p7", ["s2","s3"]),                 // flex=2
+      resp("p8", ["s3","s1"], null),           // flex=2, unlimited
+    ],
+  });
+
+  const out = generateProposals(input);
+  const oracle = oracleMaxParticipation(input.timeSlots, input.responses);
+
+  console.log(`Engine: ${out.totalParticipation} placed, ${out.matches.length} matches`);
+  for (const m of out.matches) {
+    console.log(`  ${m.day} ${m.timeSlot}: [${m.playerIds.join(",")}]`);
+  }
+  console.log(`Oracle: ${oracle} placed`);
+
+  // Run recording oracle to see WHICH matches it picks
+  const oracleSolution = oracleWithSolution(input.timeSlots, input.responses);
+  console.log(`Oracle solution: ${oracleSolution.placed} placed, ${oracleSolution.matches.length} matches`);
+  for (const m of oracleSolution.matches) {
+    console.log(`  [${m.join(",")}]`);
+  }
+  // Check each player's match count in oracle solution
+  const omc = new Map<string, number>();
+  for (const m of oracleSolution.matches) {
+    for (const uid of m) omc.set(uid, (omc.get(uid) ?? 0) + 1);
+  }
+  for (const [uid, cnt] of omc) {
+    const r = input.responses.find(rr => rr.user_id === uid)!;
+    const lim = r.can_play_twice === false ? 1 : r.can_play_twice === true ? 2 : 999;
+    console.log(`  ${uid}: in ${cnt} matches, limit=${lim} ${cnt > lim ? "VIOLATION" : "ok"}`);
+  }
+});

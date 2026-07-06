@@ -38,13 +38,16 @@ async function getHiGHS(): Promise<any> {
 
   // Cache the source text and WASM binary (but NOT the instance)
   if (!_glueSource) {
-    let src = await Deno.readTextFile(thisDir + "highs-wasm/highs.js");
+    // Use HiGHS v1.14.2 (highs14.js/highs14.wasm) — v1.8.0 MIP solver
+    // crashes on certain all-binary 50/6-slot models in the Deno test runner.
+    let src = await Deno.readTextFile(thisDir + "highs-wasm/highs14.js");
     src = src.replace(/if\s*\(\s*typeof\s+exports\s*===\s*'object'[\s\S]*$/, "");
     src = src.replace(/if\(m\)\{var fs=require\("fs"\).*?\}else if/, "if(false){}else if");
+    src = src.replace(/if\(ENVIRONMENT_IS_NODE\)\{var fs=require\("node:fs"\).*?\}else if/, "if(false){}else if");
     _glueSource = src;
   }
   if (!_wasmBinary) {
-    _wasmBinary = await Deno.readFile(thisDir + "highs-wasm/highs.wasm");
+    _wasmBinary = await Deno.readFile(thisDir + "highs-wasm/highs14.wasm");
   }
 
   // Fresh instance each solve to avoid Emscripten VFS state corruption
@@ -245,40 +248,17 @@ export async function solveILP(
 
   const { lp } = buildLP(timeSlots, responses);
 
-  // Solve strategy: LP relaxation first. If all integer variables are
-  // integral at the relaxation (common for all-binary 0% bridge models),
-  // we have the IP optimum without invoking the MIP solver. This avoids
-  // a HiGHS WASM B&B crash on certain all-binary models (Defect 1).
-  let result = highs.solve(lp, { solver: "simplex" });
-
-  if (result.Status === "Optimal") {
-    // Check if all General variables are integral (tolerance 1e-6)
-    const cols = result.Columns || {};
-    let allIntegral = true;
-    for (const [_name, val] of Object.entries(cols)) {
-      const v = (val as any).Primal;
-      if (Math.abs(v - Math.round(v)) > 1e-6) {
-        allIntegral = false;
-        break;
-      }
-    }
-
-    if (!allIntegral) {
-      // Need the MIP solver for true integer optimum
-      const highs2 = await getHiGHS();
-      try {
-        result = highs2.solve(lp, { time_limit: 5.0, presolve: "on" });
-      } catch (_mipErr) {
-        // MIP solver crashed — fall back to rounded LP relaxation.
-        // This is safe: the LP relaxation is an upper bound, and rounding
-        // down each fractional y_p gives a feasible (possibly suboptimal) solution.
-        // In practice this path is rare (only at extreme scale + specific seeds).
-      }
-    }
-  }
+  // MIP solve: returns the proven integer optimum.
+  // The constraint matrix is NOT totally unimodular (the 4*m_s coupling
+  // breaks TU), so the LP relaxation can be fractional — e.g. 50/6/0%
+  // gives LP=50 but IP=48.  The MIP solver is mandatory for correctness.
+  // The fresh-instance-per-solve (getHiGHS, line 51) prevents the
+  // Emscripten VFS corruption that previously caused Aborted() on
+  // sequential solves.
+  const result = highs.solve(lp, { time_limit: 10.0, presolve: "on" });
 
   if (result.Status !== "Optimal") {
-    return { maxPlaced: 0, assignments: new Map() };
+    throw new Error(`ILP solver returned status "${result.Status}" — not optimal`);
   }
 
   // Extract placed count

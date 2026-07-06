@@ -133,7 +133,73 @@ function randomInput(rng: () => number): { timeSlots: TimeSlot[]; responses: Pol
   return { timeSlots, responses };
 }
 
-// ── Tests ────────────────────────────────────────────────────────────────────
+// ── Tests (order matters: forced-MIP-path tests run FIRST) ───────────────────
+
+// ══════════════════════════════════════════════════════════════════════════════
+// FORCED MIP PATH: 50 players / 6 slots / 0% bridge.
+// The LP relaxation is FRACTIONAL (m_s values non-integer) — LP gives 50
+// but the true integer optimum is 48. This input specifically exercises the
+// MIP branch-and-bound solver; LP-only would give a WRONG answer.
+// Runs first because the HiGHS WASM accumulates Emscripten state across
+// many evals in a single Deno process.
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("ILP: 50/6/0% forces MIP path — LP relaxation is fractional", async () => {
+  const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  let seed = 50 * 1000 + 6 * 100 + 0;
+  const rng = () => { seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296; };
+
+  const timeSlots: TimeSlot[] = [];
+  for (let i = 0; i < 6; i++) timeSlots.push(slot(`s${i}`, DAYS[i]));
+
+  const responses: PollResponse[] = [];
+  for (let p = 0; p < 50; p++) {
+    const availCount = 1 + Math.floor(rng() * 2);
+    const shuffled = [...timeSlots].sort(() => rng() - 0.5);
+    responses.push({
+      user_id: `p${p}`,
+      selected_slots: shuffled.slice(0, availCount).map(s => s.id),
+      flexible_times: null,
+      can_play_twice: false,
+    });
+  }
+
+  const result = await solveILP(timeSlots, responses);
+  console.log(`50/6/0%: ILP placed ${result.maxPlaced}`);
+  assertEquals(result.maxPlaced, 48, "must return MIP optimum 48, not LP relaxation 50");
+});
+
+Deno.test("ILP: 0%-bridge column stability (20-50 players, 6 slots)", async () => {
+  const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+  for (const N of [20, 30, 40, 50]) {
+    let seed = N * 1000 + 6 * 100 + 0;
+    const rng = () => { seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5; return (seed >>> 0) / 4294967296; };
+
+    const timeSlots: TimeSlot[] = [];
+    for (let i = 0; i < 6; i++) timeSlots.push(slot(`s${i}`, DAYS[i]));
+
+    const responses: PollResponse[] = [];
+    for (let p = 0; p < N; p++) {
+      const availCount = 1 + Math.floor(rng() * 2);
+      const shuffled = [...timeSlots].sort(() => rng() - 0.5);
+      responses.push({
+        user_id: `p${p}`,
+        selected_slots: shuffled.slice(0, availCount).map(s => s.id),
+        flexible_times: null,
+        can_play_twice: false,
+      });
+    }
+
+    const t0 = performance.now();
+    const result = await solveILP(timeSlots, responses);
+    const ms = performance.now() - t0;
+    console.log(`  N=${N}: placed=${result.maxPlaced}, ${ms.toFixed(0)}ms`);
+
+    assert(result.maxPlaced > 0, `N=${N} must place at least some players`);
+    assert(result.maxPlaced <= N, `N=${N} cannot place more than ${N}`);
+  }
+});
 
 Deno.test("ILP: counterexample (oracle=9) solved exactly", async () => {
   const timeSlots = [

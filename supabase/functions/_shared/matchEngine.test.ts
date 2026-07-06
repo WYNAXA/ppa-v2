@@ -42,7 +42,7 @@ function base(overrides: Partial<EngineInput>): EngineInput {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 1. PARTICIPATION MAXIMISATION
-//    8 players at 2 exclusive slots → 2 matches, all 8 scheduled, 0 benched.
+//    8 players at 2 exclusive slots -> 2 matches, all 8 scheduled, 0 benched.
 // ══════════════════════════════════════════════════════════════════════════════
 
 Deno.test("Level 1: maximise participation across exclusive slots", () => {
@@ -66,7 +66,7 @@ Deno.test("Level 1: maximise participation across exclusive slots", () => {
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 2. BENCH ROTATION TIEBREAK
-//    6 players, 1 slot → 1 match (4 players). Top 4 by bench-debt play;
+//    6 players, 1 slot -> 1 match (4 players). Top 4 by bench-debt play;
 //    bottom 2 are benched.
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -94,13 +94,11 @@ Deno.test("Level 2: highest bench-debt players get priority", () => {
   assertEquals(out.totalParticipation, 4);
 
   const scheduled = new Set(out.playersScheduled);
-  // Top 4 by debt (p1=5, p2=4, p3=3, p4=2) should be scheduled
   assert(scheduled.has("p1"), "p1 (debt=5) should play");
   assert(scheduled.has("p2"), "p2 (debt=4) should play");
   assert(scheduled.has("p3"), "p3 (debt=3) should play");
   assert(scheduled.has("p4"), "p4 (debt=2) should play");
 
-  // p5 and p6 should be benched
   const benched = new Set(out.playersBenched);
   assert(benched.has("p5"), "p5 (debt=1) should be benched");
   assert(benched.has("p6"), "p6 (debt=0) should be benched");
@@ -115,8 +113,6 @@ Deno.test("Level 2: highest bench-debt players get priority", () => {
 Deno.test("Level 3: diversity grouping separates frequent pairs", () => {
   const mon = slot("mon19", "Monday", "19:00", "20:30");
 
-  // Build pairing history: 5 matches where p1+p2 played together,
-  // 5 matches where p3+p4 played together.
   const pairingHistory: PairingRecord[] = [];
   for (let i = 0; i < 5; i++) {
     pairingHistory.push({ player_ids: ["p1", "p2", "pX", "pY"], match_date: "2026-06-01" });
@@ -136,24 +132,17 @@ Deno.test("Level 3: diversity grouping separates frequent pairs", () => {
 
   assertEquals(out.matches.length, 2, "2 matches from 8 players");
 
-  // Verify p1 and p2 are NOT in the same group
   for (const m of out.matches) {
     const ids = new Set(m.playerIds);
-    assert(
-      !(ids.has("p1") && ids.has("p2")),
-      `p1 and p2 must be in different groups, found together: ${m.playerIds}`,
-    );
-    assert(
-      !(ids.has("p3") && ids.has("p4")),
-      `p3 and p4 must be in different groups, found together: ${m.playerIds}`,
-    );
+    assert(!(ids.has("p1") && ids.has("p2")), "p1 and p2 must be in different groups");
+    assert(!(ids.has("p3") && ids.has("p4")), "p3 and p4 must be in different groups");
   }
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 4. BENCHED EDGE CASE
-//    mon19: 5 players → 1 match → 1 benched.
-//    tue19: 2 players → no match → NOT benched (lack-of-numbers).
+//    mon19: 5 players -> 1 match -> 1 benched.
+//    tue19: 2 players -> no match -> NOT benched (lack-of-numbers).
 // ══════════════════════════════════════════════════════════════════════════════
 
 Deno.test("Benched: empty-slot responders are NOT benched", () => {
@@ -163,30 +152,22 @@ Deno.test("Benched: empty-slot responders are NOT benched", () => {
   const out = generateProposals(base({
     timeSlots: [mon, tue],
     responses: [
-      // 5 available on Monday
       resp("p1", ["mon19"]), resp("p2", ["mon19"]),
       resp("p3", ["mon19"]), resp("p4", ["mon19"]),
       resp("p5", ["mon19"]),
-      // 2 available on Tuesday only (no match possible)
       resp("p6", ["tue19"]), resp("p7", ["tue19"]),
     ],
   }));
 
   assertEquals(out.matches.length, 1, "only Monday match");
   assertEquals(out.totalParticipation, 4);
-
-  // p5 available at Monday (has match), not scheduled → BENCHED
   assert(out.playersBenched.includes("p5"), "p5 should be benched");
-
-  // p6, p7 available only at Tuesday (no match) → NOT benched
   assert(!out.playersBenched.includes("p6"), "p6 not benched (empty slot)");
   assert(!out.playersBenched.includes("p7"), "p7 not benched (empty slot)");
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 5. CAN_PLAY_TWICE
-//    p1 available at two slots with can_play_twice=true → plays in both.
-//    playersScheduled counts p1 once. Total unique = 7.
 // ══════════════════════════════════════════════════════════════════════════════
 
 Deno.test("can_play_twice=true allows a player in 2 matches", () => {
@@ -196,47 +177,33 @@ Deno.test("can_play_twice=true allows a player in 2 matches", () => {
   const out = generateProposals(base({
     timeSlots: [s1, s2],
     responses: [
-      resp("p1", ["mon19", "mon21"], true),   // can play twice
-      resp("p2", ["mon19"]),
-      resp("p3", ["mon19"]),
-      resp("p4", ["mon19"]),
-      resp("p5", ["mon21"]),
-      resp("p6", ["mon21"]),
-      resp("p7", ["mon21"]),
+      resp("p1", ["mon19", "mon21"], true),
+      resp("p2", ["mon19"]), resp("p3", ["mon19"]), resp("p4", ["mon19"]),
+      resp("p5", ["mon21"]), resp("p6", ["mon21"]), resp("p7", ["mon21"]),
     ],
   }));
 
   assertEquals(out.matches.length, 2, "2 matches");
-
-  // p1 appears in both
   const p1Matches = out.matches.filter(m => m.playerIds.includes("p1"));
   assertEquals(p1Matches.length, 2, "p1 should be in 2 matches");
-
-  // But counted once in playersScheduled
   assertEquals(out.totalParticipation, 7, "7 distinct players");
   assertEquals(out.playersBenched.length, 0);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
 // 6. TOGETHERNESS PRESERVES PARTICIPATION
-//    With overlap, togetherness changes clustering but not total count.
 // ══════════════════════════════════════════════════════════════════════════════
 
 Deno.test("Level 4: togetherness does not reduce participation", () => {
-  // Mon: 4 exclusive + 4 flexible = 8
-  // Tue: 6 exclusive + 4 flexible = 10
   const mon = slot("mon19", "Monday", "19:00", "20:30");
   const tue = slot("tue19", "Tuesday", "19:00", "20:30");
 
   const responses = [
-    // Mon exclusive
     resp("m1", ["mon19"]), resp("m2", ["mon19"]),
     resp("m3", ["mon19"]), resp("m4", ["mon19"]),
-    // Tue exclusive
     resp("t1", ["tue19"]), resp("t2", ["tue19"]),
     resp("t3", ["tue19"]), resp("t4", ["tue19"]),
     resp("t5", ["tue19"]), resp("t6", ["tue19"]),
-    // Flexible (both days)
     resp("f1", ["mon19", "tue19"]), resp("f2", ["mon19", "tue19"]),
     resp("f3", ["mon19", "tue19"]), resp("f4", ["mon19", "tue19"]),
   ];
@@ -248,26 +215,17 @@ Deno.test("Level 4: togetherness does not reduce participation", () => {
     timeSlots: [mon, tue], responses, togetherness: true,
   }));
 
-  // Both must schedule the same total
   assertEquals(
     spread.totalParticipation, cluster.totalParticipation,
     `participation must match: spread=${spread.totalParticipation} cluster=${cluster.totalParticipation}`,
   );
-
-  // Togetherness should produce more matches on the popular day (Tue=10)
   const spreadTue = spread.matches.filter(m => m.day === "Tuesday").length;
   const clusterTue = cluster.matches.filter(m => m.day === "Tuesday").length;
-  assert(
-    clusterTue >= spreadTue,
-    `togetherness should cluster on Tue: spread=${spreadTue} cluster=${clusterTue}`,
-  );
+  assert(clusterTue >= spreadTue, "togetherness should cluster on Tue");
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// 7. FLEXIBILITY TIEBREAK — constrained players saved for their slot
-//    p9 exclusive to Mon; p1-p4 available both. Mon (5) processed first
-//    (constrained). p9 (flex=1) goes in ahead of p1-p4 (flex=2).
-//    Tue still gets p5-p8 exclusive → both slots matched.
+// 7. FLEXIBILITY TIEBREAK
 // ══════════════════════════════════════════════════════════════════════════════
 
 Deno.test("Flexibility tiebreak preserves exclusive player placement", () => {
@@ -281,18 +239,70 @@ Deno.test("Flexibility tiebreak preserves exclusive player placement", () => {
       resp("p3", ["mon19", "tue19"]), resp("p4", ["mon19", "tue19"]),
       resp("p5", ["tue19"]), resp("p6", ["tue19"]),
       resp("p7", ["tue19"]), resp("p8", ["tue19"]),
-      resp("p9", ["mon19"]),  // exclusive to Mon
+      resp("p9", ["mon19"]),
     ],
   }));
 
-  // p9 must be in the Monday match (only slot available)
   const monMatch = out.matches.find(m => m.day === "Monday");
   assert(monMatch !== undefined, "Monday match must exist");
   assert(monMatch!.playerIds.includes("p9"), "p9 (exclusive) must be in Monday match");
-
-  // Tuesday should also have a match
   const tueMatch = out.matches.find(m => m.day === "Tuesday");
   assert(tueMatch !== undefined, "Tuesday match must exist");
+  assertEquals(out.totalParticipation, 8, "8 of 9 scheduled");
+});
 
-  assertEquals(out.totalParticipation, 8, "8 of 9 scheduled (1 benched or unused)");
+// ══════════════════════════════════════════════════════════════════════════════
+// 8. CROSS-SLOT GLOBAL PARTICIPATION
+//    4 exclusive slots each with 5 (4 excl + 1 flex).  Each flex available at
+//    its exclusive slot + a shared pool slot (4 players).
+//    Ascending order: pool(4) < sA-sD(5) -> pool processed first -> all 4 flex
+//    placed.  Then each exclusive slot has 4 left -> 4 more matches.
+//    Result: 5 matches, 20 players.
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("Level 1 global: greedy handles scattered flex leftovers via slot ordering", () => {
+  const sA   = slot("sA",   "Monday",    "19:00", "20:30");
+  const sB   = slot("sB",   "Tuesday",   "19:00", "20:30");
+  const sC   = slot("sC",   "Wednesday", "19:00", "20:30");
+  const sD   = slot("sD",   "Thursday",  "19:00", "20:30");
+  const pool = slot("pool", "Friday",    "19:00", "20:30");
+
+  const out = generateProposals(base({
+    timeSlots: [sA, sB, sC, sD, pool],
+    responses: [
+      resp("e1",  ["sA"]), resp("e2",  ["sA"]), resp("e3",  ["sA"]), resp("e4",  ["sA"]),
+      resp("e5",  ["sB"]), resp("e6",  ["sB"]), resp("e7",  ["sB"]), resp("e8",  ["sB"]),
+      resp("e9",  ["sC"]), resp("e10", ["sC"]), resp("e11", ["sC"]), resp("e12", ["sC"]),
+      resp("e13", ["sD"]), resp("e14", ["sD"]), resp("e15", ["sD"]), resp("e16", ["sD"]),
+      resp("f1", ["sA", "pool"]), resp("f2", ["sB", "pool"]),
+      resp("f3", ["sC", "pool"]), resp("f4", ["sD", "pool"]),
+    ],
+  }));
+
+  assertEquals(out.matches.length, 5, "5 matches: 1 pool + 4 exclusive slots");
+  assertEquals(out.totalParticipation, 20, "all 20 players scheduled");
+  assertEquals(out.playersBenched.length, 0, "nobody benched");
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 9. FLEX AS 4TH — mutual exclusion is handled optimally
+//    f1 is the 4th at both B and C. Greedy picks one; max is 1 match either way.
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("Level 1 global: flex as 4th player — optimal with mutual exclusion", () => {
+  const sB = slot("sB", "Tuesday",   "19:00", "20:30");
+  const sC = slot("sC", "Wednesday", "19:00", "20:30");
+
+  const out = generateProposals(base({
+    timeSlots: [sB, sC],
+    responses: [
+      resp("e1", ["sB"]), resp("e2", ["sB"]), resp("e3", ["sB"]),
+      resp("e4", ["sC"]), resp("e5", ["sC"]), resp("e6", ["sC"]),
+      resp("f1", ["sB", "sC"]),
+    ],
+  }));
+
+  assertEquals(out.matches.length, 1, "1 match (f1 can only be the 4th at one slot)");
+  assertEquals(out.totalParticipation, 4);
+  assert(out.playersScheduled.includes("f1"), "f1 must be scheduled");
 });

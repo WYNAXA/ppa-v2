@@ -115,17 +115,20 @@ serve(async (req: Request) => {
         const matchTime = match.time;
         const playerIds = match.players;
         
-        // Check if match already exists for this poll/date/time to prevent duplicates
+        // Dedup on the PLAYER SET — same poll + date + time + same 4 players = duplicate.
+        // Different players at the same slot are distinct games, not duplicates.
+        const sortedPlayerIds = [...playerIds].sort();
         const { data: existingMatch } = await supabase
           .from("matches")
           .select("id")
           .eq("poll_id", poll_id)
           .eq("match_date", matchDate)
           .eq("match_time", matchTime)
+          .contains("player_ids", sortedPlayerIds)
           .maybeSingle();
-        
+
         if (existingMatch) {
-          console.log(`Match already exists for ${matchDate} ${matchTime}, skipping`);
+          console.log(`Match already exists for ${matchDate} ${matchTime} with same players, skipping`);
           continue;
         }
         
@@ -587,18 +590,20 @@ serve(async (req: Request) => {
             });
           }
 
-          // Check for existing match before creating pending
+          // Dedup on the PLAYER SET — same poll + date + time + same players = duplicate.
           const pendingDateStr = matchDate.toISOString().split('T')[0];
+          const sortedPendingPlayerIds = [...playerIds].sort();
           const { data: existingPendingMatch } = await supabase
             .from("matches")
             .select("id")
             .eq("poll_id", poll_id)
             .eq("match_date", pendingDateStr)
             .eq("match_time", slot.start_time)
+            .contains("player_ids", sortedPendingPlayerIds)
             .maybeSingle();
 
           if (existingPendingMatch) {
-            console.log(`Pending match already exists for ${pendingDateStr} ${slot.start_time}, skipping`);
+            console.log(`Pending match already exists for ${pendingDateStr} ${slot.start_time} with same players, skipping`);
             break;
           }
 

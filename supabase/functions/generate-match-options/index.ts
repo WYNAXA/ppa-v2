@@ -508,9 +508,9 @@ async function generateMaximizeFullMatchesStrategy(
 
     console.log(`   ${dayInfo.day}: ${availablePlayers.length} unscheduled players available`);
 
-    // Create matches for this day (full or partial)
+    // Create as many full 4-player matches as possible on this day (Strategy 1 = no ringers)
     let dayMatchesCreated = 0;
-    while (availablePlayers.length >= 2 && dayMatchesCreated === 0) {
+    while (availablePlayers.length >= 4) {
       const matchPlayers = availablePlayers.slice(0, 4);
 
       const match = await createBestMatch(
@@ -530,10 +530,10 @@ async function generateMaximizeFullMatchesStrategy(
 
         // Mark players as scheduled
         matchPlayers.forEach(p => scheduledPlayers.add(p.userId));
-        
+
         // Remove from available pool
         availablePlayers = availablePlayers.filter(p => !matchPlayers.includes(p));
-        
+
         dayMatchesCreated++;
         console.log(`   ✅ Created ${dayInfo.day} match ${dayMatchesCreated}: ${matchPlayers.map(p => p.userName).join(', ')}`);
       } else {

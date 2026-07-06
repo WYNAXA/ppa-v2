@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { sendNotification, sendNotifications } from '@/lib/notifications'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
-import { isUserAvailableForSlot, getSlotDate } from '@/lib/pollUtils'
+import { isUserAvailableForSlot, getSlotDate, POLL_OPTION_DRIVE } from '@/lib/pollUtils'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
 
@@ -402,6 +402,7 @@ export function PollAdminView({
   }
 
   function additionalIcon(opt: string) {
+    if (opt === POLL_OPTION_DRIVE) return '\u{1F697}'
     const lower = opt.toLowerCase()
     if (lower.includes('drive') || lower.includes('car') || lower.includes('lift')) return '\u{1F697}'
     if (lower.includes('drink') || lower.includes('beer') || lower.includes('social')) return '\u{1F37A}'
@@ -910,6 +911,7 @@ export function PollAdminView({
         open={createMatchOpen}
         onClose={() => { setCreateMatchOpen(false); onRefetch() }}
         defaultGroupId={scheduleDefaults.groupId}
+        defaultDate={scheduleDefaults.date}
       />
     </div>
   )

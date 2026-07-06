@@ -620,9 +620,10 @@ interface CreateMatchSheetProps {
   open: boolean
   onClose: () => void
   defaultGroupId?: string
+  defaultDate?: string
 }
 
-export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchSheetProps) {
+export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }: CreateMatchSheetProps) {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -661,7 +662,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId }: CreateMatchS
       setForm({
         matchType: null,
         group: null,
-        date: todayStr(),
+        date: defaultDate || todayStr(),
         time: nextCleanTime(),
         duration: 90,
         venue: null,

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { POLL_OPTION_DRIVE } from './pollUtils'
 
 // ── Haversine distance (miles) ────────────────────────────────────────────────
 
@@ -73,7 +74,7 @@ export async function getMatchTravelInfo(
       .in('user_id', playerIds)
 
     canDriveIds = (responses ?? [])
-      .filter((r) => r.additional_responses?.['I can drive'] === true)
+      .filter((r) => r.additional_responses?.[POLL_OPTION_DRIVE] === true)
       .map((r) => r.user_id)
   }
 

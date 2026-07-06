@@ -542,6 +542,9 @@ async function generateMaximizeFullMatchesStrategy(
     }
   }
 
+  // Sort matches chronologically (date then time) for display
+  scheduleMatches.sort((a, b) => a.date.localeCompare(b.date) || a.timeSlot.localeCompare(b.timeSlot));
+
   const uniquePlayers = new Set<string>();
   scheduleMatches.forEach(m => m.playerIds.forEach(id => uniquePlayers.add(id)));
 
@@ -691,6 +694,9 @@ async function generateConcentratedDayStrategy(
       }
     }
   }
+
+  // Sort matches chronologically (date then time) for display
+  scheduleMatches.sort((a, b) => a.date.localeCompare(b.date) || a.timeSlot.localeCompare(b.timeSlot));
 
   const uniquePlayers = new Set<string>();
   scheduleMatches.forEach(m => m.playerIds.forEach(id => uniquePlayers.add(id)));
@@ -851,6 +857,9 @@ async function generateMaximumDaySpreadStrategy(
       }
     }
   }
+
+  // Sort matches chronologically (date then time) for display
+  scheduleMatches.sort((a, b) => a.date.localeCompare(b.date) || a.timeSlot.localeCompare(b.timeSlot));
 
   const uniquePlayers = new Set<string>();
   scheduleMatches.forEach(m => m.playerIds.forEach(id => uniquePlayers.add(id)));

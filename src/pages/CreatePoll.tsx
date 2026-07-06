@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { sendNotifications } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { DEFAULT_ADDITIONAL_OPTIONS } from '@/lib/pollUtils'
 
 interface Group { id: string; name: string }
 
@@ -20,8 +21,6 @@ interface FormSlot {
 }
 
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const
-
-const DEFAULT_ADDITIONAL_OPTIONS = ["I can drive", "I'm up for a drink after"]
 
 function nextMonday(): string {
   // Start of next week (Monday)

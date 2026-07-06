@@ -3,6 +3,11 @@
  * Ported from V1: supabase/functions/_shared/timeUtils.ts
  */
 
+/** Well-known poll additional-option keys. Shared by CreatePoll, travelUtils, PollAdminView. */
+export const POLL_OPTION_DRIVE = "I can drive"
+export const POLL_OPTION_DRINK = "I'm up for a drink after"
+export const DEFAULT_ADDITIONAL_OPTIONS = [POLL_OPTION_DRIVE, POLL_OPTION_DRINK]
+
 /** Convert "HH:MM" to minutes since midnight */
 export function timeToMinutes(time: string): number {
   const [hours, minutes] = time.split(':').map(Number)

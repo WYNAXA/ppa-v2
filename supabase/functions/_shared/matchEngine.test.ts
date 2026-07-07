@@ -140,6 +140,176 @@ Deno.test("Level 3: diversity grouping separates frequent pairs", async () => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// 3b. DIVERSITY WITH BRIDGE PLAYERS
+//     1 slot, 6 limit-1 players + 2 bridges (unlimited).  The ILP needs both
+//     bridges in both matches to reach sum = 6*1 + 2*2 = 10? No, 4*m = 8 for
+//     m=2. So: 6 singles (contribute 6) + 2 bridges (contribute 1 each) = 8.
+//     That means bridges appear once each and there's no multi-match bridge.
+//
+//     For bridge reuse: 5 singles + 3 bridges at 1 slot.  m=2 → sum=8.
+//     5*1 + 3*1 = 8 → each bridge once. Still no reuse.
+//
+//     Bridge reuse only happens when singles < 3 per match.
+//     3 singles + 1 bridge at 1 slot → m=1 → [s1,s2,s3,B]. No multi-match.
+//
+//     2 slots: slot A has [p1,p2,p3,B1,B2], slot B has [p4,p5,p6,B1,B2].
+//     Each slot has 5 players. ILP: A m=1 takes 4, B m=1 takes 4.
+//     B1 and B2 each available at both slots → ILP assigns each bridge to
+//     one slot. Total 8 placed. No bridge reuse within a slot.
+//
+//     The bridge-reuse-within-a-slot case requires 3 singles + 2 bridges (5)
+//     at 1 slot with m=2: sum = 3 + 2*something = 8 → each bridge contributes
+//     2.5. Not integer! m=1: sum = 4. Takes [3 singles + 1 bridge] or
+//     [2 singles + 2 bridges]. Either way pB appears once.
+//
+//     Conclusion: bridge reuse within a single slot requires at LEAST 4
+//     bridges (4 bridges * 2 appearances = 8 = 4*2). With 4 bridges and 0
+//     singles: m=2, each bridge in both matches. [B1,B2,B3,B4] and
+//     [B1,B2,B3,B4] — same group twice!
+//
+//     The realistic bridge-reuse case is CROSS-SLOT (bridge plays at slot A
+//     match AND slot B match). The grouping per-slot always has at most 1
+//     bridge appearance. The three-branch code's bridge path is hit only
+//     when the ILP emits x_{B,s} > 1 at some slot.
+//
+//     Test: 4 bridges + 4 singles at 1 slot. ILP: m=2.
+//     sum = 4*1 + 4*x_B ≤ 8. Each bridge x_B ≤ m=2. If all bridges appear
+//     once: sum = 8 = 4*2. m=2 works without reuse!
+//     The ILP will NOT reuse bridges unless forced. To force: 2 singles + 2
+//     bridges at 1 slot. m=1: sum = 4. Take any 4. Can't place all 4 in m=1.
+//     m=2: sum = 2*1 + 2*2 = 6 ≠ 8. Infeasible.
+//
+//     The within-slot bridge reuse path is actually very rare — it only
+//     fires when the ILP's integer solution has x_{p,s} > 1, which requires
+//     the slot to have fewer unique players than 4*m. This typically means
+//     the slot has e.g. 3 unique players who between them fill 2 matches
+//     via bridge reuse — a very degenerate case.
+//
+//     For now: test diversity on the CROSS-SLOT bridge case, which is the
+//     common path. The single-path fix will handle both.
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("Level 3: bridge within-slot diversity separates frequent pairs", async () => {
+  // 1 slot: 4 singles + 3 bridges. ILP creates 4 matches. Each match:
+  // [1 single + 3 bridges]. p1+B1 have 5 shared matches → diversity should
+  // put p1 in a match WITHOUT B1 if possible. Since each match has all 3
+  // bridges, this is impossible — so instead test that when we have 2 matches
+  // with room to swap, the swap happens.
+  //
+  // Simpler: 6 singles + 2 bridges at 1 slot. m=2 → sum=8.
+  // 6*1 + 2*1 = 8. No bridge reuse! Each bridge once. Both use matchCount=1
+  // path. Not helpful.
+  //
+  // 4 singles + 2 bridges. m=1 (sum=4). Can place 4: e.g. [p1,p2,B1,B2].
+  // Only 1 match, no grouping choice.
+  //
+  // The REAL bridge-reuse-with-grouping-choice case:
+  // 6 singles + 2 bridges at 1 slot, m=2 → sum=8.
+  // 6 + 2*1 = 8 → each bridge once. This is the no-bridge-reuse path
+  // (bridgePlayers.length > 0 but each count=1 → classified as single).
+  // Wait — the code checks count > 1. If count=1 they go to singlePlayers.
+  // So this is the all-singles path. Diversity DOES apply. Good.
+  //
+  // For bridge reuse: need x_{B,s} > 1. Need fewer unique players than 4*m.
+  // 5 unique + 1 bridge with x=3: sum = 5 + 3 = 8 = 4*2. m=2.
+  // Matches: bridge in 3 of 2 matches — impossible (x <= m=2). So x=2.
+  // 5 + 2 = 7 ≠ 8. Need another: 5 + 2 + 1 (another bridge at x=1) = 8.
+  // So: 5 singles + 2 bridges, bridge1 at x=2, bridge2 at x=1.
+  //
+  // ILP will find this. 5 singles + 2 bridges = 7 unique, 2 matches.
+  // Matches: [s1,s2,s3,B1] and [s4,s5,B1,B2]. B1 in both (x=2). B2 in one.
+  // The sequential bridge branch places B1 into groups 0 and 1, then B2
+  // into group 0. Then fills singles sequentially: g0=[B1,B2,s1,s2],
+  // g1=[B1,s3,s4,s5]. No diversity consideration.
+  //
+  // If s1+B1 have heavy history, diversity should put s1 in group 1 (without B1
+  // is impossible since B1 is in both). So this test doesn't work for separation.
+  //
+  // I'll construct: 2 bridges (B1,B2) each in both matches, + 4 singles.
+  // x_B1 = x_B2 = 2, sum = 4 + 4 = 8 = 4*2. ILP: 4 singles at x=1, 2 bridges
+  // at x=2. Total appearances = 8. Matches: each match has 2 bridges + 2 singles.
+  // Singles can be distributed: {s1,s2} and {s3,s4} or {s1,s3} and {s2,s4} etc.
+  // If s1+s2 have heavy history, diversity should put s1+s3 in one group and
+  // s2+s4 in the other.
+  const mon = slot("mon19", "Monday", "19:00", "20:30");
+
+  const pairingHistory: PairingRecord[] = [];
+  for (let i = 0; i < 5; i++) {
+    pairingHistory.push({ player_ids: ["s1", "s2", "pX", "pY"], match_date: "2026-06-01" });
+  }
+
+  const out = await generateProposals(base({
+    timeSlots: [mon],
+    responses: [
+      resp("s1", ["mon19"]), resp("s2", ["mon19"]),
+      resp("s3", ["mon19"]), resp("s4", ["mon19"]),
+      resp("B1", ["mon19"], null), resp("B2", ["mon19"], null),
+    ],
+    pairingHistory,
+  }));
+
+  assertEquals(out.matches.length, 2, "2 matches with bridge reuse");
+  assertEquals(out.totalParticipation, 6, "all 6 placed");
+
+  // Each match must have 4 distinct players
+  for (const m of out.matches) {
+    assertEquals(new Set(m.playerIds).size, 4, `match must have 4 distinct: [${m.playerIds}]`);
+  }
+
+  // s1 and s2 must be in DIFFERENT groups (diversity should separate them)
+  for (const m of out.matches) {
+    const ids = new Set(m.playerIds);
+    assert(
+      !(ids.has("s1") && ids.has("s2")),
+      `s1 and s2 must be in different groups for diversity, found together: [${m.playerIds.join(",")}]`,
+    );
+  }
+});
+
+Deno.test("Level 3: bridge cross-slot diversity separates frequent pairs", async () => {
+  // 2 slots. p1-p3 at slot A, p4-p6 at slot B, bridges B1+B2 at both.
+  // p1+B1 played together 5 times. Diversity should avoid putting them together.
+  const sA = slot("sA", "Monday", "19:00", "20:30");
+  const sB = slot("sB", "Tuesday", "19:00", "20:30");
+
+  const pairingHistory: PairingRecord[] = [];
+  for (let i = 0; i < 5; i++) {
+    pairingHistory.push({ player_ids: ["p1", "B1", "pX", "pY"], match_date: "2026-06-01" });
+  }
+
+  const out = await generateProposals(base({
+    timeSlots: [sA, sB],
+    responses: [
+      resp("p1", ["sA"]), resp("p2", ["sA"]), resp("p3", ["sA"]),
+      resp("p4", ["sB"]), resp("p5", ["sB"]), resp("p6", ["sB"]),
+      resp("B1", ["sA", "sB"], null),
+      resp("B2", ["sA", "sB"], null),
+    ],
+    pairingHistory,
+  }));
+
+  assertEquals(out.matches.length, 2, "2 matches");
+  assertEquals(out.totalParticipation, 8, "all 8 placed");
+
+  // At slot A: group is [p1, p2, p3, B?]. Diversity should prefer B2 over B1
+  // because p1+B1 have high frequency. The no-bridge path uses
+  // partitionForDiversity which handles this. But which path fires?
+  const slotAMatch = out.matches.find(m => m.day === "Monday");
+  assert(slotAMatch !== undefined, "Monday match must exist");
+  const aIds = new Set(slotAMatch!.playerIds);
+
+  // If diversity works: B2 should be at slot A (not B1, who has history with p1)
+  // If diversity is disabled: B1 may land at slot A
+  if (aIds.has("p1") && aIds.has("B1")) {
+    // This is the diversity failure — p1+B1 should be separated
+    throw new Error(
+      `Diversity failure: p1 and B1 in same match [${slotAMatch!.playerIds.join(",")}] ` +
+      `despite 5 shared history matches. B2 should have been chosen for slot A instead.`
+    );
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // 4. BENCHED EDGE CASE
 //    mon19: 5 players -> 1 match -> 1 benched.
 //    tue19: 2 players -> no match -> NOT benched (lack-of-numbers).

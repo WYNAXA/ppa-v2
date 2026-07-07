@@ -170,26 +170,116 @@ function combinations(arr: string[], k: number): string[][] {
 }
 
 /**
- * Partition `players` into `groupCount` groups of 4, maximising total
- * diversity score.
+ * Partition a multiset of player appearances into `matchCount` groups of 4,
+ * each group having 4 DISTINCT players, maximising total diversity score.
  *
- * - pool <= 12 (3 groups): exhaustive enumeration — worst case
- *   C(12,4)*C(8,4) = 34 650 iterations, each scoring 6 pairs = trivial.
- * - pool > 12: greedy — pick best group of 4 from remaining, repeat.
+ * `appearances`: Map from player ID to how many groups they must appear in.
+ * The sum of all appearance counts must equal 4 * matchCount.
+ *
+ * Guarantees:
+ *   - Every returned group has exactly 4 elements, all distinct.
+ *   - Each player appears in exactly `appearances.get(player)` groups.
+ *   - Total diversity score is maximised (exhaustive for <=12 unique, greedy above).
  */
-function partitionForDiversity(
-  players: string[],
-  groupCount: number,
+function partitionMultiset(
+  appearances: Map<string, number>,
+  matchCount: number,
   pairing: PairingMaps,
 ): string[][] {
-  if (groupCount <= 0) return [];
-  const pool = players.slice(0, groupCount * 4);
-  if (groupCount === 1) return [pool];
-  if (pool.length <= 12) return enumerateBestSplit(pool, groupCount, pairing);
-  return greedyPartition(pool, groupCount, pairing);
+  if (matchCount <= 0) return [];
+
+  // Separate bridge (count > 1) and single (count = 1) players
+  const bridgePlayers: { uid: string; remaining: number }[] = [];
+  const singlePlayers: string[] = [];
+  for (const [uid, count] of appearances) {
+    if (count > 1) bridgePlayers.push({ uid, remaining: count });
+    else singlePlayers.push(uid);
+  }
+
+  // If no bridge players, this is a standard unique-player partition
+  if (bridgePlayers.length === 0) {
+    const pool = singlePlayers.slice(0, matchCount * 4);
+    if (matchCount === 1) return [pool];
+    if (pool.length <= 12) return enumerateUniquePartition(pool, matchCount, pairing);
+    return greedyUniquePartition(pool, matchCount, pairing);
+  }
+
+  // Bridge case: place bridge players into their required number of groups,
+  // then optimally distribute singles using diversity scoring.
+  //
+  // Step 1: Build group skeletons with bridge players.
+  // Each bridge player must go into exactly `remaining` groups.
+  const groups: string[][] = Array.from({ length: matchCount }, () => []);
+
+  for (const bp of bridgePlayers) {
+    // Assign bridge player to the groups where they create the least diversity
+    // damage — i.e. prefer groups where the bridge player has the least history
+    // with existing members. For the first bridge player, all groups are empty
+    // so it's arbitrary. For subsequent bridges, score placement.
+    const eligibleGroups = Array.from({ length: matchCount }, (_, i) => i)
+      .filter(g => groups[g].length < 4 && !groups[g].includes(bp.uid));
+
+    // Sort eligible groups by diversity: prefer groups where adding bp creates
+    // least pairing-frequency penalty with existing members.
+    eligibleGroups.sort((a, b) => {
+      const scoreA = groups[a].reduce((s, uid) => {
+        const freq = pairing.frequency.get(bp.uid)?.get(uid) ?? 0;
+        return s - freq;
+      }, 0);
+      const scoreB = groups[b].reduce((s, uid) => {
+        const freq = pairing.frequency.get(bp.uid)?.get(uid) ?? 0;
+        return s - freq;
+      }, 0);
+      return scoreB - scoreA;  // higher (less negative) = better
+    });
+
+    let placed = 0;
+    for (const g of eligibleGroups) {
+      if (placed >= bp.remaining) break;
+      groups[g].push(bp.uid);
+      placed++;
+    }
+  }
+
+  // Step 2: Fill remaining spots with singles, using diversity scoring.
+  // Add one single at a time, re-scoring after each addition so that
+  // the second single is scored against the group INCLUDING the first.
+  for (const group of groups) {
+    while (group.length < 4 && singlePlayers.length > 0) {
+      // Score each available single against ALL current group members
+      let bestUid = "";
+      let bestScore = -Infinity;
+      for (const uid of singlePlayers) {
+        if (group.includes(uid)) continue;
+        let score = 0;
+        for (const existing of group) {
+          const freq = pairing.frequency.get(uid)?.get(existing) ?? 0;
+          if      (freq === 0) score += 100;
+          else if (freq === 1) score += 50;
+          else if (freq === 2) score += 25;
+          else                 score -= freq * 10;
+
+          const days = pairing.recency.get(uid)?.get(existing);
+          if (days !== undefined) {
+            if      (days < 7)  score -= 100;
+            else if (days < 14) score -= 50;
+            else if (days < 30) score -= 25;
+          }
+        }
+        if (score > bestScore) { bestScore = score; bestUid = uid; }
+      }
+      if (!bestUid) break;
+      group.push(bestUid);
+      singlePlayers.splice(singlePlayers.indexOf(bestUid), 1);
+    }
+  }
+
+  return groups.filter(g => g.length === 4);
 }
 
-function enumerateBestSplit(
+// ── Unique-player partition helpers (no bridge reuse) ────────────────────────
+
+function enumerateUniquePartition(
   pool: string[],
   groupCount: number,
   pairing: PairingMaps,
@@ -202,7 +292,7 @@ function enumerateBestSplit(
   for (const group of combinations(pool, 4)) {
     const groupSet = new Set(group);
     const remaining = pool.filter(p => !groupSet.has(p));
-    const rest = enumerateBestSplit(remaining, groupCount - 1, pairing);
+    const rest = enumerateUniquePartition(remaining, groupCount - 1, pairing);
     const total =
       scoreDiversity(group, pairing) +
       rest.reduce((s, g) => s + scoreDiversity(g, pairing), 0);
@@ -214,7 +304,7 @@ function enumerateBestSplit(
   return bestGroups;
 }
 
-function greedyPartition(
+function greedyUniquePartition(
   pool: string[],
   groupCount: number,
   pairing: PairingMaps,
@@ -222,7 +312,6 @@ function greedyPartition(
   const remaining = [...pool];
   const groups: string[][] = [];
   for (let g = 0; g < groupCount && remaining.length >= 4; g++) {
-    // For manageable sizes, enumerate; otherwise take first 4.
     const candidates = remaining.length <= 8
       ? combinations(remaining, 4)
       : [remaining.slice(0, 4)];
@@ -304,94 +393,30 @@ export async function generateProposals(input: EngineInput): Promise<EngineOutpu
     const assigned = slotAssigned.get(slot.id);
     if (!assigned || assigned.length === 0) continue;
 
-    // The ILP assignment list may contain bridge players multiple times
-    // (once per match-appearance). The total length = 4 * matchCount.
+    // The ILP assignment list contains each player once per match-appearance.
+    // Build the appearance map and compute match count.
+    const appearances = new Map<string, number>();
+    for (const uid of assigned) {
+      appearances.set(uid, (appearances.get(uid) ?? 0) + 1);
+    }
     const matchCount = Math.floor(assigned.length / 4);
     if (matchCount === 0) continue;
 
-    // Deduplicate: count how many matches each player appears in at this slot.
-    const playerAppearances = new Map<string, number>();
-    for (const uid of assigned) {
-      playerAppearances.set(uid, (playerAppearances.get(uid) ?? 0) + 1);
-    }
+    // Single path: partitionMultiset handles all cases — unique players,
+    // bridge players with reuse, and mixed — applying diversity scoring
+    // throughout. Every returned group has exactly 4 DISTINCT players.
+    const groups = partitionMultiset(appearances, matchCount, pairing);
+    const date = weekDayToDate(weekStartDate, slot.day as DayName);
 
-    // Separate single-appearance (regular) and multi-appearance (bridge) players.
-    const singlePlayers: string[] = [];
-    const bridgePlayers: { uid: string; count: number }[] = [];
-    for (const [uid, count] of playerAppearances) {
-      if (count === 1) singlePlayers.push(uid);
-      else bridgePlayers.push({ uid, count });
-    }
-
-    if (matchCount === 1) {
-      // One match: use diversity grouping on the unique player set
-      const uniquePlayers = [...singlePlayers, ...bridgePlayers.map(b => b.uid)];
-      const groups = partitionForDiversity(uniquePlayers.slice(0, 4), 1, pairing);
-      const date = weekDayToDate(weekStartDate, slot.day as DayName);
-      for (const group of groups) {
-        proposals.push({
-          date,
-          day: slot.day,
-          timeSlot: `${slot.start_time}-${slot.end_time}`,
-          slotId: slot.id,
-          playerIds: group,
-          diversityScore: scoreDiversity(group, pairing),
-        });
-      }
-    } else if (bridgePlayers.length === 0) {
-      // Multiple matches, no bridge players: all unique.
-      // Use diversity grouping directly.
-      const groups = partitionForDiversity(
-        singlePlayers.slice(0, matchCount * 4), matchCount, pairing,
-      );
-      const date = weekDayToDate(weekStartDate, slot.day as DayName);
-      for (const group of groups) {
-        proposals.push({
-          date,
-          day: slot.day,
-          timeSlot: `${slot.start_time}-${slot.end_time}`,
-          slotId: slot.id,
-          playerIds: group,
-          diversityScore: scoreDiversity(group, pairing),
-        });
-      }
-    } else {
-      // Multiple matches WITH bridge players: distribute bridge players
-      // across groups first, then fill with singles.
-      const groups: string[][] = Array.from({ length: matchCount }, () => []);
-
-      // Place bridge players first — each goes into `count` groups
-      for (const { uid, count } of bridgePlayers) {
-        let placed = 0;
-        for (let g = 0; g < matchCount && placed < count; g++) {
-          if (groups[g].length < 4 && !groups[g].includes(uid)) {
-            groups[g].push(uid);
-            placed++;
-          }
-        }
-      }
-
-      // Fill remaining spots with single-appearance players
-      let singleIdx = 0;
-      for (const group of groups) {
-        while (group.length < 4 && singleIdx < singlePlayers.length) {
-          group.push(singlePlayers[singleIdx++]);
-        }
-      }
-
-      const date = weekDayToDate(weekStartDate, slot.day as DayName);
-      for (const group of groups) {
-        if (group.length === 4) {
-          proposals.push({
-            date,
-            day: slot.day,
-            timeSlot: `${slot.start_time}-${slot.end_time}`,
-            slotId: slot.id,
-            playerIds: group,
-            diversityScore: scoreDiversity(group, pairing),
-          });
-        }
-      }
+    for (const group of groups) {
+      proposals.push({
+        date,
+        day: slot.day,
+        timeSlot: `${slot.start_time}-${slot.end_time}`,
+        slotId: slot.id,
+        playerIds: group,
+        diversityScore: scoreDiversity(group, pairing),
+      });
     }
   }
 

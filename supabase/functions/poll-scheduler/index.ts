@@ -1,0 +1,268 @@
+/**
+ * poll-scheduler — unified edge function for poll → match scheduling.
+ *
+ * Two modes:
+ *   { mode: "propose", poll_id, togetherness? }
+ *     → runs the ILP engine, returns proposals. No writes.
+ *
+ *   { mode: "confirm", poll_id, schedule, benched_ids }
+ *     → calls confirm_poll_schedule RPC. Atomic write.
+ */
+
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
+import { isUserAvailableForSlot } from "../_shared/timeUtils.ts";
+import {
+  generateProposals,
+  type TimeSlot,
+  type PollResponse,
+  type BenchHistory,
+  type PairingRecord,
+  type EngineInput,
+  type EngineOutput,
+  type ProposedMatch,
+} from "../_shared/matchEngine.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
+  try {
+    const body = await req.json();
+    const { mode, poll_id } = body;
+
+    if (!poll_id) {
+      return json({ error: "poll_id is required" }, 400);
+    }
+
+    // ── SHARED SETUP (both modes) ──────────────────────────────────────
+
+    // 1. Fetch poll
+    const { data: poll, error: pollErr } = await supabase
+      .from("polls")
+      .select("*, groups(id, name)")
+      .eq("id", poll_id)
+      .single();
+
+    if (pollErr || !poll) {
+      return json({ error: "Poll not found" }, 404);
+    }
+
+    const timeSlots: TimeSlot[] = Array.isArray(poll.time_slots)
+      ? poll.time_slots
+      : [];
+
+    if (mode === "propose") {
+      return await handlePropose(supabase, poll, timeSlots, body.togetherness ?? false);
+    } else if (mode === "confirm") {
+      return await handleConfirm(supabase, poll_id, body.schedule, body.benched_ids);
+    } else {
+      return json({ error: 'mode must be "propose" or "confirm"' }, 400);
+    }
+  } catch (err: any) {
+    console.error("poll-scheduler error:", err);
+    return json({ error: err.message ?? "Unknown error" }, 500);
+  }
+});
+
+// ── MODE: propose ────────────────────────────────────────────────────────────
+
+async function handlePropose(
+  supabase: any,
+  poll: any,
+  timeSlots: TimeSlot[],
+  togetherness: boolean,
+): Promise<Response> {
+
+  // 2. Fetch poll_responses with profiles
+  const { data: responses, error: respErr } = await supabase
+    .from("poll_responses")
+    .select("user_id, selected_slots, flexible_times, can_play_twice")
+    .eq("poll_id", poll.id);
+
+  if (respErr) return json({ error: "Failed to fetch responses" }, 500);
+  if (!responses || responses.length < 2) {
+    return json({ success: true, proposals: [], message: "Need at least 2 responses" });
+  }
+
+  // 3. Map to engine PollResponse type.
+  // Availability is resolved by the engine via isUserAvailableForSlot
+  // (imported from _shared/timeUtils.ts at line 14). ONE implementation.
+  const engineResponses: PollResponse[] = responses.map((r: any) => ({
+    user_id: r.user_id,
+    selected_slots: r.selected_slots ?? [],
+    flexible_times: r.flexible_times ?? null,
+    can_play_twice: r.can_play_twice ?? false,
+  }));
+
+  // 4. Bench-debt: count of outcome='benched' per user in this group, last 3 months
+  const threeMonthsAgo = new Date();
+  threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+  const { data: benchRows } = await supabase
+    .from("poll_player_outcomes")
+    .select("user_id")
+    .eq("group_id", poll.group_id)
+    .eq("outcome", "benched")
+    .gte("created_at", threeMonthsAgo.toISOString());
+
+  const benchHistory: BenchHistory[] = [];
+  if (benchRows) {
+    const counts = new Map<string, number>();
+    for (const row of benchRows) {
+      counts.set(row.user_id, (counts.get(row.user_id) ?? 0) + 1);
+    }
+    for (const [user_id, bench_count] of counts) {
+      benchHistory.push({ user_id, bench_count });
+    }
+  }
+
+  // 5. Pairing history: recent matches in this group (3 months)
+  const { data: recentMatches } = await supabase
+    .from("matches")
+    .select("player_ids, match_date")
+    .eq("group_id", poll.group_id)
+    .eq("status", "scheduled")
+    .gte("match_date", threeMonthsAgo.toISOString().split("T")[0])
+    .order("match_date", { ascending: false });
+
+  const pairingHistory: PairingRecord[] = (recentMatches ?? []).map((m: any) => ({
+    player_ids: m.player_ids ?? [],
+    match_date: m.match_date,
+  }));
+
+  // 6. Run the engine
+  const engineInput: EngineInput = {
+    weekStartDate: poll.week_start_date,
+    timeSlots,
+    responses: engineResponses,
+    benchHistory,
+    pairingHistory,
+    togetherness,
+  };
+
+  const output: EngineOutput = await generateProposals(engineInput);
+
+  // 7. Build profile map for UI
+  const allPlayerIds = new Set<string>();
+  output.matches.forEach(m => m.playerIds.forEach(id => allPlayerIds.add(id)));
+  output.playersBenched.forEach(id => allPlayerIds.add(id));
+
+  const profilesMap: Record<string, any> = {};
+  if (allPlayerIds.size > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, name, playtomic_level, internal_ranking")
+      .in("id", Array.from(allPlayerIds));
+
+    for (const p of profiles ?? []) {
+      profilesMap[p.id] = p;
+    }
+  }
+
+  // 8. Return proposals.
+  // The match_time for the RPC is the slot start_time (HH:mm), which
+  // needs ':00' appended to become HH:mm:ss for Postgres ::time cast.
+  // We include both timeSlot ("19:00-20:30") for display and a
+  // pre-formatted match_time ("19:00:00") for the confirm path.
+  const proposals = output.matches.map((m: ProposedMatch) => ({
+    player_ids: m.playerIds,
+    match_date: m.date,                                    // yyyy-MM-dd from weekDayToDate
+    match_time: m.timeSlot.split("-")[0] + ":00",          // "19:00" → "19:00:00"
+    slot_id: m.slotId,
+    day: m.day,
+    time_slot_display: m.timeSlot,                         // "19:00-20:30" for UI
+    diversity_score: m.diversityScore,
+    additional_options: {},
+  }));
+
+  return json({
+    success: true,
+    proposals,
+    players_scheduled: output.playersScheduled,
+    players_benched: output.playersBenched,
+    total_participation: output.totalParticipation,
+    profiles: profilesMap,
+  });
+}
+
+// ── MODE: confirm ────────────────────────────────────────────────────────────
+
+async function handleConfirm(
+  supabase: any,
+  pollId: string,
+  schedule: any[] | undefined,
+  benchedIds: string[] | undefined,
+): Promise<Response> {
+
+  if (!schedule || !Array.isArray(schedule)) {
+    return json({ error: "schedule must be a JSON array" }, 400);
+  }
+
+  // ── CONTRACT: p_schedule keys ──────────────────────────────────────
+  // The RPC (confirm_poll_schedule) reads each match via:
+  //   v_match->>'match_date'    → ::date
+  //   v_match->>'match_time'    → ::time     (must be HH:mm:ss)
+  //   v_match->>'slot_id'       → text
+  //   v_match->'player_ids'     → jsonb_array_elements_text → ::uuid
+  //   v_match->'additional_options' → jsonb
+  //   v_match->>'status'        → text (default 'scheduled')
+  //
+  // Validate and normalize each match object before passing to the RPC.
+  const normalizedSchedule = schedule.map((m: any, i: number) => {
+    if (!m.player_ids || !Array.isArray(m.player_ids) || m.player_ids.length < 2) {
+      throw new Error(`schedule[${i}].player_ids must be an array of 2+ uuids`);
+    }
+    if (!m.match_date || !/^\d{4}-\d{2}-\d{2}$/.test(m.match_date)) {
+      throw new Error(`schedule[${i}].match_date must be yyyy-MM-dd`);
+    }
+    // match_time: accept "HH:mm" or "HH:mm:ss", normalize to HH:mm:ss
+    let matchTime = m.match_time ?? "";
+    if (/^\d{2}:\d{2}$/.test(matchTime)) matchTime += ":00";
+    if (!/^\d{2}:\d{2}:\d{2}$/.test(matchTime)) {
+      throw new Error(`schedule[${i}].match_time must be HH:mm or HH:mm:ss`);
+    }
+
+    return {
+      player_ids: m.player_ids,
+      match_date: m.match_date,
+      match_time: matchTime,
+      slot_id: m.slot_id ?? null,
+      additional_options: m.additional_options ?? {},
+      status: m.status ?? "scheduled",
+    };
+  });
+
+  // ── Call the atomic RPC ────────────────────────────────────────────
+  const { data, error } = await supabase.rpc("confirm_poll_schedule", {
+    p_poll_id: pollId,
+    p_schedule: normalizedSchedule,
+    p_benched_ids: benchedIds ?? [],
+  });
+
+  if (error) {
+    return json({ error: error.message }, 400);
+  }
+
+  return json({ success: true, ...data });
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function json(body: any, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}

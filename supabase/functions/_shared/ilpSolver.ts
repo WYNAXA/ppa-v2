@@ -30,24 +30,33 @@ import type { TimeSlot, PollResponse } from "./matchEngine.ts";
 
 // ── HiGHS loader (cached singleton) ──────────────────────────────────────────
 
+// Static imports — embedded at build time, no Deno.readFile/readTextFile.
+// The bundler includes these .ts modules in the deploy, so the WASM and
+// glue are available in the deployed edge function without runtime IO.
+import { HIGHS_GLUE_SOURCE } from "./highs-wasm/highs14_glue.ts";
+import { HIGHS_WASM_BASE64 } from "./highs-wasm/highs14_wasm_b64.ts";
+
 let _glueSource: string | null = null;
 let _wasmBinary: Uint8Array | null = null;
 
-async function getHiGHS(): Promise<any> {
-  const thisDir = new URL(".", import.meta.url).pathname;
+function decodeBase64(b64: string): Uint8Array {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return bytes;
+}
 
-  // Cache the source text and WASM binary (but NOT the instance)
+async function getHiGHS(): Promise<any> {
+  // Cache the patched glue and decoded WASM binary (but NOT the instance)
   if (!_glueSource) {
-    // Use HiGHS v1.14.2 (highs14.js/highs14.wasm) — v1.8.0 MIP solver
-    // crashes on certain all-binary 50/6-slot models in the Deno test runner.
-    let src = await Deno.readTextFile(thisDir + "highs-wasm/highs14.js");
+    let src = HIGHS_GLUE_SOURCE;
     src = src.replace(/if\s*\(\s*typeof\s+exports\s*===\s*'object'[\s\S]*$/, "");
     src = src.replace(/if\(m\)\{var fs=require\("fs"\).*?\}else if/, "if(false){}else if");
     src = src.replace(/if\(ENVIRONMENT_IS_NODE\)\{var fs=require\("node:fs"\).*?\}else if/, "if(false){}else if");
     _glueSource = src;
   }
   if (!_wasmBinary) {
-    _wasmBinary = await Deno.readFile(thisDir + "highs-wasm/highs14.wasm");
+    _wasmBinary = decodeBase64(HIGHS_WASM_BASE64);
   }
 
   // Fresh instance each solve to avoid Emscripten VFS state corruption

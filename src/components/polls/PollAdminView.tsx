@@ -417,11 +417,39 @@ export function PollAdminView({
     }
   }
 
-  // Called when the admin edits a match (remove player, drop match, etc.)
+  const [swapTarget, setSwapTarget] = useState<{ matchIdx: number; playerIdx: number } | null>(null)
+
+  // Called when the admin edits a match (swap/drop). Routes through the dirty guard.
   function handleScheduleEdit(editedSchedule: any) {
     setSelectedSchedule(editedSchedule)
     setBenchedDirty(true)
     recomputeBenched(editedSchedule)
+  }
+
+  // SWAP: replace one scheduled player with a benched/available one. Atomic — match stays at 4.
+  function handleSwapPlayer(matchIdx: number, playerIdx: number, newPlayerId: string) {
+    if (!selectedSchedule) return
+    const matches = [...selectedSchedule.matches]
+    const match = { ...matches[matchIdx] }
+    const pids = [...(match.player_ids ?? match.playerIds)]
+    pids[playerIdx] = newPlayerId
+    match.player_ids = pids
+    match.playerIds = pids
+    match.playerNames = pids.map((pid: string) => engineProfiles[pid]?.name ?? 'Unknown')
+    matches[matchIdx] = match
+    setSwapTarget(null)
+    handleScheduleEdit({ ...selectedSchedule, matches })
+  }
+
+  // DROP MATCH: remove an entire match. All 4 players become benched (if available at a formed slot).
+  function handleDropMatch(matchIdx: number) {
+    if (!selectedSchedule) return
+    const matches = selectedSchedule.matches.filter((_: any, i: number) => i !== matchIdx)
+    handleScheduleEdit({
+      ...selectedSchedule,
+      matches,
+      totalMatches: matches.length,
+    })
   }
 
   async function handleConfirmSchedule() {
@@ -908,21 +936,64 @@ export function PollAdminView({
                   </p>
 
                   {(schedule.matches ?? []).map((match: any, mIdx: number) => {
-                    const names = match.playerNames ?? []
-                    const team1 = names.slice(0, 2).map((n: string) => n.split(' ')[0]).join(' + ')
-                    const team2 = names.slice(2, 4).map((n: string) => n.split(' ')[0]).join(' + ')
+                    const pids: string[] = match.player_ids ?? match.playerIds ?? []
+                    const isSelected = selectedSchedule?.scheduleNumber === schedule.scheduleNumber
                     return (
-                      <div key={mIdx} className="rounded-lg bg-gray-50 px-3 py-2 text-[12px]">
+                      <div key={mIdx} className="rounded-lg bg-gray-50 px-3 py-2 text-[12px] space-y-1">
                         <div className="flex items-center justify-between">
                           <span className="font-medium text-gray-800">{match.dayOfWeek ?? match.date ?? match.day}</span>
-                          <span className="text-gray-400">{match.timeSlot ?? `${match.start_time}–${match.end_time}`}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-gray-400">{match.timeSlot ?? `${match.start_time}–${match.end_time}`}</span>
+                            {isSelected && (
+                              <button
+                                onClick={() => handleDropMatch(mIdx)}
+                                className="text-[10px] text-red-400 hover:text-red-600 font-semibold"
+                                title="Drop this match"
+                              >
+                                Drop
+                              </button>
+                            )}
+                          </div>
                         </div>
-                        {names.length >= 4 && (
-                          <p className="text-[11px] text-gray-600 mt-0.5">{team1} <span className="text-gray-400">vs</span> {team2}</p>
-                        )}
-                        {names.length > 0 && names.length < 4 && (
-                          <p className="text-[11px] text-gray-500 mt-0.5">{names.join(', ')} <span className="text-orange-500">+ {4 - names.length} needed</span></p>
-                        )}
+                        {/* Player list with swap controls */}
+                        <div className="space-y-0.5">
+                          {pids.map((pid: string, pIdx: number) => {
+                            const name = engineProfiles[pid]?.name ?? match.playerNames?.[pIdx] ?? 'Unknown'
+                            const isSwapOpen = isSelected && swapTarget?.matchIdx === mIdx && swapTarget?.playerIdx === pIdx
+                            return (
+                              <div key={pIdx}>
+                                <div className="flex items-center justify-between">
+                                  <span className="text-[11px] text-gray-600">{name.split(' ')[0]}</span>
+                                  {isSelected && (
+                                    <button
+                                      onClick={() => setSwapTarget(isSwapOpen ? null : { matchIdx: mIdx, playerIdx: pIdx })}
+                                      className="text-[10px] text-blue-400 hover:text-blue-600"
+                                    >
+                                      {isSwapOpen ? 'Cancel' : 'Swap'}
+                                    </button>
+                                  )}
+                                </div>
+                                {isSwapOpen && (
+                                  <div className="ml-2 mt-1 mb-1 p-2 bg-white rounded border border-blue-100 space-y-1">
+                                    <p className="text-[10px] text-gray-400 font-semibold">Replace with:</p>
+                                    {playersBenched.length === 0 && (
+                                      <p className="text-[10px] text-gray-400">No available players</p>
+                                    )}
+                                    {playersBenched.map((benchId: string) => (
+                                      <button
+                                        key={benchId}
+                                        onClick={() => handleSwapPlayer(mIdx, pIdx, benchId)}
+                                        className="block w-full text-left text-[11px] text-blue-600 hover:bg-blue-50 rounded px-1 py-0.5"
+                                      >
+                                        {engineProfiles[benchId]?.name?.split(' ')[0] ?? benchId.slice(0, 8)}
+                                      </button>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
                       </div>
                     )
                   })}
@@ -945,11 +1016,21 @@ export function PollAdminView({
               {selectedSchedule && (
                 <button
                   onClick={handleConfirmSchedule}
-                  disabled={confirming}
+                  disabled={confirming || benchedDirty || recomputing}
                   className="w-full rounded-2xl bg-gray-900 py-3.5 text-[14px] font-bold text-white disabled:opacity-50 mt-2"
                 >
-                  {confirming ? '⏳ Scheduling matches...' : `✓ Confirm — schedule ${selectedSchedule.totalMatches ?? selectedSchedule.matches?.length ?? 0} matches`}
+                  {confirming ? '⏳ Scheduling matches...'
+                    : recomputing ? '⏳ Recomputing...'
+                    : `✓ Confirm — schedule ${selectedSchedule.totalMatches ?? selectedSchedule.matches?.length ?? 0} matches`}
                 </button>
+              )}
+
+              {/* Benched players summary */}
+              {selectedSchedule && playersBenched.length > 0 && (
+                <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] text-amber-700">
+                  <span className="font-semibold">{playersBenched.length} benched:</span>{' '}
+                  {playersBenched.map(id => engineProfiles[id]?.name?.split(' ')[0] ?? id.slice(0,8)).join(', ')}
+                </div>
               )}
 
             </div>

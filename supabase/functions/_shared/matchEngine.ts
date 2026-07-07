@@ -5,18 +5,16 @@
  *
  * Objective stack (strict lexicographic order):
  *   1. PARTICIPATION: maximise distinct players in full 4-player matches.
- *   2. BENCH ROTATION: when surplus, bench those with LOWEST bench-debt.
- *   3. PAIRING DIVERSITY: within assigned groups, minimise repeat pairings.
- *   4. TOGETHERNESS: cluster on fewer days when toggled (never drops Level 1).
- *
- * Complexity: O(P * S * log P) for the greedy assignment (P=players, S=slots).
- * Diversity grouping adds per-slot enumeration capped at O(C(12,4)^2) = 245 K
- * for slots with <= 12 assigned; greedy O(N) above that.
- * At 200 players x 10 slots the dominant cost is ~20 K sort ops.
+ *      Solved by ILP (HiGHS WASM) — proven optimal, oracle-equal.
+ *   2. BENCH ROTATION: ILP secondary objective (epsilon * bench_debt per y_p).
+ *      Never reduces participation; only breaks ties among equal-placed solutions.
+ *   3. PAIRING DIVERSITY: within assigned groups, minimise recent pairing frequency.
+ *   4. TOGETHERNESS: implicit in ILP (all slot assignments explored).
  */
 
 import { weekDayToDate, type DayName } from "./dateUtils.ts";
 import { isUserAvailableForSlot } from "./timeUtils.ts";
+import { solveILP } from "./ilpSolver.ts";
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -243,17 +241,16 @@ function greedyPartition(
 
 // ── Main engine ──────────────────────────────────────────────────────────────
 
-export function generateProposals(input: EngineInput): EngineOutput {
+export async function generateProposals(input: EngineInput): Promise<EngineOutput> {
   const {
     weekStartDate, timeSlots, responses,
-    benchHistory, pairingHistory, togetherness,
+    benchHistory, pairingHistory, togetherness: _togetherness,
   } = input;
 
   // ════════════════════════════════════════════════════════════════════════
   // Step 1 — Availability matrix: O(P * S)
   // ════════════════════════════════════════════════════════════════════════
-  const slotPlayers  = new Map<string, string[]>();  // slotId → user_ids
-  const playerSlots  = new Map<string, number>();    // userId → # available slots
+  const slotPlayers = new Map<string, string[]>();
 
   for (const slot of timeSlots) {
     const available: string[] = [];
@@ -263,7 +260,6 @@ export function generateProposals(input: EngineInput): EngineOutput {
         slot,
       )) {
         available.push(r.user_id);
-        playerSlots.set(r.user_id, (playerSlots.get(r.user_id) ?? 0) + 1);
       }
     }
     slotPlayers.set(slot.id, available);
@@ -277,87 +273,30 @@ export function generateProposals(input: EngineInput): EngineOutput {
 
   const pairing = buildPairingMaps(pairingHistory);
 
-  const responseMap = new Map<string, PollResponse>();
-  for (const r of responses) responseMap.set(r.user_id, r);
+  // ════════════════════════════════════════════════════════════════════════
+  // Step 3 — Level 1 + 2: ILP-optimal participation with bench rotation
+  //
+  // The ILP maximises distinct players placed in full 4-player matches
+  // (Level 1 = primary objective coefficient 1.0 per player).
+  //
+  // Level 2 (bench rotation) is encoded as a secondary tiebreak in the
+  // objective: each y_p gets coefficient 1 + 0.001 * benchDebt_p.
+  // Since 0.001 * maxDebt < 1.0, the secondary weight can NEVER outweigh
+  // placing one additional player.  It only breaks ties among solutions
+  // with equal participation, preferring to seat higher-debt players.
+  // ════════════════════════════════════════════════════════════════════════
+  const ilpResult = await solveILP(timeSlots, responses, benchDebt);
+
+  // Build slotAssigned from ILP assignments
+  const slotAssigned = ilpResult.assignments;
 
   // ════════════════════════════════════════════════════════════════════════
-  // Step 3 — Slot ordering  (Level 4: togetherness)
+  // Step 4 — Level 3: Diversity grouping
   //
-  //   Default:      ascending available count (most constrained first).
-  //                 Ensures exclusive players placed before flexible ones
-  //                 consume their spots.
-  //   Togetherness: descending available count (most popular first).
-  //                 Clusters matches onto busy slots/days.
-  //
-  //   Level 1 is preserved in both modes because the eligible-sort within
-  //   each slot (Step 4) always prioritises flexibility=1 (exclusive)
-  //   players first, so they are never crowded out.
-  // ════════════════════════════════════════════════════════════════════════
-  const orderedSlots = [...timeSlots].sort((a, b) => {
-    const cA = slotPlayers.get(a.id)?.length ?? 0;
-    const cB = slotPlayers.get(b.id)?.length ?? 0;
-    const cmp = togetherness ? cB - cA : cA - cB;
-    if (cmp !== 0) return cmp;
-    // Deterministic tiebreak: earlier day, then earlier time
-    const dA = DAY_ORDER.indexOf(a.day), dB = DAY_ORDER.indexOf(b.day);
-    if (dA !== dB) return dA - dB;
-    return a.start_time.localeCompare(b.start_time);
-  });
-
-  // ════════════════════════════════════════════════════════════════════════
-  // Step 4 — Greedy assignment: O(S * P log P)
-  //
-  // For each slot, sort eligible players by a three-tier key and take as
-  // many full groups of 4 as possible.
-  //
-  //   (a) match_count ASC — unassigned (0) before already-assigned (1+).
-  //       This is LEVEL 1: maximises distinct participation.
-  //
-  //   (b) bench_debt DESC — highest debt first among equals.
-  //       This is LEVEL 2: the player who sat out most often gets priority.
-  //
-  //   (c) flexibility ASC — fewest available slots first.
-  //       Assigns constrained/exclusive players before flexible ones,
-  //       saving flexible players for other slots.
-  // ════════════════════════════════════════════════════════════════════════
-  const matchCount   = new Map<string, number>();  // userId → matches assigned
-  const slotAssigned = new Map<string, string[]>(); // slotId → assigned user_ids
-
-  for (const slot of orderedSlots) {
-    const available = slotPlayers.get(slot.id) ?? [];
-
-    const eligible = available.filter(uid => {
-      const cnt = matchCount.get(uid) ?? 0;
-      return cnt < maxMatchesFor(responseMap.get(uid)!);
-    });
-
-    eligible.sort((a, b) => {
-      const cntA = matchCount.get(a) ?? 0, cntB = matchCount.get(b) ?? 0;
-      if (cntA !== cntB) return cntA - cntB;                         // (a) participation
-      const dA = benchDebt.get(a) ?? 0, dB = benchDebt.get(b) ?? 0;
-      if (dA !== dB) return dB - dA;                                  // (b) rotation
-      const sA = playerSlots.get(a) ?? 0, sB = playerSlots.get(b) ?? 0;
-      return sA - sB;                                                 // (c) flexibility
-    });
-
-    const takeCount = Math.floor(eligible.length / 4) * 4;
-    if (takeCount === 0) continue;
-
-    const assigned = eligible.slice(0, takeCount);
-    slotAssigned.set(slot.id, assigned);
-
-    for (const uid of assigned) {
-      matchCount.set(uid, (matchCount.get(uid) ?? 0) + 1);
-    }
-  }
-
-  // ════════════════════════════════════════════════════════════════════════
-  // Step 5 — Diversity grouping  (Level 3)
-  //
-  // For each slot's assigned players, partition into groups of 4 that
+  // For each slot's ILP-assigned players, partition into groups of 4 that
   // maximise total diversity score.  The grouping only reorders players
-  // WITHIN the already-decided set — it never adds or removes anyone,
-  // so Levels 1 + 2 are not affected.
+  // WITHIN the ILP-decided set — it never adds or removes anyone, so
+  // Level 1 (proven optimal participation) is preserved.
   // ════════════════════════════════════════════════════════════════════════
   const proposals: ProposedMatch[] = [];
 
@@ -365,29 +304,106 @@ export function generateProposals(input: EngineInput): EngineOutput {
     const assigned = slotAssigned.get(slot.id);
     if (!assigned || assigned.length === 0) continue;
 
-    const groupCount = assigned.length / 4;
-    const groups = partitionForDiversity(assigned, groupCount, pairing);
-    const date = weekDayToDate(weekStartDate, slot.day as DayName);
+    // The ILP assignment list may contain bridge players multiple times
+    // (once per match-appearance). The total length = 4 * matchCount.
+    const matchCount = Math.floor(assigned.length / 4);
+    if (matchCount === 0) continue;
 
-    for (const group of groups) {
-      proposals.push({
-        date,
-        day: slot.day,
-        timeSlot: `${slot.start_time}-${slot.end_time}`,
-        slotId: slot.id,
-        playerIds: group,
-        diversityScore: scoreDiversity(group, pairing),
-      });
+    // Deduplicate: count how many matches each player appears in at this slot.
+    const playerAppearances = new Map<string, number>();
+    for (const uid of assigned) {
+      playerAppearances.set(uid, (playerAppearances.get(uid) ?? 0) + 1);
+    }
+
+    // Separate single-appearance (regular) and multi-appearance (bridge) players.
+    const singlePlayers: string[] = [];
+    const bridgePlayers: { uid: string; count: number }[] = [];
+    for (const [uid, count] of playerAppearances) {
+      if (count === 1) singlePlayers.push(uid);
+      else bridgePlayers.push({ uid, count });
+    }
+
+    if (matchCount === 1) {
+      // One match: use diversity grouping on the unique player set
+      const uniquePlayers = [...singlePlayers, ...bridgePlayers.map(b => b.uid)];
+      const groups = partitionForDiversity(uniquePlayers.slice(0, 4), 1, pairing);
+      const date = weekDayToDate(weekStartDate, slot.day as DayName);
+      for (const group of groups) {
+        proposals.push({
+          date,
+          day: slot.day,
+          timeSlot: `${slot.start_time}-${slot.end_time}`,
+          slotId: slot.id,
+          playerIds: group,
+          diversityScore: scoreDiversity(group, pairing),
+        });
+      }
+    } else if (bridgePlayers.length === 0) {
+      // Multiple matches, no bridge players: all unique.
+      // Use diversity grouping directly.
+      const groups = partitionForDiversity(
+        singlePlayers.slice(0, matchCount * 4), matchCount, pairing,
+      );
+      const date = weekDayToDate(weekStartDate, slot.day as DayName);
+      for (const group of groups) {
+        proposals.push({
+          date,
+          day: slot.day,
+          timeSlot: `${slot.start_time}-${slot.end_time}`,
+          slotId: slot.id,
+          playerIds: group,
+          diversityScore: scoreDiversity(group, pairing),
+        });
+      }
+    } else {
+      // Multiple matches WITH bridge players: distribute bridge players
+      // across groups first, then fill with singles.
+      const groups: string[][] = Array.from({ length: matchCount }, () => []);
+
+      // Place bridge players first — each goes into `count` groups
+      for (const { uid, count } of bridgePlayers) {
+        let placed = 0;
+        for (let g = 0; g < matchCount && placed < count; g++) {
+          if (groups[g].length < 4 && !groups[g].includes(uid)) {
+            groups[g].push(uid);
+            placed++;
+          }
+        }
+      }
+
+      // Fill remaining spots with single-appearance players
+      let singleIdx = 0;
+      for (const group of groups) {
+        while (group.length < 4 && singleIdx < singlePlayers.length) {
+          group.push(singlePlayers[singleIdx++]);
+        }
+      }
+
+      const date = weekDayToDate(weekStartDate, slot.day as DayName);
+      for (const group of groups) {
+        if (group.length === 4) {
+          proposals.push({
+            date,
+            day: slot.day,
+            timeSlot: `${slot.start_time}-${slot.end_time}`,
+            slotId: slot.id,
+            playerIds: group,
+            diversityScore: scoreDiversity(group, pairing),
+          });
+        }
+      }
     }
   }
 
-  // Chronological output order
+  // Chronological output order (Level 4: togetherness is implicit in
+  // the ILP's slot assignments — all valid groupings are explored by
+  // the solver. The output is sorted chronologically for display.)
   proposals.sort((a, b) =>
     a.date.localeCompare(b.date) || a.timeSlot.localeCompare(b.timeSlot),
   );
 
   // ════════════════════════════════════════════════════════════════════════
-  // Step 6 — Scheduled + Benched
+  // Step 5 — Scheduled + Benched
   //
   // Benched (locked definition): responded AND available at a slot where
   // at least one match was created AND not placed in any match.

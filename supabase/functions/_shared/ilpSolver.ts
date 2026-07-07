@@ -85,6 +85,7 @@ function lpName(id: string): string {
 function buildLP(
   timeSlots: TimeSlot[],
   responses: PollResponse[],
+  benchDebts?: Map<string, number>,
 ): { lp: string; varCount: number; constraintCount: number } {
   // Build availability per slot
   const slotAvail = new Map<string, string[]>();
@@ -109,9 +110,20 @@ function buildLP(
     for (const pid of avail) availSet.add(`${pid}:${sid}`);
   }
 
-  // ── Objective: maximize sum y_p ────────────────────────────────────────
+  // ── Objective: maximize sum y_p + epsilon * sum(benchDebt_p * y_p) ──────
+  // Primary: participation (coefficient 1 per player).
+  // Secondary: bench rotation tiebreak. Players with higher bench debt
+  // get a small bonus (epsilon * debt) so the solver prefers them when
+  // participation is tied. Epsilon is 0.001 so even debt=999 adds < 1,
+  // which can NEVER outweigh placing an additional player (coefficient 1).
+  const eps = 0.001;
   let lp = "Maximize\n  obj:";
-  lp += allPlayers.map(p => ` + y_${lpName(p)}`).join("");
+  lp += allPlayers.map(p => {
+    const debt = benchDebts?.get(p) ?? 0;
+    const coeff = 1 + eps * debt;
+    // LP format requires explicit coefficient: "+ 1.005 y_p0"
+    return ` + ${coeff} y_${lpName(p)}`;
+  }).join("");
   lp += "\n";
 
   lp += "Subject To\n";
@@ -243,10 +255,11 @@ function buildLP(
 export async function solveILP(
   timeSlots: TimeSlot[],
   responses: PollResponse[],
+  benchDebts?: Map<string, number>,
 ): Promise<ILPResult> {
   const highs = await getHiGHS();
 
-  const { lp } = buildLP(timeSlots, responses);
+  const { lp } = buildLP(timeSlots, responses, benchDebts);
 
   // MIP solve: returns the proven integer optimum.
   // The constraint matrix is NOT totally unimodular (the 4*m_s coupling
@@ -273,17 +286,19 @@ export async function solveILP(
       maxPlaced++;
     }
     if (name.startsWith("x_") && v.Primal > 0.5) {
-      // Parse x_PLAYER_SLOT
-      // Variable name format: x_{lpName(player)}_{lpName(slot)}
-      // We need to find which slot this belongs to
+      // x_{p,s} = number of matches at slot s that include player p.
+      // Push the player once per match-appearance so the assignment list
+      // has exactly 4 * m_s entries (enabling correct grouping into matches).
+      const count = Math.round(v.Primal);
       for (const s of timeSlots) {
         const suffix = `_${lpName(s.id)}`;
         if (name.endsWith(suffix)) {
           const playerPart = name.slice(2, name.length - suffix.length);
-          // Find the player whose lpName matches
           for (const r of responses) {
             if (lpName(r.user_id) === playerPart) {
-              assignments.get(s.id)!.push(r.user_id);
+              for (let k = 0; k < count; k++) {
+                assignments.get(s.id)!.push(r.user_id);
+              }
               break;
             }
           }

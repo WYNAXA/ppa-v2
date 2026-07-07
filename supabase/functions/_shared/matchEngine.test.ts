@@ -45,11 +45,11 @@ function base(overrides: Partial<EngineInput>): EngineInput {
 //    8 players at 2 exclusive slots -> 2 matches, all 8 scheduled, 0 benched.
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Level 1: maximise participation across exclusive slots", () => {
+Deno.test("Level 1: maximise participation across exclusive slots", async () => {
   const mon = slot("mon19", "Monday", "19:00", "20:30");
   const tue = slot("tue19", "Tuesday", "19:00", "20:30");
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [mon, tue],
     responses: [
       resp("p1", ["mon19"]), resp("p2", ["mon19"]),
@@ -70,10 +70,10 @@ Deno.test("Level 1: maximise participation across exclusive slots", () => {
 //    bottom 2 are benched.
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Level 2: highest bench-debt players get priority", () => {
+Deno.test("Level 2: highest bench-debt players get priority", async () => {
   const mon = slot("mon19", "Monday", "19:00", "20:30");
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [mon],
     responses: [
       resp("p1", ["mon19"]), resp("p2", ["mon19"]),
@@ -110,7 +110,7 @@ Deno.test("Level 2: highest bench-debt players get priority", () => {
 //    Optimal split separates both pairs into different groups.
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Level 3: diversity grouping separates frequent pairs", () => {
+Deno.test("Level 3: diversity grouping separates frequent pairs", async () => {
   const mon = slot("mon19", "Monday", "19:00", "20:30");
 
   const pairingHistory: PairingRecord[] = [];
@@ -119,7 +119,7 @@ Deno.test("Level 3: diversity grouping separates frequent pairs", () => {
     pairingHistory.push({ player_ids: ["p3", "p4", "pX", "pY"], match_date: "2026-06-01" });
   }
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [mon],
     responses: [
       resp("p1", ["mon19"]), resp("p2", ["mon19"]),
@@ -145,11 +145,11 @@ Deno.test("Level 3: diversity grouping separates frequent pairs", () => {
 //    tue19: 2 players -> no match -> NOT benched (lack-of-numbers).
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Benched: empty-slot responders are NOT benched", () => {
+Deno.test("Benched: empty-slot responders are NOT benched", async () => {
   const mon = slot("mon19", "Monday", "19:00", "20:30");
   const tue = slot("tue19", "Tuesday", "19:00", "20:30");
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [mon, tue],
     responses: [
       resp("p1", ["mon19"]), resp("p2", ["mon19"]),
@@ -161,7 +161,13 @@ Deno.test("Benched: empty-slot responders are NOT benched", () => {
 
   assertEquals(out.matches.length, 1, "only Monday match");
   assertEquals(out.totalParticipation, 4);
-  assert(out.playersBenched.includes("p5"), "p5 should be benched");
+
+  // Exactly 1 of the 5 Monday players is benched (ILP picks any 4 of 5)
+  const monPlayers = ["p1","p2","p3","p4","p5"];
+  const benchedMon = monPlayers.filter(p => out.playersBenched.includes(p));
+  assertEquals(benchedMon.length, 1, "exactly 1 Monday player benched");
+
+  // p6, p7 available only at Tuesday (no match) → NOT benched
   assert(!out.playersBenched.includes("p6"), "p6 not benched (empty slot)");
   assert(!out.playersBenched.includes("p7"), "p7 not benched (empty slot)");
 });
@@ -170,11 +176,11 @@ Deno.test("Benched: empty-slot responders are NOT benched", () => {
 // 5. CAN_PLAY_TWICE
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("can_play_twice=true allows a player in 2 matches", () => {
+Deno.test("can_play_twice=true allows a player in 2 matches", async () => {
   const s1 = slot("mon19", "Monday", "19:00", "20:30");
   const s2 = slot("mon21", "Monday", "20:30", "22:00");
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [s1, s2],
     responses: [
       resp("p1", ["mon19", "mon21"], true),
@@ -194,7 +200,7 @@ Deno.test("can_play_twice=true allows a player in 2 matches", () => {
 // 6. TOGETHERNESS PRESERVES PARTICIPATION
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Level 4: togetherness does not reduce participation", () => {
+Deno.test("Level 4: togetherness does not reduce participation", async () => {
   const mon = slot("mon19", "Monday", "19:00", "20:30");
   const tue = slot("tue19", "Tuesday", "19:00", "20:30");
 
@@ -208,10 +214,10 @@ Deno.test("Level 4: togetherness does not reduce participation", () => {
     resp("f3", ["mon19", "tue19"]), resp("f4", ["mon19", "tue19"]),
   ];
 
-  const spread = generateProposals(base({
+  const spread = await generateProposals(base({
     timeSlots: [mon, tue], responses, togetherness: false,
   }));
-  const cluster = generateProposals(base({
+  const cluster = await generateProposals(base({
     timeSlots: [mon, tue], responses, togetherness: true,
   }));
 
@@ -228,11 +234,11 @@ Deno.test("Level 4: togetherness does not reduce participation", () => {
 // 7. FLEXIBILITY TIEBREAK
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Flexibility tiebreak preserves exclusive player placement", () => {
+Deno.test("Flexibility tiebreak preserves exclusive player placement", async () => {
   const mon = slot("mon19", "Monday", "19:00", "20:30");
   const tue = slot("tue19", "Tuesday", "19:00", "20:30");
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [mon, tue],
     responses: [
       resp("p1", ["mon19", "tue19"]), resp("p2", ["mon19", "tue19"]),
@@ -260,14 +266,14 @@ Deno.test("Flexibility tiebreak preserves exclusive player placement", () => {
 //    Result: 5 matches, 20 players.
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Level 1 global: greedy handles scattered flex leftovers via slot ordering", () => {
+Deno.test("Level 1 global: greedy handles scattered flex leftovers via slot ordering", async () => {
   const sA   = slot("sA",   "Monday",    "19:00", "20:30");
   const sB   = slot("sB",   "Tuesday",   "19:00", "20:30");
   const sC   = slot("sC",   "Wednesday", "19:00", "20:30");
   const sD   = slot("sD",   "Thursday",  "19:00", "20:30");
   const pool = slot("pool", "Friday",    "19:00", "20:30");
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [sA, sB, sC, sD, pool],
     responses: [
       resp("e1",  ["sA"]), resp("e2",  ["sA"]), resp("e3",  ["sA"]), resp("e4",  ["sA"]),
@@ -289,11 +295,11 @@ Deno.test("Level 1 global: greedy handles scattered flex leftovers via slot orde
 //    f1 is the 4th at both B and C. Greedy picks one; max is 1 match either way.
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("Level 1 global: flex as 4th player — optimal with mutual exclusion", () => {
+Deno.test("Level 1 global: flex as 4th player — optimal with mutual exclusion", async () => {
   const sB = slot("sB", "Tuesday",   "19:00", "20:30");
   const sC = slot("sC", "Wednesday", "19:00", "20:30");
 
-  const out = generateProposals(base({
+  const out = await generateProposals(base({
     timeSlots: [sB, sC],
     responses: [
       resp("e1", ["sB"]), resp("e2", ["sB"]), resp("e3", ["sB"]),
@@ -556,7 +562,7 @@ function randomInput(rng: () => number): EngineInput {
   };
 }
 
-Deno.test("Property: engine participation matches brute-force oracle on 1000 random inputs", () => {
+Deno.test("Property: engine participation matches brute-force oracle on 1000 random inputs", async () => {
   const rng = makeRng(42);
   let tested = 0;
   let maxGap = 0;
@@ -566,7 +572,7 @@ Deno.test("Property: engine participation matches brute-force oracle on 1000 ran
 
   for (let i = 0; i < 1000; i++) {
     const input = randomInput(rng);
-    const engineResult = generateProposals(input);
+    const engineResult = await generateProposals(input);
     const oracleResult = oracleMaxParticipation(input.timeSlots, input.responses);
 
     const gap = oracleResult - engineResult.totalParticipation;
@@ -612,7 +618,7 @@ Deno.test("Property: engine participation matches brute-force oracle on 1000 ran
 // 11. COUNTEREXAMPLE from property test — smallest failing input
 // ══════════════════════════════════════════════════════════════════════════════
 
-Deno.test("COUNTEREXAMPLE: oracle=9 engine=4 — diagnose greedy failure", () => {
+Deno.test("COUNTEREXAMPLE: oracle=9 engine=4 — diagnose greedy failure", async () => {
   const s0 = slot("s0", "Monday",    "19:00", "20:30");
   const s1 = slot("s1", "Tuesday",   "19:00", "20:30");
   const s2 = slot("s2", "Wednesday", "19:00", "20:30");
@@ -633,7 +639,7 @@ Deno.test("COUNTEREXAMPLE: oracle=9 engine=4 — diagnose greedy failure", () =>
     ],
   });
 
-  const out = generateProposals(input);
+  const out = await generateProposals(input);
   const oracle = oracleMaxParticipation(input.timeSlots, input.responses);
 
   console.log(`Engine: ${out.totalParticipation} placed, ${out.matches.length} matches`);

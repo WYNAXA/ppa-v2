@@ -606,12 +606,79 @@ Deno.test("Property: engine participation matches brute-force oracle on 1000 ran
     console.log(`  Players: ${players}`);
   }
 
-  // KNOWN SUBOPTIMALITY: the greedy does not use unlimited (can_play_twice=null)
-  // players as bridge players across matches. See test 11 for the counterexample.
-  // The property test documents the actual gap magnitude for the fix pass.
   console.log(`Gap distribution: max=${maxGap}, across ${tested} trials`);
-  // Do not assert 0 — the greedy IS suboptimal. Assert bounded gap instead.
-  assert(maxGap <= 10, `Gap unreasonably large: ${maxGap}`);
+  assertEquals(maxGap, 0, `Engine suboptimal: oracle beat engine by ${maxGap}`);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 11. PROPOSAL VALIDITY — every emitted match must have 4 distinct players,
+//     total distinct placed == ILP optimum, no player exceeds their limit.
+// ══════════════════════════════════════════════════════════════════════════════
+
+function playerMatchLimit(r: PollResponse): number {
+  if (r.can_play_twice === false) return 1;
+  if (r.can_play_twice === true) return 2;
+  return 999;
+}
+
+Deno.test("Proposal validity on 1000 random inputs", async () => {
+  const rng = makeRng(42);
+  let failures = 0;
+
+  for (let i = 0; i < 1000; i++) {
+    const input = randomInput(rng);
+    const result = await generateProposals(input);
+    const oracle = oracleMaxParticipation(input.timeSlots, input.responses);
+
+    // Build response lookup
+    const respMap = new Map<string, PollResponse>();
+    for (const r of input.responses) respMap.set(r.user_id, r);
+
+    // (a) Every proposal has exactly 4 DISTINCT player ids
+    for (const m of result.matches) {
+      const unique = new Set(m.playerIds);
+      if (unique.size !== 4 || m.playerIds.length !== 4) {
+        console.log(`Trial ${i}: match has ${m.playerIds.length} ids, ${unique.size} distinct: [${m.playerIds.join(",")}]`);
+        failures++;
+        break;
+      }
+    }
+
+    // (b) Total distinct placed in proposals == ILP optimum
+    const placedInMatches = new Set<string>();
+    for (const m of result.matches) m.playerIds.forEach(id => placedInMatches.add(id));
+    if (placedInMatches.size !== oracle) {
+      console.log(`Trial ${i}: placed in proposals=${placedInMatches.size} != oracle=${oracle}`);
+      const slots = input.timeSlots.map(s => s.id).join(",");
+      const players = input.responses.map(r =>
+        `${r.user_id}:[${(r.selected_slots ?? []).join(",")}]cpt=${r.can_play_twice}`
+      ).join(" ");
+      console.log(`  Slots: ${slots}`);
+      console.log(`  Players: ${players}`);
+      failures++;
+      if (failures >= 5) break;
+      continue;
+    }
+
+    // (c) No player exceeds their can_play_twice limit
+    const matchCounts = new Map<string, number>();
+    for (const m of result.matches) {
+      for (const uid of m.playerIds) {
+        matchCounts.set(uid, (matchCounts.get(uid) ?? 0) + 1);
+      }
+    }
+    for (const [uid, cnt] of matchCounts) {
+      const lim = playerMatchLimit(respMap.get(uid)!);
+      if (cnt > lim) {
+        console.log(`Trial ${i}: ${uid} in ${cnt} matches, limit=${lim}`);
+        failures++;
+        break;
+      }
+    }
+  }
+
+  console.log(`Proposal validity: ${failures} failures`);
+  assertEquals(failures, 0, `${failures} inputs with invalid proposals`);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

@@ -96,7 +96,7 @@ Deno.serve(async (req) => {
     // Service-role client — bypasses RLS for this read-only function.
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('EDGE_SERVICE_KEY')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
 
     // ── 1. Venue availability settings ────────────────────────────────────────

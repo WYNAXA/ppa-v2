@@ -902,3 +902,96 @@ Deno.test("COUNTEREXAMPLE: oracle=9 engine=4 — diagnose greedy failure", async
     console.log(`  ${uid}: in ${cnt} matches, limit=${lim} ${cnt > lim ? "VIOLATION" : "ok"}`);
   }
 });
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 14. FLEX-TIME BENCHED — a responder available ONLY via flexible_times at
+//     a slot where a match formed must be in playersBenched.
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("Benched: flex-time-only responder at formed slot is benched", async () => {
+  const mon = slot("mon19", "Monday", "19:00", "20:30");
+
+  const out = await generateProposals(base({
+    timeSlots: [mon],
+    responses: [
+      // 4 direct slot selections → they form a match
+      resp("p1", ["mon19"]), resp("p2", ["mon19"]),
+      resp("p3", ["mon19"]), resp("p4", ["mon19"]),
+      // p5: available via flexible_times ONLY (no selected_slots for mon19)
+      {
+        user_id: "p5",
+        selected_slots: [],  // no direct slot selection
+        flexible_times: {
+          Monday: { available: true, slots: ["19:00"] },  // overlaps mon19
+        },
+        can_play_twice: false,
+      },
+    ],
+  }));
+
+  assertEquals(out.matches.length, 1, "1 match on Monday");
+  assertEquals(out.totalParticipation, 4);
+
+  // p5 is available at mon19 via flex-times AND a match was formed there → BENCHED
+  assert(out.playersBenched.includes("p5"), "p5 (flex-time-only) should be benched");
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 15. RECONCILIATION: scheduled + benched covers all available-at-formed-slot
+//     responders on 1000 inputs. No responder falls through the cracks.
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("Reconciliation: scheduled + benched == all available-at-formed-slot on 1000 inputs", async () => {
+  const rng = makeRng(42);
+  let failures = 0;
+
+  for (let i = 0; i < 1000; i++) {
+    const input = randomInput(rng);
+    const result = await generateProposals(input);
+
+    // Build slot-level availability (same as engine Step 1)
+    const slotPlayers = new Map<string, Set<string>>();
+    for (const s of input.timeSlots) {
+      const avail = new Set<string>();
+      for (const r of input.responses) {
+        // Replicate isUserAvailableForSlot: check selected_slots
+        const selected = r.selected_slots ?? [];
+        if (selected.includes(s.id)) { avail.add(r.user_id); continue; }
+        // Check flexible_times
+        const flex = (r.flexible_times as any)?.[s.day];
+        if (flex?.available && Array.isArray(flex.slots)) {
+          const slotStart = parseInt(s.start_time.split(":")[0]) * 60 + parseInt(s.start_time.split(":")[1]);
+          const slotEnd = parseInt(s.end_time.split(":")[0]) * 60 + parseInt(s.end_time.split(":")[1]);
+          for (const ft of flex.slots) {
+            const ftStart = parseInt(ft.split(":")[0]) * 60 + parseInt(ft.split(":")[1]);
+            const ftEnd = ftStart + 90;
+            if (ftStart < slotEnd && ftEnd > slotStart) { avail.add(r.user_id); break; }
+          }
+        }
+      }
+      slotPlayers.set(s.id, avail);
+    }
+
+    // Slots with matches
+    const slotsWithMatches = new Set(result.matches.map(m => m.slotId));
+
+    // Every responder available at a formed slot must be in scheduled OR benched
+    const scheduledSet = new Set(result.playersScheduled);
+    const benchedSet = new Set(result.playersBenched);
+
+    for (const slotId of slotsWithMatches) {
+      for (const uid of slotPlayers.get(slotId) ?? []) {
+        if (!scheduledSet.has(uid) && !benchedSet.has(uid)) {
+          console.log(`Trial ${i}: ${uid} available at formed slot ${slotId} but neither scheduled nor benched`);
+          failures++;
+          break;
+        }
+      }
+      if (failures > 0) break;
+    }
+    if (failures >= 5) break;
+  }
+
+  console.log(`Reconciliation: ${failures} failures`);
+  assertEquals(failures, 0, `${failures} responders fell through the cracks`);
+});

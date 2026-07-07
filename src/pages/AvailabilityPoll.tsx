@@ -174,6 +174,8 @@ export function AvailabilityPollPage() {
   const [creatingMatches, setCreatingMatches] = useState(false)
   const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null)
   const [playersBenched, setPlayersBenched] = useState<string[]>([])
+  const [benchedDirty, setBenchedDirty] = useState(false)
+  const [recomputingBenched, setRecomputingBenched] = useState(false)
 
   // Populate form from existing response once data loads
   useEffect(() => {
@@ -421,8 +423,40 @@ export function AvailabilityPollPage() {
     setSelectedScheduleIdx(selectedScheduleIdx === idx ? null : idx)
   }
 
+  async function recomputeBenched(schedule: any) {
+    if (!schedule?.matches?.length || !pollId) return
+    setRecomputingBenched(true)
+    try {
+      const matches = (schedule.matches ?? []).map((m: any) => ({
+        player_ids: m.player_ids ?? m.playerIds,
+        slot_id: m.slot_id ?? m.slotId ?? null,
+      }))
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+          },
+          body: JSON.stringify({ mode: 'recompute', poll_id: pollId, schedule: matches }),
+        },
+      )
+      const data = await res.json()
+      if (data.success) {
+        setPlayersBenched(data.players_benched ?? [])
+        setBenchedDirty(false)
+      }
+    } catch (e) {
+      console.error('[Recompute] error:', e)
+    } finally {
+      setRecomputingBenched(false)
+    }
+  }
+
   async function handleConfirmSchedule() {
-    if (!pollId || selectedScheduleIdx === null || creatingMatches) return
+    if (!pollId || selectedScheduleIdx === null || creatingMatches || benchedDirty || recomputingBenched) return
     const sched = matchSchedules[selectedScheduleIdx]
     if (!sched) return
     setCreatingMatches(true)

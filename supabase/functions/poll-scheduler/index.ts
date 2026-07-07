@@ -65,10 +65,12 @@ serve(async (req: Request) => {
 
     if (mode === "propose") {
       return await handlePropose(supabase, poll, timeSlots, body.togetherness ?? false);
+    } else if (mode === "recompute") {
+      return await handleRecompute(supabase, poll, timeSlots, body.schedule);
     } else if (mode === "confirm") {
       return await handleConfirm(supabase, poll_id, body.schedule, body.benched_ids);
     } else {
-      return json({ error: 'mode must be "propose" or "confirm"' }, 400);
+      return json({ error: 'mode must be "propose", "recompute", or "confirm"' }, 400);
     }
   } catch (err: any) {
     console.error("poll-scheduler error:", err);
@@ -194,6 +196,78 @@ async function handlePropose(
     players_benched: output.playersBenched,
     total_participation: output.totalParticipation,
     profiles: profilesMap,
+  });
+}
+
+// ── MODE: recompute ──────────────────────────────────────────────────────────
+// Given an admin-EDITED schedule (fixed input — not re-optimised), re-derive
+// who is scheduled and who is benched using the SAME isUserAvailableForSlot +
+// locked benched definition the engine uses.
+//
+// Does NOT run the ILP.  Does NOT change the admin's player assignments.
+// Only re-derives the two sets from the given schedule + poll responses.
+
+async function handleRecompute(
+  supabase: any,
+  poll: any,
+  timeSlots: TimeSlot[],
+  schedule: any[] | undefined,
+): Promise<Response> {
+  if (!schedule || !Array.isArray(schedule)) {
+    return json({ error: "schedule must be a JSON array" }, 400);
+  }
+
+  // 1. Fetch all poll responses
+  const { data: responses } = await supabase
+    .from("poll_responses")
+    .select("user_id, selected_slots, flexible_times")
+    .eq("poll_id", poll.id);
+
+  if (!responses) return json({ error: "Failed to fetch responses" }, 500);
+
+  // 2. Build slot-level availability using isUserAvailableForSlot (ONE implementation)
+  const slotPlayers = new Map<string, Set<string>>();
+  for (const slot of timeSlots) {
+    const avail = new Set<string>();
+    for (const r of responses) {
+      if (isUserAvailableForSlot(
+        { selected_slots: r.selected_slots ?? [], flexible_times: r.flexible_times ?? {} },
+        slot,
+      )) {
+        avail.add(r.user_id);
+      }
+    }
+    slotPlayers.set(slot.id, avail);
+  }
+
+  // 3. Derive scheduled set from the FIXED schedule (admin's edit)
+  const scheduledSet = new Set<string>();
+  const slotsWithMatches = new Set<string>();
+  for (const m of schedule) {
+    const pids = m.player_ids ?? m.playerIds ?? [];
+    for (const pid of pids) scheduledSet.add(pid);
+    const sid = m.slot_id ?? m.slotId;
+    if (sid) slotsWithMatches.add(sid);
+  }
+
+  // 4. Derive benched set — locked definition:
+  //    responded + available at a slot where a match was created + not placed.
+  //    A responder available ONLY at slots with NO match is NOT benched.
+  const benchedSet = new Set<string>();
+  for (const r of responses) {
+    if (scheduledSet.has(r.user_id)) continue;
+    for (const slotId of slotsWithMatches) {
+      if (slotPlayers.get(slotId)?.has(r.user_id)) {
+        benchedSet.add(r.user_id);
+        break;
+      }
+    }
+  }
+
+  return json({
+    success: true,
+    players_scheduled: Array.from(scheduledSet),
+    players_benched: Array.from(benchedSet),
   });
 }
 

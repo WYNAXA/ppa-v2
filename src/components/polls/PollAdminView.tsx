@@ -315,8 +315,10 @@ export function PollAdminView({
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null)
   const [confirming, setConfirming] = useState(false)
-  // Engine's authoritative benched list — stored from propose, passed to confirm unchanged
+  // Benched list — recomputed whenever the schedule is edited
   const [playersBenched, setPlayersBenched] = useState<string[]>([])
+  const [benchedDirty, setBenchedDirty] = useState(false)
+  const [recomputing, setRecomputing] = useState(false)
   const [engineProfiles, setEngineProfiles] = useState<Record<string, any>>({})
 
   async function handleGenerateMatches() {
@@ -381,14 +383,53 @@ export function PollAdminView({
     }
   }
 
+  // Recompute benched from the CURRENT (possibly edited) schedule.
+  // Does NOT re-optimise — only re-derives scheduled/benched sets.
+  async function recomputeBenched(schedule: any) {
+    if (!schedule?.matches?.length) return
+    setRecomputing(true)
+    try {
+      const matches = (schedule.matches ?? []).map((m: any) => ({
+        player_ids: m.player_ids ?? m.playerIds,
+        slot_id: m.slot_id ?? m.slotId ?? null,
+      }))
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+          },
+          body: JSON.stringify({ mode: 'recompute', poll_id: pollId, schedule: matches }),
+        },
+      )
+      const data = await res.json()
+      if (data.success) {
+        setPlayersBenched(data.players_benched ?? [])
+        setBenchedDirty(false)
+      }
+    } catch (e) {
+      console.error('[Recompute] error:', e)
+    } finally {
+      setRecomputing(false)
+    }
+  }
+
+  // Called when the admin edits a match (remove player, drop match, etc.)
+  function handleScheduleEdit(editedSchedule: any) {
+    setSelectedSchedule(editedSchedule)
+    setBenchedDirty(true)
+    recomputeBenched(editedSchedule)
+  }
+
   async function handleConfirmSchedule() {
-    if (!selectedSchedule) return
+    if (!selectedSchedule || benchedDirty || recomputing) return
     setConfirming(true)
     try {
-      // The schedule to confirm: use the engine's proposals directly.
-      // If the admin edited players (removed/swapped), the benched list may be stale.
-      // For now, edits are not supported — the admin confirms or re-generates.
-      // The RPC validates: benched ids must be real responders and disjoint from scheduled.
+      // benched_ids is always current: edits trigger recompute, and confirm is
+      // blocked (benchedDirty || recomputing) until recompute completes.
       const schedule = (selectedSchedule.matches ?? [])
         .filter((m: any) => (m.player_ids ?? m.playerIds)?.length >= 2)
         .map((m: any) => ({

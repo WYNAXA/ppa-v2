@@ -173,6 +173,7 @@ export function AvailabilityPollPage() {
   const [generatingMatches, setGeneratingMatches] = useState(false)
   const [creatingMatches, setCreatingMatches] = useState(false)
   const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null)
+  const [playersBenched, setPlayersBenched] = useState<string[]>([])
 
   // Populate form from existing response once data loads
   useEffect(() => {
@@ -372,9 +373,8 @@ export function AvailabilityPollPage() {
     setShowMatchGen(true)
     setMatchSchedules([])
     try {
-      console.log('[GenerateOptions] pollId:', pollId, 'type:', typeof pollId)
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-match-options`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
         {
           method: 'POST',
           headers: {
@@ -382,19 +382,34 @@ export function AvailabilityPollPage() {
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
           },
-          body: JSON.stringify({ poll_id: pollId }),
+          body: JSON.stringify({ mode: 'propose', poll_id: pollId }),
         },
       )
-      console.log('[GenerateOptions] status:', response.status)
       const data = await response.json()
-      console.log('[GenerateOptions] weeklySchedules:', data.weeklySchedules?.length)
       if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`)
-      if (data?.weeklySchedules) {
-        setMatchSchedules(data.weeklySchedules)
+
+      // Store benched for confirm; wrap proposals into schedule format
+      setPlayersBenched(data.players_benched ?? [])
+      const proposals = data.proposals ?? []
+      if (proposals.length > 0) {
+        const playerNames = (m: any) =>
+          (m.player_ids ?? []).map((pid: string) => data.profiles?.[pid]?.name ?? 'Unknown')
+        setMatchSchedules([{
+          scheduleNumber: 1,
+          strategyName: 'Optimal Schedule',
+          isRecommended: true,
+          totalMatches: proposals.length,
+          totalPlayers: data.total_participation ?? 0,
+          matches: proposals.map((m: any) => ({
+            ...m, playerIds: m.player_ids, playerNames: playerNames(m),
+            dayOfWeek: m.day, timeSlot: m.time_slot_display ?? m.match_time, date: m.match_date,
+            playersNeeded: 0,
+          })),
+        }])
         setMatchProfiles(data.profiles ?? {})
       }
     } catch (e: any) {
-      console.error('[GenerateOptions] error:', e)
+      console.error('[PollScheduler] error:', e)
     } finally {
       setGeneratingMatches(false)
     }
@@ -408,31 +423,47 @@ export function AvailabilityPollPage() {
 
   async function handleConfirmSchedule() {
     if (!pollId || selectedScheduleIdx === null || creatingMatches) return
-    const schedule = matchSchedules[selectedScheduleIdx]
-    if (!schedule) return
+    const sched = matchSchedules[selectedScheduleIdx]
+    if (!sched) return
     setCreatingMatches(true)
-    const results = { created: 0, skipped: 0, failed: 0 }
     try {
-      for (const m of schedule.matches ?? []) {
-        const timeToUse = m.actualStartTime ?? (m.timeSlot ?? '19:00').split('-')[0].trim()
-        const matchTime = timeToUse.includes(':') && timeToUse.split(':').length === 2 ? `${timeToUse}:00` : timeToUse
-        const { error } = await supabase.from('matches').insert({
-          poll_id: pollId, group_id: poll!.group_id, match_date: m.date, match_time: matchTime,
-          player_ids: Array.isArray(m.playerIds) ? m.playerIds : [m.playerIds],
-          status: m.playersNeeded > 0 ? 'pending' : 'scheduled',
-          match_type: 'competitive', context_type: 'poll', created_manually: false, created_by: userId,
-        })
-        if (error && error.code === '23505') results.skipped++
-        else if (error) { results.failed++; console.error('[Schedule] error:', error) }
-        else results.created++
-      }
-      await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
+      const schedule = (sched.matches ?? [])
+        .filter((m: any) => (m.player_ids ?? m.playerIds)?.length >= 2)
+        .map((m: any) => ({
+          player_ids: m.player_ids ?? m.playerIds,
+          match_date: m.match_date ?? m.date,
+          match_time: m.match_time ?? ((m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'),
+          slot_id: m.slot_id ?? m.slotId ?? null,
+          additional_options: m.additional_options ?? {},
+        }))
+
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+          },
+          body: JSON.stringify({
+            mode: 'confirm',
+            poll_id: pollId,
+            schedule,
+            benched_ids: playersBenched,
+          }),
+        },
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
+
       setShowMatchGen(false)
       setSelectedScheduleIdx(null)
+      setPlayersBenched([])
       queryClient.invalidateQueries({ queryKey: ['polls', 'detail', pollId] })
       navigate(`/community/groups/${poll!.group_id}?tab=matches`)
-    } catch (e) {
-      console.error('[Schedule] error:', e)
+    } catch (e: any) {
+      console.error('[PollScheduler] confirm error:', e)
     } finally {
       setCreatingMatches(false)
     }

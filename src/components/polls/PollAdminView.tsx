@@ -315,16 +315,19 @@ export function PollAdminView({
   const [generateError, setGenerateError] = useState<string | null>(null)
   const [selectedSchedule, setSelectedSchedule] = useState<any>(null)
   const [confirming, setConfirming] = useState(false)
+  // Engine's authoritative benched list — stored from propose, passed to confirm unchanged
+  const [playersBenched, setPlayersBenched] = useState<string[]>([])
+  const [engineProfiles, setEngineProfiles] = useState<Record<string, any>>({})
 
   async function handleGenerateMatches() {
     setGenerating(true)
     setMatchSchedules([])
     setGenerateError(null)
     setSelectedSchedule(null)
+    setPlayersBenched([])
     try {
-      // Use direct fetch with anon key — confirmed working via curl
       const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-match-options`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
         {
           method: 'POST',
           headers: {
@@ -332,17 +335,46 @@ export function PollAdminView({
             'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
             'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
           },
-          body: JSON.stringify({ poll_id: pollId }),
+          body: JSON.stringify({ mode: 'propose', poll_id: pollId }),
         },
       )
       const data = await res.json()
-      console.log('[GenerateOptions] status:', res.status, 'schedules:', data?.weeklySchedules?.length)
+      console.log('[PollScheduler] propose:', res.status, 'proposals:', data?.proposals?.length)
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
-      const schedules = data?.weeklySchedules ?? []
-      if (schedules.length === 0) setGenerateError('No match options returned. Ensure enough players have voted.')
-      setMatchSchedules(schedules)
+
+      // Store playersBenched for the confirm step
+      setPlayersBenched(data.players_benched ?? [])
+      setEngineProfiles(data.profiles ?? {})
+
+      // Wrap the flat proposals into a single schedule object for the existing render
+      const proposals = data.proposals ?? []
+      if (proposals.length === 0) {
+        setGenerateError('No match options returned. Ensure enough players have voted.')
+        setMatchSchedules([])
+      } else {
+        const playerNames = (m: any) =>
+          (m.player_ids ?? []).map((pid: string) => data.profiles?.[pid]?.name ?? 'Unknown')
+        const schedule = {
+          scheduleNumber: 1,
+          strategyName: 'Optimal Schedule',
+          strategyDescription: `${data.total_participation ?? proposals.length * 4} players placed, ${(data.players_benched ?? []).length} benched`,
+          isRecommended: true,
+          totalMatches: proposals.length,
+          totalPlayers: data.total_participation ?? 0,
+          ringersNeeded: 0,
+          matches: proposals.map((m: any) => ({
+            ...m,
+            playerIds: m.player_ids,
+            playerNames: playerNames(m),
+            dayOfWeek: m.day,
+            timeSlot: m.time_slot_display ?? m.match_time,
+            date: m.match_date,
+          })),
+        }
+        setMatchSchedules([schedule])
+      }
     } catch (e: any) {
-      console.error('[GenerateOptions] error:', e)
+      console.error('[PollScheduler] error:', e)
       setGenerateError(e?.message ?? 'Unknown error')
     } finally {
       setGenerating(false)
@@ -352,36 +384,52 @@ export function PollAdminView({
   async function handleConfirmSchedule() {
     if (!selectedSchedule) return
     setConfirming(true)
-    let created = 0
+    try {
+      // The schedule to confirm: use the engine's proposals directly.
+      // If the admin edited players (removed/swapped), the benched list may be stale.
+      // For now, edits are not supported — the admin confirms or re-generates.
+      // The RPC validates: benched ids must be real responders and disjoint from scheduled.
+      const schedule = (selectedSchedule.matches ?? [])
+        .filter((m: any) => (m.player_ids ?? m.playerIds)?.length >= 2)
+        .map((m: any) => ({
+          player_ids: m.player_ids ?? m.playerIds,
+          match_date: m.match_date ?? m.date,
+          match_time: m.match_time ?? ((m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'),
+          slot_id: m.slot_id ?? m.slotId ?? null,
+          additional_options: m.additional_options ?? {},
+        }))
 
-    for (const m of selectedSchedule.matches ?? []) {
-      if (!m.playerIds || m.playerIds.length < 2) continue
-      const matchTime = (m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'
-      const { data: insertedMatch, error } = await supabase.from('matches').insert({
-        match_date: m.date, match_time: matchTime,
-        match_type: 'competitive',
-        status: m.status === 'ready' ? 'scheduled' : 'pending',
-        player_ids: m.playerIds, group_id: groupId, poll_id: pollId, created_manually: false, created_by: currentUserId,
-      }).select('id')
-      if (error && error.code !== '23505') { toast.error('Failed to create match'); continue }
-      else if (error?.code === '23505') { console.log('[Confirm] match exists, skipping'); created++ }
-      else {
-        created++
-        const matchId = insertedMatch?.[0]?.id ?? groupId
-        sendNotifications(
-          m.playerIds.map((pid: string) => ({
-            user_id: pid, type: 'match_suggested', title: '🎾 Match scheduled!',
-            message: `${m.dayOfWeek} ${m.timeSlot} match with ${(m.playerNames ?? []).join(', ')}`,
-            related_id: matchId,
-          }))
-        )
-      }
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+          },
+          body: JSON.stringify({
+            mode: 'confirm',
+            poll_id: pollId,
+            schedule,
+            benched_ids: playersBenched,
+          }),
+        },
+      )
+      const data = await res.json()
+      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
+
+      toast.success(`${data.matches_created} match${data.matches_created !== 1 ? 'es' : ''} scheduled`)
+      setMatchSchedules([])
+      setSelectedSchedule(null)
+      setPlayersBenched([])
+      onRefetch()
+    } catch (e: any) {
+      console.error('[PollScheduler] confirm error:', e)
+      toast.error(e?.message ?? 'Failed to confirm schedule')
+    } finally {
+      setConfirming(false)
     }
-
-    const { error: pollErr } = await supabase.from('polls').update({ status: 'processed' }).eq('id', pollId)
-    if (pollErr) { toast.error('Failed to mark poll as processed — it may re-fire'); setConfirming(false); return }
-    setMatchSchedules([]); setSelectedSchedule(null); setConfirming(false)
-    onRefetch()
   }
 
   function toggleSlotExpand(slotId: string) {

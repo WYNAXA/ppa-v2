@@ -880,7 +880,12 @@ export function PollAdminView({
               <p className="text-[13px] font-bold text-teal-800">
                 {confirmResult.matchesCreated} match{confirmResult.matchesCreated !== 1 ? 'es' : ''} scheduled
               </p>
-              <p className="text-[11px] text-teal-600">Poll closed. Matches are visible in the group Matches tab.</p>
+              <a
+                href={`/community/groups/${groupId}`}
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#009688] hover:text-[#00796B]"
+              >
+                View matches
+              </a>
             </div>
           )}
 
@@ -927,6 +932,12 @@ export function PollAdminView({
               <p className="text-[12px] font-semibold text-red-700">Generation failed</p>
               <p className="text-[11px] text-red-500 mt-0.5">{generateError}</p>
             </div>
+          )}
+
+          {!confirmResult && !generating && matchSchedules.length === 0 && poll.status !== 'processed' && (
+            <p className="text-[11px] text-gray-400">
+              Generate an optimal schedule from poll responses. You can swap players and drop matches before confirming.
+            </p>
           )}
 
           {!confirmResult && !generating && matchSchedules.length > 0 && (
@@ -996,9 +1007,9 @@ export function PollAdminView({
                                 </div>
                                 {isSwapOpen && (
                                   <div className="ml-2 mt-1 mb-1 p-2 bg-white rounded border border-teal-100 space-y-1">
-                                    <p className="text-[10px] text-gray-400 font-semibold">Replace with:</p>
+                                    <p className="text-[10px] text-gray-400 font-semibold">Available for this slot:</p>
                                     {swapCandidates.length === 0 && (
-                                      <p className="text-[10px] text-gray-400">No players available at this slot</p>
+                                      <p className="text-[10px] text-gray-400">No other available players for this slot</p>
                                     )}
                                     {swapCandidates.map((benchId: string) => (
                                       <button

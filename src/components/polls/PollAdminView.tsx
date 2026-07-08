@@ -130,7 +130,7 @@ export function PollAdminView({
   groupId,
   poll,
   isAdmin,
-  currentUserId,
+  currentUserId: _currentUserId,
   currentUserName,
   onRefetch,
 }: PollAdminViewProps) {

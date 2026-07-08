@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, CheckCircle, Clock, AlertTriangle, Star, Users, Shuffle, RefreshCw, Trash2 } from 'lucide-react'
+import { ChevronLeft, CheckCircle, Clock, AlertTriangle, Star, Users, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
@@ -12,7 +12,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { checkIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { cn } from '@/lib/utils'
 import { generateHalfHourSlots, getTimePeriod, getSlotDate } from '@/lib/pollUtils'
-import { WeeklyScheduleSelector } from '@/components/polls/WeeklyScheduleSelector'
 import { PollAdminView } from '@/components/polls/PollAdminView'
 import { goBack } from '@/lib/navigation'
 
@@ -167,13 +166,6 @@ export function AvailabilityPollPage() {
   const [deleting, setDeleting] = useState(false)
 
   // ── Admin match generation ──
-  const [showMatchGen, setShowMatchGen] = useState(false)
-  const [matchSchedules, setMatchSchedules] = useState<any[]>([])
-  const [matchProfiles, setMatchProfiles] = useState<Record<string, any>>({})
-  const [generatingMatches, setGeneratingMatches] = useState(false)
-  const [creatingMatches, setCreatingMatches] = useState(false)
-  const [selectedScheduleIdx, setSelectedScheduleIdx] = useState<number | null>(null)
-  const [playersBenched, setPlayersBenched] = useState<string[]>([])
 
   // Populate form from existing response once data loads
   useEffect(() => {
@@ -366,109 +358,6 @@ export function AvailabilityPollPage() {
     submitMutation.mutate()
   }
 
-  // ── Admin: generate match options ──
-  async function handleGenerateMatches() {
-    if (!pollId) return
-    setGeneratingMatches(true)
-    setShowMatchGen(true)
-    setMatchSchedules([])
-    try {
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
-          },
-          body: JSON.stringify({ mode: 'propose', poll_id: pollId }),
-        },
-      )
-      const data = await response.json()
-      if (!response.ok) throw new Error(data.error ?? `HTTP ${response.status}`)
-
-      // Store benched for confirm; wrap proposals into schedule format
-      setPlayersBenched(data.players_benched ?? [])
-      const proposals = data.proposals ?? []
-      if (proposals.length > 0) {
-        const playerNames = (m: any) =>
-          (m.player_ids ?? []).map((pid: string) => data.profiles?.[pid]?.name ?? 'Unknown')
-        setMatchSchedules([{
-          scheduleNumber: 1,
-          strategyName: 'Optimal Schedule',
-          isRecommended: true,
-          totalMatches: proposals.length,
-          totalPlayers: data.total_participation ?? 0,
-          matches: proposals.map((m: any) => ({
-            ...m, playerIds: m.player_ids, playerNames: playerNames(m),
-            dayOfWeek: m.day, timeSlot: m.time_slot_display ?? m.match_time, date: m.match_date,
-            playersNeeded: 0,
-          })),
-        }])
-        setMatchProfiles(data.profiles ?? {})
-      }
-    } catch (e: any) {
-      console.error('[PollScheduler] error:', e)
-    } finally {
-      setGeneratingMatches(false)
-    }
-  }
-
-  function handleSelectSchedule(scheduleOrIdx: any) {
-    const idx = typeof scheduleOrIdx === 'number' ? scheduleOrIdx
-      : matchSchedules.findIndex((s: any) => s.scheduleNumber === scheduleOrIdx?.scheduleNumber)
-    setSelectedScheduleIdx(selectedScheduleIdx === idx ? null : idx)
-  }
-
-  async function handleConfirmSchedule() {
-    if (!pollId || selectedScheduleIdx === null || creatingMatches) return
-    const sched = matchSchedules[selectedScheduleIdx]
-    if (!sched) return
-    setCreatingMatches(true)
-    try {
-      const schedule = (sched.matches ?? [])
-        .filter((m: any) => (m.player_ids ?? m.playerIds)?.length >= 2)
-        .map((m: any) => ({
-          player_ids: m.player_ids ?? m.playerIds,
-          match_date: m.match_date ?? m.date,
-          match_time: m.match_time ?? ((m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'),
-          slot_id: m.slot_id ?? m.slotId ?? null,
-          additional_options: m.additional_options ?? {},
-        }))
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
-          },
-          body: JSON.stringify({
-            mode: 'confirm',
-            poll_id: pollId,
-            schedule,
-            benched_ids: playersBenched,
-          }),
-        },
-      )
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
-
-      setShowMatchGen(false)
-      setSelectedScheduleIdx(null)
-      setPlayersBenched([])
-      queryClient.invalidateQueries({ queryKey: ['polls', 'detail', pollId] })
-      navigate(`/community/groups/${poll!.group_id}?tab=matches`)
-    } catch (e: any) {
-      console.error('[PollScheduler] confirm error:', e)
-    } finally {
-      setCreatingMatches(false)
-    }
-  }
-
   // ── Loading / not found ──
   if (isLoading) {
     return (
@@ -655,73 +544,6 @@ export function AvailabilityPollPage() {
           </div>
         )}
 
-        {/* ── Admin: closed poll actions ── */}
-        {isAdmin && isClosed && !showMatchGen && (
-          <div className="rounded-2xl border border-gray-100 px-4 py-4">
-            <p className="text-[13px] font-semibold text-gray-700 mb-3">
-              {existingMatchCount > 0 ? 'Admin — Reschedule' : 'Admin — Poll closed'}
-            </p>
-            <button
-              onClick={handleGenerateMatches}
-              className="flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
-            >
-              <Shuffle className="h-4 w-4" />
-              Generate match options
-            </button>
-          </div>
-        )}
-
-        {/* ── Admin: match generation UI ── */}
-        {showMatchGen && (
-          <div className="rounded-2xl border border-gray-100 px-4 py-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="text-[14px] font-bold text-gray-900">Match Options</p>
-              <div className="flex items-center gap-2">
-                {!generatingMatches && matchSchedules.length > 0 && (
-                  <button
-                    onClick={handleGenerateMatches}
-                    className="flex items-center gap-1 text-[12px] text-gray-500 hover:text-gray-700"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5" /> Regenerate
-                  </button>
-                )}
-                <button
-                  onClick={() => setShowMatchGen(false)}
-                  className="text-[12px] text-gray-400 hover:text-gray-600"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-
-            {generatingMatches ? (
-              <div className="flex flex-col items-center py-8 gap-3">
-                <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
-                <p className="text-[13px] text-gray-400">Generating options…</p>
-              </div>
-            ) : matchSchedules.length > 0 ? (
-              <>
-                <WeeklyScheduleSelector
-                  weeklySchedules={matchSchedules}
-                  allProfiles={matchProfiles}
-                  onSelectSchedule={handleSelectSchedule}
-                  loading={creatingMatches}
-                />
-                {selectedScheduleIdx !== null && (
-                  <button
-                    onClick={handleConfirmSchedule}
-                    disabled={creatingMatches}
-                    className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 mt-3 mb-24"
-                  >
-                    {creatingMatches ? 'Scheduling...' : `✓ Confirm & schedule ${matchSchedules[selectedScheduleIdx]?.matches?.length ?? 0} matches`}
-                  </button>
-                )}
-              </>
-            ) : (
-              <p className="text-[13px] text-gray-400 text-center py-4">No match configurations found.</p>
-            )}
-          </div>
-        )}
 
         {/* ══════════════════════════════════════════════
             RESPONSE FORM (only when form is active)

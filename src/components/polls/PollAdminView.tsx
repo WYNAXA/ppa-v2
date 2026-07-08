@@ -320,6 +320,10 @@ export function PollAdminView({
   const [benchedDirty, setBenchedDirty] = useState(false)
   const [recomputing, setRecomputing] = useState(false)
   const [engineProfiles, setEngineProfiles] = useState<Record<string, any>>({})
+  // Per-slot availability: { slotId: [userId, ...] } — for filtering swap candidates
+  const [slotAvailability, setSlotAvailability] = useState<Record<string, string[]>>({})
+  // Count of players excluded on drop (available only at dropped slot, no outcome row)
+  const [excludedCount, setExcludedCount] = useState(0)
 
   async function handleGenerateMatches() {
     setGenerating(true)
@@ -344,9 +348,11 @@ export function PollAdminView({
       console.log('[PollScheduler] propose:', res.status, 'proposals:', data?.proposals?.length)
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
 
-      // Store playersBenched for the confirm step
+      // Store playersBenched + slot availability for the confirm step
       setPlayersBenched(data.players_benched ?? [])
       setEngineProfiles(data.profiles ?? {})
+      setSlotAvailability(data.slot_availability ?? {})
+      setExcludedCount(0)
 
       // Wrap the flat proposals into a single schedule object for the existing render
       const proposals = data.proposals ?? []
@@ -408,6 +414,8 @@ export function PollAdminView({
       const data = await res.json()
       if (data.success) {
         setPlayersBenched(data.players_benched ?? [])
+        setSlotAvailability(data.slot_availability ?? slotAvailability)
+        setExcludedCount(data.excluded_count ?? 0)
         setBenchedDirty(false)
       }
     } catch (e) {
@@ -947,7 +955,7 @@ export function PollAdminView({
                             {isSelected && (
                               <button
                                 onClick={() => handleDropMatch(mIdx)}
-                                className="text-[10px] text-red-400 hover:text-red-600 font-semibold"
+                                className="text-[10px] text-[#E65100] hover:text-[#BF360C] font-semibold"
                                 title="Drop this match"
                               >
                                 Drop
@@ -960,6 +968,10 @@ export function PollAdminView({
                           {pids.map((pid: string, pIdx: number) => {
                             const name = engineProfiles[pid]?.name ?? match.playerNames?.[pIdx] ?? 'Unknown'
                             const isSwapOpen = isSelected && swapTarget?.matchIdx === mIdx && swapTarget?.playerIdx === pIdx
+                            // Filter swap candidates: must be benched AND available at THIS match's slot
+                            const matchSlotId = match.slot_id ?? match.slotId
+                            const slotAvail = new Set(slotAvailability[matchSlotId] ?? [])
+                            const swapCandidates = playersBenched.filter(id => slotAvail.has(id))
                             return (
                               <div key={pIdx}>
                                 <div className="flex items-center justify-between">
@@ -967,23 +979,23 @@ export function PollAdminView({
                                   {isSelected && (
                                     <button
                                       onClick={() => setSwapTarget(isSwapOpen ? null : { matchIdx: mIdx, playerIdx: pIdx })}
-                                      className="text-[10px] text-blue-400 hover:text-blue-600"
+                                      className="text-[10px] text-[#009688] hover:text-[#00796B]"
                                     >
                                       {isSwapOpen ? 'Cancel' : 'Swap'}
                                     </button>
                                   )}
                                 </div>
                                 {isSwapOpen && (
-                                  <div className="ml-2 mt-1 mb-1 p-2 bg-white rounded border border-blue-100 space-y-1">
+                                  <div className="ml-2 mt-1 mb-1 p-2 bg-white rounded border border-teal-100 space-y-1">
                                     <p className="text-[10px] text-gray-400 font-semibold">Replace with:</p>
-                                    {playersBenched.length === 0 && (
-                                      <p className="text-[10px] text-gray-400">No available players</p>
+                                    {swapCandidates.length === 0 && (
+                                      <p className="text-[10px] text-gray-400">No players available at this slot</p>
                                     )}
-                                    {playersBenched.map((benchId: string) => (
+                                    {swapCandidates.map((benchId: string) => (
                                       <button
                                         key={benchId}
                                         onClick={() => handleSwapPlayer(mIdx, pIdx, benchId)}
-                                        className="block w-full text-left text-[11px] text-blue-600 hover:bg-blue-50 rounded px-1 py-0.5"
+                                        className="block w-full text-left text-[11px] text-[#009688] hover:bg-teal-50 rounded px-1 py-0.5"
                                       >
                                         {engineProfiles[benchId]?.name?.split(' ')[0] ?? benchId.slice(0, 8)}
                                       </button>
@@ -1030,6 +1042,14 @@ export function PollAdminView({
                 <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] text-amber-700">
                   <span className="font-semibold">{playersBenched.length} benched:</span>{' '}
                   {playersBenched.map(id => engineProfiles[id]?.name?.split(' ')[0] ?? id.slice(0,8)).join(', ')}
+                </div>
+              )}
+
+              {/* Excluded players warning (lack-of-numbers after dropping matches) */}
+              {selectedSchedule && excludedCount > 0 && (
+                <div className="rounded-lg bg-gray-100 border border-gray-200 px-3 py-2 text-[11px] text-gray-500">
+                  <span className="font-semibold">{excludedCount} player{excludedCount !== 1 ? 's' : ''} excluded</span>{' '}
+                  — available only at dropped slots, no game this week
                 </div>
               )}
 

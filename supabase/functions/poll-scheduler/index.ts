@@ -189,6 +189,21 @@ async function handlePropose(
     additional_options: {},
   }));
 
+  // Build per-slot availability for swap candidate filtering
+  const slotAvailability: Record<string, string[]> = {};
+  const slotsWithMatches = new Set(output.matches.map(m => m.slotId));
+  for (const slot of timeSlots) {
+    if (!slotsWithMatches.has(slot.id)) continue;
+    const avail: string[] = [];
+    for (const r of engineResponses) {
+      if (isUserAvailableForSlot(
+        { selected_slots: r.selected_slots ?? [], flexible_times: r.flexible_times ?? {} },
+        slot,
+      )) avail.push(r.user_id);
+    }
+    slotAvailability[slot.id] = avail;
+  }
+
   return json({
     success: true,
     proposals,
@@ -196,6 +211,7 @@ async function handlePropose(
     players_benched: output.playersBenched,
     total_participation: output.totalParticipation,
     profiles: profilesMap,
+    slot_availability: slotAvailability,
   });
 }
 
@@ -264,10 +280,25 @@ async function handleRecompute(
     }
   }
 
+  // 5. Build per-slot availability for the swap candidate filter.
+  // Only include slots that have matches (the admin can only swap within active slots).
+  const slotAvailability: Record<string, string[]> = {};
+  for (const slotId of slotsWithMatches) {
+    const avail = slotPlayers.get(slotId);
+    if (avail) slotAvailability[slotId] = Array.from(avail);
+  }
+
+  // 6. Players excluded by a drop — responded but not scheduled, not benched, available
+  // only at slots WITHOUT a match. They get no outcome row (lack-of-numbers, not unfairness).
+  const allRespondentIds = new Set(responses.map((r: any) => r.user_id));
+  const excludedCount = allRespondentIds.size - scheduledSet.size - benchedSet.size;
+
   return json({
     success: true,
     players_scheduled: Array.from(scheduledSet),
     players_benched: Array.from(benchedSet),
+    slot_availability: slotAvailability,
+    excluded_count: excludedCount,
   });
 }
 

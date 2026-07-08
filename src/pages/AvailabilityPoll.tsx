@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, CheckCircle, Clock, AlertTriangle, Star, Users, Trash2 } from 'lucide-react'
+import { RangeAvailabilityInput } from '@/components/polls/RangeAvailabilityInput'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
@@ -34,6 +35,7 @@ interface Poll {
   week_start_date: string
   time_slots: PollSlot[]
   additional_options: string[]
+  poll_dates?: string[]
   groups?: { id: string; name: string } | null
 }
 
@@ -45,6 +47,7 @@ interface MyResponse {
   can_play_twice: boolean | null
   preferred_date: string | null
   submitted_at: string | null
+  availability_ranges?: Record<string, { start: string; end: string }[]> | null
 }
 
 // ── Data fetching ────────────────────────────────────────────────────────────
@@ -72,7 +75,7 @@ async function fetchPollDetail(pollId: string, userId: string) {
 
   const { data: myResponse } = await supabase
     .from('poll_responses')
-    .select('id, selected_slots, flexible_times, additional_responses, can_play_twice, preferred_date, submitted_at')
+    .select('id, selected_slots, flexible_times, additional_responses, can_play_twice, preferred_date, submitted_at, availability_ranges')
     .eq('poll_id', pollId)
     .eq('user_id', userId)
     .maybeSingle()
@@ -165,7 +168,8 @@ export function AvailabilityPollPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
 
-  // ── Admin match generation ──
+  // ── Range availability (new polls) ──
+  const [availabilityRanges, setAvailabilityRanges] = useState<Record<string, { start: string; end: string }[]>>({})
 
   // Populate form from existing response once data loads
   useEffect(() => {
@@ -184,6 +188,11 @@ export function AvailabilityPollPage() {
 
       setPreferredDate(r.preferred_date ?? '')
 
+      // Load existing range availability
+      if (r.availability_ranges && typeof r.availability_ranges === 'object') {
+        setAvailabilityRanges(r.availability_ranges as Record<string, { start: string; end: string }[]>)
+      }
+
       const ar = r.additional_responses ?? {}
       setAdditionalResponses(
         Object.fromEntries(Object.entries(ar).filter(([, v]) => typeof v === 'boolean')) as Record<string, boolean>
@@ -195,6 +204,7 @@ export function AvailabilityPollPage() {
 
   // ── Derived values ──
   const poll = data?.poll
+  const isRangePoll = Array.isArray(poll?.poll_dates) && (poll?.poll_dates as string[]).length > 0
   const myResponse = data?.myResponse
   const isAdmin = data?.isAdmin ?? false
   const isCreator = poll?.created_by === userId
@@ -302,17 +312,26 @@ export function AvailabilityPollPage() {
   const submitMutation = useMutation({
     mutationFn: async () => {
       if (isRinger) throw new Error('Ringers cannot vote')
-      const responseData = {
+      const responseData: any = {
         poll_id: pollId!,
         user_id: userId,
-        selected_slots: cantDoWeek ? [] : selectedSlots,
-        flexible_times: Object.keys(customTimeRanges).length > 0
-          ? { custom_time_ranges: customTimeRanges }
-          : {},
         additional_responses: additionalResponses,
         can_play_twice: gamesPerWeek === 'two' ? true : gamesPerWeek === 'multiple' ? null : false,
         preferred_date: preferredDate || null,
         submitted_at: new Date().toISOString(),
+      }
+
+      if (isRangePoll) {
+        // Range-model poll: write availability_ranges
+        responseData.availability_ranges = cantDoWeek ? {} : availabilityRanges
+        responseData.selected_slots = []
+        responseData.flexible_times = {}
+      } else {
+        // Legacy slot-model poll
+        responseData.selected_slots = cantDoWeek ? [] : selectedSlots
+        responseData.flexible_times = Object.keys(customTimeRanges).length > 0
+          ? { custom_time_ranges: customTimeRanges }
+          : {}
       }
 
       // Upsert response (requires unique constraint on poll_id + user_id)
@@ -566,8 +585,21 @@ export function AvailabilityPollPage() {
               </label>
             </section>
 
-            {/* ── Section B+C: Time slots + custom time ── */}
-            {!cantDoWeek && (
+            {/* ── Section B+C: Availability input ── */}
+            {!cantDoWeek && isRangePoll && (
+              <section className="space-y-3">
+                <p className="text-[13px] font-semibold text-gray-700">When can you play?</p>
+                <p className="text-[11px] text-gray-400">Add your available times for each day. Use presets or set custom ranges.</p>
+                <RangeAvailabilityInput
+                  dates={(poll?.poll_dates as string[]) ?? []}
+                  value={availabilityRanges}
+                  onChange={setAvailabilityRanges}
+                />
+              </section>
+            )}
+
+            {/* Legacy slot-based availability */}
+            {!cantDoWeek && !isRangePoll && (
               <section className="space-y-3">
                 {timeSlots.length === 0 && (
                   <p className="text-[13px] text-gray-400 text-center py-4">No time slots in this poll.</p>

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Plus, X, Clock, Calendar } from 'lucide-react'
-import { format, addHours, startOfWeek, addWeeks } from 'date-fns'
+import { format, addHours, startOfWeek, addWeeks, addDays } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { sendNotifications } from '@/lib/notifications'
@@ -44,6 +44,8 @@ export function CreatePollPage() {
   const [weekStartDate, setWeekStartDate] = useState(nextMonday())
   const [closesAt, setClosesAt] = useState(defaultClosesAt())
   const [recurrence, setRecurrence] = useState<'never' | 'weekly'>('never')
+  const [pollMode, setPollMode] = useState<'ranges' | 'slots'>('ranges')
+  const [selectedDates, setSelectedDates] = useState<string[]>([])
   const [slots, setSlots] = useState<FormSlot[]>([
     { id: crypto.randomUUID(), day: 'Monday', start_time: '19:00', end_time: '21:00' },
   ])
@@ -107,32 +109,39 @@ export function CreatePollPage() {
   const canSubmit =
     title.trim().length > 0 &&
     groupId !== '' &&
-    slots.length > 0 &&
+    (pollMode === 'ranges' ? selectedDates.length > 0 : slots.length > 0) &&
     new Date(closesAt) > new Date()
 
   const createMutation = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('Not authenticated')
 
+      const pollData: any = {
+        group_id: groupId,
+        title: title.trim(),
+        created_by: user.id,
+        status: 'open',
+        poll_type: pollType,
+        week_start_date: weekStartDate,
+        closes_at: new Date(closesAt).toISOString(),
+        additional_options: additionalOptions,
+        recurrence_pattern: recurrence,
+      }
+
+      if (pollMode === 'ranges') {
+        // Range-model poll: store dates, empty time_slots
+        pollData.poll_dates = selectedDates.sort()
+        pollData.time_slots = []
+      } else {
+        // Legacy slot-model poll
+        pollData.time_slots = slots.map((s) => ({
+          id: s.id, day: s.day, start_time: s.start_time, end_time: s.end_time,
+        }))
+      }
+
       const { data, error } = await supabase
         .from('polls')
-        .insert({
-          group_id: groupId,
-          title: title.trim(),
-          created_by: user.id,
-          status: 'open',
-          poll_type: pollType,
-          week_start_date: weekStartDate,
-          closes_at: new Date(closesAt).toISOString(),
-          time_slots: slots.map((s) => ({
-            id: s.id,
-            day: s.day,
-            start_time: s.start_time,
-            end_time: s.end_time,
-          })),
-          additional_options: additionalOptions,
-          recurrence_pattern: recurrence,
-        })
+        .insert(pollData)
         .select('id')
         .single()
 
@@ -268,7 +277,96 @@ export function CreatePollPage() {
           <p className="text-[11px] text-gray-400 mt-1">Select the Monday of the target week</p>
         </div>
 
-        {/* Time slots */}
+        {/* Availability mode toggle */}
+        <div>
+          <label className="block text-[13px] font-semibold text-gray-700 mb-2">Availability format</label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setPollMode('ranges')}
+              className={cn(
+                "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
+                pollMode === 'ranges'
+                  ? "bg-[#009688] text-white border-[#009688]"
+                  : "bg-white text-gray-600 border-gray-200"
+              )}
+            >
+              Time ranges
+            </button>
+            <button
+              onClick={() => setPollMode('slots')}
+              className={cn(
+                "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
+                pollMode === 'slots'
+                  ? "bg-[#009688] text-white border-[#009688]"
+                  : "bg-white text-gray-600 border-gray-200"
+              )}
+            >
+              Fixed slots
+            </button>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-1">
+            {pollMode === 'ranges'
+              ? 'Players set when they can play each day. The engine finds the best times.'
+              : 'Classic mode: you define specific time slots for players to vote on.'}
+          </p>
+        </div>
+
+        {/* Range-mode: date picker */}
+        {pollMode === 'ranges' && (
+          <div>
+            <label className="block text-[13px] font-semibold text-gray-700 mb-2">
+              Which days?
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {DAYS.map((day, i) => {
+                const d = addDays(new Date(weekStartDate + 'T12:00:00'), i)
+                const dateStr = format(d, 'yyyy-MM-dd')
+                const isSelected = selectedDates.includes(dateStr)
+                return (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedDates(prev =>
+                      isSelected ? prev.filter(dd => dd !== dateStr) : [...prev, dateStr]
+                    )}
+                    className={cn(
+                      "rounded-xl px-3 py-2 text-[12px] font-semibold border transition-colors",
+                      isSelected
+                        ? "bg-[#009688] text-white border-[#009688]"
+                        : "bg-white text-gray-600 border-gray-200"
+                    )}
+                  >
+                    <div>{day.slice(0, 3)}</div>
+                    <div className="text-[10px] opacity-75">{format(d, 'd MMM')}</div>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="flex gap-1.5 mt-2">
+              {[
+                { label: 'Weekdays', days: [0,1,2,3,4] },
+                { label: 'Weekend', days: [5,6] },
+                { label: 'All week', days: [0,1,2,3,4,5,6] },
+              ].map(preset => (
+                <button
+                  key={preset.label}
+                  onClick={() => {
+                    const dates = preset.days.map(i => {
+                      const d = addDays(new Date(weekStartDate + 'T12:00:00'), i)
+                      return format(d, 'yyyy-MM-dd')
+                    })
+                    setSelectedDates(dates)
+                  }}
+                  className="rounded-full border border-gray-200 px-3 py-1 text-[11px] font-semibold text-gray-600 active:bg-gray-100"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Slot-mode: legacy time slots */}
+        {pollMode === 'slots' && (
         <div>
           <div className="flex items-center justify-between mb-2">
             <label className="text-[13px] font-semibold text-gray-700">
@@ -320,45 +418,27 @@ export function CreatePollPage() {
                       </button>
                     )}
                   </div>
-
-                  {/* Day picker */}
                   <div className="mb-2">
                     <label className="block text-[11px] text-gray-500 mb-1">Day</label>
-                    <select
-                      value={slot.day}
-                      onChange={(e) => updateSlot(slot.id, 'day', e.target.value)}
+                    <select value={slot.day} onChange={(e) => updateSlot(slot.id, 'day', e.target.value)}
                       style={{ fontSize: '16px' }}
                       className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
                     >
-                      {DAYS.map((d) => (
-                        <option key={d} value={d}>{d}</option>
-                      ))}
+                      {DAYS.map((d) => (<option key={d} value={d}>{d}</option>))}
                     </select>
                   </div>
-
-                  {/* Start / End */}
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] text-gray-500 mb-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> Start
-                      </label>
-                      <input
-                        type="time"
-                        value={slot.start_time}
-                        step="1800"
+                      <label className="block text-[11px] text-gray-500 mb-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Start</label>
+                      <input type="time" value={slot.start_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'start_time', e.target.value)}
                         style={{ fontSize: '16px' }}
                         className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-gray-500 mb-1 flex items-center gap-1">
-                        <Clock className="h-3 w-3" /> End
-                      </label>
-                      <input
-                        type="time"
-                        value={slot.end_time}
-                        step="1800"
+                      <label className="block text-[11px] text-gray-500 mb-1 flex items-center gap-1"><Clock className="h-3 w-3" /> End</label>
+                      <input type="time" value={slot.end_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'end_time', e.target.value)}
                         style={{ fontSize: '16px' }}
                         className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
@@ -370,6 +450,7 @@ export function CreatePollPage() {
             </div>
           </AnimatePresence>
         </div>
+        )}
 
         {/* Additional options */}
         <div>

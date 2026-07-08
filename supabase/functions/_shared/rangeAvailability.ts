@@ -14,7 +14,6 @@
 import {
   timeToMinutes,
   overlaps,
-  candidateStarts,
   minutesToHHMM,
 } from "./vendor/scheduling-v1.0.0.ts";
 
@@ -79,6 +78,9 @@ export function rangesToVirtualSlots(
     userSlots.set(r.user_id, new Set());
   }
 
+  // Dedup: skip windows with identical available-player sets on the same date
+  const seenPlayerSets = new Set<string>();
+
   for (const date of allDates) {
     // 1. Collect all ranges for this date + compute the overall window
     let dayEarliest = 1440;
@@ -105,35 +107,59 @@ export function rangesToVirtualSlots(
 
     if (dayLatest - dayEarliest < MIN_MATCH_DURATION) continue;
 
-    // 2. Generate candidate start times at 30-min intervals
-    const starts = candidateStarts(dayEarliest, dayLatest, MIN_MATCH_DURATION, SLOT_INTERVAL);
-
-    // 3. For each candidate, find who can play in [start, start+60)
-    for (const start of starts) {
-      const end = start + MIN_MATCH_DURATION;
-      const available: string[] = [];
-
-      for (const [userId, ranges] of userRanges) {
-        // Player is available if ANY of their ranges covers [start, end)
-        const covers = ranges.some(rng =>
-          rng.start <= start && rng.end >= end
-        );
-        if (covers) available.push(userId);
+    // 2. Sweep-line: collect ALL range boundary points (starts + ends).
+    // Between consecutive boundaries, the set of available players is
+    // constant. This generates every maximal window where >=4 players
+    // share >=60 min — no grid-alignment gaps.
+    //
+    // Complexity: O(B) boundaries where B = 2 * total_ranges (tens at
+    // padel scale). Windows = O(B^2) worst case — trivial.
+    const boundarySet = new Set<number>();
+    for (const [, ranges] of userRanges) {
+      for (const rng of ranges) {
+        boundarySet.add(rng.start);
+        boundarySet.add(rng.end);
       }
+    }
+    const boundaries = Array.from(boundarySet).sort((a, b) => a - b);
 
-      // 4. Only create a virtual slot if 4+ players can play
-      if (available.length >= 4) {
-        const slotId = `${date}_${minutesToHHMM(start)}`;
-        // Derive day name from date for the TimeSlot interface
-        const dayOfWeek = new Date(date + "T12:00:00Z");
-        const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const dayName = dayNames[dayOfWeek.getUTCDay()];
+    // 3. For each pair of boundaries (start, end) where end - start >= 60,
+    // check which players have a range fully covering [start, end).
+    const dayOfWeek = new Date(date + "T12:00:00Z");
+    const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const dayName = dayNames[dayOfWeek.getUTCDay()];
+
+    for (let i = 0; i < boundaries.length; i++) {
+      for (let j = i + 1; j < boundaries.length; j++) {
+        const wStart = boundaries[i];
+        const wEnd = boundaries[j];
+        if (wEnd - wStart < MIN_MATCH_DURATION) continue;
+
+        const available: string[] = [];
+        for (const [userId, ranges] of userRanges) {
+          const covers = ranges.some(rng =>
+            rng.start <= wStart && rng.end >= wEnd
+          );
+          if (covers) available.push(userId);
+        }
+
+        if (available.length < 4) continue;
+
+        // Dedup: only create a slot if this exact player set hasn't been seen
+        // on this date (different windows with the same available players
+        // are redundant for the ILP — same assignment options).
+        const playerKey = [...available].sort().join(",");
+        const dedupKey = `${date}:${playerKey}`;
+        if (seenPlayerSets.has(dedupKey)) continue;
+        seenPlayerSets.add(dedupKey);
+
+        const slotId = `${date}_${minutesToHHMM(wStart)}_${minutesToHHMM(wEnd)}`;
 
         timeSlots.push({
           id: slotId,
           day: dayName,
-          start_time: minutesToHHMM(start),
-          end_time: minutesToHHMM(end),
+          start_time: minutesToHHMM(wStart),
+          end_time: minutesToHHMM(wEnd),
         });
 
         for (const uid of available) {

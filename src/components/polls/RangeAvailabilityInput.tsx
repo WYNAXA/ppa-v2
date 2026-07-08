@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
+import { DensityTimeline } from './DensityTimeline'
 
 interface TimeRange {
   start: string  // "HH:MM"
@@ -17,6 +18,8 @@ interface Props {
   dates: string[]  // ["yyyy-MM-dd", ...]
   value: Record<string, TimeRange[]>  // { "yyyy-MM-dd": [...] }
   onChange: (ranges: Record<string, TimeRange[]>) => void
+  densityData?: Record<string, TimeRange[]>  // other voters' ranges per date (flat)
+  totalOtherVoters?: number                  // count of other submitted voters
 }
 
 const PRESETS = [
@@ -43,7 +46,7 @@ function formatDateLabel(dateStr: string): string {
   }
 }
 
-export function RangeAvailabilityInput({ dates, value, onChange }: Props) {
+export function RangeAvailabilityInput({ dates, value, onChange, densityData, totalOtherVoters = 0 }: Props) {
   const [expandedDate, setExpandedDate] = useState<string | null>(dates[0] ?? null)
 
   function addRange(date: string, range: TimeRange) {
@@ -94,6 +97,18 @@ export function RangeAvailabilityInput({ dates, value, onChange }: Props) {
             {/* Expanded content */}
             {isExpanded && (
               <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+                {/* Density timeline — other voters' availability */}
+                {densityData && (
+                  <div className="pt-3">
+                    <DensityTimeline
+                      date={date}
+                      otherRanges={densityData[date] ?? []}
+                      voterRanges={ranges}
+                      totalOtherVoters={totalOtherVoters}
+                    />
+                  </div>
+                )}
+
                 {/* Preset shortcuts */}
                 <div className="flex flex-wrap gap-1.5 pt-3">
                   {PRESETS.map(preset => (

@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, CheckCircle, Clock, AlertTriangle, Star, Users, Trash2 } from 'lucide-react'
 import { RangeAvailabilityInput } from '@/components/polls/RangeAvailabilityInput'
+import { computeOtherRanges } from '@/components/polls/DensityTimeline'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
@@ -146,6 +147,26 @@ export function AvailabilityPollPage() {
     },
   })
 
+  const isRangePollEarly = Array.isArray(data?.poll?.poll_dates) && (data?.poll?.poll_dates as string[]).length > 0
+
+  // ── Other voters' ranges (density timeline, range polls only) ──
+  const { data: otherVoterData } = useQuery({
+    queryKey: ['polls', 'detail', pollId, 'other-ranges', userId],
+    enabled: !!pollId && !!userId && isRangePollEarly,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from('poll_responses')
+        .select('availability_ranges')
+        .eq('poll_id', pollId!)
+        .neq('user_id', userId)
+        .not('submitted_at', 'is', null)
+      const valid = (rows ?? []).filter(
+        (r: any) => r.availability_ranges && typeof r.availability_ranges === 'object' && Object.keys(r.availability_ranges).length > 0
+      )
+      return { responses: valid, count: valid.length }
+    },
+  })
+
   // ── Response form state ──
   const [cantDoWeek, setCantDoWeek] = useState(false)
   const [selectedSlots, setSelectedSlots] = useState<string[]>([])
@@ -201,6 +222,12 @@ export function AvailabilityPollPage() {
       setInitialised(true)
     }
   }, [data?.myResponse, initialised])
+
+  // ── Density data for range polls ──
+  const densityData = useMemo(() => {
+    if (!otherVoterData?.responses?.length) return undefined
+    return computeOtherRanges(otherVoterData.responses as any[])
+  }, [otherVoterData?.responses])
 
   // ── Derived values ──
   const poll = data?.poll
@@ -598,6 +625,8 @@ export function AvailabilityPollPage() {
                   dates={(poll?.poll_dates as string[]) ?? []}
                   value={availabilityRanges}
                   onChange={setAvailabilityRanges}
+                  densityData={densityData}
+                  totalOtherVoters={otherVoterData?.count ?? 0}
                 />
               </section>
             )}

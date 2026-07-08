@@ -205,6 +205,9 @@ export function AvailabilityPollPage() {
   // ── Derived values ──
   const poll = data?.poll
   const isRangePoll = Array.isArray(poll?.poll_dates) && (poll?.poll_dates as string[]).length > 0
+  const hasAvailability = isRangePoll
+    ? Object.values(availabilityRanges).some(r => r.length > 0)
+    : selectedSlots.length > 0
   const myResponse = data?.myResponse
   const isAdmin = data?.isAdmin ?? false
   const isCreator = poll?.created_by === userId
@@ -357,10 +360,11 @@ export function AvailabilityPollPage() {
 
   async function handleSubmit() {
     if (submitMutation.isPending) return
-    if (!cantDoWeek && selectedSlots.length === 0) return
+    if (!cantDoWeek && !hasAvailability) return
 
-    // Household conflict check
-    if (!cantDoWeek && selectedSlots.length > 0) {
+    // Household conflict check (legacy slot polls only — range polls are
+    // validated at confirm-time by the RPC's get_household_conflicts call)
+    if (!cantDoWeek && !isRangePoll && selectedSlots.length > 0) {
       const conflicts = await checkHouseholdConflicts()
       if (conflicts.length > 0) {
         setConflictDetails(conflicts)
@@ -823,7 +827,7 @@ export function AvailabilityPollPage() {
             )}
             <button
               onClick={handleSubmit}
-              disabled={submitMutation.isPending || (!cantDoWeek && selectedSlots.length === 0)}
+              disabled={submitMutation.isPending || (!cantDoWeek && !hasAvailability)}
               className="flex-1 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
             >
               {submitMutation.isPending
@@ -833,6 +837,11 @@ export function AvailabilityPollPage() {
                 : 'Set Availability'}
             </button>
           </div>
+          {!cantDoWeek && !hasAvailability && !submitMutation.isPending && (
+            <p className="text-[11px] text-gray-400 text-center mt-1">
+              Add your available times for at least one day to submit
+            </p>
+          )}
         </div>
       )}
 

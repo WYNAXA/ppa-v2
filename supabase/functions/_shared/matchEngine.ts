@@ -453,7 +453,9 @@ export async function generateProposals(input: EngineInput): Promise<EngineOutpu
     // bridge players with reuse, and mixed — applying diversity scoring
     // throughout. Every returned group has exactly 4 DISTINCT players.
     const groups = partitionMultiset(appearances, matchCount, pairing);
-    const date = weekDayToDate(weekStartDate, slot.day as DayName);
+    // Range-poll virtual slots embed the date in the ID: "yyyy-MM-dd_HH:MM_HH:MM"
+    const dateMatch = slot.id.match(/^(\d{4}-\d{2}-\d{2})_/);
+    const date = dateMatch ? dateMatch[1] : weekDayToDate(weekStartDate, slot.day as DayName);
 
     for (const group of groups) {
       proposals.push({

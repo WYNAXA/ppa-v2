@@ -32,6 +32,7 @@ interface PollAdminViewProps {
     week_start_date: string
     time_slots: PollSlot[]
     additional_options: string[]
+    poll_dates?: string[]  // range-model polls
   }
   isAdmin: boolean
   currentUserId: string
@@ -44,6 +45,7 @@ interface ResponseWithProfile {
   selected_slots: string[] | null
   additional_responses: Record<string, boolean> | null
   flexible_times: Record<string, any> | null
+  availability_ranges: Record<string, { start: string; end: string }[]> | null
   submitted_at: string | null
   profile: { id: string; name: string; avatar_url: string | null } | undefined
 }
@@ -147,6 +149,9 @@ export function PollAdminView({
     return { ...poll, time_slots: ts as PollSlot[], additional_options: ao as string[] }
   }, [poll])
 
+  // Range-poll detection: poll_dates set = range model
+  const isRangePoll = Array.isArray(poll.poll_dates) && poll.poll_dates.length > 0
+
   // ── State ──
   const [expandedSection, setExpandedSection] = useState<'available' | 'unavailable' | 'notVoted' | null>(null)
   const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
@@ -179,7 +184,7 @@ export function PollAdminView({
     queryFn: async () => {
       const { data } = await supabase
         .from('poll_responses')
-        .select('user_id, selected_slots, additional_responses, flexible_times, submitted_at')
+        .select('user_id, selected_slots, additional_responses, flexible_times, submitted_at, availability_ranges')
         .eq('poll_id', pollId)
       const userIds = (data ?? []).map((r) => r.user_id)
       const { data: profiles } = userIds.length > 0
@@ -214,21 +219,30 @@ export function PollAdminView({
   const availableResponses = useMemo(
     () =>
       responses.filter((r) => {
+        if (isRangePoll) {
+          // Range poll: available if they have any ranges
+          const ranges = r.availability_ranges
+          return ranges && typeof ranges === 'object' && Object.keys(ranges).length > 0
+        }
         const slots = Array.isArray(r.selected_slots) ? r.selected_slots : []
         const hasFlex = r.flexible_times && Object.keys(r.flexible_times).length > 0
         return slots.length > 0 || hasFlex
       }),
-    [responses],
+    [responses, isRangePoll],
   )
 
   const unavailableResponses = useMemo(
     () =>
       responses.filter((r) => {
+        if (isRangePoll) {
+          const ranges = r.availability_ranges
+          return !ranges || typeof ranges !== 'object' || Object.keys(ranges).length === 0
+        }
         const slots = Array.isArray(r.selected_slots) ? r.selected_slots : []
         const hasFlex = r.flexible_times && Object.keys(r.flexible_times).length > 0
         return slots.length === 0 && !hasFlex
       }),
-    [responses],
+    [responses, isRangePoll],
   )
 
   const notVotedMembers = useMemo(
@@ -240,6 +254,25 @@ export function PollAdminView({
   const DAY_ORDER = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
   const dayData = useMemo(() => {
+    if (isRangePoll) {
+      // Range polls: derive days from poll_dates, count players with ranges on each date
+      const pollDates = (poll.poll_dates ?? []) as string[]
+      return pollDates.map((dateStr) => {
+        const d = new Date(dateStr + 'T12:00:00')
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        const day = dayNames[d.getDay()]
+        const dateLabel = (() => {
+          try { return format(d, 'EEEE d MMMM', { locale }) } catch { return dateStr }
+        })()
+        const availablePlayers = availableResponses.filter((r) => {
+          const ranges = r.availability_ranges
+          return ranges && ranges[dateStr] && ranges[dateStr].length > 0
+        })
+        return { day, dateLabel, slots: [] as PollSlot[], availablePlayers }
+      })
+    }
+
+    // Legacy path
     const slotsByDay: Record<string, PollSlot[]> = {}
     for (const slot of safePoll.time_slots) {
       if (!slotsByDay[slot.day]) slotsByDay[slot.day] = []
@@ -261,7 +294,7 @@ export function PollAdminView({
 
       return { day, dateLabel, slots: daySlots, availablePlayers }
     })
-  }, [safePoll.time_slots, poll.week_start_date, availableResponses])
+  }, [safePoll.time_slots, poll.week_start_date, poll.poll_dates, isRangePoll, availableResponses, locale])
 
   // ── Slot-level data ──
   const slotData = useMemo(() => {
@@ -279,8 +312,10 @@ export function PollAdminView({
     })
   }, [safePoll.additional_options, responses])
 
-  // Any slot with 4+ players?
-  const hasViableSlot = slotData.some((s) => s.voters.length >= 4)
+  // Any slot/date with 4+ players?
+  const hasViableSlot = isRangePoll
+    ? dayData.some((d) => d.availablePlayers.length >= 4)
+    : slotData.some((s) => s.voters.length >= 4)
 
   // ── Handlers ──
   async function handleRemind(userId: string) {

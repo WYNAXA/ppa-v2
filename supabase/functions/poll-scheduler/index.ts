@@ -23,6 +23,10 @@ import {
   type EngineOutput,
   type ProposedMatch,
 } from "../_shared/matchEngine.ts";
+import {
+  rangesToVirtualSlots,
+  type RangeResponse,
+} from "../_shared/rangeAvailability.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -64,10 +68,13 @@ serve(async (req: Request) => {
       ? poll.time_slots
       : [];
 
+    // Range-poll detection: poll_dates set = range model, time_slots = legacy
+    const isRange = Array.isArray(poll.poll_dates) && poll.poll_dates.length > 0;
+
     if (mode === "propose") {
-      return await handlePropose(supabase, poll, timeSlots, body.togetherness ?? false, body.balance_teams ?? false);
+      return await handlePropose(supabase, poll, timeSlots, body.togetherness ?? false, body.balance_teams ?? false, isRange);
     } else if (mode === "recompute") {
-      return await handleRecompute(supabase, poll, timeSlots, body.schedule);
+      return await handleRecompute(supabase, poll, timeSlots, body.schedule, isRange);
     } else if (mode === "confirm") {
       return await handleConfirm(supabase, poll_id, body.schedule, body.benched_ids);
     } else {
@@ -87,12 +94,17 @@ async function handlePropose(
   timeSlots: TimeSlot[],
   togetherness: boolean,
   balanceTeams: boolean = false,
+  isRange: boolean = false,
 ): Promise<Response> {
 
-  // 2. Fetch poll_responses with profiles
+  // 2. Fetch poll_responses — include availability_ranges for range polls
+  const selectCols = isRange
+    ? "user_id, selected_slots, flexible_times, can_play_twice, availability_ranges"
+    : "user_id, selected_slots, flexible_times, can_play_twice";
+
   const { data: responses, error: respErr } = await supabase
     .from("poll_responses")
-    .select("user_id, selected_slots, flexible_times, can_play_twice")
+    .select(selectCols)
     .eq("poll_id", poll.id);
 
   if (respErr) return json({ error: "Failed to fetch responses" }, 500);
@@ -100,15 +112,39 @@ async function handlePropose(
     return json({ success: true, proposals: [], message: "Need at least 2 responses" });
   }
 
-  // 3. Map to engine PollResponse type.
-  // Availability is resolved by the engine via isUserAvailableForSlot
-  // (imported from _shared/timeUtils.ts at line 14). ONE implementation.
-  const engineResponses: PollResponse[] = responses.map((r: any) => ({
-    user_id: r.user_id,
-    selected_slots: r.selected_slots ?? [],
-    flexible_times: r.flexible_times ?? null,
-    can_play_twice: r.can_play_twice ?? false,
-  }));
+  // 3. BRANCH: range vs legacy availability
+  let engineTimeSlots: TimeSlot[];
+  let engineResponses: PollResponse[];
+
+  if (isRange) {
+    // ── RANGE PATH: use the proven sweep-line engine (rangeAvailability.ts) ──
+    // Convert availability_ranges → virtual TimeSlots + PollResponses
+    // that the existing ILP solver consumes unchanged.
+    const rangeResponses: RangeResponse[] = responses
+      .filter((r: any) => r.availability_ranges && typeof r.availability_ranges === "object")
+      .map((r: any) => ({
+        user_id: r.user_id,
+        availability_ranges: r.availability_ranges,
+        can_play_twice: r.can_play_twice ?? false,
+      }));
+
+    if (rangeResponses.length < 2) {
+      return json({ success: true, proposals: [], message: "Need at least 2 range responses" });
+    }
+
+    const virtual = rangesToVirtualSlots(rangeResponses);
+    engineTimeSlots = virtual.timeSlots;
+    engineResponses = virtual.responses;
+  } else {
+    // ── LEGACY PATH: slot-based availability (unchanged) ──
+    engineTimeSlots = timeSlots;
+    engineResponses = responses.map((r: any) => ({
+      user_id: r.user_id,
+      selected_slots: r.selected_slots ?? [],
+      flexible_times: r.flexible_times ?? null,
+      can_play_twice: r.can_play_twice ?? false,
+    }));
+  }
 
   // 4. Bench-debt: count of outcome='benched' per user in this group, last 3 months
   const threeMonthsAgo = new Date();
@@ -148,8 +184,8 @@ async function handlePropose(
 
   // 6. Run the engine
   const engineInput: EngineInput = {
-    weekStartDate: poll.week_start_date,
-    timeSlots,
+    weekStartDate: poll.week_start_date ?? "",
+    timeSlots: engineTimeSlots,
     responses: engineResponses,
     benchHistory,
     pairingHistory,
@@ -188,10 +224,21 @@ async function handlePropose(
 
   // 9. Return proposals.
   const proposals = output.matches.map((m: ProposedMatch) => {
+    // match_time: for range polls, use the window start from the slotId
+    // (format: "yyyy-MM-dd_HH:MM_HH:MM"); for legacy, split on "-".
+    let matchTime: string;
+    if (isRange) {
+      // slotId = "2026-07-13_06:00_12:00" → start = "06:00"
+      const parts = m.slotId.split("_");
+      matchTime = (parts[1] ?? "19:00") + ":00";
+    } else {
+      matchTime = m.timeSlot.split("-")[0] + ":00";
+    }
+
     const base: any = {
       player_ids: m.playerIds,
       match_date: m.date,
-      match_time: m.timeSlot.split("-")[0] + ":00",
+      match_time: matchTime,
       slot_id: m.slotId,
       day: m.day,
       time_slot_display: m.timeSlot,
@@ -214,16 +261,29 @@ async function handlePropose(
   // Build per-slot availability for swap candidate filtering
   const slotAvailability: Record<string, string[]> = {};
   const slotsWithMatches = new Set(output.matches.map(m => m.slotId));
-  for (const slot of timeSlots) {
-    if (!slotsWithMatches.has(slot.id)) continue;
-    const avail: string[] = [];
-    for (const r of engineResponses) {
-      if (isUserAvailableForSlot(
-        { selected_slots: r.selected_slots ?? [], flexible_times: r.flexible_times ?? {} },
-        slot,
-      )) avail.push(r.user_id);
+
+  if (isRange) {
+    // Range path: engineResponses have selected_slots pointing to virtual slot IDs
+    for (const slotId of slotsWithMatches) {
+      const avail: string[] = [];
+      for (const r of engineResponses) {
+        if (r.selected_slots.includes(slotId)) avail.push(r.user_id);
+      }
+      slotAvailability[slotId] = avail;
     }
-    slotAvailability[slot.id] = avail;
+  } else {
+    // Legacy path: use isUserAvailableForSlot against real time slots
+    for (const slot of timeSlots) {
+      if (!slotsWithMatches.has(slot.id)) continue;
+      const avail: string[] = [];
+      for (const r of engineResponses) {
+        if (isUserAvailableForSlot(
+          { selected_slots: r.selected_slots ?? [], flexible_times: r.flexible_times ?? {} },
+          slot,
+        )) avail.push(r.user_id);
+      }
+      slotAvailability[slot.id] = avail;
+    }
   }
 
   return json({
@@ -250,32 +310,61 @@ async function handleRecompute(
   poll: any,
   timeSlots: TimeSlot[],
   schedule: any[] | undefined,
+  isRange: boolean = false,
 ): Promise<Response> {
   if (!schedule || !Array.isArray(schedule)) {
     return json({ error: "schedule must be a JSON array" }, 400);
   }
 
   // 1. Fetch all poll responses
+  const selectCols = isRange
+    ? "user_id, selected_slots, flexible_times, can_play_twice, availability_ranges"
+    : "user_id, selected_slots, flexible_times";
+
   const { data: responses } = await supabase
     .from("poll_responses")
-    .select("user_id, selected_slots, flexible_times")
+    .select(selectCols)
     .eq("poll_id", poll.id);
 
   if (!responses) return json({ error: "Failed to fetch responses" }, 500);
 
-  // 2. Build slot-level availability using isUserAvailableForSlot (ONE implementation)
+  // 2. Build slot-level availability
   const slotPlayers = new Map<string, Set<string>>();
-  for (const slot of timeSlots) {
-    const avail = new Set<string>();
-    for (const r of responses) {
-      if (isUserAvailableForSlot(
-        { selected_slots: r.selected_slots ?? [], flexible_times: r.flexible_times ?? {} },
-        slot,
-      )) {
-        avail.add(r.user_id);
+
+  if (isRange) {
+    // Range path: rebuild virtual slots from availability_ranges
+    const rangeResponses: RangeResponse[] = responses
+      .filter((r: any) => r.availability_ranges && typeof r.availability_ranges === "object")
+      .map((r: any) => ({
+        user_id: r.user_id,
+        availability_ranges: r.availability_ranges,
+        can_play_twice: r.can_play_twice ?? false,
+      }));
+    const virtual = rangesToVirtualSlots(rangeResponses);
+    // Build slotPlayers from the virtual responses' selected_slots
+    for (const slot of virtual.timeSlots) {
+      slotPlayers.set(slot.id, new Set<string>());
+    }
+    for (const r of virtual.responses) {
+      for (const sid of r.selected_slots) {
+        if (!slotPlayers.has(sid)) slotPlayers.set(sid, new Set());
+        slotPlayers.get(sid)!.add(r.user_id);
       }
     }
-    slotPlayers.set(slot.id, avail);
+  } else {
+    // Legacy path: isUserAvailableForSlot against real time slots
+    for (const slot of timeSlots) {
+      const avail = new Set<string>();
+      for (const r of responses) {
+        if (isUserAvailableForSlot(
+          { selected_slots: r.selected_slots ?? [], flexible_times: r.flexible_times ?? {} },
+          slot,
+        )) {
+          avail.add(r.user_id);
+        }
+      }
+      slotPlayers.set(slot.id, avail);
+    }
   }
 
   // 3. Derive scheduled set from the FIXED schedule (admin's edit)

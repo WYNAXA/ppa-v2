@@ -232,3 +232,63 @@ export function computeRangeBenched(
 
   return benched;
 }
+
+// ── Window computation ──────────────────────────────────────────────────────
+
+export interface MatchWindow {
+  window_start: string;  // "HH:MM"
+  window_end: string;    // "HH:MM"
+}
+
+/**
+ * Compute the maximal shared bookable window for a group of players on a date.
+ *
+ * For each player, find their single range that covers the match's sweep-line
+ * window [slotStart, slotEnd). Then intersect all covering ranges:
+ *   window_start = max(all covering range starts)
+ *   window_end   = min(all covering range ends)
+ *
+ * This uses the players' REAL ranges, not the sweep-line sub-window.
+ * The result is the widest contiguous window all players share.
+ *
+ * Returns null if any player lacks a covering range or intersection < 60 min.
+ */
+export function computeMatchWindow(
+  playerIds: string[],
+  date: string,
+  slotStart: number,  // minutes: the sweep-line window start
+  slotEnd: number,    // minutes: the sweep-line window end
+  rangesByUser: Map<string, Record<string, TimeRange[]>>,
+): MatchWindow | null {
+  let maxStart = 0;
+  let minEnd = 1440;
+
+  for (const pid of playerIds) {
+    const userRanges = rangesByUser.get(pid);
+    if (!userRanges) return null;
+    const dayRanges = userRanges[date];
+    if (!dayRanges || dayRanges.length === 0) return null;
+
+    // Find the single range that covers [slotStart, slotEnd)
+    let covering: { start: number; end: number } | null = null;
+    for (const rng of dayRanges) {
+      const rStart = timeToMinutes(rng.start);
+      const rEnd = timeToMinutes(rng.end);
+      if (rStart <= slotStart && rEnd >= slotEnd) {
+        covering = { start: rStart, end: rEnd };
+        break;
+      }
+    }
+    if (!covering) return null;
+
+    if (covering.start > maxStart) maxStart = covering.start;
+    if (covering.end < minEnd) minEnd = covering.end;
+  }
+
+  if (minEnd - maxStart < 60) return null;
+
+  return {
+    window_start: minutesToHHMM(maxStart),
+    window_end: minutesToHHMM(minEnd),
+  };
+}

@@ -451,6 +451,17 @@ export function PollAdminView({
         setSlotAvailability(data.slot_availability ?? slotAvailability)
         setExcludedCount(data.excluded_count ?? 0)
         setBenchedDirty(false)
+        // Update match windows from recompute (range polls)
+        if (data.match_windows && selectedSchedule) {
+          const updated = { ...selectedSchedule, matches: selectedSchedule.matches.map((m: any) => {
+            const sid = m.slot_id ?? m.slotId
+            const w = data.match_windows[sid]
+            if (w) return { ...m, window_start: w.window_start, window_end: w.window_end, match_time: w.window_start + ':00' }
+            return m
+          })}
+          setSelectedSchedule(updated)
+          setMatchSchedules(prev => prev.map(s => s.scheduleNumber === updated.scheduleNumber ? updated : s))
+        }
       }
     } catch (e) {
       console.error('[Recompute] error:', e)
@@ -507,13 +518,18 @@ export function PollAdminView({
       // blocked (benchedDirty || recomputing) until recompute completes.
       const schedule = (selectedSchedule.matches ?? [])
         .filter((m: any) => (m.player_ids ?? m.playerIds)?.length >= 2)
-        .map((m: any) => ({
-          player_ids: m.player_ids ?? m.playerIds,
-          match_date: m.match_date ?? m.date,
-          match_time: m.match_time ?? ((m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'),
-          slot_id: m.slot_id ?? m.slotId ?? null,
-          additional_options: m.additional_options ?? {},
-        }))
+        .map((m: any) => {
+          const entry: any = {
+            player_ids: m.player_ids ?? m.playerIds,
+            match_date: m.match_date ?? m.date,
+            match_time: m.match_time ?? ((m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'),
+            slot_id: m.slot_id ?? m.slotId ?? null,
+            additional_options: m.additional_options ?? {},
+          }
+          if (m.window_start) entry.window_start = m.window_start
+          if (m.window_end) entry.window_end = m.window_end
+          return entry
+        })
 
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
@@ -1004,7 +1020,14 @@ export function PollAdminView({
                     return (
                       <div key={mIdx} className="rounded-lg bg-gray-50 px-3 py-2 text-[12px] space-y-1">
                         <div className="flex items-center justify-between">
-                          <span className="font-medium text-gray-800">{match.dayOfWeek ?? match.date ?? match.day}</span>
+                          <div>
+                            <span className="font-medium text-gray-800">{match.dayOfWeek ?? match.date ?? match.day}</span>
+                            {match.window_start && match.window_end && (
+                              <span className="ml-2 text-[10px] font-semibold text-teal-600">
+                                Playable {match.window_start}–{match.window_end}
+                              </span>
+                            )}
+                          </div>
                           <div className="flex items-center gap-2">
                             <span className="text-gray-400">{match.timeSlot ?? `${match.start_time}–${match.end_time}`}</span>
                             {isSelected && (

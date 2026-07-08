@@ -25,8 +25,11 @@ import {
 } from "../_shared/matchEngine.ts";
 import {
   rangesToVirtualSlots,
+  computeMatchWindow,
   type RangeResponse,
+  type TimeRange,
 } from "../_shared/rangeAvailability.ts";
+import { timeToMinutes } from "../_shared/vendor/scheduling-v1.0.0.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -115,6 +118,7 @@ async function handlePropose(
   // 3. BRANCH: range vs legacy availability
   let engineTimeSlots: TimeSlot[];
   let engineResponses: PollResponse[];
+  let rangesByUser: Map<string, Record<string, TimeRange[]>> | null = null;
 
   if (isRange) {
     // ── RANGE PATH: use the proven sweep-line engine (rangeAvailability.ts) ──
@@ -135,6 +139,12 @@ async function handlePropose(
     const virtual = rangesToVirtualSlots(rangeResponses);
     engineTimeSlots = virtual.timeSlots;
     engineResponses = virtual.responses;
+
+    // Build rangesByUser for window computation (used in propose + recompute)
+    rangesByUser = new Map();
+    for (const r of rangeResponses) {
+      rangesByUser.set(r.user_id, r.availability_ranges);
+    }
   } else {
     // ── LEGACY PATH: slot-based availability (unchanged) ──
     engineTimeSlots = timeSlots;
@@ -246,6 +256,21 @@ async function handlePropose(
       additional_options: {},
     };
 
+    // Range polls: compute the maximal shared window from real player ranges
+    if (isRange && rangesByUser && m.playerIds.length >= 2) {
+      const parts = m.slotId.split("_");
+      const matchDate = parts[0];  // "yyyy-MM-dd"
+      const slotStart = timeToMinutes(parts[1]);  // sweep-line window start
+      const slotEnd = timeToMinutes(parts[2]);     // sweep-line window end
+      const window = computeMatchWindow(m.playerIds, matchDate, slotStart, slotEnd, rangesByUser);
+      if (window) {
+        base.window_start = window.window_start;
+        base.window_end = window.window_end;
+        // match_time = window_start (working default)
+        base.match_time = window.window_start + ":00";
+      }
+    }
+
     if (balanceTeams && m.playerIds.length === 4) {
       const [t1, t2] = balanceTeamSplit(m.playerIds, eloMap);
       base.team1_player_ids = t1;
@@ -262,14 +287,30 @@ async function handlePropose(
   const slotAvailability: Record<string, string[]> = {};
   const slotsWithMatches = new Set(output.matches.map(m => m.slotId));
 
-  if (isRange) {
-    // Range path: engineResponses have selected_slots pointing to virtual slot IDs
-    for (const slotId of slotsWithMatches) {
-      const avail: string[] = [];
+  if (isRange && rangesByUser) {
+    // Range path: filter swap candidates by 60min window constraint
+    for (const m of output.matches) {
+      if (!slotsWithMatches.has(m.slotId)) continue;
+      const parts = m.slotId.split("_");
+      const matchDate = parts[0];
+      const slotStart = timeToMinutes(parts[1]);
+      const slotEnd = timeToMinutes(parts[2]);
+
+      const candidates: string[] = [];
       for (const r of engineResponses) {
-        if (r.selected_slots.includes(slotId)) avail.push(r.user_id);
+        if (!r.selected_slots.includes(m.slotId)) continue;
+        // Check if swapping this candidate into ANY position yields >= 60min window
+        let eligible = false;
+        for (let i = 0; i < m.playerIds.length; i++) {
+          if (m.playerIds[i] === r.user_id) { eligible = true; break; }
+          const testPids = [...m.playerIds];
+          testPids[i] = r.user_id;
+          const testWindow = computeMatchWindow(testPids, matchDate, slotStart, slotEnd, rangesByUser);
+          if (testWindow) { eligible = true; break; }
+        }
+        if (eligible) candidates.push(r.user_id);
       }
-      slotAvailability[slotId] = avail;
+      slotAvailability[m.slotId] = candidates;
     }
   } else {
     // Legacy path: use isUserAvailableForSlot against real time slots
@@ -394,9 +435,64 @@ async function handleRecompute(
   // 5. Build per-slot availability for the swap candidate filter.
   // Only include slots that have matches (the admin can only swap within active slots).
   const slotAvailability: Record<string, string[]> = {};
-  for (const slotId of slotsWithMatches) {
-    const avail = slotPlayers.get(slotId);
-    if (avail) slotAvailability[slotId] = Array.from(avail);
+
+  // For range polls: build rangesByUser for window-aware swap filtering
+  let recomputeRangesByUser: Map<string, Record<string, TimeRange[]>> | null = null;
+  if (isRange) {
+    recomputeRangesByUser = new Map();
+    for (const r of responses) {
+      if (r.availability_ranges && typeof r.availability_ranges === "object") {
+        recomputeRangesByUser.set(r.user_id, r.availability_ranges);
+      }
+    }
+  }
+
+  // Build match-level data: per match, compute window + filter swap candidates
+  const matchWindows: Record<string, { window_start: string; window_end: string } | null> = {};
+
+  for (const m of schedule) {
+    const sid = m.slot_id ?? m.slotId;
+    if (!sid) continue;
+    slotsWithMatches.add(sid);
+
+    if (isRange && recomputeRangesByUser) {
+      const pids: string[] = m.player_ids ?? m.playerIds ?? [];
+      const parts = sid.split("_");
+      const matchDate = parts[0];
+      const slotStart = timeToMinutes(parts[1]);
+      const slotEnd = timeToMinutes(parts[2]);
+
+      // Recompute window for current players
+      const window = computeMatchWindow(pids, matchDate, slotStart, slotEnd, recomputeRangesByUser);
+      matchWindows[sid] = window;
+
+      // Filter swap candidates: must be available at slot AND produce >= 60min window
+      const slotAvail = slotPlayers.get(sid);
+      const candidates: string[] = [];
+      if (slotAvail) {
+        for (const candidateId of slotAvail) {
+          // Try replacing each existing player with the candidate — if ANY swap
+          // produces a valid window, the candidate is eligible
+          let eligible = false;
+          for (let i = 0; i < pids.length; i++) {
+            if (pids[i] === candidateId) continue;
+            const testPids = [...pids];
+            testPids[i] = candidateId;
+            const testWindow = computeMatchWindow(testPids, matchDate, slotStart, slotEnd, recomputeRangesByUser);
+            if (testWindow) { eligible = true; break; }
+          }
+          if (eligible) candidates.push(candidateId);
+        }
+      }
+      slotAvailability[sid] = candidates;
+    }
+  }
+
+  if (!isRange) {
+    for (const slotId of slotsWithMatches) {
+      const avail = slotPlayers.get(slotId);
+      if (avail) slotAvailability[slotId] = Array.from(avail);
+    }
   }
 
   // 6. Players excluded by a drop — responded but not scheduled, not benched, available
@@ -410,6 +506,7 @@ async function handleRecompute(
     players_benched: Array.from(benchedSet),
     slot_availability: slotAvailability,
     excluded_count: excludedCount,
+    match_windows: isRange ? matchWindows : undefined,
   });
 }
 
@@ -461,6 +558,9 @@ async function handleConfirm(
     // Pass through team columns if present (from ELO-balanced split)
     if (Array.isArray(m.team1_player_ids)) normalized.team1_player_ids = m.team1_player_ids;
     if (Array.isArray(m.team2_player_ids)) normalized.team2_player_ids = m.team2_player_ids;
+    // Pass through window columns for range-poll matches
+    if (m.window_start) normalized.window_start = m.window_start;
+    if (m.window_end) normalized.window_end = m.window_end;
     return normalized;
   });
 

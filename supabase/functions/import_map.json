@@ -1,0 +1,5 @@
+{
+  "imports": {
+    "@scheduling": "./_shared/vendor/scheduling-v1.0.0.ts"
+  }
+}

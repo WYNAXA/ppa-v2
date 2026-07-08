@@ -8,7 +8,6 @@
  */
 
 import { useMemo } from 'react'
-import { format } from 'date-fns'
 
 interface TimeRange {
   start: string  // "HH:MM"
@@ -51,7 +50,7 @@ function rangeCoversBlock(ranges: TimeRange[], blockStart: number): boolean {
   })
 }
 
-export function DensityTimeline({ date, otherRanges, voterRanges, totalOtherVoters }: Props) {
+export function DensityTimeline({ otherRanges, voterRanges, totalOtherVoters }: Props) {
   // Compute density: for each 30-min block, count how many OTHER ranges cover it
   // otherRanges is already a flat list of all other voters' ranges for this date.
   // We need per-voter coverage, but we receive a flat list. To count correctly,
@@ -89,9 +88,6 @@ export function DensityTimeline({ date, otherRanges, voterRanges, totalOtherVote
   const voterBlocks = useMemo(() => {
     return BLOCKS.map(blockStart => rangeCoversBlock(voterRanges, blockStart))
   }, [voterRanges])
-
-  // Hour labels: show every 2 hours
-  const hourLabels = BLOCKS.filter((_, i) => i % 4 === 0)
 
   return (
     <div className="space-y-1">

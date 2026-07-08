@@ -10,7 +10,6 @@ import { sendNotification, sendNotifications } from '@/lib/notifications'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { isUserAvailableForSlot, getSlotDate, POLL_OPTION_DRIVE } from '@/lib/pollUtils'
-import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
 
 // ── Types ───────────────────────────────────────────────────────────────────
@@ -154,8 +153,6 @@ export function PollAdminView({
   const [remindedUsers, setRemindedUsers] = useState<Set<string>>(new Set())
   const [generating, setGenerating] = useState(false)
   const [matchSchedules, setMatchSchedules] = useState<any[]>([])
-  const [createMatchOpen, setCreateMatchOpen] = useState(false)
-  const [scheduleDefaults, setScheduleDefaults] = useState<{ date?: string; groupId?: string }>({})
   const [askRingersMatchId, setAskRingersMatchId] = useState<string | null>(null)
 
   // ── Matches needing ringers (actual DB matches for this group) ──
@@ -724,20 +721,6 @@ export function PollAdminView({
                 </div>
               )}
 
-              {/* Schedule Match button */}
-              {isAdmin && count >= 4 && (
-                <button
-                  onClick={() => {
-                    const dayDate = (() => { try { return format(getSlotDate(poll.week_start_date, day), 'yyyy-MM-dd', { locale }) } catch { return '' } })()
-                    setScheduleDefaults({ date: dayDate, groupId })
-                    setCreateMatchOpen(true)
-                  }}
-                  className="flex items-center gap-1.5 rounded-xl bg-[#009688] px-3 py-2 text-[12px] font-bold text-white mt-1"
-                >
-                  <Zap className="h-3.5 w-3.5" />
-                  Schedule Match
-                </button>
-              )}
             </div>
           )
         })}
@@ -1096,13 +1079,6 @@ export function PollAdminView({
         )
       })()}
 
-      {/* CreateMatchSheet for schedule match */}
-      <CreateMatchSheet
-        open={createMatchOpen}
-        onClose={() => { setCreateMatchOpen(false); onRefetch() }}
-        defaultGroupId={scheduleDefaults.groupId}
-        defaultDate={scheduleDefaults.date}
-      />
     </div>
   )
 }

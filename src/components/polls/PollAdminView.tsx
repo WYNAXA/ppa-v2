@@ -317,6 +317,7 @@ export function PollAdminView({
   const [benchedDirty, setBenchedDirty] = useState(false)
   const [recomputing, setRecomputing] = useState(false)
   const [engineProfiles, setEngineProfiles] = useState<Record<string, any>>({})
+  const [confirmResult, setConfirmResult] = useState<{ matchesCreated: number } | null>(null)
   // Per-slot availability: { slotId: [userId, ...] } — for filtering swap candidates
   const [slotAvailability, setSlotAvailability] = useState<Record<string, string[]>>({})
   // Count of players excluded on drop (available only at dropped slot, no outcome row)
@@ -328,6 +329,7 @@ export function PollAdminView({
     setGenerateError(null)
     setSelectedSchedule(null)
     setPlayersBenched([])
+    setConfirmResult(null)
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
@@ -425,8 +427,13 @@ export function PollAdminView({
   const [swapTarget, setSwapTarget] = useState<{ matchIdx: number; playerIdx: number } | null>(null)
 
   // Called when the admin edits a match (swap/drop). Routes through the dirty guard.
+  // Updates BOTH selectedSchedule AND matchSchedules so the card renders the edit immediately.
   function handleScheduleEdit(editedSchedule: any) {
     setSelectedSchedule(editedSchedule)
+    // Sync matchSchedules so the card render (which iterates matchSchedules) shows the edit
+    setMatchSchedules(prev =>
+      prev.map(s => s.scheduleNumber === editedSchedule.scheduleNumber ? editedSchedule : s)
+    )
     setBenchedDirty(true)
     recomputeBenched(editedSchedule)
   }
@@ -494,6 +501,7 @@ export function PollAdminView({
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
 
       toast.success(`${data.matches_created} match${data.matches_created !== 1 ? 'es' : ''} scheduled`)
+      setConfirmResult({ matchesCreated: data.matches_created ?? 0 })
       setMatchSchedules([])
       setSelectedSchedule(null)
       setPlayersBenched([])
@@ -863,13 +871,29 @@ export function PollAdminView({
       )}
 
       {/* 7. Match Generation (Admin Only) */}
-      {isAdmin && (hasViableSlot || matchSchedules.length > 0) && (
+      {isAdmin && (hasViableSlot || matchSchedules.length > 0 || confirmResult) && (
         <div className="rounded-2xl border border-teal-100 bg-teal-50/30 px-4 py-4 space-y-3">
+
+          {/* Success state after confirm */}
+          {confirmResult && (
+            <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3 space-y-2">
+              <p className="text-[13px] font-bold text-teal-800">
+                {confirmResult.matchesCreated} match{confirmResult.matchesCreated !== 1 ? 'es' : ''} scheduled
+              </p>
+              <p className="text-[11px] text-teal-600">Poll closed. Matches are visible in the group Matches tab.</p>
+            </div>
+          )}
+
+          {/* Generate button — hidden after confirm, disabled if poll already processed */}
+          {!confirmResult && (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-[#009688]" />
               <span className="text-[13px] font-bold text-gray-900">Match Generation</span>
             </div>
+            {poll.status === 'processed' ? (
+              <span className="text-[11px] text-gray-400">Poll already processed</span>
+            ) : (
             <button
               onClick={handleGenerateMatches}
               disabled={generating}
@@ -887,9 +911,11 @@ export function PollAdminView({
                 </>
               )}
             </button>
+            )}
           </div>
+          )}
 
-          {generating && (
+          {!confirmResult && generating && (
             <div className="flex flex-col items-center py-6 gap-2">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
               <p className="text-[12px] text-gray-400">Finding optimal match configurations...</p>
@@ -903,7 +929,7 @@ export function PollAdminView({
             </div>
           )}
 
-          {!generating && matchSchedules.length > 0 && (
+          {!confirmResult && !generating && matchSchedules.length > 0 && (
             <div className="space-y-3">
               <p className="text-[12px] text-gray-500">
                 {matchSchedules.length} option{matchSchedules.length !== 1 ? 's' : ''} found

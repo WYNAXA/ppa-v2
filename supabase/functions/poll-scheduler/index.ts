@@ -14,6 +14,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { isUserAvailableForSlot } from "../_shared/timeUtils.ts";
 import {
   generateProposals,
+  balanceTeamSplit,
   type TimeSlot,
   type PollResponse,
   type BenchHistory,
@@ -64,7 +65,7 @@ serve(async (req: Request) => {
       : [];
 
     if (mode === "propose") {
-      return await handlePropose(supabase, poll, timeSlots, body.togetherness ?? false);
+      return await handlePropose(supabase, poll, timeSlots, body.togetherness ?? false, body.balance_teams ?? false);
     } else if (mode === "recompute") {
       return await handleRecompute(supabase, poll, timeSlots, body.schedule);
     } else if (mode === "confirm") {
@@ -85,6 +86,7 @@ async function handlePropose(
   poll: any,
   timeSlots: TimeSlot[],
   togetherness: boolean,
+  balanceTeams: boolean = false,
 ): Promise<Response> {
 
   // 2. Fetch poll_responses with profiles
@@ -173,21 +175,41 @@ async function handlePropose(
     }
   }
 
-  // 8. Return proposals.
-  // The match_time for the RPC is the slot start_time (HH:mm), which
-  // needs ':00' appended to become HH:mm:ss for Postgres ::time cast.
-  // We include both timeSlot ("19:00-20:30") for display and a
-  // pre-formatted match_time ("19:00:00") for the confirm path.
-  const proposals = output.matches.map((m: ProposedMatch) => ({
-    player_ids: m.playerIds,
-    match_date: m.date,                                    // yyyy-MM-dd from weekDayToDate
-    match_time: m.timeSlot.split("-")[0] + ":00",          // "19:00" → "19:00:00"
-    slot_id: m.slotId,
-    day: m.day,
-    time_slot_display: m.timeSlot,                         // "19:00-20:30" for UI
-    diversity_score: m.diversityScore,
-    additional_options: {},
-  }));
+  // 8. ELO-balanced team split (optional, behind balanceTeams toggle)
+  // Builds an ELO map from profiles, then for each match of 4 computes
+  // the 2v2 split that minimises |sum(team1 ELO) - sum(team2 ELO)|.
+  // Does NOT change which 4 players form the match — only assigns teams.
+  const eloMap = new Map<string, number>();
+  if (balanceTeams) {
+    for (const [id, p] of Object.entries(profilesMap)) {
+      eloMap.set(id, (p as any).internal_ranking ?? 1300);
+    }
+  }
+
+  // 9. Return proposals.
+  const proposals = output.matches.map((m: ProposedMatch) => {
+    const base: any = {
+      player_ids: m.playerIds,
+      match_date: m.date,
+      match_time: m.timeSlot.split("-")[0] + ":00",
+      slot_id: m.slotId,
+      day: m.day,
+      time_slot_display: m.timeSlot,
+      diversity_score: m.diversityScore,
+      additional_options: {},
+    };
+
+    if (balanceTeams && m.playerIds.length === 4) {
+      const [t1, t2] = balanceTeamSplit(m.playerIds, eloMap);
+      base.team1_player_ids = t1;
+      base.team2_player_ids = t2;
+      base.team1_elo = (eloMap.get(t1[0]) ?? 1300) + (eloMap.get(t1[1]) ?? 1300);
+      base.team2_elo = (eloMap.get(t2[0]) ?? 1300) + (eloMap.get(t2[1]) ?? 1300);
+      base.elo_gap = Math.abs(base.team1_elo - base.team2_elo);
+    }
+
+    return base;
+  });
 
   // Build per-slot availability for swap candidate filtering
   const slotAvailability: Record<string, string[]> = {};
@@ -339,7 +361,7 @@ async function handleConfirm(
       throw new Error(`schedule[${i}].match_time must be HH:mm or HH:mm:ss`);
     }
 
-    return {
+    const normalized: any = {
       player_ids: m.player_ids,
       match_date: m.match_date,
       match_time: matchTime,
@@ -347,6 +369,10 @@ async function handleConfirm(
       additional_options: m.additional_options ?? {},
       status: m.status ?? "scheduled",
     };
+    // Pass through team columns if present (from ELO-balanced split)
+    if (Array.isArray(m.team1_player_ids)) normalized.team1_player_ids = m.team1_player_ids;
+    if (Array.isArray(m.team2_player_ids)) normalized.team2_player_ids = m.team2_player_ids;
+    return normalized;
   });
 
   // ── Call the atomic RPC ────────────────────────────────────────────

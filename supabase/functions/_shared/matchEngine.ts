@@ -58,6 +58,53 @@ export interface ProposedMatch {
   slotId: string;
   playerIds: string[];             // exactly 4
   diversityScore: number;
+  team1?: string[];                // 2 player ids (ELO-balanced split)
+  team2?: string[];                // 2 player ids
+}
+
+/**
+ * Compute the ELO-balanced 2v2 team split for a 4-player match.
+ *
+ * There are exactly 3 ways to split 4 players [A,B,C,D] into two pairs:
+ *   1. {A,B} vs {C,D}
+ *   2. {A,C} vs {B,D}
+ *   3. {A,D} vs {B,C}
+ *
+ * Returns the split that minimises |sum(team1 ELO) - sum(team2 ELO)|.
+ * Does NOT change the set of 4 players — only assigns them to teams.
+ *
+ * @param playerIds exactly 4 player ids
+ * @param eloMap    map of player id → Career ELO (internal_ranking)
+ * @returns [team1, team2] each with 2 player ids
+ */
+export function balanceTeamSplit(
+  playerIds: string[],
+  eloMap: Map<string, number>,
+): [string[], string[]] {
+  const DEFAULT_ELO = 1300;
+  const elo = (id: string) => eloMap.get(id) ?? DEFAULT_ELO;
+  const [a, b, c, d] = playerIds;
+
+  const splits: [string[], string[]][] = [
+    [[a, b], [c, d]],
+    [[a, c], [b, d]],
+    [[a, d], [b, c]],
+  ];
+
+  let bestSplit = splits[0];
+  let bestGap = Infinity;
+
+  for (const [t1, t2] of splits) {
+    const gap = Math.abs(
+      (elo(t1[0]) + elo(t1[1])) - (elo(t2[0]) + elo(t2[1]))
+    );
+    if (gap < bestGap) {
+      bestGap = gap;
+      bestSplit = [t1, t2];
+    }
+  }
+
+  return bestSplit;
 }
 
 export interface EngineOutput {

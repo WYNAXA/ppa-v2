@@ -7,6 +7,7 @@
 import { assertEquals, assert } from "https://deno.land/std@0.190.0/testing/asserts.ts";
 import {
   generateProposals,
+  balanceTeamSplit,
   type TimeSlot,
   type PollResponse,
   type BenchHistory,
@@ -994,4 +995,50 @@ Deno.test("Reconciliation: scheduled + benched == all available-at-formed-slot o
 
   console.log(`Reconciliation: ${failures} failures`);
   assertEquals(failures, 0, `${failures} responders fell through the cracks`);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 16. ELO-BALANCED TEAM SPLIT
+// ══════════════════════════════════════════════════════════════════════════════
+
+Deno.test("balanceTeamSplit: picks minimum ELO gap from 3 possible splits", () => {
+  const eloMap = new Map<string, number>([
+    ["A", 1500], ["B", 1400], ["C", 1300], ["D", 1200],
+  ]);
+
+  // 3 splits:
+  //   {A,B} vs {C,D} → |2900 - 2500| = 400
+  //   {A,C} vs {B,D} → |2800 - 2600| = 200
+  //   {A,D} vs {B,C} → |2700 - 2700| = 0   ← minimum
+  const [t1, t2] = balanceTeamSplit(["A", "B", "C", "D"], eloMap);
+
+  console.log(`Team split: [${t1}] vs [${t2}]`);
+
+  const t1Elo = (eloMap.get(t1[0]) ?? 0) + (eloMap.get(t1[1]) ?? 0);
+  const t2Elo = (eloMap.get(t2[0]) ?? 0) + (eloMap.get(t2[1]) ?? 0);
+  const gap = Math.abs(t1Elo - t2Elo);
+
+  console.log(`ELO: ${t1Elo} vs ${t2Elo}, gap=${gap}`);
+
+  assertEquals(gap, 0, "should pick the 0-gap split {A,D} vs {B,C}");
+
+  // Set of 4 is unchanged
+  const allPlayers = new Set([...t1, ...t2]);
+  assertEquals(allPlayers.size, 4, "still 4 distinct players");
+  assert(allPlayers.has("A") && allPlayers.has("B") && allPlayers.has("C") && allPlayers.has("D"));
+});
+
+Deno.test("balanceTeamSplit: default ELO for missing players", () => {
+  // Only A has a rating. B, C, D use default 1300.
+  const eloMap = new Map<string, number>([["A", 1600]]);
+
+  const [t1, t2] = balanceTeamSplit(["A", "B", "C", "D"], eloMap);
+
+  // {A,B} vs {C,D} → |2900 - 2600| = 300
+  // {A,C} vs {B,D} → |2900 - 2600| = 300
+  // {A,D} vs {B,C} → |2900 - 2600| = 300
+  // All equal — any split is valid. Just confirm no crash and 4 players.
+  const allPlayers = new Set([...t1, ...t2]);
+  assertEquals(allPlayers.size, 4, "4 distinct players");
+  console.log("Default ELO split: [" + t1 + "] vs [" + t2 + "]");
 });

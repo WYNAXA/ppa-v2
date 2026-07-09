@@ -1143,7 +1143,7 @@ export function PollAdminView({
         <div className="rounded-2xl border border-orange-100 bg-orange-50/30 px-4 py-3 mt-3 space-y-2">
           <div className="flex items-center justify-between">
             <p className="text-[12px] font-bold text-orange-700">Matches needing ringers</p>
-            {matchesNeedingRingers.length > 1 && (
+            {matchesNeedingRingers.length >= 1 && (
               <button
                 onClick={() => setAskRingersAll(true)}
                 className="text-[11px] font-semibold text-[#009688] hover:text-[#00796B]"

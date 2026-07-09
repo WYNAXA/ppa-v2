@@ -316,6 +316,15 @@ export function PollAdminView({
     })
   }, [safePoll.additional_options, responses])
 
+  // Per-player additional_responses lookup (for match card enrichment)
+  const playerAdditionalResponses = useMemo(() => {
+    const map = new Map<string, Record<string, boolean>>()
+    for (const r of responses) {
+      if (r.additional_responses) map.set(r.user_id, r.additional_responses)
+    }
+    return map
+  }, [responses])
+
   // Any slot/date with 4+ players?
   const hasViableSlot = isRangePoll
     ? dayData.some((d) => d.availablePlayers.length >= 4)
@@ -793,6 +802,56 @@ export function PollAdminView({
         })}
       </div>
 
+      {/* 4b. Availability Clusters (range polls, after generate) */}
+      {isRangePoll && availabilityClusters.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Availability Clusters</h3>
+          {(() => {
+            const byDate = new Map<string, typeof availabilityClusters>()
+            for (const c of availabilityClusters) {
+              const arr = byDate.get(c.date) ?? []
+              arr.push(c)
+              byDate.set(c.date, arr)
+            }
+            return Array.from(byDate.entries()).map(([date, clusters]) => {
+              const d = new Date(date + 'T12:00:00')
+              const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+              const dayLabel = `${dayNames[d.getDay()]} ${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
+              return (
+                <div key={date} className="rounded-xl border border-gray-100 bg-white px-3 py-2 space-y-2">
+                  <p className="text-[12px] font-semibold text-gray-800">{dayLabel}</p>
+                  {clusters.map((c: any, idx: number) => (
+                    <div key={idx} className={cn(
+                      'rounded-lg px-3 py-2 text-[11px] border',
+                      c.short ? 'border-amber-200 bg-amber-50/50' : 'border-teal-200 bg-teal-50/50'
+                    )}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-semibold text-gray-700">{c.window_start}–{c.window_end}</span>
+                        <span className={cn(
+                          'text-[10px] font-bold rounded-full px-2 py-0.5',
+                          c.short ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
+                        )}>
+                          {c.short
+                            ? `${c.count} players — needs ${4 - c.count} ringer${4 - c.count !== 1 ? 's' : ''}`
+                            : `${c.count} players — forms match`}
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {(c.player_ids ?? []).map((pid: string) => (
+                          <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 border border-gray-100">
+                            {engineProfiles[pid]?.name?.split(' ')[0] ?? pid.slice(0, 8)}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )
+            })
+          })()}
+        </div>
+      )}
+
       {/* 5. Time Slot Breakdown (Accordion) */}
       {slotData.length > 0 && (
         <div className="space-y-2">
@@ -999,63 +1058,6 @@ export function PollAdminView({
             </p>
           )}
 
-          {/* Availability clusters breakdown (range polls, after generate) */}
-          {!confirmResult && !generating && isRangePoll && availabilityClusters.length > 0 && (
-            <div className="space-y-2 mb-3">
-              <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Availability Clusters</h4>
-              {(() => {
-                // Group clusters by date
-                const byDate = new Map<string, typeof availabilityClusters>()
-                for (const c of availabilityClusters) {
-                  const arr = byDate.get(c.date) ?? []
-                  arr.push(c)
-                  byDate.set(c.date, arr)
-                }
-                return Array.from(byDate.entries()).map(([date, clusters]) => {
-                  const d = new Date(date + 'T12:00:00')
-                  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-                  const dayLabel = `${dayNames[d.getDay()]} ${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
-                  return (
-                    <div key={date} className="rounded-xl border border-gray-100 bg-white px-3 py-2 space-y-2">
-                      <p className="text-[12px] font-semibold text-gray-800">{dayLabel}</p>
-                      {clusters.map((c: any, idx: number) => (
-                        <div key={idx} className={cn(
-                          'rounded-lg px-3 py-2 text-[11px] border',
-                          c.short
-                            ? 'border-amber-200 bg-amber-50/50'
-                            : 'border-teal-200 bg-teal-50/50'
-                        )}>
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="font-semibold text-gray-700">
-                              {c.window_start}–{c.window_end}
-                            </span>
-                            <span className={cn(
-                              'text-[10px] font-bold rounded-full px-2 py-0.5',
-                              c.short
-                                ? 'bg-amber-100 text-amber-700'
-                                : 'bg-teal-100 text-teal-700'
-                            )}>
-                              {c.short
-                                ? `${c.count} players — needs ${4 - c.count} ringer${4 - c.count !== 1 ? 's' : ''}`
-                                : `${c.count} players — forms match`}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-1">
-                            {(c.player_ids ?? []).map((pid: string) => (
-                              <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 border border-gray-100">
-                                {engineProfiles[pid]?.name?.split(' ')[0] ?? pid.slice(0, 8)}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )
-                })
-              })()}
-            </div>
-          )}
-
           {!confirmResult && !generating && matchSchedules.length > 0 && (
             <div className="space-y-3">
               <p className="text-[12px] text-gray-500">
@@ -1118,7 +1120,21 @@ export function PollAdminView({
                             return (
                               <div key={pIdx}>
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[11px] text-gray-600">{name.split(' ')[0]}</span>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="text-[11px] text-gray-600">{name.split(' ')[0]}</span>
+                                    {(() => {
+                                      const ar = playerAdditionalResponses.get(pid)
+                                      if (!ar) return null
+                                      const opts = Object.entries(ar).filter(([, v]) => v)
+                                      if (opts.length === 0) return null
+                                      return opts.map(([opt]) => {
+                                        const icon = additionalIcon(opt)
+                                        return icon
+                                          ? <span key={opt} className="text-[12px]" title={opt}>{icon}</span>
+                                          : <span key={opt} className="text-[8px] text-gray-400 bg-gray-100 rounded px-1 py-0.5" title={opt}>{opt}</span>
+                                      })
+                                    })()}
+                                  </div>
                                   {isSelected && (
                                     <button
                                       onClick={() => setSwapTarget(isSwapOpen ? null : { matchIdx: mIdx, playerIdx: pIdx })}

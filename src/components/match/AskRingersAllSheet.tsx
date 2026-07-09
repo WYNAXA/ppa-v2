@@ -11,7 +11,6 @@ import { X, Check } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 
@@ -38,52 +37,22 @@ interface RingerProfile {
 }
 
 export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: Props) {
-  const { user } = useAuth()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
 
-  // All player IDs across all matches (to exclude from ringer pool)
-  const allPlayerIds = useMemo(() => {
-    const ids = new Set<string>()
-    for (const m of matches) {
-      for (const pid of m.player_ids ?? []) ids.add(pid)
-    }
-    return Array.from(ids)
-  }, [matches])
-
-  // Fetch user's group IDs for cross-group ringer pool (same as AskRingersSheet)
-  const { data: myGroupIds = [] } = useQuery({
-    queryKey: ['my-groups-for-ringers', user?.id],
-    enabled: open && !!user?.id,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', user!.id)
-        .eq('status', 'approved')
-      return (data ?? []).map((m: any) => m.group_id as string)
-    },
-  })
-
-  const allGroupIds = useMemo(() => {
-    const set = new Set<string>(myGroupIds)
-    set.add(groupId)
-    return Array.from(set)
-  }, [myGroupIds, groupId])
-
-  // Fetch ringers (same query as AskRingersSheet)
+  // Fetch ALL group ringers — no availability filtering.
+  // Ringers aren't poll voters; there's nothing to filter on.
   const { data: ringers = [] } = useQuery<RingerProfile[]>({
-    queryKey: ['ringers-multi-group-all', allGroupIds.join(','), allPlayerIds.join(',')],
-    enabled: open && allGroupIds.length > 0,
+    queryKey: ['ringers-for-group', groupId],
+    enabled: open && !!groupId,
     queryFn: async () => {
       const { data: members } = await supabase
         .from('group_members')
         .select('user_id')
-        .in('group_id', allGroupIds)
+        .eq('group_id', groupId)
         .eq('status', 'ringer')
       if (!members?.length) return []
       const uniqueIds = Array.from(new Set(members.map(m => m.user_id)))
-        .filter((id: string) => !allPlayerIds.includes(id))
       if (uniqueIds.length === 0) return []
       const { data: profiles } = await supabase
         .from('profiles')
@@ -122,6 +91,22 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
       else next.add(id)
       return next
     })
+  }
+
+  // Selectable = not already asked for all matches
+  const selectableRingers = sortedRingers.filter(r => getAlreadyAskedCount(r.id) < matches.length)
+  const allSelected = selectableRingers.length > 0 && selectableRingers.every(r => selected.has(r.id))
+
+  function toggleSelectAll() {
+    if (allSelected) {
+      const next = new Set(selected)
+      selectableRingers.forEach(r => next.delete(r.id))
+      setSelected(next)
+    } else {
+      const next = new Set(selected)
+      selectableRingers.forEach(r => next.add(r.id))
+      setSelected(next)
+    }
   }
 
   // Send: call send_ringer_requests for EACH match with the selected ringers.
@@ -205,6 +190,12 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
                 <p className="text-[13px] text-gray-500 text-center py-6">No ringers available</p>
               ) : (
                 <>
+                  {selectableRingers.length > 1 && (
+                    <button onClick={toggleSelectAll} className="text-[12px] text-[#009688] font-semibold mb-3">
+                      {allSelected ? 'Deselect all' : 'Select all'}
+                    </button>
+                  )}
+
                   <div className="space-y-2">
                     {sortedRingers.map((ringer) => {
                       const askedCount = getAlreadyAskedCount(ringer.id)

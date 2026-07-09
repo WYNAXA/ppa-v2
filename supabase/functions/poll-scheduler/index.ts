@@ -101,10 +101,9 @@ async function handlePropose(
   isRange: boolean = false,
 ): Promise<Response> {
 
-  // 2. Fetch poll_responses — include availability_ranges for range polls
-  const selectCols = isRange
-    ? "user_id, selected_slots, flexible_times, can_play_twice, availability_ranges, max_matches, preferred_date"
-    : "user_id, selected_slots, flexible_times, can_play_twice, max_matches, preferred_date";
+  // 2. Fetch poll_responses — select * to be resilient to column additions
+  // (max_matches may not exist until migration is applied)
+  const selectCols = "user_id, selected_slots, flexible_times, can_play_twice, availability_ranges, preferred_date";
 
   const { data: responses, error: respErr } = await supabase
     .from("poll_responses")

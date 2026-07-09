@@ -9,7 +9,6 @@ import { useState, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Check } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -40,7 +39,6 @@ interface RingerProfile {
 
 export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: Props) {
   const { user } = useAuth()
-  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [selected, setSelected] = useState<Set<string>>(new Set())
 

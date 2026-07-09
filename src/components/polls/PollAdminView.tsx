@@ -610,9 +610,13 @@ export function PollAdminView({
   // ── Render ──
   return (
     <div className="space-y-4">
-      {/* BUILD MARKER — remove after confirming renders */}
-      <div className="rounded-xl bg-fuchsia-500 px-4 py-2 text-white text-[13px] font-bold text-center">
-        BUILD MARKER dd20310
+      {/* DEBUG — remove after diagnosis */}
+      <div className="rounded-xl bg-fuchsia-500 px-4 py-2 text-white text-[10px] font-mono text-center space-y-0.5">
+        <div>BUILD b631d86</div>
+        <div>isRangePoll={String(isRangePoll)} | clusters={availabilityClusters.length} | responses={responses.length}</div>
+        <div>hasViableSlot={String(hasViableSlot)} | matchSchedules={matchSchedules.length} | dayData={dayData.length}</div>
+        <div>additionalOpts={safePoll.additional_options?.length ?? 0} | playerAR={playerAdditionalResponses.size}</div>
+        <div>poll_dates={JSON.stringify(poll.poll_dates ?? 'undefined')}</div>
       </div>
 
       {/* 1. Countdown Timer */}

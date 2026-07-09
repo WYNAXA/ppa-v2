@@ -26,6 +26,7 @@ import {
 import {
   rangesToVirtualSlots,
   computeMatchWindow,
+  extractClusters,
   type RangeResponse,
   type TimeRange,
 } from "../_shared/rangeAvailability.ts";
@@ -119,6 +120,7 @@ async function handlePropose(
   let engineTimeSlots: TimeSlot[];
   let engineResponses: PollResponse[];
   let rangesByUser: Map<string, Record<string, TimeRange[]>> | null = null;
+  let rangeResponsesRef: RangeResponse[] | null = null;
 
   if (isRange) {
     // ── RANGE PATH: use the proven sweep-line engine (rangeAvailability.ts) ──
@@ -145,6 +147,7 @@ async function handlePropose(
     for (const r of rangeResponses) {
       rangesByUser.set(r.user_id, r.availability_ranges);
     }
+    rangeResponsesRef = rangeResponses;
   } else {
     // ── LEGACY PATH: slot-based availability (unchanged) ──
     engineTimeSlots = timeSlots;
@@ -327,6 +330,11 @@ async function handlePropose(
     }
   }
 
+  // Extract availability clusters for range polls (includes short groups)
+  const clusters = isRange && rangeResponsesRef
+    ? extractClusters(rangeResponsesRef)
+    : undefined;
+
   return json({
     success: true,
     proposals,
@@ -335,6 +343,7 @@ async function handlePropose(
     total_participation: output.totalParticipation,
     profiles: profilesMap,
     slot_availability: slotAvailability,
+    clusters,
   });
 }
 

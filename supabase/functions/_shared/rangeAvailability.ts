@@ -292,3 +292,148 @@ export function computeMatchWindow(
     window_end: minutesToHHMM(minEnd),
   };
 }
+
+// ── Cluster extraction ──────────────────────────────────────────────────────
+
+export interface AvailabilityCluster {
+  date: string;           // "yyyy-MM-dd"
+  window_start: string;   // "HH:MM"
+  window_end: string;     // "HH:MM"
+  player_ids: string[];
+  count: number;
+  short: boolean;         // true if count < 4 (needs ringers)
+}
+
+/**
+ * Extract ALL distinct availability clusters from range responses.
+ *
+ * Same sweep-line logic as rangesToVirtualSlots, but:
+ *   - Includes groups with 2-3 players (short=true), not just 4+
+ *   - Deduped by player-set per date (identical to ILP dedup)
+ *   - For each player set, uses the MAXIMAL window (widest boundary pair)
+ *
+ * Returns clusters sorted by date, then descending count, then window start.
+ */
+export function extractClusters(
+  rangeResponses: RangeResponse[],
+): AvailabilityCluster[] {
+  const allDates = new Set<string>();
+  for (const r of rangeResponses) {
+    for (const date of Object.keys(r.availability_ranges)) {
+      allDates.add(date);
+    }
+  }
+
+  // Map: dedupKey → { date, players, maxStart, minEnd (widest window for this player set) }
+  const clusterMap = new Map<string, {
+    date: string;
+    players: string[];
+    wStart: number;
+    wEnd: number;
+  }>();
+
+  for (const date of allDates) {
+    const userRanges = new Map<string, { start: number; end: number }[]>();
+    let dayEarliest = 1440;
+    let dayLatest = 0;
+
+    for (const r of rangeResponses) {
+      const ranges = r.availability_ranges[date];
+      if (!ranges || ranges.length === 0) continue;
+      const parsed = ranges.map(rng => ({
+        start: timeToMinutes(rng.start),
+        end: timeToMinutes(rng.end),
+      })).filter(rng => rng.end > rng.start);
+      if (parsed.length === 0) continue;
+      userRanges.set(r.user_id, parsed);
+      for (const rng of parsed) {
+        if (rng.start < dayEarliest) dayEarliest = rng.start;
+        if (rng.end > dayLatest) dayLatest = rng.end;
+      }
+    }
+
+    if (dayLatest - dayEarliest < MIN_MATCH_DURATION) continue;
+
+    const boundarySet = new Set<number>();
+    for (const [, ranges] of userRanges) {
+      for (const rng of ranges) {
+        boundarySet.add(rng.start);
+        boundarySet.add(rng.end);
+      }
+    }
+    const boundaries = Array.from(boundarySet).sort((a, b) => a - b);
+
+    for (let i = 0; i < boundaries.length; i++) {
+      for (let j = i + 1; j < boundaries.length; j++) {
+        const wStart = boundaries[i];
+        const wEnd = boundaries[j];
+        if (wEnd - wStart < MIN_MATCH_DURATION) continue;
+
+        const available: string[] = [];
+        for (const [userId, ranges] of userRanges) {
+          const covers = ranges.some(rng =>
+            rng.start <= wStart && rng.end >= wEnd
+          );
+          if (covers) available.push(userId);
+        }
+
+        // Include clusters with 2+ players (surfacing short groups)
+        if (available.length < 2) continue;
+
+        const playerKey = [...available].sort().join(",");
+        const dedupKey = `${date}:${playerKey}`;
+
+        const existing = clusterMap.get(dedupKey);
+        if (existing) {
+          // Keep the widest window for this player set
+          if (wEnd - wStart > existing.wEnd - existing.wStart) {
+            existing.wStart = wStart;
+            existing.wEnd = wEnd;
+          }
+        } else {
+          clusterMap.set(dedupKey, {
+            date,
+            players: [...available].sort(),
+            wStart,
+            wEnd,
+          });
+        }
+      }
+    }
+  }
+
+  // Convert to output, collapse subsets: if cluster A's players are a strict
+  // subset of cluster B's players on the same date with overlapping windows,
+  // keep only B (it's more informative). This removes noise from the sweep-line.
+  const raw = Array.from(clusterMap.values());
+
+  // Sort: date asc, count desc, window start asc
+  raw.sort((a, b) =>
+    a.date.localeCompare(b.date) ||
+    b.players.length - a.players.length ||
+    a.wStart - b.wStart
+  );
+
+  // Remove strict subsets within same date
+  const result: AvailabilityCluster[] = [];
+  for (const c of raw) {
+    const isSubset = raw.some(other =>
+      other !== c &&
+      other.date === c.date &&
+      other.players.length > c.players.length &&
+      c.players.every(p => other.players.includes(p))
+    );
+    if (isSubset) continue;
+
+    result.push({
+      date: c.date,
+      window_start: minutesToHHMM(c.wStart),
+      window_end: minutesToHHMM(c.wEnd),
+      player_ids: c.players,
+      count: c.players.length,
+      short: c.players.length < 4,
+    });
+  }
+
+  return result;
+}

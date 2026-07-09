@@ -610,6 +610,11 @@ export function PollAdminView({
   // ── Render ──
   return (
     <div className="space-y-4">
+      {/* BUILD MARKER — remove after confirming renders */}
+      <div className="rounded-xl bg-fuchsia-500 px-4 py-2 text-white text-[13px] font-bold text-center">
+        BUILD MARKER dd20310
+      </div>
+
       {/* 1. Countdown Timer */}
       <PollCountdown closesAt={poll.closes_at} />
 

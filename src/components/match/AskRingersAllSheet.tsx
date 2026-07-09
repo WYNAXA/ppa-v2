@@ -62,11 +62,13 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
     },
   })
 
-  // Fetch existing requests for ALL matches (to show status)
+  // Fetch existing ringer_requests rows for ALL matches (real DB state, not optimistic).
+  // Badge derives "Asked N/M" from actual rows — never shows "asked" without a row existing.
   const matchIds = matches.map(m => m.id)
   const { data: existingRequests = [] } = useQuery({
     queryKey: ['ringer-requests-all', matchIds.join(',')],
     enabled: open && matchIds.length > 0,
+    staleTime: 0,  // always refetch when sheet opens
     queryFn: async () => {
       const { data } = await supabase
         .from('ringer_requests')

@@ -163,6 +163,8 @@ export function PollAdminView({
   const [askRingersAll, setAskRingersAll] = useState(false)
 
   // ── Matches needing ringers (actual DB matches for this group) ──
+  // Queries ALL upcoming matches (any status that's playable, any poll type)
+  // and filters to those with fewer than 4 players.
   const today = new Date().toISOString().split('T')[0]
   const { data: matchesNeedingRingers = [] } = useQuery({
     queryKey: ['matches-needing-ringers', groupId, today],
@@ -170,12 +172,12 @@ export function PollAdminView({
     queryFn: async () => {
       const { data } = await supabase
         .from('matches')
-        .select('id, match_date, match_time, player_ids, status')
+        .select('id, match_date, match_time, player_ids, status, poll_id')
         .eq('group_id', groupId)
         .gte('match_date', today)
         .in('status', ['scheduled', 'pending', 'confirmed', 'open'])
         .order('match_date', { ascending: true })
-        .limit(10)
+        .limit(20)
       return (data ?? []).filter((m: any) => (m.player_ids?.length ?? 0) < 4)
     },
   })

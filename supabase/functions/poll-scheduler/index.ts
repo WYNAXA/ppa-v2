@@ -77,12 +77,14 @@ serve(async (req: Request) => {
 
     if (mode === "propose") {
       return await handlePropose(supabase, poll, timeSlots, body.togetherness ?? false, body.balance_teams ?? false, isRange);
+    } else if (mode === "breakdown") {
+      return await handleBreakdown(supabase, poll, isRange);
     } else if (mode === "recompute") {
       return await handleRecompute(supabase, poll, timeSlots, body.schedule, isRange);
     } else if (mode === "confirm") {
       return await handleConfirm(supabase, poll_id, body.schedule, body.benched_ids);
     } else {
-      return json({ error: 'mode must be "propose", "recompute", or "confirm"' }, 400);
+      return json({ error: 'mode must be "propose", "breakdown", "recompute", or "confirm"' }, 400);
     }
   } catch (err: any) {
     console.error("poll-scheduler error:", err);
@@ -348,6 +350,61 @@ async function handlePropose(
     slot_availability: slotAvailability,
     clusters,
   });
+}
+
+// ── MODE: breakdown ─────────────────────────────────────────────────────────
+// Lightweight: returns ONLY availability clusters from the sweep-line.
+// No ILP, no proposals, no match-forming. Used on admin screen load.
+
+async function handleBreakdown(
+  supabase: any,
+  poll: any,
+  isRange: boolean,
+): Promise<Response> {
+  if (!isRange) {
+    return json({ success: true, clusters: [], profiles: {} });
+  }
+
+  // Fetch range responses
+  const { data: responses, error: respErr } = await supabase
+    .from("poll_responses")
+    .select("user_id, availability_ranges")
+    .eq("poll_id", poll.id);
+
+  if (respErr) return json({ error: "Failed to fetch responses" }, 500);
+  if (!responses || responses.length === 0) {
+    return json({ success: true, clusters: [], profiles: {} });
+  }
+
+  const rangeResponses: RangeResponse[] = responses
+    .filter((r: any) => r.availability_ranges && typeof r.availability_ranges === "object")
+    .map((r: any) => ({
+      user_id: r.user_id,
+      availability_ranges: r.availability_ranges,
+      can_play_twice: false,
+    }));
+
+  // Reuse the SAME sweep-line as the engine (extractClusters from rangeAvailability.ts)
+  const clusters = extractClusters(rangeResponses);
+
+  // Build profile map for display
+  const allPlayerIds = new Set<string>();
+  for (const c of clusters) {
+    for (const pid of c.player_ids) allPlayerIds.add(pid);
+  }
+
+  const profilesMap: Record<string, any> = {};
+  if (allPlayerIds.size > 0) {
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, name, avatar_url")
+      .in("id", Array.from(allPlayerIds));
+    for (const p of profiles ?? []) {
+      profilesMap[p.id] = p;
+    }
+  }
+
+  return json({ success: true, clusters, profiles: profilesMap });
 }
 
 // ── MODE: recompute ──────────────────────────────────────────────────────────

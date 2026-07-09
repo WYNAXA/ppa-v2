@@ -372,6 +372,42 @@ export function PollAdminView({
   const [excludedCount, setExcludedCount] = useState(0)
   // Availability clusters for range polls (includes short groups)
   const [availabilityClusters, setAvailabilityClusters] = useState<any[]>([])
+  // Breakdown: loaded on mount (independent of Generate)
+  const [breakdownClusters, setBreakdownClusters] = useState<any[]>([])
+  const [breakdownProfiles, setBreakdownProfiles] = useState<Record<string, any>>({})
+  const [breakdownLoaded, setBreakdownLoaded] = useState(false)
+  const [breakdownExpanded, setBreakdownExpanded] = useState(false)
+
+  // Fetch breakdown on load (range polls only) — independent of Generate
+  useEffect(() => {
+    if (!isRangePoll || breakdownLoaded) return
+    async function fetchBreakdown() {
+      try {
+        const res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY as string}`,
+            },
+            body: JSON.stringify({ mode: 'breakdown', poll_id: pollId }),
+          },
+        )
+        const data = await res.json()
+        if (data.success) {
+          setBreakdownClusters(data.clusters ?? [])
+          setBreakdownProfiles(data.profiles ?? {})
+        }
+      } catch (e) {
+        // Non-critical — breakdown is informational
+      } finally {
+        setBreakdownLoaded(true)
+      }
+    }
+    fetchBreakdown()
+  }, [isRangePoll, breakdownLoaded, pollId])
 
   async function handleGenerateMatches() {
     setGenerating(true)
@@ -765,198 +801,158 @@ export function PollAdminView({
         )}
       </AnimatePresence>
 
-      {/* 4. Per-Day Availability Summary */}
-      <div className="space-y-2">
-        <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Daily Availability</h3>
-        {dayData.map(({ day, dateLabel, availablePlayers }) => {
-          const count = availablePlayers.length
-          const total = groupMembers.length || 1
-          const pct = Math.round((count / total) * 100)
-          const barColour = count >= 4 ? 'bg-[#009688]' : count >= 2 ? 'bg-amber-400' : 'bg-gray-300'
-
-          return (
-            <div key={day} className="rounded-2xl border border-gray-100 px-4 py-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span className="text-[13px] font-semibold text-gray-900">{dateLabel}</span>
-                </div>
-                <span className={cn('text-[12px] font-semibold', count >= 4 ? 'text-[#009688]' : 'text-gray-400')}>
-                  {count}/{total} available
+      {/* 4. Daily Availability — unified breakdown (range polls: from breakdown mode on load) */}
+      {isRangePoll && breakdownLoaded && (
+        <div className="space-y-2">
+          <button
+            onClick={() => setBreakdownExpanded(!breakdownExpanded)}
+            className="w-full flex items-center justify-between"
+          >
+            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+              Daily Availability
+              {breakdownClusters.length > 0 && (
+                <span className="ml-2 text-[10px] font-semibold text-teal-600 normal-case">
+                  {breakdownClusters.filter(c => !c.short).length} match window{breakdownClusters.filter(c => !c.short).length !== 1 ? 's' : ''}
+                  {breakdownClusters.some(c => c.short) && `, ${breakdownClusters.filter(c => c.short).length} short`}
                 </span>
-              </div>
-
-              {/* Progress bar */}
-              <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                <div className={cn('h-full rounded-full transition-all', barColour)} style={{ width: `${pct}%` }} />
-              </div>
-
-              {/* Player chips */}
-              {availablePlayers.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {availablePlayers.map((r) => (
-                    <span
-                      key={r.user_id}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700"
-                    >
-                      <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
-                      {firstName(r.profile?.name)}
-                    </span>
-                  ))}
-                </div>
               )}
+            </h3>
+            <span className="text-[11px] text-gray-400">
+              {breakdownExpanded ? 'collapse' : 'expand'}
+            </span>
+          </button>
 
-            </div>
-          )
-        })}
+          {/* DEBUG — breakdownLoaded + count */}
+          <div className="text-[9px] text-gray-300 font-mono">
+            breakdownLoaded={String(breakdownLoaded)} | clusterCount={breakdownClusters.length}
+          </div>
 
-        {/* Availability Clusters (range polls, rendered inside Daily Availability) */}
-        {isRangePoll && availabilityClusters.length > 0 && (
-          <div className="space-y-2 mt-3">
-            <h4 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Overlap Windows</h4>
-            {(() => {
-              const byDate = new Map<string, typeof availabilityClusters>()
-              for (const c of availabilityClusters) {
-                const arr = byDate.get(c.date) ?? []
-                arr.push(c)
-                byDate.set(c.date, arr)
-              }
-              return Array.from(byDate.entries()).map(([date, clusters]) => {
-                const d = new Date(date + 'T12:00:00')
-                const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-                const dayLabel = `${dayNames[d.getDay()]} ${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
-                return (
-                  <div key={date} className="rounded-xl border border-gray-100 bg-white px-3 py-2 space-y-2">
-                    <p className="text-[12px] font-semibold text-gray-800">{dayLabel}</p>
-                    {clusters.map((c: any, idx: number) => (
-                      <div key={idx} className={cn(
-                        'rounded-lg px-3 py-2 text-[11px] border',
-                        c.short ? 'border-amber-200 bg-amber-50/50' : 'border-teal-200 bg-teal-50/50'
-                      )}>
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-semibold text-gray-700">{c.window_start}–{c.window_end}</span>
-                          <span className={cn(
-                            'text-[10px] font-bold rounded-full px-2 py-0.5',
-                            c.short ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
+          {breakdownExpanded && (
+            <div className="space-y-2">
+              {breakdownClusters.length === 0 ? (
+                <p className="text-[12px] text-gray-400 py-2">No overlapping availability yet.</p>
+              ) : (
+                (() => {
+                  const byDate = new Map<string, typeof breakdownClusters>()
+                  for (const c of breakdownClusters) {
+                    const arr = byDate.get(c.date) ?? []
+                    arr.push(c)
+                    byDate.set(c.date, arr)
+                  }
+                  return Array.from(byDate.entries()).map(([date, clusters]) => {
+                    const d = new Date(date + 'T12:00:00')
+                    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+                    const dayLabel = `${dayNames[d.getDay()]} ${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
+                    return (
+                      <div key={date} className="rounded-xl border border-gray-100 px-3 py-2 space-y-1.5">
+                        <p className="text-[12px] font-semibold text-gray-800">{dayLabel}</p>
+                        {clusters.map((c: any, idx: number) => (
+                          <div key={idx} className={cn(
+                            'rounded-lg px-3 py-2 text-[11px] border',
+                            c.short ? 'border-amber-200 bg-amber-50/50' : 'border-teal-200 bg-teal-50/50'
                           )}>
-                            {c.short
-                              ? `${c.count} players — needs ${4 - c.count} ringer${4 - c.count !== 1 ? 's' : ''}`
-                              : `${c.count} players — forms match`}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {(c.player_ids ?? []).map((pid: string) => (
-                            <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 border border-gray-100">
-                              {engineProfiles[pid]?.name?.split(' ')[0] ?? pid.slice(0, 8)}
-                            </span>
-                          ))}
-                        </div>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="font-semibold text-gray-700">{c.window_start}–{c.window_end}</span>
+                              <span className={cn(
+                                'text-[10px] font-bold rounded-full px-2 py-0.5',
+                                c.short ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
+                              )}>
+                                {c.short
+                                  ? `${c.count} — needs ${4 - c.count} ringer${4 - c.count !== 1 ? 's' : ''}`
+                                  : `${c.count} players`}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              {(c.player_ids ?? []).map((pid: string) => (
+                                <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 border border-gray-100">
+                                  {breakdownProfiles[pid]?.name?.split(' ')[0] ?? pid.slice(0, 8)}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
                       </div>
+                    )
+                  })
+                })()
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Legacy slot polls: keep old daily availability + slot breakdown */}
+      {!isRangePoll && dayData.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Daily Availability</h3>
+          {dayData.map(({ day, dateLabel, availablePlayers }) => {
+            const count = availablePlayers.length
+            const total = groupMembers.length || 1
+            const pct = Math.round((count / total) * 100)
+            const barColour = count >= 4 ? 'bg-[#009688]' : count >= 2 ? 'bg-amber-400' : 'bg-gray-300'
+            return (
+              <div key={day} className="rounded-2xl border border-gray-100 px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span className="text-[13px] font-semibold text-gray-900">{dateLabel}</span>
+                  </div>
+                  <span className={cn('text-[12px] font-semibold', count >= 4 ? 'text-[#009688]' : 'text-gray-400')}>
+                    {count}/{total} available
+                  </span>
+                </div>
+                <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div className={cn('h-full rounded-full transition-all', barColour)} style={{ width: `${pct}%` }} />
+                </div>
+                {availablePlayers.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {availablePlayers.map((r) => (
+                      <span key={r.user_id} className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700">
+                        <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
+                        {firstName(r.profile?.name)}
+                      </span>
                     ))}
                   </div>
-                )
-              })
-            })()}
-          </div>
-        )}
-      </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
 
-      {/* 5. Time Slot Breakdown (Accordion) */}
-      {slotData.length > 0 && (
+      {/* Legacy slot breakdown (non-range polls only) */}
+      {!isRangePoll && slotData.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Slot Breakdown</h3>
           {slotData.map(({ slot, voters }) => {
             const isExpanded = expandedSlots.has(slot.id)
             const viable = voters.length >= 4
             const dateLabel = (() => {
-              try {
-                return format(getSlotDate(poll.week_start_date, slot.day), 'EEE d', { locale })
-              } catch {
-                return slot.day
-              }
+              try { return format(getSlotDate(poll.week_start_date, slot.day), 'EEE d', { locale }) }
+              catch { return slot.day }
             })()
-
             return (
               <div key={slot.id} className="rounded-2xl border border-gray-100 overflow-hidden">
-                <button
-                  onClick={() => toggleSlotExpand(slot.id)}
-                  className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
-                >
+                <button onClick={() => toggleSlotExpand(slot.id)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold text-gray-900">
-                      {dateLabel} {slot.start_time}–{slot.end_time}
-                    </span>
-                    {viable && (
-                      <span className="flex items-center gap-0.5 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-700">
-                        <Zap className="h-3 w-3" /> Match Ready
-                      </span>
-                    )}
+                    <span className="text-[13px] font-semibold text-gray-900">{dateLabel} {slot.start_time}–{slot.end_time}</span>
+                    {viable && <span className="flex items-center gap-0.5 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-700"><Zap className="h-3 w-3" /> Match Ready</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        'rounded-full px-2 py-0.5 text-[11px] font-bold',
-                        viable ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-500',
-                      )}
-                    >
-                      {voters.length}
-                    </span>
-                    {isExpanded ? (
-                      <ChevronUp className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    )}
+                    <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold', viable ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-500')}>{voters.length}</span>
+                    {isExpanded ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
                   </div>
                 </button>
-
                 <AnimatePresence>
                   {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      className="overflow-hidden"
-                    >
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
                       <div className="px-4 pb-3 space-y-2 border-t border-gray-50">
-                        {voters.length === 0 ? (
-                          <p className="text-[12px] text-gray-400 py-2">No players for this slot yet.</p>
-                        ) : (
-                          voters.map((r) => {
-                            const addOpts = Object.entries(r.additional_responses ?? {}).filter(([, v]) => v)
-                            return (
-                              <div key={r.user_id} className="flex items-center justify-between py-1.5">
-                                <div className="flex items-center gap-2">
-                                  <PlayerAvatar
-                                    name={r.profile?.name}
-                                    avatarUrl={r.profile?.avatar_url}
-                                    size="sm"
-                                  />
-                                  <span className="text-[13px] text-gray-700">{r.profile?.name ?? 'Unknown'}</span>
-                                </div>
-                                {addOpts.length > 0 && (
-                                  <div className="flex items-center gap-1">
-                                    {addOpts.map(([opt]) => {
-                                      const icon = additionalIcon(opt)
-                                      return icon ? (
-                                        <span key={opt} className="text-[14px]" title={opt}>
-                                          {icon}
-                                        </span>
-                                      ) : (
-                                        <span
-                                          key={opt}
-                                          className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500"
-                                          title={opt}
-                                        >
-                                          {opt}
-                                        </span>
-                                      )
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            )
-                          })
-                        )}
+                        {voters.map((r) => (
+                          <div key={r.user_id} className="flex items-center gap-2 py-1.5">
+                            <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
+                            <span className="text-[13px] text-gray-700">{r.profile?.name ?? 'Unknown'}</span>
+                          </div>
+                        ))}
                       </div>
                     </motion.div>
                   )}

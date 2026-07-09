@@ -30,6 +30,8 @@ export interface PollResponse {
   selected_slots: string[] | null;
   flexible_times: Record<string, { available: boolean; slots: string[] }> | null;
   can_play_twice: boolean | null;   // false=1 match, true=2, null=unlimited
+  max_matches?: number | null;      // 1, 2, or null=capped at available days
+  preferred_date?: string | null;   // yyyy-MM-dd soft preference
 }
 
 export interface BenchHistory {

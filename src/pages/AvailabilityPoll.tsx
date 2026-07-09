@@ -49,6 +49,7 @@ interface MyResponse {
   preferred_date: string | null
   submitted_at: string | null
   availability_ranges?: Record<string, { start: string; end: string }[]> | null
+  max_matches?: number | null
 }
 
 // ── Data fetching ────────────────────────────────────────────────────────────
@@ -76,7 +77,7 @@ async function fetchPollDetail(pollId: string, userId: string) {
 
   const { data: myResponse } = await supabase
     .from('poll_responses')
-    .select('id, selected_slots, flexible_times, additional_responses, can_play_twice, preferred_date, submitted_at, availability_ranges')
+    .select('id, selected_slots, flexible_times, additional_responses, can_play_twice, preferred_date, submitted_at, availability_ranges, max_matches')
     .eq('poll_id', pollId)
     .eq('user_id', userId)
     .maybeSingle()
@@ -172,6 +173,7 @@ export function AvailabilityPollPage() {
   const [selectedSlots, setSelectedSlots] = useState<string[]>([])
   const [customTimeRanges, setCustomTimeRanges] = useState<Record<string, { start: string; end: string }>>({})
   const [gamesPerWeek, setGamesPerWeek] = useState<'one' | 'two' | 'multiple'>('one')
+  const [maxMatches, setMaxMatches] = useState<number | null>(null)  // 1, 2, or null=any
   const [preferredDate, setPreferredDate] = useState('')
   const [additionalResponses, setAdditionalResponses] = useState<Record<string, boolean>>({})
   const [isEditMode, setIsEditMode] = useState(false)
@@ -208,6 +210,7 @@ export function AvailabilityPollPage() {
       else setGamesPerWeek('one')
 
       setPreferredDate(r.preferred_date ?? '')
+      setMaxMatches(r.max_matches ?? null)
 
       // Load existing range availability
       if (r.availability_ranges && typeof r.availability_ranges === 'object') {
@@ -348,6 +351,7 @@ export function AvailabilityPollPage() {
         additional_responses: additionalResponses,
         can_play_twice: gamesPerWeek === 'two' ? true : gamesPerWeek === 'multiple' ? null : false,
         preferred_date: preferredDate || null,
+        max_matches: maxMatches,
         submitted_at: new Date().toISOString(),
       }
 
@@ -743,46 +747,78 @@ export function AvailabilityPollPage() {
               </section>
             )}
 
-            {/* ── Section D: Games this week ── */}
-            {!cantDoWeek && selectedSlots.length > 0 && (
+            {/* ── Section D: Matches this week ── */}
+            {!cantDoWeek && hasAvailability && (
               <section>
                 <div className="flex items-center gap-2 mb-3">
                   <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Games This Week</h2>
+                  <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+                    {isRangePoll ? 'How many matches?' : 'Games This Week'}
+                  </h2>
                   <span className="text-[10px] text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">Optional</span>
                 </div>
-                <div className="space-y-2">
-                  {([
-                    { value: 'one', title: 'One game only (default)', desc: 'I can play once this week on any of my selected times' },
-                    { value: 'two', title: 'Two games if needed', desc: 'I can play up to twice if it helps fill matches' },
-                    { value: 'multiple', title: 'Every slot I selected', desc: "I'm happy to play on every time I've marked" },
-                  ] as const).map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => setGamesPerWeek(opt.value)}
-                      className={cn(
-                        'w-full flex items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98]',
-                        gamesPerWeek === opt.value ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
-                      )}
-                    >
-                      <div className={cn(
-                        'mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                        gamesPerWeek === opt.value ? 'border-[#009688]' : 'border-gray-300'
-                      )}>
-                        {gamesPerWeek === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-[#009688]" />}
-                      </div>
-                      <div>
-                        <p className="text-[14px] font-semibold text-gray-900">{opt.title}</p>
-                        <p className="text-[12px] text-gray-400 mt-0.5">{opt.desc}</p>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+                {isRangePoll ? (
+                  <div className="space-y-2">
+                    {([
+                      { value: 1, title: 'One match only', desc: 'Place me in at most one match this week' },
+                      { value: 2, title: 'Up to two matches', desc: 'I can play up to twice if it helps fill groups' },
+                      { value: null as number | null, title: 'Any (default)', desc: "Place me wherever I'm available — capped at my available days" },
+                    ]).map((opt) => (
+                      <button
+                        key={String(opt.value)}
+                        onClick={() => setMaxMatches(opt.value)}
+                        className={cn(
+                          'w-full flex items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98]',
+                          maxMatches === opt.value ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
+                        )}
+                      >
+                        <div className={cn(
+                          'mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
+                          maxMatches === opt.value ? 'border-[#009688]' : 'border-gray-300'
+                        )}>
+                          {maxMatches === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-[#009688]" />}
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-semibold text-gray-900">{opt.title}</p>
+                          <p className="text-[12px] text-gray-400 mt-0.5">{opt.desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {([
+                      { value: 'one', title: 'One game only (default)', desc: 'I can play once this week on any of my selected times' },
+                      { value: 'two', title: 'Two games if needed', desc: 'I can play up to twice if it helps fill matches' },
+                      { value: 'multiple', title: 'Every slot I selected', desc: "I'm happy to play on every time I've marked" },
+                    ] as const).map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => setGamesPerWeek(opt.value)}
+                        className={cn(
+                          'w-full flex items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98]',
+                          gamesPerWeek === opt.value ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
+                        )}
+                      >
+                        <div className={cn(
+                          'mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
+                          gamesPerWeek === opt.value ? 'border-[#009688]' : 'border-gray-300'
+                        )}>
+                          {gamesPerWeek === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-[#009688]" />}
+                        </div>
+                        <div>
+                          <p className="text-[14px] font-semibold text-gray-900">{opt.title}</p>
+                          <p className="text-[12px] text-gray-400 mt-0.5">{opt.desc}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </section>
             )}
 
             {/* ── Section E: Preferred day ── */}
-            {!cantDoWeek && selectedSlots.length > 0 && (
+            {!cantDoWeek && hasAvailability && (
               <section>
                 <div className="flex items-center gap-2 mb-3">
                   <Star className="h-4 w-4 text-gray-400 flex-shrink-0" />
@@ -793,23 +829,34 @@ export function AvailabilityPollPage() {
                   value={preferredDate}
                   onChange={(e) => setPreferredDate(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 px-3 py-3 text-[14px] text-gray-900 bg-white outline-none focus:border-[#009688]"
+                  style={{ fontSize: '16px' }}
                 >
                   <option value="">No preference</option>
-                  {selectedDays.map((day) => {
-                    const d = getSlotDate(poll.week_start_date, day)
-                    const dateStr = format(d, 'yyyy-MM-dd', { locale })
-                    return (
-                      <option key={day} value={dateStr}>
-                        {day} ({format(d, 'MMM d', { locale })})
-                      </option>
-                    )
-                  })}
+                  {isRangePoll
+                    ? ((poll?.poll_dates as string[]) ?? []).map((dateStr) => {
+                        const d = new Date(dateStr + 'T12:00:00')
+                        return (
+                          <option key={dateStr} value={dateStr}>
+                            {format(d, 'EEEE d MMM', { locale })}
+                          </option>
+                        )
+                      })
+                    : selectedDays.map((day) => {
+                        const d = getSlotDate(poll.week_start_date, day)
+                        const dateStr = format(d, 'yyyy-MM-dd', { locale })
+                        return (
+                          <option key={day} value={dateStr}>
+                            {day} ({format(d, 'MMM d', { locale })})
+                          </option>
+                        )
+                      })
+                  }
                 </select>
               </section>
             )}
 
             {/* ── Section F: Additional options ── */}
-            {additionalOptions.length > 0 && !cantDoWeek && selectedSlots.length > 0 && (
+            {additionalOptions.length > 0 && !cantDoWeek && hasAvailability && (
               <section>
                 <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">Additional Options</h2>
                 <div className="space-y-2">

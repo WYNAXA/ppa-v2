@@ -103,8 +103,8 @@ async function handlePropose(
 
   // 2. Fetch poll_responses — include availability_ranges for range polls
   const selectCols = isRange
-    ? "user_id, selected_slots, flexible_times, can_play_twice, availability_ranges"
-    : "user_id, selected_slots, flexible_times, can_play_twice";
+    ? "user_id, selected_slots, flexible_times, can_play_twice, availability_ranges, max_matches, preferred_date"
+    : "user_id, selected_slots, flexible_times, can_play_twice, max_matches, preferred_date";
 
   const { data: responses, error: respErr } = await supabase
     .from("poll_responses")
@@ -132,6 +132,8 @@ async function handlePropose(
         user_id: r.user_id,
         availability_ranges: r.availability_ranges,
         can_play_twice: r.can_play_twice ?? false,
+        max_matches: r.max_matches ?? null,
+        preferred_date: r.preferred_date ?? null,
       }));
 
     if (rangeResponses.length < 2) {
@@ -156,6 +158,8 @@ async function handlePropose(
       selected_slots: r.selected_slots ?? [],
       flexible_times: r.flexible_times ?? null,
       can_play_twice: r.can_play_twice ?? false,
+      max_matches: r.max_matches ?? null,
+      preferred_date: r.preferred_date ?? null,
     }));
   }
 
@@ -389,6 +393,8 @@ async function handleRecompute(
         user_id: r.user_id,
         availability_ranges: r.availability_ranges,
         can_play_twice: r.can_play_twice ?? false,
+        max_matches: r.max_matches ?? null,
+        preferred_date: r.preferred_date ?? null,
       }));
     const virtual = rangesToVirtualSlots(rangeResponses);
     // Build slotPlayers from the virtual responses' selected_slots

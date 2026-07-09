@@ -78,10 +78,20 @@ export interface ILPResult {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function playerLimit(r: PollResponse): number {
+/**
+ * Compute per-player match cap.
+ * - max_matches set (1 or 2): use directly
+ * - max_matches null + can_play_twice false: 1
+ * - max_matches null + can_play_twice true: 2
+ * - max_matches null + can_play_twice null: capped at distinct available
+ *   days (computed later from slot availability, passed as availDays)
+ */
+function playerLimit(r: PollResponse, availDays?: number): number {
+  if (r.max_matches != null) return r.max_matches;
   if (r.can_play_twice === false) return 1;
   if (r.can_play_twice === true)  return 2;
-  return 999;  // null = unlimited
+  // null max_matches + null can_play_twice = cap at available days
+  return availDays ?? 999;
 }
 
 // Sanitize player/slot ids for LP variable names (alphanumeric + underscore only)
@@ -106,9 +116,24 @@ function buildLP(
     slotAvail.set(s.id, avail);
   }
 
-  // Per-player limits
+  // Compute distinct available days per player (for null max_matches cap).
+  // Each slot's day field gives the day; count distinct days a player is available.
+  const playerAvailDays = new Map<string, number>();
+  for (const r of responses) {
+    const days = new Set<string>();
+    for (const s of timeSlots) {
+      if ((r.selected_slots ?? []).includes(s.id)) {
+        // For range polls, extract date from slot ID (yyyy-MM-dd_HH:MM_HH:MM)
+        const dateMatch = s.id.match(/^(\d{4}-\d{2}-\d{2})_/);
+        days.add(dateMatch ? dateMatch[1] : s.day);
+      }
+    }
+    playerAvailDays.set(r.user_id, Math.max(days.size, 1));
+  }
+
+  // Per-player limits (ILP hard constraint — NOT a post-filter)
   const limits = new Map<string, number>();
-  for (const r of responses) limits.set(r.user_id, playerLimit(r));
+  for (const r of responses) limits.set(r.user_id, playerLimit(r, playerAvailDays.get(r.user_id)));
 
   const allPlayers = responses.map(r => r.user_id);
   const slotIds = timeSlots.map(s => s.id);
@@ -119,20 +144,49 @@ function buildLP(
     for (const pid of avail) availSet.add(`${pid}:${sid}`);
   }
 
-  // ── Objective: maximize sum y_p + epsilon * sum(benchDebt_p * y_p) ──────
-  // Primary: participation (coefficient 1 per player).
-  // Secondary: bench rotation tiebreak. Players with higher bench debt
-  // get a small bonus (epsilon * debt) so the solver prefers them when
-  // participation is tied. Epsilon is 0.001 so even debt=999 adds < 1,
-  // which can NEVER outweigh placing an additional player (coefficient 1).
-  const eps = 0.001;
+  // ── Objective: maximize sum y_p + eps1 * sum(benchDebt_p * y_p)
+  //                         + eps2 * sum(x_{p,s} for preferred (p,s)) ──────
+  // Level 1: participation (coefficient 1 per player).
+  // Level 2: bench rotation tiebreak (eps1=0.001 * debt, < 1).
+  // Level 3: preferred-date soft favour (eps2=0.00001 per preferred assignment).
+  //   Among equally-optimal schedules, prefer placing players on their
+  //   preferred day. eps2 is small enough that it NEVER reduces participation
+  //   or overrides bench rotation.
+  const eps1 = 0.001;
+  const eps2 = 0.00001;
+
+  // Build preferred-slot lookup: player_id -> set of slot IDs on their preferred date
+  const preferredSlots = new Map<string, Set<string>>();
+  for (const r of responses) {
+    if (!r.preferred_date) continue;
+    const prefSlots = new Set<string>();
+    for (const s of timeSlots) {
+      const dateMatch = s.id.match(/^(\d{4}-\d{2}-\d{2})_/);
+      const slotDate = dateMatch ? dateMatch[1] : null;
+      // Range polls: match date in slot ID; legacy: match day name
+      if (slotDate === r.preferred_date || s.day === r.preferred_date) {
+        prefSlots.add(s.id);
+      }
+    }
+    if (prefSlots.size > 0) preferredSlots.set(r.user_id, prefSlots);
+  }
+
   let lp = "Maximize\n  obj:";
   lp += allPlayers.map(p => {
     const debt = benchDebts?.get(p) ?? 0;
-    const coeff = 1 + eps * debt;
-    // LP format requires explicit coefficient: "+ 1.005 y_p0"
+    const coeff = 1 + eps1 * debt;
     return ` + ${coeff} y_${lpName(p)}`;
   }).join("");
+
+  // Preferred-date soft favour terms
+  for (const [p, prefSlots] of preferredSlots) {
+    for (const s of prefSlots) {
+      if (availSet.has(`${p}:${s}`)) {
+        lp += ` + ${eps2} x_${lpName(p)}_${lpName(s)}`;
+      }
+    }
+  }
+
   lp += "\n";
 
   lp += "Subject To\n";

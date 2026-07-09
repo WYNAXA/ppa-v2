@@ -30,6 +30,8 @@ export interface RangeResponse {
   user_id: string;
   availability_ranges: Record<string, TimeRange[]>;  // { "yyyy-MM-dd": [...] }
   can_play_twice: boolean | null;
+  max_matches?: number | null;
+  preferred_date?: string | null;
 }
 
 export interface VirtualSlotResult {
@@ -175,6 +177,8 @@ export function rangesToVirtualSlots(
     selected_slots: Array.from(userSlots.get(r.user_id) ?? []),
     flexible_times: null,
     can_play_twice: r.can_play_twice,
+    max_matches: r.max_matches ?? null,
+    preferred_date: r.preferred_date ?? null,
   }));
 
   return { timeSlots, responses };

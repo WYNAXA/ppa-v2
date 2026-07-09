@@ -125,35 +125,55 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
   }
 
   // Send: call send_ringer_requests for EACH match with the selected ringers.
+  // Uses the SAME RPC + args as the per-match AskRingersSheet, looped.
   // The RPC uses ON CONFLICT (match_id, ringer_id) DO NOTHING — idempotent.
   const sendMutation = useMutation({
     mutationFn: async () => {
       const ringerIds = Array.from(selected)
-      if (ringerIds.length === 0) return
+      if (ringerIds.length === 0) return { succeeded: 0, failed: 0 }
 
-      const results = await Promise.allSettled(
-        matches.map(m =>
-          supabase.rpc('send_ringer_requests', {
-            p_match_id: m.id,
-            p_ringer_ids: ringerIds,
-          })
-        )
-      )
+      // Call sequentially to surface errors clearly (same pattern as per-match sheet:
+      // supabase.rpc returns { data, error }, never rejects — must check .error)
+      let succeeded = 0
+      let failed = 0
+      let lastError: string | null = null
 
-      const failures = results.filter(r => r.status === 'rejected')
-      if (failures.length > 0) {
-        throw new Error(`${failures.length}/${matches.length} requests failed`)
+      for (const m of matches) {
+        const { error } = await supabase.rpc('send_ringer_requests', {
+          p_match_id: m.id,
+          p_ringer_ids: ringerIds,
+        })
+        if (error) {
+          failed++
+          lastError = error.message
+        } else {
+          succeeded++
+        }
       }
+
+      if (failed > 0 && succeeded === 0) {
+        throw new Error(lastError ?? 'All requests failed')
+      }
+
+      return { succeeded, failed }
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       for (const mid of matchIds) {
         queryClient.invalidateQueries({ queryKey: ['ringer-requests', mid] })
       }
       queryClient.invalidateQueries({ queryKey: ['ringer-requests-all'] })
       setSelected(new Set())
-      toast.success(`Ringer requests sent for ${matches.length} match${matches.length !== 1 ? 'es' : ''}`)
+
+      if (result && result.failed > 0) {
+        toast.warning(`Asked ringers for ${result.succeeded} match${result.succeeded !== 1 ? 'es' : ''}, ${result.failed} failed`)
+      } else {
+        toast.success(`Ringer requests sent for ${matches.length} match${matches.length !== 1 ? 'es' : ''}`)
+      }
       onSent()
       onClose()
+    },
+    onError: (err: any) => {
+      toast.error(err?.message ?? 'Failed to ask ringers')
     },
   })
 

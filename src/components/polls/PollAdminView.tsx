@@ -370,8 +370,6 @@ export function PollAdminView({
   const [slotAvailability, setSlotAvailability] = useState<Record<string, string[]>>({})
   // Count of players excluded on drop (available only at dropped slot, no outcome row)
   const [excludedCount, setExcludedCount] = useState(0)
-  // Availability clusters for range polls (includes short groups)
-  const [availabilityClusters, setAvailabilityClusters] = useState<any[]>([])
   // Breakdown: loaded on mount (independent of Generate)
   const [breakdownClusters, setBreakdownClusters] = useState<any[]>([])
   const [breakdownProfiles, setBreakdownProfiles] = useState<Record<string, any>>({})
@@ -416,7 +414,6 @@ export function PollAdminView({
     setSelectedSchedule(null)
     setPlayersBenched([])
     setConfirmResult(null)
-    setAvailabilityClusters([])
     try {
       const res = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/poll-scheduler`,
@@ -439,7 +436,6 @@ export function PollAdminView({
       setEngineProfiles(data.profiles ?? {})
       setSlotAvailability(data.slot_availability ?? {})
       setExcludedCount(0)
-      setAvailabilityClusters(data.clusters ?? [])
 
       // Wrap the flat proposals into a single schedule object for the existing render
       const proposals = data.proposals ?? []
@@ -646,15 +642,6 @@ export function PollAdminView({
   // ── Render ──
   return (
     <div className="space-y-4">
-      {/* DEBUG — remove after diagnosis */}
-      <div className="rounded-xl bg-fuchsia-500 px-4 py-2 text-white text-[10px] font-mono text-center space-y-0.5">
-        <div>BUILD b631d86</div>
-        <div>isRangePoll={String(isRangePoll)} | clusters={availabilityClusters.length} | responses={responses.length}</div>
-        <div>hasViableSlot={String(hasViableSlot)} | matchSchedules={matchSchedules.length} | dayData={dayData.length}</div>
-        <div>additionalOpts={safePoll.additional_options?.length ?? 0} | playerAR={playerAdditionalResponses.size}</div>
-        <div>poll_dates={JSON.stringify(poll.poll_dates ?? 'undefined')}</div>
-      </div>
-
       {/* 1. Countdown Timer */}
       <PollCountdown closesAt={poll.closes_at} />
 
@@ -821,11 +808,6 @@ export function PollAdminView({
               {breakdownExpanded ? 'collapse' : 'expand'}
             </span>
           </button>
-
-          {/* DEBUG — breakdownLoaded + count */}
-          <div className="text-[9px] text-gray-300 font-mono">
-            breakdownLoaded={String(breakdownLoaded)} | clusterCount={breakdownClusters.length}
-          </div>
 
           {breakdownExpanded && (
             <div className="space-y-2">

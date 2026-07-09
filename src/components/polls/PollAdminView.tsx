@@ -11,6 +11,7 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { isUserAvailableForSlot, getSlotDate, POLL_OPTION_DRIVE } from '@/lib/pollUtils'
 import { AskRingersSheet } from '@/components/match/AskRingersSheet'
+import { AskRingersAllSheet } from '@/components/match/AskRingersAllSheet'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -159,6 +160,7 @@ export function PollAdminView({
   const [generating, setGenerating] = useState(false)
   const [matchSchedules, setMatchSchedules] = useState<any[]>([])
   const [askRingersMatchId, setAskRingersMatchId] = useState<string | null>(null)
+  const [askRingersAll, setAskRingersAll] = useState(false)
 
   // ── Matches needing ringers (actual DB matches for this group) ──
   const today = new Date().toISOString().split('T')[0]
@@ -1139,7 +1141,17 @@ export function PollAdminView({
       {/* Matches needing ringers */}
       {isAdmin && matchesNeedingRingers.length > 0 && (
         <div className="rounded-2xl border border-orange-100 bg-orange-50/30 px-4 py-3 mt-3 space-y-2">
-          <p className="text-[12px] font-bold text-orange-700">Matches needing ringers</p>
+          <div className="flex items-center justify-between">
+            <p className="text-[12px] font-bold text-orange-700">Matches needing ringers</p>
+            {matchesNeedingRingers.length > 1 && (
+              <button
+                onClick={() => setAskRingersAll(true)}
+                className="text-[11px] font-semibold text-[#009688] hover:text-[#00796B]"
+              >
+                Ask for all
+              </button>
+            )}
+          </div>
           {matchesNeedingRingers.map((m: any) => (
             <div key={m.id} className="flex items-center justify-between rounded-xl bg-white border border-orange-100 px-3 py-2">
               <div>
@@ -1157,7 +1169,7 @@ export function PollAdminView({
         </div>
       )}
 
-      {/* AskRingersSheet */}
+      {/* AskRingersSheet — single match */}
       {askRingersMatchId && (() => {
         const m = matchesNeedingRingers.find((x: any) => x.id === askRingersMatchId)
         if (!m) return null
@@ -1173,6 +1185,17 @@ export function PollAdminView({
           />
         )
       })()}
+
+      {/* AskRingersAllSheet — all matches needing ringers */}
+      {askRingersAll && matchesNeedingRingers.length > 0 && (
+        <AskRingersAllSheet
+          open={true}
+          onClose={() => setAskRingersAll(false)}
+          matches={matchesNeedingRingers}
+          groupId={groupId}
+          onSent={() => { setAskRingersAll(false); onRefetch() }}
+        />
+      )}
 
     </div>
   )

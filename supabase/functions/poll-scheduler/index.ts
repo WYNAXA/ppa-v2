@@ -358,25 +358,21 @@ async function handlePropose(
     }
 
     for (const c of clusters) {
-      if (c.count !== 3) continue;
-      // Skip if any player would exceed their max_matches cap
-      const eligible = c.player_ids.every((pid: string) => {
+      // Filter to players who are under their cap and not already in a match
+      const eligiblePids = c.player_ids.filter((pid: string) => {
         const current = playerMatchCount.get(pid) ?? 0;
         const cap = playerMaxMatches.get(pid) ?? 999;
         return current < cap;
       });
-      if (!eligible) continue;
 
-      // Add profile data for these players
-      for (const pid of c.player_ids) {
-        if (!profilesMap[pid]) {
-          // Will be fetched if not already in the map — but they should be
-          // since extractClusters uses the same responses
-        }
-      }
+      // Need exactly 3 eligible players for a ringer match.
+      // Clusters with 4+ eligible are already handled by the ILP (or will
+      // be if the ILP didn't place them — e.g. participation tradeoffs).
+      // Clusters with <3 eligible can't form a match.
+      if (eligiblePids.length !== 3) continue;
 
       proposals.push({
-        player_ids: c.player_ids,
+        player_ids: eligiblePids,
         match_date: c.date,
         match_time: c.window_start + ":00",
         slot_id: `${c.date}_${c.window_start}_${c.window_end}`,
@@ -394,7 +390,7 @@ async function handlePropose(
       });
 
       // Update match counts so subsequent clusters respect the cap
-      for (const pid of c.player_ids) {
+      for (const pid of eligiblePids) {
         playerMatchCount.set(pid, (playerMatchCount.get(pid) ?? 0) + 1);
       }
     }

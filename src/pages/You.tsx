@@ -971,7 +971,7 @@ export function YouPage() {
                   )}
                   {(fullProfile as any)?.can_drive && (
                     <span className="inline-flex items-center rounded-full bg-blue-500/20 backdrop-blur-sm px-2 py-0.5 text-[11px] font-bold text-white">
-                      🚗 Driver
+                      🚗 Has a car
                     </span>
                   )}
                 </div>

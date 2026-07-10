@@ -244,8 +244,8 @@ export function PlayerProfilePage() {
                 </span>
               )}
               {data?.canDrive && (
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[12px] font-semibold text-blue-600" title="Can drive to matches">
-                  🚗 Driver
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[12px] font-semibold text-blue-600" title="Has a car">
+                  🚗 Has a car
                 </span>
               )}
             </div>

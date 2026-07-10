@@ -340,21 +340,32 @@ async function handlePropose(
     : undefined;
 
   // Add 3-player ringer-needing matches as proposals (range polls only).
-  // Only include 3-player clusters where NONE of the 3 players are already
-  // scheduled in a 4-player match on the same date.
+  // Respects max_matches cap: a player already at their cap is excluded.
   if (isRange && clusters) {
-    const scheduledOnDate = new Map<string, Set<string>>();
+    // Count how many matches each player is already in (from ILP proposals)
+    const playerMatchCount = new Map<string, number>();
     for (const p of proposals) {
-      const dateSet = scheduledOnDate.get(p.match_date) ?? new Set();
-      for (const pid of p.player_ids) dateSet.add(pid);
-      scheduledOnDate.set(p.match_date, dateSet);
+      for (const pid of p.player_ids) {
+        playerMatchCount.set(pid, (playerMatchCount.get(pid) ?? 0) + 1);
+      }
+    }
+
+    // Build max_matches lookup from responses
+    const playerMaxMatches = new Map<string, number>();
+    for (const r of responses) {
+      const limit = r.max_matches ?? 999;
+      playerMaxMatches.set(r.user_id, limit);
     }
 
     for (const c of clusters) {
       if (c.count !== 3) continue;
-      // Skip if any of the 3 players are already in a match on this date
-      const dateScheduled = scheduledOnDate.get(c.date) ?? new Set();
-      if (c.player_ids.some((pid: string) => dateScheduled.has(pid))) continue;
+      // Skip if any player would exceed their max_matches cap
+      const eligible = c.player_ids.every((pid: string) => {
+        const current = playerMatchCount.get(pid) ?? 0;
+        const cap = playerMaxMatches.get(pid) ?? 999;
+        return current < cap;
+      });
+      if (!eligible) continue;
 
       // Add profile data for these players
       for (const pid of c.player_ids) {
@@ -381,6 +392,11 @@ async function handlePropose(
         needs_ringer: true,
         ringer_count: 1,
       });
+
+      // Update match counts so subsequent clusters respect the cap
+      for (const pid of c.player_ids) {
+        playerMatchCount.set(pid, (playerMatchCount.get(pid) ?? 0) + 1);
+      }
     }
 
     // Ensure ringer-match player profiles are in the map

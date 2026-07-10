@@ -53,7 +53,7 @@ async function fetchPlayerProfile(playerId: string, currentUserId: string) {
   const [{ data: player }, { data: myProfile }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, avatar_url, internal_ranking, playtomic_level, city')
+      .select('id, name, avatar_url, internal_ranking, playtomic_level, city, can_drive')
       .eq('id', playerId)
       .single(),
     supabase
@@ -120,17 +120,8 @@ async function fetchPlayerProfile(playerId: string, currentUserId: string) {
     }
   }
 
-  // Check if player answered "I can drive" in any recent poll response
-  const { data: driverResponse } = await supabase
-    .from('poll_responses')
-    .select('additional_responses')
-    .eq('user_id', playerId)
-    .not('additional_responses', 'is', null)
-    .order('submitted_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
-  const canDrive = driverResponse?.additional_responses?.['I can drive'] === true
+  // Read driver flag from profiles.can_drive (set in Edit Profile → Travel Preferences)
+  const canDrive = !!(player as any)?.can_drive
 
   return {
     player: player as PlayerProfileData,

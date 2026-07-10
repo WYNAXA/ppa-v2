@@ -77,7 +77,7 @@ function useFullProfile(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history, account_type, is_verified, push_token, push_opted_out')
+        .select('id, name, email, city, postal_code, country, avatar_url, internal_ranking, household_partner_id, is_provisional, matches_played, show_email, show_location, public_history, account_type, is_verified, push_token, push_opted_out, can_drive, max_passengers, travel_radius_miles')
         .eq('id', userId)
         .single()
       if (error) return null

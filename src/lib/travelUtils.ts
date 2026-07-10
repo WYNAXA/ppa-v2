@@ -115,7 +115,7 @@ export async function getMatchTravelInfo(
       avatar_url: p.avatar_url ?? null,
       latitude: p.latitude ?? null,
       longitude: p.longitude ?? null,
-      can_drive: canDriveIds.includes(p.id) || !!p.can_drive,
+      can_drive: canDriveIds.includes(p.id),
       max_passengers: Math.max(0, totalSeats - taken),
     }
   })

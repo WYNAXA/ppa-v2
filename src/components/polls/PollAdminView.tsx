@@ -153,6 +153,34 @@ export function PollAdminView({
   // Range-poll detection: poll_dates set = range model
   const isRangePoll = Array.isArray(poll.poll_dates) && poll.poll_dates.length > 0
 
+  // ── Deadline edit state ──
+  const [editingDeadline, setEditingDeadline] = useState(false)
+  const [newDeadline, setNewDeadline] = useState('')
+  const [savingDeadline, setSavingDeadline] = useState(false)
+
+  async function handleSaveDeadline() {
+    if (!newDeadline) return
+    setSavingDeadline(true)
+    try {
+      const updates: any = { closes_at: newDeadline }
+      // Reopening: if poll is processed/closed and new deadline is in the future, set back to open
+      // Guard: don't orphan — existing matches stay; poll just accepts new votes
+      if (poll.status === 'processed' || poll.status === 'closed') {
+        const isExtending = new Date(newDeadline) > new Date()
+        if (isExtending) updates.status = 'open'
+      }
+      const { error } = await supabase.from('polls').update(updates).eq('id', pollId)
+      if (error) throw error
+      toast.success(updates.status === 'open' ? 'Poll reopened' : 'Deadline updated')
+      setEditingDeadline(false)
+      onRefetch()
+    } catch (e: any) {
+      toast.error(e?.message ?? 'Failed to update deadline')
+    } finally {
+      setSavingDeadline(false)
+    }
+  }
+
   // ── State ──
   const [expandedSection, setExpandedSection] = useState<'available' | 'unavailable' | 'notVoted' | null>(null)
   const [expandedSlots, setExpandedSlots] = useState<Set<string>>(new Set())
@@ -642,8 +670,46 @@ export function PollAdminView({
   // ── Render ──
   return (
     <div className="space-y-4">
-      {/* 1. Countdown Timer */}
+      {/* 1. Countdown Timer + Deadline Edit */}
       <PollCountdown closesAt={poll.closes_at} />
+      {isAdmin && (
+        <div className="flex items-center justify-end -mt-2">
+          {editingDeadline ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="datetime-local"
+                value={newDeadline}
+                onChange={(e) => setNewDeadline(e.target.value)}
+                className="rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-800"
+                style={{ fontSize: '16px' }}
+              />
+              <button
+                onClick={handleSaveDeadline}
+                disabled={savingDeadline || !newDeadline}
+                className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
+              >
+                {savingDeadline ? 'Saving...' : 'Save'}
+              </button>
+              <button
+                onClick={() => setEditingDeadline(false)}
+                className="rounded-lg border border-gray-200 px-3 py-1.5 text-[11px] font-semibold text-gray-500"
+              >
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setNewDeadline(poll.closes_at?.slice(0, 16) ?? '')
+                setEditingDeadline(true)
+              }}
+              className="text-[11px] font-semibold text-[#009688] hover:text-[#00796B]"
+            >
+              {poll.status === 'processed' ? 'Reopen poll' : 'Edit deadline'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* 2. Response Summary Cards */}
       <div className="grid grid-cols-3 gap-2">

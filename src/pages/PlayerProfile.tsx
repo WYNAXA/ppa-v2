@@ -120,11 +120,24 @@ async function fetchPlayerProfile(playerId: string, currentUserId: string) {
     }
   }
 
+  // Check if player answered "I can drive" in any recent poll response
+  const { data: driverResponse } = await supabase
+    .from('poll_responses')
+    .select('additional_responses')
+    .eq('user_id', playerId)
+    .not('additional_responses', 'is', null)
+    .order('submitted_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const canDrive = driverResponse?.additional_responses?.['I can drive'] === true
+
   return {
     player: player as PlayerProfileData,
     myElo: (myProfile as any)?.internal_ranking ?? 1300,
     h2h,
     commonMatches: commonMatches.slice(0, 10),
+    canDrive,
   }
 }
 
@@ -237,6 +250,11 @@ export function PlayerProfilePage() {
               {player.playtomic_level != null && (
                 <span className="rounded-full bg-gray-100 px-2.5 py-1 text-[12px] font-semibold text-gray-600">
                   Level {player.playtomic_level}
+                </span>
+              )}
+              {data?.canDrive && (
+                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[12px] font-semibold text-blue-600" title="Can drive to matches">
+                  🚗 Driver
                 </span>
               )}
             </div>

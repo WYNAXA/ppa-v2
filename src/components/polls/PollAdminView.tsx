@@ -402,7 +402,7 @@ export function PollAdminView({
   const [breakdownClusters, setBreakdownClusters] = useState<any[]>([])
   const [breakdownProfiles, setBreakdownProfiles] = useState<Record<string, any>>({})
   const [breakdownLoaded, setBreakdownLoaded] = useState(false)
-  const [breakdownExpanded, setBreakdownExpanded] = useState(false)
+  const [breakdownExpanded, setBreakdownExpanded] = useState(true)
 
   // Fetch breakdown on load (range polls only) — independent of Generate
   useEffect(() => {
@@ -856,29 +856,31 @@ export function PollAdminView({
 
       {/* 4. Daily Availability — unified breakdown (range polls: from breakdown mode on load) */}
       {isRangePoll && breakdownLoaded && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <button
             onClick={() => setBreakdownExpanded(!breakdownExpanded)}
-            className="w-full flex items-center justify-between"
+            className="w-full flex items-center justify-between px-1"
           >
-            <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
-              Daily Availability
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-[#009688]" />
+              <h3 className="text-[13px] font-bold text-gray-900">Daily Availability</h3>
               {breakdownClusters.length > 0 && (
-                <span className="ml-2 text-[10px] font-semibold text-teal-600 normal-case">
-                  {breakdownClusters.filter(c => !c.short).length} match window{breakdownClusters.filter(c => !c.short).length !== 1 ? 's' : ''}
-                  {breakdownClusters.some(c => c.short) && `, ${breakdownClusters.filter(c => c.short).length} short`}
+                <span className="text-[11px] font-semibold text-[#009688]">
+                  {breakdownClusters.filter(c => !c.short).length} match{breakdownClusters.filter(c => !c.short).length !== 1 ? 'es' : ''}
+                  {breakdownClusters.some(c => c.short) && ` · ${breakdownClusters.filter(c => c.short).length} short`}
                 </span>
               )}
-            </h3>
-            <span className="text-[11px] text-gray-400">
-              {breakdownExpanded ? 'collapse' : 'expand'}
-            </span>
+            </div>
+            {breakdownExpanded
+              ? <ChevronUp className="h-4 w-4 text-gray-400" />
+              : <ChevronDown className="h-4 w-4 text-gray-400" />
+            }
           </button>
 
           {breakdownExpanded && (
-            <div className="space-y-2">
+            <div className="space-y-3">
               {breakdownClusters.length === 0 ? (
-                <p className="text-[12px] text-gray-400 py-2">No overlapping availability yet.</p>
+                <p className="text-[13px] text-gray-400 py-3 text-center">No overlapping availability yet.</p>
               ) : (
                 (() => {
                   const byDate = new Map<string, typeof breakdownClusters>()
@@ -892,33 +894,45 @@ export function PollAdminView({
                     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
                     const dayLabel = `${dayNames[d.getDay()]} ${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
                     return (
-                      <div key={date} className="rounded-xl border border-gray-100 px-3 py-2 space-y-1.5">
-                        <p className="text-[12px] font-semibold text-gray-800">{dayLabel}</p>
-                        {clusters.map((c: any, idx: number) => (
-                          <div key={idx} className={cn(
-                            'rounded-lg px-3 py-2 text-[11px] border',
-                            c.short ? 'border-amber-200 bg-amber-50/50' : 'border-teal-200 bg-teal-50/50'
-                          )}>
-                            <div className="flex items-center justify-between mb-1">
-                              <span className="font-semibold text-gray-700">{c.window_start}–{c.window_end}</span>
-                              <span className={cn(
-                                'text-[10px] font-bold rounded-full px-2 py-0.5',
-                                c.short ? 'bg-amber-100 text-amber-700' : 'bg-teal-100 text-teal-700'
-                              )}>
-                                {c.short
-                                  ? `${c.count} — needs ${4 - c.count} ringer${4 - c.count !== 1 ? 's' : ''}`
-                                  : `${c.count} players`}
-                              </span>
-                            </div>
-                            <div className="flex flex-wrap gap-1">
-                              {(c.player_ids ?? []).map((pid: string) => (
-                                <span key={pid} className="inline-flex items-center gap-1 rounded-full bg-white px-2 py-0.5 text-[10px] font-medium text-gray-600 border border-gray-100">
-                                  {breakdownProfiles[pid]?.name?.split(' ')[0] ?? pid.slice(0, 8)}
+                      <div key={date} className="rounded-2xl border border-gray-100 px-4 py-3 space-y-2">
+                        <p className="text-[13px] font-semibold text-gray-900">{dayLabel}</p>
+                        {clusters.map((c: any, idx: number) => {
+                          const isFull = !c.short && c.count >= 4
+                          const isShort3 = c.short && c.count === 3
+                          return (
+                            <div key={idx} className={cn(
+                              'rounded-xl px-3 py-2.5 border',
+                              isFull ? 'border-teal-200 bg-teal-50/40' :
+                              isShort3 ? 'border-amber-200 bg-amber-50/40' :
+                              'border-gray-100 bg-gray-50/40'
+                            )}>
+                              <div className="flex items-center justify-between mb-2">
+                                <span className="text-[13px] font-semibold text-gray-800">{c.window_start}–{c.window_end}</span>
+                                <span className={cn(
+                                  'text-[11px] font-bold rounded-full px-2.5 py-0.5',
+                                  isFull ? 'bg-[#009688] text-white' :
+                                  isShort3 ? 'bg-[#E65100] text-white' :
+                                  'bg-gray-200 text-gray-600'
+                                )}>
+                                  {isFull ? `${c.count} players` :
+                                   isShort3 ? `Needs 1 ringer` :
+                                   `${c.count} players`}
                                 </span>
-                              ))}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {(c.player_ids ?? []).map((pid: string) => {
+                                  const profile = breakdownProfiles[pid]
+                                  return (
+                                    <span key={pid} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-gray-100 px-2.5 py-1 text-[12px] font-medium text-gray-800">
+                                      <PlayerAvatar name={profile?.name} avatarUrl={profile?.avatar_url} size="sm" />
+                                      {profile?.name?.split(' ')[0] ?? pid.slice(0, 8)}
+                                    </span>
+                                  )
+                                })}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     )
                   })

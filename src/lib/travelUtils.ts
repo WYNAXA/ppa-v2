@@ -86,6 +86,18 @@ export async function getMatchTravelInfo(
     matchDriverSeats.set(md.driver_id, md.seats_available)
   }
 
+  // Count accepted riders per driver (for seat decrement)
+  const { data: acceptedRequests } = await supabase
+    .from('travel_requests')
+    .select('driver_id')
+    .eq('match_id', _matchId)
+    .eq('status', 'accepted')
+
+  const acceptedPerDriver = new Map<string, number>()
+  for (const r of acceptedRequests ?? []) {
+    acceptedPerDriver.set(r.driver_id, (acceptedPerDriver.get(r.driver_id) ?? 0) + 1)
+  }
+
   // Fetch player profiles
   const { data: profiles } = await supabase
     .from('profiles')
@@ -94,15 +106,19 @@ export async function getMatchTravelInfo(
 
   if (!profiles || profiles.length === 0) return null
 
-  const players: TravelPlayer[] = profiles.map((p) => ({
-    id: p.id,
-    name: p.name,
-    avatar_url: p.avatar_url ?? null,
-    latitude: p.latitude ?? null,
-    longitude: p.longitude ?? null,
-    can_drive: canDriveIds.includes(p.id) || !!p.can_drive,
-    max_passengers: matchDriverSeats.get(p.id) ?? p.max_passengers ?? 3,
-  }))
+  const players: TravelPlayer[] = profiles.map((p) => {
+    const totalSeats = matchDriverSeats.get(p.id) ?? p.max_passengers ?? 3
+    const taken = acceptedPerDriver.get(p.id) ?? 0
+    return {
+      id: p.id,
+      name: p.name,
+      avatar_url: p.avatar_url ?? null,
+      latitude: p.latitude ?? null,
+      longitude: p.longitude ?? null,
+      can_drive: canDriveIds.includes(p.id) || !!p.can_drive,
+      max_passengers: Math.max(0, totalSeats - taken),
+    }
+  })
 
   const drivers = players.filter((p) => p.can_drive)
   const needsLift = players.filter((p) => !p.can_drive)

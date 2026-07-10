@@ -677,6 +677,30 @@ export function MatchDetailPage() {
   const updateTravelRequestMutation = useMutation({
     mutationFn: async ({ requesterId, status }: { requesterId: string; status: 'accepted' | 'declined' }) => {
       if (!profile?.id || !id) throw new Error('Not signed in')
+
+      // Block over-capacity: check available seats before accepting
+      if (status === 'accepted') {
+        const { data: driverRow } = await supabase
+          .from('match_drivers')
+          .select('seats_available')
+          .eq('match_id', id)
+          .eq('driver_id', profile.id)
+          .maybeSingle()
+
+        const totalSeats = driverRow?.seats_available ?? 3
+
+        const { count: acceptedCount } = await supabase
+          .from('travel_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('match_id', id)
+          .eq('driver_id', profile.id)
+          .eq('status', 'accepted')
+
+        if ((acceptedCount ?? 0) >= totalSeats) {
+          throw new Error('No seats left — all seats are taken')
+        }
+      }
+
       const { error } = await supabase
         .from('travel_requests')
         .update({ status, updated_at: new Date().toISOString() })
@@ -702,6 +726,7 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['incoming-travel-requests', id, profile?.id] })
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
       queryClient.invalidateQueries({ queryKey: ['confirmed-riders', id, profile?.id] })
+      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Something went wrong — please try again')
@@ -726,6 +751,36 @@ export function MatchDetailPage() {
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Failed to save pickup time')
+    },
+  })
+
+  // "I'm driving this match" toggle — inserts/deletes match_drivers row
+  const imDrivingNow = travelInfo?.drivers.some(d => d.id === profile?.id) ?? false
+  const toggleDrivingMutation = useMutation({
+    mutationFn: async () => {
+      if (!profile?.id || !id) throw new Error('Not signed in')
+      if (imDrivingNow) {
+        // Remove self as driver
+        const { error } = await supabase
+          .from('match_drivers')
+          .delete()
+          .eq('match_id', id)
+          .eq('driver_id', profile.id)
+        if (error) throw error
+      } else {
+        // Add self as driver
+        const { error } = await supabase
+          .from('match_drivers')
+          .insert({ match_id: id, driver_id: profile.id, seats_available: 3 })
+        if (error) throw error
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
+      toast.success(imDrivingNow ? 'No longer driving' : "You're driving this match!")
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || 'Failed to update driver status')
     },
   })
 
@@ -2219,6 +2274,26 @@ export function MatchDetailPage() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* "I'm driving" toggle — for any match player */}
+                  {!matchCompleted && isParticipant && (
+                    <div className="mb-3">
+                      <button
+                        onClick={() => toggleDrivingMutation.mutate()}
+                        disabled={toggleDrivingMutation.isPending}
+                        className={cn(
+                          'w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-[13px] font-bold transition-all',
+                          imDrivingNow
+                            ? 'bg-teal-50 border-2 border-[#009688] text-[#009688]'
+                            : 'bg-white border-2 border-gray-200 text-gray-700 hover:border-[#009688]'
+                        )}
+                      >
+                        <Car className="h-4 w-4" />
+                        {toggleDrivingMutation.isPending ? 'Updating...'
+                          : imDrivingNow ? "I'm driving this match ✓" : "I'm driving this match"}
+                      </button>
                     </div>
                   )}
 

@@ -1071,14 +1071,23 @@ export function PollAdminView({
                   {(schedule.matches ?? []).map((match: any, mIdx: number) => {
                     const pids: string[] = match.player_ids ?? match.playerIds ?? []
                     const isSelected = selectedSchedule?.scheduleNumber === schedule.scheduleNumber
+                    const isRingerMatch = match.needs_ringer === true
                     return (
-                      <div key={mIdx} className="rounded-lg bg-gray-50 px-3 py-2 text-[12px] space-y-1">
+                      <div key={mIdx} className={cn(
+                        'rounded-lg px-3 py-2 text-[12px] space-y-1',
+                        isRingerMatch ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'
+                      )}>
                         <div className="flex items-center justify-between">
                           <div>
                             <span className="font-medium text-gray-800">{match.dayOfWeek ?? match.date ?? match.day}</span>
                             {match.window_start && match.window_end && (
                               <span className="ml-2 text-[10px] font-semibold text-teal-600">
-                                Playable {match.window_start}–{match.window_end}
+                                {match.window_start}–{match.window_end}
+                              </span>
+                            )}
+                            {isRingerMatch && (
+                              <span className="ml-2 text-[10px] font-bold text-[#E65100] bg-orange-100 rounded-full px-2 py-0.5">
+                                Needs {match.ringer_count ?? 1} ringer
                               </span>
                             )}
                           </div>

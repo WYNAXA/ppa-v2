@@ -340,6 +340,68 @@ async function handlePropose(
     ? extractClusters(rangeResponsesRef)
     : undefined;
 
+  // Add 3-player ringer-needing matches as proposals (range polls only).
+  // Only include 3-player clusters where NONE of the 3 players are already
+  // scheduled in a 4-player match on the same date.
+  if (isRange && clusters) {
+    const scheduledOnDate = new Map<string, Set<string>>();
+    for (const p of proposals) {
+      const dateSet = scheduledOnDate.get(p.match_date) ?? new Set();
+      for (const pid of p.player_ids) dateSet.add(pid);
+      scheduledOnDate.set(p.match_date, dateSet);
+    }
+
+    for (const c of clusters) {
+      if (c.count !== 3) continue;
+      // Skip if any of the 3 players are already in a match on this date
+      const dateScheduled = scheduledOnDate.get(c.date) ?? new Set();
+      if (c.player_ids.some((pid: string) => dateScheduled.has(pid))) continue;
+
+      // Add profile data for these players
+      for (const pid of c.player_ids) {
+        if (!profilesMap[pid]) {
+          // Will be fetched if not already in the map — but they should be
+          // since extractClusters uses the same responses
+        }
+      }
+
+      proposals.push({
+        player_ids: c.player_ids,
+        match_date: c.date,
+        match_time: c.window_start + ":00",
+        slot_id: `${c.date}_${c.window_start}_${c.window_end}`,
+        day: (() => {
+          const d = new Date(c.date + "T12:00:00Z");
+          return ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getUTCDay()];
+        })(),
+        time_slot_display: `${c.window_start}-${c.window_end}`,
+        diversity_score: 0,
+        additional_options: {},
+        window_start: c.window_start,
+        window_end: c.window_end,
+        needs_ringer: true,
+        ringer_count: 1,
+      });
+    }
+
+    // Ensure ringer-match player profiles are in the map
+    const missingIds = new Set<string>();
+    for (const p of proposals) {
+      for (const pid of p.player_ids) {
+        if (!profilesMap[pid]) missingIds.add(pid);
+      }
+    }
+    if (missingIds.size > 0) {
+      const { data: extraProfiles } = await supabase
+        .from("profiles")
+        .select("id, name, avatar_url, playtomic_level, internal_ranking")
+        .in("id", Array.from(missingIds));
+      for (const p of extraProfiles ?? []) {
+        profilesMap[p.id] = p;
+      }
+    }
+  }
+
   return json({
     success: true,
     proposals,

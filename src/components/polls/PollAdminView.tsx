@@ -1095,57 +1095,58 @@ export function PollAdminView({
                             )}
                           </div>
                         </div>
-                        {/* Player list with swap controls */}
-                        <div className="space-y-0.5">
+                        {/* Player chips with avatar + icons */}
+                        <div className="space-y-1.5 mt-1">
                           {pids.map((pid: string, pIdx: number) => {
-                            const name = engineProfiles[pid]?.name ?? match.playerNames?.[pIdx] ?? 'Unknown'
+                            const profile = engineProfiles[pid]
+                            const name = profile?.name ?? match.playerNames?.[pIdx] ?? 'Unknown'
                             const isSwapOpen = isSelected && swapTarget?.matchIdx === mIdx && swapTarget?.playerIdx === pIdx
-                            // Filter swap candidates: must be benched AND available at THIS match's slot
                             const matchSlotId = match.slot_id ?? match.slotId
                             const slotAvail = new Set(slotAvailability[matchSlotId] ?? [])
                             const swapCandidates = playersBenched.filter(id => slotAvail.has(id))
+                            const ar = playerAdditionalResponses.get(pid)
+                            const activeOpts = ar ? Object.entries(ar).filter(([, v]) => v) : []
                             return (
                               <div key={pIdx}>
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-[11px] text-gray-600">{name.split(' ')[0]}</span>
-                                    {(() => {
-                                      const ar = playerAdditionalResponses.get(pid)
-                                      if (!ar) return null
-                                      const opts = Object.entries(ar).filter(([, v]) => v)
-                                      if (opts.length === 0) return null
-                                      return opts.map(([opt]) => {
-                                        const icon = additionalIcon(opt)
-                                        return icon
-                                          ? <span key={opt} className="text-[12px]" title={opt}>{icon}</span>
-                                          : <span key={opt} className="text-[8px] text-gray-400 bg-gray-100 rounded px-1 py-0.5" title={opt}>{opt}</span>
-                                      })
-                                    })()}
+                                  <div className="flex items-center gap-2">
+                                    <PlayerAvatar name={name} avatarUrl={profile?.avatar_url} size="sm" />
+                                    <span className="text-[13px] font-medium text-gray-800">{name.split(' ')[0]}</span>
+                                    {activeOpts.map(([opt]) => {
+                                      const icon = additionalIcon(opt)
+                                      return icon
+                                        ? <span key={opt} className="text-[14px]" title={opt}>{icon}</span>
+                                        : <span key={opt} className="text-[9px] text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5" title={opt}>{opt}</span>
+                                    })}
                                   </div>
                                   {isSelected && (
                                     <button
                                       onClick={() => setSwapTarget(isSwapOpen ? null : { matchIdx: mIdx, playerIdx: pIdx })}
-                                      className="text-[10px] text-[#009688] hover:text-[#00796B]"
+                                      className="rounded-lg border border-teal-200 px-2.5 py-1 text-[11px] font-semibold text-[#009688] hover:bg-teal-50"
                                     >
                                       {isSwapOpen ? 'Cancel' : 'Swap'}
                                     </button>
                                   )}
                                 </div>
                                 {isSwapOpen && (
-                                  <div className="ml-2 mt-1 mb-1 p-2 bg-white rounded border border-teal-100 space-y-1">
-                                    <p className="text-[10px] text-gray-400 font-semibold">Available for this slot:</p>
+                                  <div className="ml-8 mt-1 mb-1 p-2 bg-white rounded-lg border border-teal-100 space-y-1">
+                                    <p className="text-[11px] text-gray-500 font-semibold">Available for this slot:</p>
                                     {swapCandidates.length === 0 && (
-                                      <p className="text-[10px] text-gray-400">No other available players for this slot</p>
+                                      <p className="text-[11px] text-gray-400">No other available players</p>
                                     )}
-                                    {swapCandidates.map((benchId: string) => (
-                                      <button
-                                        key={benchId}
-                                        onClick={() => handleSwapPlayer(mIdx, pIdx, benchId)}
-                                        className="block w-full text-left text-[11px] text-[#009688] hover:bg-teal-50 rounded px-1 py-0.5"
-                                      >
-                                        {engineProfiles[benchId]?.name?.split(' ')[0] ?? benchId.slice(0, 8)}
-                                      </button>
-                                    ))}
+                                    {swapCandidates.map((benchId: string) => {
+                                      const bp = engineProfiles[benchId]
+                                      return (
+                                        <button
+                                          key={benchId}
+                                          onClick={() => handleSwapPlayer(mIdx, pIdx, benchId)}
+                                          className="flex items-center gap-2 w-full text-left text-[12px] text-[#009688] hover:bg-teal-50 rounded-lg px-2 py-1.5"
+                                        >
+                                          <PlayerAvatar name={bp?.name} avatarUrl={bp?.avatar_url} size="sm" />
+                                          {bp?.name?.split(' ')[0] ?? benchId.slice(0, 8)}
+                                        </button>
+                                      )
+                                    })}
                                   </div>
                                 )}
                               </div>

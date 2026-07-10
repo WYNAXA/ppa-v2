@@ -221,7 +221,7 @@ async function handlePropose(
   if (allPlayerIds.size > 0) {
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("id, name, playtomic_level, internal_ranking")
+      .select("id, name, avatar_url, playtomic_level, internal_ranking")
       .in("id", Array.from(allPlayerIds));
 
     for (const p of profiles ?? []) {

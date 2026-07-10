@@ -871,7 +871,9 @@ export function AvailabilityPollPage() {
                         onChange={() => toggleAdditional(opt)}
                         className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
                       />
-                      <span className="text-[14px] font-medium text-gray-900">{opt}</span>
+                      <span className="text-[14px] font-medium text-gray-900">
+                        {opt === 'I can drive' ? 'I can drive & take passengers' : opt}
+                      </span>
                     </label>
                   ))}
                 </div>

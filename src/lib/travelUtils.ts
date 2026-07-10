@@ -64,18 +64,26 @@ export async function getMatchTravelInfo(
 ): Promise<MatchTravelInfo | null> {
   if (playerIds.length === 0) return null
 
-  // Find who can drive from poll responses
+  // Find who can drive from poll responses AND match_drivers table
   let canDriveIds: string[] = []
-  if (pollId) {
-    const { data: responses } = await supabase
-      .from('poll_responses')
-      .select('user_id, additional_responses')
-      .eq('poll_id', pollId)
-      .in('user_id', playerIds)
+  const matchDriverSeats = new Map<string, number>()
 
-    canDriveIds = (responses ?? [])
-      .filter((r) => r.additional_responses?.[POLL_OPTION_DRIVE] === true)
-      .map((r) => r.user_id)
+  const [pollDriveResult, matchDriversResult] = await Promise.all([
+    pollId
+      ? supabase.from('poll_responses').select('user_id, additional_responses').eq('poll_id', pollId).in('user_id', playerIds)
+      : { data: [] },
+    supabase.from('match_drivers').select('driver_id, seats_available').eq('match_id', _matchId),
+  ])
+
+  // Poll answer drivers
+  canDriveIds = (pollDriveResult.data ?? [])
+    .filter((r: any) => r.additional_responses?.[POLL_OPTION_DRIVE] === true)
+    .map((r: any) => r.user_id)
+
+  // Committed match_drivers (override seats if present)
+  for (const md of matchDriversResult.data ?? []) {
+    if (!canDriveIds.includes(md.driver_id)) canDriveIds.push(md.driver_id)
+    matchDriverSeats.set(md.driver_id, md.seats_available)
   }
 
   // Fetch player profiles
@@ -93,7 +101,7 @@ export async function getMatchTravelInfo(
     latitude: p.latitude ?? null,
     longitude: p.longitude ?? null,
     can_drive: canDriveIds.includes(p.id) || !!p.can_drive,
-    max_passengers: p.max_passengers ?? 3,
+    max_passengers: matchDriverSeats.get(p.id) ?? p.max_passengers ?? 3,
   }))
 
   const drivers = players.filter((p) => p.can_drive)

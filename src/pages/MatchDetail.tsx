@@ -754,6 +754,40 @@ export function MatchDetailPage() {
     },
   })
 
+  // Driving / offering toggles
+  const myDriverRow = travelInfo?.drivers.find(d => d.id === profile?.id)
+  const amDriving = !!myDriverRow
+  const amOffering = myDriverRow?.offering_lifts ?? false
+
+  const toggleDrivingMutation = useMutation({
+    mutationFn: async () => {
+      if (!profile?.id || !id) throw new Error('Not signed in')
+      if (amDriving) {
+        await supabase.from('match_drivers').delete().eq('match_id', id).eq('driver_id', profile.id)
+      } else {
+        await supabase.from('match_drivers').insert({ match_id: id, driver_id: profile.id, seats_available: 3, offering_lifts: false })
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
+    },
+    onError: (err: Error) => { toast.error(err.message || 'Failed to update') },
+  })
+
+  const toggleOfferingMutation = useMutation({
+    mutationFn: async () => {
+      if (!profile?.id || !id) throw new Error('Not signed in')
+      await supabase.from('match_drivers').update({ offering_lifts: !amOffering }).eq('match_id', id).eq('driver_id', profile.id)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
+    },
+    onError: (err: Error) => { toast.error(err.message || 'Failed to update') },
+  })
+
+  // Check if user has travel prefs set
+  const hasTravelPrefs = !!(profile as any)?.can_drive
+
   // Rider address (privacy-gated RPC — only returns data if caller is accepted driver)
   const [expandedRiderId, setExpandedRiderId] = useState<string | null>(null)
   const { data: riderAddress } = useQuery<{ postal_code: string | null; city: string | null; latitude: number | null; longitude: number | null } | null>({
@@ -2248,6 +2282,51 @@ export function MatchDetailPage() {
                   )}
 
 
+                  {/* Your driving status */}
+                  {!matchCompleted && isParticipant && (
+                    <div className="mb-3 space-y-2">
+                      {!hasTravelPrefs && !amDriving ? (
+                        <a href="/you" className="block rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-700 font-medium text-center">
+                          Set your travel preferences first →
+                        </a>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => toggleDrivingMutation.mutate()}
+                            disabled={toggleDrivingMutation.isPending}
+                            className={cn(
+                              'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all',
+                              amDriving ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              <Car className="h-4 w-4" />
+                              <span>Driving</span>
+                            </div>
+                            <span className="text-[11px]">{amDriving ? 'Yes ✓' : 'No'}</span>
+                          </button>
+                          {amDriving && (
+                            <button
+                              onClick={() => toggleOfferingMutation.mutate()}
+                              disabled={toggleOfferingMutation.isPending}
+                              className={cn(
+                                'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 ml-4 text-[13px] font-semibold transition-all',
+                                amOffering ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                              )}
+                              style={{ width: 'calc(100% - 16px)' }}
+                            >
+                              <div className="flex items-center gap-2">
+                                <Users className="h-4 w-4" />
+                                <span>Offering a lift</span>
+                              </div>
+                              <span className="text-[11px]">{amOffering ? 'Yes ✓' : 'No'}</span>
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
                   {/* Drivers */}
                   {(travelInfo?.drivers.length ?? 0) > 0 && (
                     <div className="mb-3">
@@ -2257,10 +2336,17 @@ export function MatchDetailPage() {
                           <div key={driver.id} className="flex items-center gap-2.5">
                             <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name} is driving</p>
-                              <p className="text-[11px] text-gray-400">Can take {driver.max_passengers} passengers</p>
+                              <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name}</p>
+                              <p className="text-[11px] text-gray-400">
+                                {driver.offering_lifts ? `Offering a lift · ${driver.max_passengers} seat${driver.max_passengers !== 1 ? 's' : ''}` : 'Driving'}
+                              </p>
                             </div>
-                            <span className="shrink-0 rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">Driver</span>
+                            <span className={cn(
+                              'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                              driver.offering_lifts ? 'bg-teal-50 border border-teal-100 text-teal-600' : 'bg-gray-100 text-gray-500'
+                            )}>
+                              {driver.offering_lifts ? 'Offering lift' : 'Driving'}
+                            </span>
                           </div>
                         ))}
                       </div>
@@ -2292,7 +2378,7 @@ export function MatchDetailPage() {
                                   <p className="text-[11px] text-gray-400">Waiting for response</p>
                                 )}
                               </div>
-                              {isMe && !acceptedDriverLocal && (travelInfo!.drivers.length > 0) && (
+                              {isMe && !acceptedDriverLocal && travelInfo!.drivers.some(d => d.offering_lifts) && (
                                 <button
                                   onClick={() => setShowLiftChooser(true)}
                                   className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white"
@@ -2734,7 +2820,7 @@ export function MatchDetailPage() {
                 </button>
               </div>
               <div className="px-5 pb-6 space-y-2" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-                {travelInfo.drivers.map((driver) => {
+                {travelInfo.drivers.filter(d => d.offering_lifts).map((driver) => {
                   const myReq = myTravelRequests.find((r) => r.driver_id === driver.id)
                   const suggestion = travelInfo.suggestions.find((s) => s.driver.id === driver.id && s.passenger.id === profile?.id)
                   const hasActiveRequest = myReq && (myReq.status === 'pending' || myReq.status === 'accepted')

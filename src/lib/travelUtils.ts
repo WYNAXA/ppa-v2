@@ -41,6 +41,7 @@ export interface TravelPlayer {
   latitude: number | null
   longitude: number | null
   can_drive: boolean
+  offering_lifts: boolean
   max_passengers: number
 }
 
@@ -72,7 +73,7 @@ export async function getMatchTravelInfo(
     pollId
       ? supabase.from('poll_responses').select('user_id, additional_responses').eq('poll_id', pollId).in('user_id', playerIds)
       : { data: [] },
-    supabase.from('match_drivers').select('driver_id, seats_available').eq('match_id', _matchId),
+    supabase.from('match_drivers').select('driver_id, seats_available, offering_lifts').eq('match_id', _matchId),
   ])
 
   // Poll answer drivers
@@ -81,9 +82,11 @@ export async function getMatchTravelInfo(
     .map((r: any) => r.user_id)
 
   // Committed match_drivers (override seats if present)
+  const offeringLiftsSet = new Set<string>()
   for (const md of matchDriversResult.data ?? []) {
     if (!canDriveIds.includes(md.driver_id)) canDriveIds.push(md.driver_id)
     matchDriverSeats.set(md.driver_id, md.seats_available)
+    if (md.offering_lifts) offeringLiftsSet.add(md.driver_id)
   }
 
   // Count accepted riders per driver (for seat decrement)
@@ -116,6 +119,7 @@ export async function getMatchTravelInfo(
       latitude: p.latitude ?? null,
       longitude: p.longitude ?? null,
       can_drive: canDriveIds.includes(p.id),
+      offering_lifts: offeringLiftsSet.has(p.id),
       max_passengers: Math.max(0, totalSeats - taken),
     }
   })

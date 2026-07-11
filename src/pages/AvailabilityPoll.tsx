@@ -860,22 +860,60 @@ export function AvailabilityPollPage() {
               <section>
                 <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">Additional Options</h2>
                 <div className="space-y-2">
-                  {additionalOptions.map((opt) => (
-                    <label
-                      key={opt}
-                      className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3.5 hover:bg-gray-50 cursor-pointer"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={additionalResponses[opt] ?? false}
-                        onChange={() => toggleAdditional(opt)}
-                        className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
-                      />
-                      <span className="text-[14px] font-medium text-gray-900">
-                        {opt === 'I can drive' ? 'I can drive & take passengers' : opt}
-                      </span>
-                    </label>
-                  ))}
+                  {additionalOptions.map((opt) => {
+                    if (opt === 'I can drive') {
+                      // Split into two toggles: driving + offering a lift
+                      const isDriving = additionalResponses['I can drive'] ?? false
+                      const isOffering = additionalResponses['I can offer a lift'] ?? false
+                      return (
+                        <div key={opt} className="space-y-2">
+                          <label className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3.5 hover:bg-gray-50 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={isDriving}
+                              onChange={() => {
+                                toggleAdditional('I can drive')
+                                if (isDriving && isOffering) toggleAdditional('I can offer a lift')
+                              }}
+                              className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                            />
+                            <div>
+                              <span className="text-[14px] font-medium text-gray-900">I can drive</span>
+                              <p className="text-[11px] text-gray-400">Making my own way there</p>
+                            </div>
+                          </label>
+                          {isDriving && (
+                            <label className="flex items-center gap-3 border border-teal-100 rounded-xl px-4 py-3.5 ml-4 hover:bg-teal-50/30 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={isOffering}
+                                onChange={() => toggleAdditional('I can offer a lift')}
+                                className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                              />
+                              <div>
+                                <span className="text-[14px] font-medium text-gray-900">I can offer a lift</span>
+                                <p className="text-[11px] text-gray-400">Happy to take passengers</p>
+                              </div>
+                            </label>
+                          )}
+                        </div>
+                      )
+                    }
+                    return (
+                      <label
+                        key={opt}
+                        className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3.5 hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={additionalResponses[opt] ?? false}
+                          onChange={() => toggleAdditional(opt)}
+                          className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                        />
+                        <span className="text-[14px] font-medium text-gray-900">{opt}</span>
+                      </label>
+                    )
+                  })}
                 </div>
               </section>
             )}

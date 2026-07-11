@@ -392,17 +392,34 @@ export function MatchDetailPage() {
 
   // Venue location (fetch lat/lng from padel_venues)
   const { data: venueLatLng } = useQuery<{ latitude: number; longitude: number } | null>({
-    queryKey: ['venue-latlng', data?.match?.booked_venue_name],
-    enabled: !!data?.match?.booked_venue_name,
+    queryKey: ['venue-latlng', (data?.match as any)?.booked_venue_id, data?.match?.booked_venue_name],
+    enabled: !!data?.match?.booked_venue_name || !!(data?.match as any)?.booked_venue_id,
     queryFn: async () => {
-      const { data: venue } = await supabase
-        .from('padel_venues')
-        .select('latitude, longitude')
-        .ilike('venue_name', `%${data!.match.booked_venue_name!}%`)
-        .limit(1)
-        .maybeSingle()
-      if (!venue?.latitude || !venue?.longitude) return null
-      return { latitude: venue.latitude, longitude: venue.longitude }
+      const venueId = (data!.match as any).booked_venue_id as string | null
+      // FK lookup first (exact, reliable)
+      if (venueId) {
+        const { data: venue } = await supabase
+          .from('padel_venues')
+          .select('latitude, longitude')
+          .eq('venue_id', venueId)
+          .maybeSingle()
+        if (venue?.latitude && venue?.longitude) {
+          return { latitude: venue.latitude, longitude: venue.longitude }
+        }
+      }
+      // Fallback: fuzzy name match for manual/off-app entries
+      if (data!.match.booked_venue_name) {
+        const { data: venue } = await supabase
+          .from('padel_venues')
+          .select('latitude, longitude')
+          .ilike('venue_name', `%${data!.match.booked_venue_name!}%`)
+          .limit(1)
+          .maybeSingle()
+        if (venue?.latitude && venue?.longitude) {
+          return { latitude: venue.latitude, longitude: venue.longitude }
+        }
+      }
+      return null
     },
   })
 

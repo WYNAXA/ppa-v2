@@ -200,7 +200,10 @@ export function AvailabilityPollPage() {
       const r = data.myResponse
       const slots = Array.isArray(r.selected_slots) ? (r.selected_slots as string[]) : []
       setSelectedSlots(slots)
-      setCantDoWeek(slots.length === 0 && r.submitted_at != null)
+      // Range polls: can't-do-week = submitted with empty availability_ranges (not empty selected_slots)
+      const hasRanges = r.availability_ranges && typeof r.availability_ranges === 'object' && Object.keys(r.availability_ranges).length > 0
+      const hasSlots = slots.length > 0
+      setCantDoWeek(r.submitted_at != null && !hasRanges && !hasSlots)
 
       const customRanges = (r.flexible_times as any)?.custom_time_ranges ?? {}
       setCustomTimeRanges(customRanges)

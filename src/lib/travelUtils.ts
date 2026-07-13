@@ -76,17 +76,24 @@ export async function getMatchTravelInfo(
     supabase.from('match_drivers').select('driver_id, seats_available, offering_lifts').eq('match_id', _matchId),
   ])
 
-  // Poll answer drivers
-  canDriveIds = (pollDriveResult.data ?? [])
-    .filter((r: any) => r.additional_responses?.[POLL_OPTION_DRIVE] === true)
-    .map((r: any) => r.user_id)
-
-  // Committed match_drivers (override seats if present)
+  // Committed match_drivers are authoritative (user can toggle on/off).
+  // Poll answers only seed the initial row via confirm_poll_schedule —
+  // they do NOT continuously override the user's toggle choice.
+  const matchDriverRows = matchDriversResult.data ?? []
   const offeringLiftsSet = new Set<string>()
-  for (const md of matchDriversResult.data ?? []) {
-    if (!canDriveIds.includes(md.driver_id)) canDriveIds.push(md.driver_id)
-    matchDriverSeats.set(md.driver_id, md.seats_available)
-    if (md.offering_lifts) offeringLiftsSet.add(md.driver_id)
+
+  if (matchDriverRows.length > 0) {
+    // match_drivers rows exist: use them as the SOLE driver source
+    for (const md of matchDriverRows) {
+      canDriveIds.push(md.driver_id)
+      matchDriverSeats.set(md.driver_id, md.seats_available)
+      if (md.offering_lifts) offeringLiftsSet.add(md.driver_id)
+    }
+  } else {
+    // No match_drivers rows: fall back to poll answers (pre-confirm state)
+    canDriveIds = (pollDriveResult.data ?? [])
+      .filter((r: any) => r.additional_responses?.[POLL_OPTION_DRIVE] === true)
+      .map((r: any) => r.user_id)
   }
 
   // Count accepted riders per driver (for seat decrement)

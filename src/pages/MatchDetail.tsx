@@ -2396,7 +2396,7 @@ export function MatchDetailPage() {
                                   <p className="text-[11px] text-gray-400">Waiting for response</p>
                                 )}
                               </div>
-                              {isMe && !acceptedDriverLocal && travelInfo!.drivers.some(d => d.offering_lifts) && (
+                              {isMe && !acceptedDriverLocal && (travelInfo!.drivers.length > 0) && (
                                 <button
                                   onClick={() => setShowLiftChooser(true)}
                                   className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white"
@@ -2838,7 +2838,7 @@ export function MatchDetailPage() {
                 </button>
               </div>
               <div className="px-5 pb-6 space-y-2" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-                {travelInfo.drivers.filter(d => d.offering_lifts).map((driver) => {
+                {travelInfo.drivers.map((driver) => {
                   const myReq = myTravelRequests.find((r) => r.driver_id === driver.id)
                   const suggestion = travelInfo.suggestions.find((s) => s.driver.id === driver.id && s.passenger.id === profile?.id)
                   const hasActiveRequest = myReq && (myReq.status === 'pending' || myReq.status === 'accepted')

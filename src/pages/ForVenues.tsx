@@ -137,7 +137,7 @@ export function ForVenuesPage() {
               {results.map((v) => (
                 <a
                   key={v.venue_id}
-                  href={`${VM_URL}/onboarding`}
+                  href={`${VM_URL}/claim?venue=${v.venue_id}`}
                   className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 hover:border-[#009688] hover:bg-teal-50/30 transition-all group"
                 >
                   <div className="flex items-center gap-3 min-w-0">

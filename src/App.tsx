@@ -16,6 +16,7 @@ import { SupportPage } from '@/pages/Support'
 import { LandingPage } from '@/pages/Landing'
 import { FAQPage } from '@/pages/FAQ'
 import { ContactPage } from '@/pages/Contact'
+import { ForVenuesPage } from '@/pages/ForVenues'
 
 // v1.1.3 — force WKWebView cache refresh to drop stale debug banner
 
@@ -69,7 +70,7 @@ function OnboardingGuard({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (loading) return
     if (!session || !profile) return
-    if (['/onboarding', '/privacy', '/terms', '/support', '/faq', '/contact'].includes(location.pathname)) return
+    if (['/onboarding', '/privacy', '/terms', '/support', '/faq', '/contact', '/venues'].includes(location.pathname)) return
     if (location.pathname.startsWith('/auth')) return
     if (!isOnboardingComplete(profile)) {
       navigate('/onboarding', { replace: true })
@@ -195,6 +196,7 @@ function AppShell() {
             <Route path="/support" element={<SupportPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/contact" element={<ContactPage />} />
+            <Route path="/venues" element={<ForVenuesPage />} />
             <Route path="/pay/booking/:bookingId/player/:playerId" element={<PayBookingPage />} />
 
             {/* Onboarding */}

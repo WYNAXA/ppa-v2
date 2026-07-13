@@ -27,6 +27,7 @@ function NavBar() {
           <a href="#ranking" className="mkt-link pb-0.5 hover:text-navy transition-colors">Ranking</a>
           <Link to="/faq" className="mkt-link pb-0.5 hover:text-navy transition-colors">FAQ</Link>
           <Link to="/contact" className="mkt-link pb-0.5 hover:text-navy transition-colors">Contact</Link>
+          <Link to="/venues" className="mkt-link pb-0.5 hover:text-teal-600 font-semibold transition-colors">For Venues</Link>
         </div>
         <Link
           to="/auth?mode=signup"
@@ -288,6 +289,7 @@ function Footer() {
             <Link to="/faq" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">FAQ</Link>
             <Link to="/contact" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Contact</Link>
             <Link to="/support" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Support</Link>
+            <Link to="/venues" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">For Venues</Link>
           </div>
         </div>
         <p className="mt-6 text-[11px] text-gray-300">&copy; {new Date().getFullYear()} Wynaxa Sports Tech Ltd. All rights reserved.</p>

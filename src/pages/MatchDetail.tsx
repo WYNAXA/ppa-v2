@@ -802,8 +802,7 @@ export function MatchDetailPage() {
     onError: (err: Error) => { toast.error(err.message || 'Failed to update') },
   })
 
-  // Check if user has travel prefs set
-  const hasTravelPrefs = !!(profile as any)?.can_drive
+  // Travel prefs guard removed — toggles always available for participants
 
   // Rider address (privacy-gated RPC — only returns data if caller is accepted driver)
   const [expandedRiderId, setExpandedRiderId] = useState<string | null>(null)
@@ -2299,47 +2298,49 @@ export function MatchDetailPage() {
                   )}
 
 
-                  {/* Your driving status */}
+                  {/* Your driving status — always visible for participants on active matches */}
                   {!matchCompleted && isParticipant && (
                     <div className="mb-3 space-y-2">
-                      {!hasTravelPrefs && !amDriving ? (
-                        <a href="/you" className="block rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] text-amber-700 font-medium text-center">
-                          Set your travel preferences first →
-                        </a>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => toggleDrivingMutation.mutate()}
-                            disabled={toggleDrivingMutation.isPending}
-                            className={cn(
-                              'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all',
-                              amDriving ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                            )}
-                          >
-                            <div className="flex items-center gap-2">
-                              <Car className="h-4 w-4" />
-                              <span>Driving</span>
-                            </div>
-                            <span className="text-[11px]">{amDriving ? 'Yes ✓' : 'No'}</span>
-                          </button>
-                          {amDriving && (
-                            <button
-                              onClick={() => toggleOfferingMutation.mutate()}
-                              disabled={toggleOfferingMutation.isPending}
-                              className={cn(
-                                'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 ml-4 text-[13px] font-semibold transition-all',
-                                amOffering ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                              )}
-                              style={{ width: 'calc(100% - 16px)' }}
-                            >
-                              <div className="flex items-center gap-2">
-                                <Users className="h-4 w-4" />
-                                <span>Offering a lift</span>
-                              </div>
-                              <span className="text-[11px]">{amOffering ? 'Yes ✓' : 'No'}</span>
-                            </button>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-1">Your travel</p>
+                      <button
+                        onClick={() => toggleDrivingMutation.mutate()}
+                        disabled={toggleDrivingMutation.isPending}
+                        className={cn(
+                          'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all active:scale-[0.98]',
+                          amDriving ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        )}
+                      >
+                        <div className="flex items-center gap-2">
+                          <Car className="h-4 w-4" />
+                          <div className="text-left">
+                            <span>Driving</span>
+                            <p className="text-[10px] font-normal opacity-70">Making my own way there</p>
+                          </div>
+                        </div>
+                        <span className={cn('text-[11px] rounded-full px-2 py-0.5', amDriving ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-400')}>
+                          {amDriving ? 'Yes' : 'No'}
+                        </span>
+                      </button>
+                      {amDriving && (
+                        <button
+                          onClick={() => toggleOfferingMutation.mutate()}
+                          disabled={toggleOfferingMutation.isPending}
+                          className={cn(
+                            'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all active:scale-[0.98]',
+                            amOffering ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                           )}
-                        </>
+                        >
+                          <div className="flex items-center gap-2">
+                            <Users className="h-4 w-4" />
+                            <div className="text-left">
+                              <span>Offering a lift</span>
+                              <p className="text-[10px] font-normal opacity-70">Happy to take passengers</p>
+                            </div>
+                          </div>
+                          <span className={cn('text-[11px] rounded-full px-2 py-0.5', amOffering ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-400')}>
+                            {amOffering ? 'Yes' : 'No'}
+                          </span>
+                        </button>
                       )}
                     </div>
                   )}

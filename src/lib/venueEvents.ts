@@ -68,6 +68,40 @@ export interface DiscoverableEvent {
   distance_miles: number | null
 }
 
+// ── Venue display lookup ─────────────────────────────────────────────────────
+// venue_events.venue_id → venues.id (the anchor).
+// padel_venues.venues_id → venues.id (the display listing).
+// PostgREST can't do a two-hop join, so we fetch padel_venues separately by
+// matching venues_id to the set of venue_ids we got from venue_events.
+
+async function resolveVenueDisplay(venueIds: string[]): Promise<Map<string, {
+  venue_name: string
+  city: string | null
+  full_address: string | null
+  latitude: number | null
+  longitude: number | null
+}>> {
+  const map = new Map<string, { venue_name: string; city: string | null; full_address: string | null; latitude: number | null; longitude: number | null }>()
+  if (venueIds.length === 0) return map
+
+  const unique = [...new Set(venueIds)]
+  const { data } = await supabase
+    .from('padel_venues')
+    .select('venues_id, venue_name, city, full_address, latitude, longitude')
+    .in('venues_id', unique)
+
+  for (const row of data ?? []) {
+    map.set(row.venues_id, {
+      venue_name: row.venue_name,
+      city: row.city ?? null,
+      full_address: row.full_address ?? null,
+      latitude: row.latitude != null ? Number(row.latitude) : null,
+      longitude: row.longitude != null ? Number(row.longitude) : null,
+    })
+  }
+  return map
+}
+
 // ── Discover query ───────────────────────────────────────────────────────────
 
 /**
@@ -80,7 +114,7 @@ export async function discoverVenueEvents(
 ): Promise<DiscoverableEvent[]> {
   const now = new Date().toISOString()
 
-  // PostgREST nested select: occurrence → venue_event → padel_venues
+  // Step 1: occurrences → venue_events (one-hop; no padel_venues join)
   const { data, error } = await supabase
     .from('venue_event_occurrences')
     .select(`
@@ -104,14 +138,7 @@ export async function discoverVenueEvents(
         open_to_join,
         visibility,
         status,
-        image_url,
-        padel_venues!inner (
-          venue_id,
-          venue_name,
-          city,
-          latitude,
-          longitude
-        )
+        image_url
       )
     `)
     .eq('venue_events.open_to_join', true)
@@ -127,11 +154,17 @@ export async function discoverVenueEvents(
     return []
   }
 
-  const rows: DiscoverableEvent[] = (data ?? []).map((occ: any) => {
+  if (!data || data.length === 0) return []
+
+  // Step 2: resolve venue display info via padel_venues.venues_id
+  const venueIds = (data as any[]).map((occ: any) => occ.venue_events.venue_id as string)
+  const venueMap = await resolveVenueDisplay(venueIds)
+
+  const rows: DiscoverableEvent[] = (data as any[]).map((occ: any) => {
     const ev = occ.venue_events
-    const v = ev.padel_venues
-    const vLat = v?.latitude != null ? Number(v.latitude) : null
-    const vLng = v?.longitude != null ? Number(v.longitude) : null
+    const v = venueMap.get(ev.venue_id)
+    const vLat = v?.latitude ?? null
+    const vLng = v?.longitude ?? null
     const dist =
       userLat != null && userLng != null && vLat != null && vLng != null
         ? calculateDistance(userLat, userLng, vLat, vLng)
@@ -177,6 +210,7 @@ export async function discoverVenueEvents(
 // ── Fetch single occurrence detail ───────────────────────────────────────────
 
 export async function fetchOccurrenceDetail(occurrenceId: string) {
+  // Step 1: occurrence → venue_event (one hop only)
   const { data, error } = await supabase
     .from('venue_event_occurrences')
     .select(`
@@ -200,15 +234,7 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
         open_to_join,
         visibility,
         status,
-        image_url,
-        padel_venues!inner (
-          venue_id,
-          venue_name,
-          city,
-          full_address,
-          latitude,
-          longitude
-        )
+        image_url
       )
     `)
     .eq('id', occurrenceId)
@@ -217,7 +243,10 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
   if (error || !data) return null
 
   const ev = (data as any).venue_events
-  const v = ev.padel_venues
+
+  // Step 2: resolve venue display via padel_venues.venues_id
+  const venueMap = await resolveVenueDisplay([ev.venue_id])
+  const v = venueMap.get(ev.venue_id)
 
   return {
     occurrence: {
@@ -243,12 +272,12 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
       image_url: ev.image_url,
     },
     venue: {
-      venue_id: v.venue_id,
-      venue_name: v.venue_name,
-      city: v.city,
-      full_address: v.full_address,
-      latitude: v.latitude != null ? Number(v.latitude) : null,
-      longitude: v.longitude != null ? Number(v.longitude) : null,
+      venue_id: ev.venue_id,
+      venue_name: v?.venue_name ?? 'Venue',
+      city: v?.city ?? null,
+      full_address: v?.full_address ?? null,
+      latitude: v?.latitude ?? null,
+      longitude: v?.longitude ?? null,
     },
   }
 }

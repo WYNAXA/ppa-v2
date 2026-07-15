@@ -41,7 +41,6 @@ export interface VenueEvent {
   payment_mode: 'pay_at_venue' | 'pay_in_app'
   open_to_join: boolean
   visibility: 'public' | 'members'
-  status: string
   created_at: string
 }
 
@@ -154,13 +153,11 @@ export async function discoverVenueEvents(
         price_per_player,
         payment_mode,
         open_to_join,
-        visibility,
-        status
+        visibility
       )
     `)
     .eq('venue_events.open_to_join', true)
     .eq('venue_events.visibility', 'public')
-    .eq('venue_events.status', 'scheduled')
     .eq('status', 'scheduled')
     .gt('starts_at', now)
     .order('starts_at', { ascending: true })
@@ -246,8 +243,7 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
         price_per_player,
         payment_mode,
         open_to_join,
-        visibility,
-        status
+        visibility
       )
     `)
     .eq('id', occurrenceId)

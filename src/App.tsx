@@ -46,6 +46,7 @@ const AllGroupsPage = lazy(() => import('@/pages/community/AllGroupsPage').then(
 const AllPlayersPage = lazy(() => import('@/pages/community/AllPlayersPage').then(m => ({ default: m.AllPlayersPage })))
 const MyConnectionsPage = lazy(() => import('@/pages/community/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
 const OpenMatchesPage = lazy(() => import('@/pages/OpenMatches').then(m => ({ default: m.OpenMatchesPage })))
+const VenueEventDetailPage = lazy(() => import('@/pages/VenueEventDetail').then(m => ({ default: m.VenueEventDetailPage })))
 
 
 const queryClient = new QueryClient({
@@ -229,6 +230,7 @@ function AppShell() {
             <Route path="/play/availability/create"  element={<Guard><CreatePollPage /></Guard>} />
             <Route path="/play/availability/:pollId" element={<Guard><AvailabilityPollPage /></Guard>} />
             <Route path="/play/book-court"           element={<Guard><BookCourtPage /></Guard>} />
+            <Route path="/play/events/:occurrenceId"  element={<Guard><VenueEventDetailPage /></Guard>} />
 
             {/* Compete sub-routes */}
             <Route path="/leagues" element={<Guard><LeagueDiscoveryPage /></Guard>} />

@@ -117,6 +117,7 @@ function formatSlotTime(timeStr: string): string {
   }
 }
 
+// Local wrapper: BookCourt shows exact pence (£36.00) not rounded (£36)
 function formatPence(pence: number): string {
   return `£${(pence / 100).toFixed(2)}`
 }
@@ -673,6 +674,8 @@ export function BookCourtPage() {
           player_ids: userPlayers,
           guest_players: guestPlayers,
           paid_player_ids: [...new Set([userId, ...coveredIds])],
+          purpose: 'game',
+          source: 'in_app',
           total_price_pence: totalPence,
           price_per_player_pence: perPlayerPence,
           booker_stripe_pi_id: piId,

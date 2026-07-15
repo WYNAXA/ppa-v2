@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Bell, Plus, Search, BookOpen, ArrowRight, X, Trophy } from 'lucide-react'
+import { Bell, Plus, Search, BookOpen, ArrowRight, X, Trophy, Calendar, MapPin, Users, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
@@ -10,6 +10,107 @@ import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 import { WeekMatchView } from '@/components/play/WeekMatchView'
+import { discoverVenueEvents, type DiscoverableEvent } from '@/lib/venueEvents'
+import { formatDistance } from '@/lib/travelUtils'
+
+// ── WhatsOn Section ──────────────────────────────────────────────────────────
+
+function WhatsOnSection() {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const { profile } = useAuth()
+  const userLat = (profile as any)?.latitude ?? null
+  const userLng = (profile as any)?.longitude ?? null
+
+  const { data: events = [], isLoading } = useQuery<DiscoverableEvent[]>({
+    queryKey: ['venue-events-discover', userLat, userLng],
+    queryFn: () => discoverVenueEvents(userLat ? Number(userLat) : null, userLng ? Number(userLng) : null),
+    staleTime: 60_000,
+  })
+
+  if (isLoading) {
+    return (
+      <div>
+        <h2 className="text-[15px] font-bold text-gray-900 mb-3">{t('play.whats_on')}</h2>
+        <div className="flex justify-center py-6">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        </div>
+      </div>
+    )
+  }
+
+  if (events.length === 0) return null
+
+  const fmt = (iso: string) => {
+    const d = new Date(iso)
+    const day = d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+    const time = d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    return `${day} · ${time}`
+  }
+
+  const levelLabel = (min: number | null, max: number | null) => {
+    if (min == null && max == null) return null
+    if (min != null && max != null) return `Level ${min}–${max}`
+    if (min != null) return `Level ${min}+`
+    return `Up to level ${max}`
+  }
+
+  return (
+    <div>
+      <h2 className="text-[15px] font-bold text-gray-900 mb-3">{t('play.whats_on')}</h2>
+      <div className="space-y-2.5">
+        {events.slice(0, 6).map((ev) => {
+          const spotsLeft = ev.capacity - ev.spots_taken
+          const level = levelLabel(ev.level_min, ev.level_max)
+          return (
+            <button
+              key={ev.occurrence_id}
+              onClick={() => navigate(`/play/events/${ev.occurrence_id}`)}
+              className="w-full text-left rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-gray-200 active:scale-[0.99]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-bold text-gray-900 leading-tight truncate">{ev.event_name}</p>
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-[12px] text-gray-500 truncate">
+                      {ev.venue_name}
+                      {ev.distance_miles != null && ` · ${formatDistance(ev.distance_miles)}`}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Calendar className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
+                    <span className="text-[12px] text-gray-500">{fmt(ev.starts_at)}</span>
+                  </div>
+                  <div className="flex items-center gap-3 mt-2">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#009688]">
+                      <Users className="h-3.5 w-3.5" />
+                      {spotsLeft > 0
+                        ? t('play.ve_spots_left', { count: spotsLeft })
+                        : t('play.ve_full')}
+                    </span>
+                    {level && (
+                      <span className="text-[11px] text-gray-400">{level}</span>
+                    )}
+                    {ev.price_pence != null && ev.price_pence > 0 && (
+                      <span className="text-[11px] font-semibold text-gray-600">
+                        {"\u00A3"}{(ev.price_pence / 100).toFixed(2)}
+                      </span>
+                    )}
+                    {(ev.price_pence == null || ev.price_pence === 0) && (
+                      <span className="text-[11px] font-semibold text-[#009688]">{t('play.ve_free')}</span>
+                    )}
+                  </div>
+                </div>
+                <ChevronRight className="h-4 w-4 text-gray-300 mt-1 flex-shrink-0" />
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
 
 // ── Container animation ───────────────────────────────────────────────────────
 const container = { hidden: {}, show: { transition: { staggerChildren: 0.07 } } }
@@ -253,6 +354,11 @@ export function PlayPage() {
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.leagues')}</span>
               </button>
             </div>
+          </motion.div>
+
+          {/* ── What's on — venue events ──────────────────────────────── */}
+          <motion.div variants={item}>
+            <WhatsOnSection />
           </motion.div>
 
           {/* ── Week Match View ─────────────────────────────────────────── */}

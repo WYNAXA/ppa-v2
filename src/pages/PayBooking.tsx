@@ -10,6 +10,7 @@ import {
 import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { penceToPounds } from '@/lib/money'
 
 // ── Env vars ──────────────────────────────────────────────────────────────────
 
@@ -141,7 +142,7 @@ function PaymentForm({
     }
   }
 
-  const amountGBP = (totalPence / 100).toFixed(2)
+  const amountGBP = penceToPounds(totalPence).toFixed(2)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -404,8 +405,8 @@ export function PayBookingPage() {
 
   const shareCount = selectedIds.size
   const totalPence = booking ? shareCount * booking.price_per_player_pence : 0
-  const totalGBP = (totalPence / 100).toFixed(2)
-  const perShareGBP = booking ? (booking.price_per_player_pence / 100).toFixed(2) : '0.00'
+  const totalGBP = penceToPounds(totalPence).toFixed(2)
+  const perShareGBP = booking ? penceToPounds(booking.price_per_player_pence).toFixed(2) : '0.00'
 
   // ── Already paid ──
   if (alreadyPaid) {

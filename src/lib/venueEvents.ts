@@ -2,13 +2,29 @@
 // Tables live in the shared DB (created by VM): venue_events,
 // venue_event_occurrences, venue_event_participants, products, order_items.
 //
-// Column mapping (actual DB names):
-//   venue_events: type (not event_type), price_per_player (not price_pence),
-//     payment_mode (not payment_type), capacity (lives HERE, not on occurrences).
-//   No image_url column exists on venue_events.
+// MONEY: price_per_player is stored in MINOR UNITS (pence for GBP, cents for
+// EUR, whole units for JPY/HUF). Stripe also expects minor units. NEVER
+// multiply or divide by 100 — use formatMoney() for display.
 
 import { supabase } from './supabase'
 import { calculateDistance } from './travelUtils'
+
+// ── Currency-aware money formatting ──────────────────────────────────────────
+
+/**
+ * Format a minor-unit amount for display using the currency's real exponent.
+ * e.g. formatMoney(500, 'GBP') → "£5.00", formatMoney(500, 'HUF') → "500 Ft"
+ *
+ * Uses Intl.NumberFormat to derive the correct decimal exponent and symbol —
+ * never hardcodes /100 or a currency symbol.
+ */
+export function formatMoney(minorUnits: number, currency: string): string {
+  // Intl.NumberFormat tells us the real fractional digit count for the currency
+  const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency })
+  const digits = fmt.resolvedOptions().minimumFractionDigits ?? 2
+  const majorUnits = digits > 0 ? minorUnits / Math.pow(10, digits) : minorUnits
+  return fmt.format(majorUnits)
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,35 +78,34 @@ export interface DiscoverableEvent {
   level_max: number | null
   price_per_player: number | null
   payment_mode: 'pay_at_venue' | 'pay_in_app'
+  currency: string
   venue_id: string
   venue_name: string
   venue_city: string | null
   venue_latitude: number | null
   venue_longitude: number | null
-  // computed client-side
   distance_miles: number | null
 }
 
 // ── Venue display lookup ─────────────────────────────────────────────────────
-// venue_events.venue_id → venues.id (the anchor).
-// padel_venues.venues_id → venues.id (the display listing).
-// PostgREST can't do a two-hop join, so we fetch padel_venues separately by
-// matching venues_id to the set of venue_ids we got from venue_events.
 
-async function resolveVenueDisplay(venueIds: string[]): Promise<Map<string, {
+interface VenueDisplayInfo {
   venue_name: string
   city: string | null
   full_address: string | null
   latitude: number | null
   longitude: number | null
-}>> {
-  const map = new Map<string, { venue_name: string; city: string | null; full_address: string | null; latitude: number | null; longitude: number | null }>()
+  currency: string
+}
+
+async function resolveVenueDisplay(venueIds: string[]): Promise<Map<string, VenueDisplayInfo>> {
+  const map = new Map<string, VenueDisplayInfo>()
   if (venueIds.length === 0) return map
 
   const unique = [...new Set(venueIds)]
   const { data } = await supabase
     .from('padel_venues')
-    .select('venues_id, venue_name, city, full_address, latitude, longitude')
+    .select('venues_id, venue_name, city, full_address, latitude, longitude, currency')
     .in('venues_id', unique)
 
   for (const row of data ?? []) {
@@ -100,6 +115,7 @@ async function resolveVenueDisplay(venueIds: string[]): Promise<Map<string, {
       full_address: row.full_address ?? null,
       latitude: row.latitude != null ? Number(row.latitude) : null,
       longitude: row.longitude != null ? Number(row.longitude) : null,
+      currency: row.currency ?? 'GBP',
     })
   }
   return map
@@ -117,8 +133,6 @@ export async function discoverVenueEvents(
 ): Promise<DiscoverableEvent[]> {
   const now = new Date().toISOString()
 
-  // Step 1: occurrences → venue_events (one-hop; no padel_venues join)
-  // capacity lives on venue_events, NOT on venue_event_occurrences.
   const { data, error } = await supabase
     .from('venue_event_occurrences')
     .select(`
@@ -159,7 +173,6 @@ export async function discoverVenueEvents(
 
   if (!data || data.length === 0) return []
 
-  // Step 2: resolve venue display info via padel_venues.venues_id
   const venueIds = (data as any[]).map((occ: any) => occ.venue_events.venue_id as string)
   const venueMap = await resolveVenueDisplay(venueIds)
 
@@ -187,6 +200,7 @@ export async function discoverVenueEvents(
       level_max: ev.level_max,
       price_per_player: ev.price_per_player,
       payment_mode: ev.payment_mode ?? 'pay_at_venue',
+      currency: v?.currency ?? 'GBP',
       venue_id: ev.venue_id,
       venue_name: v?.venue_name ?? 'Venue',
       venue_city: v?.city ?? null,
@@ -196,7 +210,6 @@ export async function discoverVenueEvents(
     }
   })
 
-  // Sort by distance (nearest first) when location available, otherwise by time
   rows.sort((a, b) => {
     if (a.distance_miles != null && b.distance_miles != null) {
       return a.distance_miles - b.distance_miles
@@ -212,8 +225,6 @@ export async function discoverVenueEvents(
 // ── Fetch single occurrence detail ───────────────────────────────────────────
 
 export async function fetchOccurrenceDetail(occurrenceId: string) {
-  // Step 1: occurrence → venue_event (one hop only)
-  // capacity lives on venue_events, NOT on venue_event_occurrences.
   const { data, error } = await supabase
     .from('venue_event_occurrences')
     .select(`
@@ -246,7 +257,6 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
 
   const ev = (data as any).venue_events
 
-  // Step 2: resolve venue display via padel_venues.venues_id
   const venueMap = await resolveVenueDisplay([ev.venue_id])
   const v = venueMap.get(ev.venue_id)
 
@@ -279,6 +289,7 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
       full_address: v?.full_address ?? null,
       latitude: v?.latitude ?? null,
       longitude: v?.longitude ?? null,
+      currency: v?.currency ?? 'GBP',
     },
   }
 }
@@ -301,7 +312,6 @@ export async function fetchParticipants(occurrenceId: string) {
 
 // ── Connections helper ───────────────────────────────────────────────────────
 
-/** Return Set of user IDs the viewer has an accepted connection with. */
 export async function fetchConnectionIds(userId: string): Promise<Set<string>> {
   const [outgoing, incoming] = await Promise.all([
     supabase
@@ -324,10 +334,6 @@ export async function fetchConnectionIds(userId: string): Promise<Set<string>> {
 
 // ── Join / leave helpers ─────────────────────────────────────────────────────
 
-/**
- * Join a pay_at_venue event (no payment required).
- * Uses the server-side RPC for atomic capacity enforcement.
- */
 export async function joinVenueEvent(occurrenceId: string) {
   const { data, error } = await supabase.rpc('join_venue_event', {
     p_occurrence_id: occurrenceId,
@@ -339,10 +345,6 @@ export async function joinVenueEvent(occurrenceId: string) {
   return data
 }
 
-/**
- * Finalise a pay_in_app join after Stripe payment succeeds.
- * Uses the same atomic RPC but includes payment proof.
- */
 export async function finaliseEventPayment(
   occurrenceId: string,
   orderItemId: string,
@@ -360,9 +362,6 @@ export async function finaliseEventPayment(
   return data
 }
 
-/**
- * Cancel participation — marks cancelled, decrements spots_taken.
- */
 export async function leaveVenueEvent(occurrenceId: string) {
   const { data, error } = await supabase.rpc('leave_venue_event', {
     p_occurrence_id: occurrenceId,

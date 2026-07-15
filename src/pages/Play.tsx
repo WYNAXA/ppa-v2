@@ -10,7 +10,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 import { WeekMatchView } from '@/components/play/WeekMatchView'
-import { discoverVenueEvents, type DiscoverableEvent } from '@/lib/venueEvents'
+import { discoverVenueEvents, formatMoney, type DiscoverableEvent } from '@/lib/venueEvents'
 import { formatDistance } from '@/lib/travelUtils'
 
 // ── WhatsOn Section ──────────────────────────────────────────────────────────
@@ -63,7 +63,7 @@ function WhatsOnSection() {
           const spotsLeft = ev.capacity != null ? ev.capacity - ev.spots_taken : null
           const level = levelLabel(ev.level_min, ev.level_max)
           const isFree = ev.price_per_player == null || ev.price_per_player === 0
-          const priceLabel = isFree ? null : (Number.isInteger(ev.price_per_player) ? `\u00A3${ev.price_per_player}` : `\u00A3${(ev.price_per_player ?? 0).toFixed(2)}`)
+          const priceLabel = isFree ? null : formatMoney(ev.price_per_player ?? 0, ev.currency)
           return (
             <button
               key={ev.occurrence_id}

@@ -4,6 +4,9 @@
 // Connect account. Also creates an order_items row (status 'pending') so the
 // purchase is tracked before payment completes.
 //
+// MONEY: amount_minor is in the venue currency's minor units (pence for GBP,
+// cents for EUR, whole units for JPY). Passed directly to Stripe — no *100.
+//
 // After the client confirms payment, the app calls the join_venue_event RPC
 // with the order_item_id + stripe PI to atomically reserve the spot.
 
@@ -29,38 +32,45 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors })
 
   try {
-    const { occurrence_id, venue_id, event_name, amount_pence, user_id } = await req.json()
+    const body = await req.json()
+    const { occurrence_id, venue_id, event_name, user_id } = body
+    // amount_minor: price in the currency's minor units (already stored that way)
+    const amount_minor: number = body.amount_minor ?? body.amount_pence ?? 0
+    // currency: ISO 4217 code from the venue, default GBP
+    const currency: string = (body.currency ?? 'GBP').toLowerCase()
 
-    if (!occurrence_id || !venue_id || !amount_pence || !user_id) {
+    if (!occurrence_id || !venue_id || !amount_minor || !user_id) {
       return Response.json(
-        { error: 'occurrence_id, venue_id, amount_pence, and user_id are required' },
+        { error: 'occurrence_id, venue_id, amount_minor, and user_id are required' },
         { status: 400, headers: cors },
       )
     }
 
-    // Validate amount: positive integer, per-entry £1–£100
+    // Validate amount: positive integer, sane range (1–1_000_000 minor units)
     if (
-      !Number.isInteger(amount_pence) ||
-      amount_pence < 100 ||
-      amount_pence > 10000
+      !Number.isInteger(amount_minor) ||
+      amount_minor < 1 ||
+      amount_minor > 1_000_000
     ) {
       return Response.json(
-        { error: 'Invalid amount (must be £1–£100)' },
+        { error: 'Invalid amount' },
         { status: 400, headers: cors },
       )
     }
 
     // ── Pre-flight capacity check (non-authoritative, the RPC is the truth) ──
+    // capacity lives on venue_events, not occurrences — join to check
     const { data: occ } = await supabase
       .from('venue_event_occurrences')
-      .select('capacity, spots_taken')
+      .select('spots_taken, venue_events!inner ( capacity )')
       .eq('id', occurrence_id)
       .maybeSingle()
 
     if (!occ) {
       return Response.json({ error: 'Occurrence not found' }, { status: 404, headers: cors })
     }
-    if (occ.spots_taken >= occ.capacity) {
+    const evCapacity = (occ as any).venue_events?.capacity
+    if (evCapacity != null && occ.spots_taken >= evCapacity) {
       return Response.json({ error: 'Event is full' }, { status: 409, headers: cors })
     }
 
@@ -97,7 +107,7 @@ Deno.serve(async (req: Request) => {
           venue_id,
           product_type: 'event_entry',
           name: `Event entry: ${event_name ?? 'Venue event'}`,
-          price_pence: amount_pence,
+          price_pence: amount_minor,
           reference_id: occurrence_id,
         })
         .select('id')
@@ -115,7 +125,8 @@ Deno.serve(async (req: Request) => {
         product_id: productId,
         user_id,
         quantity: 1,
-        amount_pence,
+        amount_pence: amount_minor,
+        currency: currency.toUpperCase(),
         status: 'pending',
       })
       .select('id')
@@ -126,11 +137,11 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Create Stripe PaymentIntent (destination charge) ────────────────────
-    const application_fee_amount = Math.round(amount_pence * 0.035) // 3.5% platform fee
+    const application_fee_amount = Math.round(amount_minor * 0.035) // 3.5% platform fee
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount_pence,
-      currency: 'gbp',
+      amount: amount_minor,
+      currency,
       application_fee_amount,
       transfer_data: { destination: acct.stripe_account_id },
       metadata: {

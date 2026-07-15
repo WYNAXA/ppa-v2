@@ -60,8 +60,10 @@ function WhatsOnSection() {
       <h2 className="text-[15px] font-bold text-gray-900 mb-3">{t('play.whats_on')}</h2>
       <div className="space-y-2.5">
         {events.slice(0, 6).map((ev) => {
-          const spotsLeft = ev.capacity - ev.spots_taken
+          const spotsLeft = ev.capacity != null ? ev.capacity - ev.spots_taken : null
           const level = levelLabel(ev.level_min, ev.level_max)
+          const isFree = ev.price_per_player == null || ev.price_per_player === 0
+          const priceLabel = isFree ? null : (Number.isInteger(ev.price_per_player) ? `\u00A3${ev.price_per_player}` : `\u00A3${(ev.price_per_player ?? 0).toFixed(2)}`)
           return (
             <button
               key={ev.occurrence_id}
@@ -85,19 +87,16 @@ function WhatsOnSection() {
                   <div className="flex items-center gap-3 mt-2">
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#009688]">
                       <Users className="h-3.5 w-3.5" />
-                      {spotsLeft > 0
-                        ? t('play.ve_spots_left', { count: spotsLeft })
-                        : t('play.ve_full')}
+                      {spotsLeft != null
+                        ? (spotsLeft > 0 ? t('play.ve_spots_left', { count: spotsLeft }) : t('play.ve_full'))
+                        : `${ev.spots_taken} going`}
                     </span>
                     {level && (
                       <span className="text-[11px] text-gray-400">{level}</span>
                     )}
-                    {ev.price_pence != null && ev.price_pence > 0 && (
-                      <span className="text-[11px] font-semibold text-gray-600">
-                        {"\u00A3"}{(ev.price_pence / 100).toFixed(2)}
-                      </span>
-                    )}
-                    {(ev.price_pence == null || ev.price_pence === 0) && (
+                    {priceLabel ? (
+                      <span className="text-[11px] font-semibold text-gray-600">{priceLabel}</span>
+                    ) : (
                       <span className="text-[11px] font-semibold text-[#009688]">{t('play.ve_free')}</span>
                     )}
                   </div>

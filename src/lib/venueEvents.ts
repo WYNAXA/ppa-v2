@@ -1,6 +1,11 @@
 // Venue-event types & query helpers
 // Tables live in the shared DB (created by VM): venue_events,
 // venue_event_occurrences, venue_event_participants, products, order_items.
+//
+// Column mapping (actual DB names):
+//   venue_events: type (not event_type), price_per_player (not price_pence),
+//     payment_mode (not payment_type), capacity (lives HERE, not on occurrences).
+//   No image_url column exists on venue_events.
 
 import { supabase } from './supabase'
 import { calculateDistance } from './travelUtils'
@@ -12,15 +17,15 @@ export interface VenueEvent {
   venue_id: string
   name: string
   description: string | null
-  event_type: string | null
+  type: string | null
+  capacity: number | null
   level_min: number | null
   level_max: number | null
-  price_pence: number | null
-  payment_type: 'pay_at_venue' | 'pay_in_app'
+  price_per_player: number | null
+  payment_mode: 'pay_at_venue' | 'pay_in_app'
   open_to_join: boolean
   visibility: 'public' | 'members'
   status: string
-  image_url: string | null
   created_at: string
 }
 
@@ -29,7 +34,6 @@ export interface VenueEventOccurrence {
   event_id: string
   starts_at: string
   ends_at: string | null
-  capacity: number
   spots_taken: number
   status: string
   created_at: string
@@ -48,7 +52,7 @@ export interface DiscoverableEvent {
   occurrence_id: string
   starts_at: string
   ends_at: string | null
-  capacity: number
+  capacity: number | null
   spots_taken: number
   event_id: string
   event_name: string
@@ -56,9 +60,8 @@ export interface DiscoverableEvent {
   event_type: string | null
   level_min: number | null
   level_max: number | null
-  price_pence: number | null
-  payment_type: 'pay_at_venue' | 'pay_in_app'
-  image_url: string | null
+  price_per_player: number | null
+  payment_mode: 'pay_at_venue' | 'pay_in_app'
   venue_id: string
   venue_name: string
   venue_city: string | null
@@ -115,6 +118,7 @@ export async function discoverVenueEvents(
   const now = new Date().toISOString()
 
   // Step 1: occurrences → venue_events (one-hop; no padel_venues join)
+  // capacity lives on venue_events, NOT on venue_event_occurrences.
   const { data, error } = await supabase
     .from('venue_event_occurrences')
     .select(`
@@ -122,7 +126,6 @@ export async function discoverVenueEvents(
       event_id,
       starts_at,
       ends_at,
-      capacity,
       spots_taken,
       status,
       venue_events!inner (
@@ -130,15 +133,15 @@ export async function discoverVenueEvents(
         venue_id,
         name,
         description,
-        event_type,
+        type,
+        capacity,
         level_min,
         level_max,
-        price_pence,
-        payment_type,
+        price_per_player,
+        payment_mode,
         open_to_join,
         visibility,
-        status,
-        image_url
+        status
       )
     `)
     .eq('venue_events.open_to_join', true)
@@ -174,17 +177,16 @@ export async function discoverVenueEvents(
       occurrence_id: occ.id,
       starts_at: occ.starts_at,
       ends_at: occ.ends_at,
-      capacity: occ.capacity,
+      capacity: ev.capacity ?? null,
       spots_taken: occ.spots_taken,
       event_id: ev.id,
       event_name: ev.name,
       event_description: ev.description,
-      event_type: ev.event_type,
+      event_type: ev.type,
       level_min: ev.level_min,
       level_max: ev.level_max,
-      price_pence: ev.price_pence,
-      payment_type: ev.payment_type ?? 'pay_at_venue',
-      image_url: ev.image_url,
+      price_per_player: ev.price_per_player,
+      payment_mode: ev.payment_mode ?? 'pay_at_venue',
       venue_id: ev.venue_id,
       venue_name: v?.venue_name ?? 'Venue',
       venue_city: v?.city ?? null,
@@ -211,6 +213,7 @@ export async function discoverVenueEvents(
 
 export async function fetchOccurrenceDetail(occurrenceId: string) {
   // Step 1: occurrence → venue_event (one hop only)
+  // capacity lives on venue_events, NOT on venue_event_occurrences.
   const { data, error } = await supabase
     .from('venue_event_occurrences')
     .select(`
@@ -218,7 +221,6 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
       event_id,
       starts_at,
       ends_at,
-      capacity,
       spots_taken,
       status,
       venue_events!inner (
@@ -226,15 +228,15 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
         venue_id,
         name,
         description,
-        event_type,
+        type,
+        capacity,
         level_min,
         level_max,
-        price_pence,
-        payment_type,
+        price_per_player,
+        payment_mode,
         open_to_join,
         visibility,
-        status,
-        image_url
+        status
       )
     `)
     .eq('id', occurrenceId)
@@ -253,7 +255,6 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
       id: data.id,
       starts_at: data.starts_at,
       ends_at: data.ends_at,
-      capacity: data.capacity,
       spots_taken: data.spots_taken,
       status: data.status,
     },
@@ -262,14 +263,14 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
       venue_id: ev.venue_id,
       name: ev.name,
       description: ev.description,
-      event_type: ev.event_type,
+      type: ev.type as string | null,
+      capacity: ev.capacity as number | null,
       level_min: ev.level_min,
       level_max: ev.level_max,
-      price_pence: ev.price_pence,
-      payment_type: (ev.payment_type ?? 'pay_at_venue') as 'pay_at_venue' | 'pay_in_app',
+      price_per_player: ev.price_per_player as number | null,
+      payment_mode: (ev.payment_mode ?? 'pay_at_venue') as 'pay_at_venue' | 'pay_in_app',
       open_to_join: ev.open_to_join,
       visibility: ev.visibility,
-      image_url: ev.image_url,
     },
     venue: {
       venue_id: ev.venue_id,

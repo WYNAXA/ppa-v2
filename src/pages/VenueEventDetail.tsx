@@ -29,6 +29,16 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
 const STRIPE_APPEARANCE = { theme: 'stripe' as const, variables: { colorPrimary: '#009688' } }
 
+// price_per_player is stored as whole currency units (e.g. 10 = £10).
+// Convert to pence for the Stripe edge function.
+function priceToPence(pricePerPlayer: number | null): number {
+  return (pricePerPlayer ?? 0) * 100
+}
+function formatPrice(pricePerPlayer: number | null): string {
+  const v = pricePerPlayer ?? 0
+  return Number.isInteger(v) ? `\u00A3${v}` : `\u00A3${v.toFixed(2)}`
+}
+
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export function VenueEventDetailPage() {
@@ -127,7 +137,7 @@ export function VenueEventDetailPage() {
           occurrence_id: occurrenceId,
           venue_id: detail.event.venue_id,
           event_name: detail.event.name,
-          amount_pence: detail.event.price_pence,
+          amount_pence: priceToPence(detail.event.price_per_player),
           user_id: userId,
         }),
       })
@@ -164,10 +174,12 @@ export function VenueEventDetailPage() {
   }
 
   const { occurrence, event, venue } = detail
-  const spotsLeft = occurrence.capacity - occurrence.spots_taken
-  const isFull = spotsLeft <= 0
-  const isFree = event.price_pence == null || event.price_pence === 0
-  const isPayAtVenue = event.payment_type === 'pay_at_venue' || isFree
+  // capacity lives on venue_events, not venue_event_occurrences
+  const capacity = event.capacity
+  const spotsLeft = capacity != null ? capacity - occurrence.spots_taken : null
+  const isFull = spotsLeft != null && spotsLeft <= 0
+  const isFree = event.price_per_player == null || event.price_per_player === 0
+  const isPayAtVenue = event.payment_mode === 'pay_at_venue' || isFree
 
   // ── Distance ─────────────────────────────────────────────────────────────
   const userLat = (profile as any)?.latitude != null ? Number((profile as any).latitude) : null
@@ -244,7 +256,7 @@ export function VenueEventDetailPage() {
             <p className="text-[13px] text-gray-500 mt-1">{venue.venue_name}</p>
             <p className="text-[13px] text-gray-500">{formattedDate} · {formattedTime}</p>
             <p className="text-[16px] font-bold text-[#009688] mt-2">
-              {"\u00A3"}{((event.price_pence ?? 0) / 100).toFixed(2)}
+              {formatPrice(event.price_per_player)}
             </p>
           </div>
           <Elements
@@ -322,8 +334,10 @@ export function VenueEventDetailPage() {
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
           <p className="text-[13px] text-gray-700">
-            {occurrence.spots_taken}/{occurrence.capacity} {t('play.ve_spots_filled')}
-            {spotsLeft > 0 && (
+            {capacity != null
+              ? `${occurrence.spots_taken}/${capacity} ${t('play.ve_spots_filled')}`
+              : `${occurrence.spots_taken} ${t('play.ve_going')}`}
+            {spotsLeft != null && spotsLeft > 0 && (
               <span className="text-[#009688] font-semibold ml-1">
                 · {t('play.ve_spots_left', { count: spotsLeft })}
               </span>
@@ -337,13 +351,13 @@ export function VenueEventDetailPage() {
               {levelLabel}
             </span>
           )}
-          {event.event_type && (
+          {event.type && (
             <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600 capitalize">
-              {event.event_type}
+              {event.type}
             </span>
           )}
           <span className="text-[13px] font-bold text-gray-700">
-            {isFree ? t('play.ve_free') : `\u00A3${((event.price_pence ?? 0) / 100).toFixed(2)}`}
+            {isFree ? t('play.ve_free') : formatPrice(event.price_per_player)}
             {!isFree && isPayAtVenue && (
               <span className="text-[11px] font-normal text-gray-400 ml-1">{t('play.ve_pay_at_venue')}</span>
             )}
@@ -426,7 +440,7 @@ export function VenueEventDetailPage() {
             className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <CreditCard className="h-4 w-4" />
-            {t('play.ve_join_pay_now', { price: `\u00A3${((event.price_pence ?? 0) / 100).toFixed(2)}` })}
+            {t('play.ve_join_pay_now', { price: formatPrice(event.price_per_player) })}
           </button>
         )}
       </div>

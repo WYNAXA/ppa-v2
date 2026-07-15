@@ -633,6 +633,7 @@ export default {
     ve_not_found: 'Event not found',
     ve_go_back: 'Go back',
     ve_spots_filled: 'spots filled',
+    ve_going: 'going',
     ve_pay_at_venue: 'pay at venue',
     ve_about: 'About',
     ve_whos_going: "Who's going",

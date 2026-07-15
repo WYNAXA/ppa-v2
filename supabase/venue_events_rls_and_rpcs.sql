@@ -30,10 +30,15 @@ CREATE POLICY "Authenticated users can view public event participants"
 
 
 -- ── 2. RPC: join_venue_event ─────────────────────────────────────────────────
--- Atomically checks capacity, inserts a participant row, and increments
--- spots_taken. Two players joining the last spot simultaneously will NOT
--- both succeed — the capacity check + increment happen in a single
--- serialised UPDATE that returns 0 rows if the event is already full.
+-- Atomically checks capacity (on venue_events, NOT on occurrences), inserts a
+-- participant row, and increments spots_taken on the occurrence.
+--
+-- Capacity lives on venue_events. If capacity IS NULL the event is uncapped —
+-- joining is always allowed.
+--
+-- Two players joining the last spot simultaneously will NOT both succeed: the
+-- UPDATE … FROM joins venue_events for the capacity check, and row-level
+-- locking on the occurrence row serialises the increment.
 --
 -- For pay_in_app events, pass p_order_item_id and p_stripe_pi_id to record
 -- proof of payment. For pay_at_venue / free events, omit those params.
@@ -63,13 +68,15 @@ BEGIN
   END IF;
 
   -- Atomic capacity check + increment.
-  -- The WHERE spots_taken < capacity guarantees that if two concurrent
-  -- transactions both try to claim the last spot, only one will match.
-  UPDATE venue_event_occurrences
-  SET spots_taken = spots_taken + 1
-  WHERE id = p_occurrence_id
-    AND spots_taken < capacity
-    AND status = 'scheduled';
+  -- capacity lives on venue_events; spots_taken lives on venue_event_occurrences.
+  -- If ev.capacity IS NULL the event is uncapped — the WHERE always matches.
+  UPDATE venue_event_occurrences occ
+  SET spots_taken = occ.spots_taken + 1
+  FROM venue_events ev
+  WHERE occ.id = p_occurrence_id
+    AND ev.id = occ.event_id
+    AND occ.status = 'scheduled'
+    AND (ev.capacity IS NULL OR occ.spots_taken < ev.capacity);
 
   GET DIAGNOSTICS v_updated = ROW_COUNT;
 

@@ -368,11 +368,36 @@ export function BookCourtPage() {
   const [paymentError, setPaymentError] = useState('')
   const [fetchingPayment, setFetchingPayment] = useState(false)
 
-  // ── Derived pricing (scales with duration + venue price_per_hour) ────────────
-  const pricePerHour = selectedVenue?.price_per_hour ?? 0
-  const totalPence = pricePerHour > 0 ? Math.round(pricePerHour * (selectedDuration / 60)) : 0
-  const perPlayerPence = totalPence > 0 ? Math.round(totalPence / PLAYERS_PER_COURT) : 0
-  const pricingAvailable = pricePerHour > 0
+  // ── Resolved pricing (from pricing engine) ──────────────────────────────────
+  const [totalPence, setTotalPence] = useState(0)
+  const [perPlayerPence, setPerPlayerPence] = useState(0)
+  const [pricingAvailable, setPricingAvailable] = useState(false)
+
+  useEffect(() => {
+    const venueId = selectedVenue?.venues_id ?? selectedVenue?.venue_id
+    if (!venueId || !selectedDate) {
+      setTotalPence(0); setPerPlayerPence(0); setPricingAvailable(false)
+      return
+    }
+    const startTime = selectedSlot?.start_time ?? null
+    supabase.rpc('resolve_court_price', {
+      p_venue_id: venueId,
+      p_court_id: selectedCourtId || null,
+      p_date: selectedDate,
+      p_start_time: startTime ? (startTime.length === 5 ? `${startTime}:00` : startTime) : null,
+      p_duration_minutes: selectedDuration,
+    }).then(({ data }) => {
+      const result = data as { status: string; price_pence: number | null } | null
+      if (result && result.status !== 'not_configured' && result.price_pence != null) {
+        setTotalPence(result.price_pence)
+        setPerPlayerPence(Math.round(result.price_pence / PLAYERS_PER_COURT))
+        setPricingAvailable(true)
+      } else {
+        setTotalPence(0); setPerPlayerPence(0); setPricingAvailable(false)
+      }
+    })
+  }, [selectedVenue?.venue_id, selectedVenue?.venues_id, selectedDate, selectedDuration, selectedCourtId, selectedSlot?.start_time])
+
   const coveredCount = coveredIds.size
   const depositPence = coveredCount * perPlayerPence
   const otherPlayers = selectedPlayers.filter((p) => p.id !== userId)
@@ -661,7 +686,7 @@ export function BookCourtPage() {
       })()
 
       const { data: booking, error: bookingError } = await supabase
-        .from('court_bookings')
+        .from('bookings')
         .insert({
           venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
           court_id: selectedCourtId || null,
@@ -725,7 +750,7 @@ export function BookCourtPage() {
             .single()
 
           if (newMatch) {
-            await supabase.from('court_bookings')
+            await supabase.from('bookings')
               .update({ match_id: newMatch.id })
               .eq('id', booking.id)
             setCreatedMatchId(newMatch.id)

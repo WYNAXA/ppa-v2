@@ -130,10 +130,10 @@ function PaymentForm({
       const existing = (freshBooking?.paid_player_ids as string[] | null) ?? []
       const merged = [...new Set([...existing, ...coveredPlayerIds])]
 
-      await supabase
-        .from('court_bookings')
-        .update({ paid_player_ids: merged })
-        .eq('id', bookingId)
+      await supabase.rpc('update_paid_player_ids', {
+        p_booking_id: bookingId,
+        p_paid_player_ids: merged,
+      })
 
       onSuccess()
     } catch {

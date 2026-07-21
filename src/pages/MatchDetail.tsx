@@ -854,7 +854,7 @@ export function MatchDetailPage() {
     const isParticipant = playerIds.includes(profile.id)
     const guestNames = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map((n: string) => n.trim()) ?? []
     const effectiveCount = playerIds.length + guestNames.length
-    const canRecord = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectiveCount >= 4 && !data.result
+    const canRecord = isParticipant && match.status !== 'cancelled' && effectiveCount >= 4 && !data.result
     if ((location.state as any)?.openResult && canRecord) {
       setShowRecordResult(true)
       window.history.replaceState({}, document.title)
@@ -1001,7 +1001,7 @@ export function MatchDetailPage() {
   const canPlayAnother = isParticipant && playerIds.length === 4 && !!result && isPastMatchTime && isWithinResultWindow
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
-  const canRecordResult = isParticipant && match.status !== 'completed' && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isPastMatchTime && isWithinResultWindow
+  const canRecordResult = isParticipant && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isPastMatchTime && isWithinResultWindow
   const resultEntryClosed = isPastMatchTime && !isWithinResultWindow && !result
   const canSwitchTeams = isParticipant || isGroupAdmin
   const userElo = (profile as any)?.internal_ranking ?? null

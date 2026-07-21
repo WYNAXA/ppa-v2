@@ -119,7 +119,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
         result_type:         resultType!,
         verification_status: 'pending',
         submitted_by:        currentUserId,
-        is_friendly:         match.match_type === 'casual',
+        is_friendly:         match.match_type === 'friendly',
         sets_data:           setsData,
         ...(isAdminOverride ? {
           admin_override_by:     currentUserId,

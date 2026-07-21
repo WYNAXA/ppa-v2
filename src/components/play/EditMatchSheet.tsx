@@ -36,6 +36,20 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   const [time, setTime]               = useState(match.match_time?.slice(0, 5) ?? '')
   const [matchType, setMatchType]     = useState(match.match_type ?? 'casual')
   const [venueQuery, setVenueQuery]   = useState(match.booked_venue_name ?? '')
+
+  // Block match_type changes when a result exists (is_friendly is derived from it)
+  const { data: hasResult } = useQuery({
+    queryKey: ['match-has-result', match.id],
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('match_results')
+        .select('id', { count: 'exact', head: true })
+        .eq('match_id', match.id)
+      return (count ?? 0) > 0
+    },
+    enabled: open,
+  })
+  const matchTypeLocked = !!hasResult
   const [venues, setVenues]           = useState<Venue[]>([])
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(
     match.booked_venue_name ? { venue_id: '', venue_name: match.booked_venue_name } : null
@@ -214,17 +228,21 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                 {/* Match type */}
                 <div>
                   <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Match type</label>
+                  {matchTypeLocked && (
+                    <p className="text-[11px] text-amber-600 mb-1.5">Cannot change — a result has been recorded for this match.</p>
+                  )}
                   <div className="grid grid-cols-3 gap-2">
                     {MATCH_TYPES.map(({ value, label }) => (
                       <button
                         key={value}
                         type="button"
+                        disabled={matchTypeLocked}
                         onClick={() => setMatchType(value)}
                         className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${
                           matchType === value
                             ? 'bg-[#009688] text-white border-[#009688]'
                             : 'bg-white text-gray-600 border-gray-200'
-                        }`}
+                        } ${matchTypeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {label}
                       </button>

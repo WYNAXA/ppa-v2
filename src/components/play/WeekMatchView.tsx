@@ -12,7 +12,7 @@ import {
 } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
-import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus, ClipboardCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { sendNotification } from '@/lib/notifications'
@@ -56,12 +56,15 @@ function MatchCardEnhanced({
   onOfferRinger: (match: EnrichedMatch) => void
 }) {
   const { t } = useTranslation()
+  const navigate = useNavigate()
   const isPlayer = match.player_ids.includes(userId)
   const openSlots = 4 - match.player_ids.length
-  const showJoin = !isPlayer && openSlots > 0 && viewTab !== 'mine'
+  const isCompleted = match.status === 'completed'
+  const hasResult = match.score !== undefined
+  const showJoin = !isCompleted && !isPlayer && openSlots > 0 && viewTab !== 'mine'
 
   return (
-    <div className="relative">
+    <div className={cn('relative', isCompleted && hasResult && 'opacity-60')}>
       {/* Badges row */}
       <div className="flex items-center gap-1.5 mb-1">
         {match.group_name && (
@@ -69,36 +72,55 @@ function MatchCardEnhanced({
             {match.group_name}
           </span>
         )}
-        {match.poll_id && (
+        {match.poll_id && !isCompleted && (
           <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 rounded-full px-2 py-0.5">
             {t('play.auto_scheduled')}
           </span>
         )}
-        {!isPlayer && viewTab === 'group' && match.player_ids.length >= 4 && (
+        {!isCompleted && !isPlayer && viewTab === 'group' && match.player_ids.length >= 4 && (
           <span className="text-[10px] font-medium text-gray-400 bg-gray-50 rounded-full px-2 py-0.5">
             {t('play.players_full')}
           </span>
         )}
-        {!isPlayer && openSlots > 0 && openSlots <= 2 && (
+        {!isCompleted && !isPlayer && openSlots > 0 && openSlots <= 2 && (
           <span className="text-[10px] font-bold text-orange-700 bg-orange-50 rounded-full px-2 py-0.5 animate-pulse">
             {openSlots === 1 ? t('play.ringer_needed') : t('play.spots_open', { count: openSlots })}
+          </span>
+        )}
+        {isCompleted && !hasResult && (
+          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+            Needs result
           </span>
         )}
       </div>
 
       {/* Card with coloured left border */}
-      <div className={cn('rounded-2xl border-l-4 overflow-hidden', getLeftBorder(match, userId))}>
+      <div className={cn(
+        'rounded-2xl border-l-4 overflow-hidden',
+        isCompleted && !hasResult ? 'border-l-amber-400' : getLeftBorder(match, userId),
+      )}>
         <MatchCard
           match={match}
           currentUserId={userId}
-          action={isPlayer ? 'view' : showJoin ? 'join' : 'view'}
+          action={isCompleted ? 'view' : isPlayer ? 'view' : showJoin ? 'join' : 'view'}
           onJoin={showJoin ? () => onJoinMatch(match.id) : undefined}
           index={index}
         />
       </div>
 
-      {/* Ringer offer button for group/open view when not already a player */}
-      {!isPlayer && openSlots > 0 && viewTab !== 'mine' && (
+      {/* Record result prompt for completed matches without a score */}
+      {isCompleted && !hasResult && isPlayer && (
+        <button
+          onClick={() => navigate(`/matches/${match.id}`)}
+          className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-700 active:scale-[0.97] transition-transform"
+        >
+          <ClipboardCheck className="h-3 w-3" />
+          Enter result
+        </button>
+      )}
+
+      {/* Ringer offer button — only for upcoming matches */}
+      {!isCompleted && !isPlayer && openSlots > 0 && viewTab !== 'mine' && (
         <button
           onClick={() => onOfferRinger(match)}
           className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-700 active:scale-[0.97] transition-transform"
@@ -512,14 +534,15 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   // ── Filtering ──────────────────────────────────────────────────────────────
   const filteredMatches = useMemo(() => {
     return activeMatches.filter((m) => {
-      // Hide completed and cancelled matches from the display
-      if (m.status === 'completed' || m.status === 'cancelled') return false
+      if (m.status === 'cancelled') return false
       const matchDate = parseISO(m.match_date)
       if (selectedDay) {
         if (!isSameDay(matchDate, selectedDay)) return false
       } else {
         if (viewTab !== 'open' && (matchDate < weekStart || matchDate > weekEnd)) return false
       }
+      // Completed matches are shown but skip ringer/slot filters (they're full and done)
+      if (m.status === 'completed') return true
       if (needsRingersOnly && (m.player_ids?.length ?? 0) >= 4) return false
       if (selectedFilter === 'all') return true
       if (selectedFilter === 'groups') return !!m.group_id
@@ -549,7 +572,10 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
   // ── Day dots: colour based on view tab ─────────────────────────────────────
   function getDayDots(day: Date): Array<'teal' | 'gray' | 'orange'> {
     const dots: Array<'teal' | 'gray' | 'orange'> = []
-    const dayMatches = activeMatches.filter((m) => isSameDay(parseISO(m.match_date), day))
+    // Derive dots from the same set the list uses: exclude cancelled, include completed
+    const dayMatches = activeMatches.filter((m) =>
+      m.status !== 'cancelled' && isSameDay(parseISO(m.match_date), day)
+    )
     for (const m of dayMatches) {
       const isPlayer = m.player_ids.includes(userId)
       if (isPlayer && !dots.includes('teal')) dots.push('teal')

@@ -347,6 +347,21 @@ export function MatchDetailPage() {
   const [showDisputeInput, setShowDisputeInput] = useState(false)
   const [showLiftChooser, setShowLiftChooser] = useState(false)
   const [showPeerVoting, setShowPeerVoting] = useState(false)
+  const [adminOverrideReason, setAdminOverrideReason] = useState('')
+
+  // Configurable result-entry window (default 168h = 7 days)
+  const { data: resultWindowHours = 168 } = useQuery({
+    queryKey: ['app-setting-result-window'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('app_settings')
+        .select('value')
+        .eq('key', 'result_window_hours')
+        .maybeSingle()
+      return data?.value ? parseInt(data.value, 10) : 168
+    },
+    staleTime: 5 * 60_000,
+  })
   const [disputeReason, setDisputeReason]     = useState('')
   // Dispute resolution state
   const [showEditScores, setShowEditScores] = useState(false)
@@ -854,7 +869,7 @@ export function MatchDetailPage() {
     const isParticipant = playerIds.includes(profile.id)
     const guestNames = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map((n: string) => n.trim()) ?? []
     const effectiveCount = playerIds.length + guestNames.length
-    const canRecord = isParticipant && match.status !== 'cancelled' && effectiveCount >= 4 && !data.result
+    const canRecord = (isParticipant || isGroupAdmin) && match.status !== 'cancelled' && effectiveCount >= 4 && !data.result
     if ((location.state as any)?.openResult && canRecord) {
       setShowRecordResult(true)
       window.history.replaceState({}, document.title)
@@ -990,19 +1005,22 @@ export function MatchDetailPage() {
   const canCancel     = (isParticipant || isGroupAdmin) &&
                         ['scheduled', 'pending', 'confirmed', 'open'].includes(match.status)
   const canDelete     = isGroupAdmin
-  // 24h result-entry window
+  // Configurable result-entry window
   const matchStartTime = match.match_time
     ? new Date(`${match.match_date}T${match.match_time}`)
     : new Date(`${match.match_date}T00:00:00`)
-  const resultDeadline = addHours(matchStartTime, 24)
+  const resultDeadline = addHours(matchStartTime, resultWindowHours)
   const isWithinResultWindow = isBefore(new Date(), resultDeadline)
   const isPastMatchTime = new Date() > matchStartTime
 
   const canPlayAnother = isParticipant && playerIds.length === 4 && !!result && isPastMatchTime && isWithinResultWindow
   const guestNamesForCount = match.notes?.match(/Guests?: (.+)/)?.[1]?.split(',').map(n => n.trim()) ?? []
   const effectivePlayerCount = playerIds.length + guestNamesForCount.length
-  const canRecordResult = isParticipant && match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isPastMatchTime && isWithinResultWindow
-  const resultEntryClosed = isPastMatchTime && !isWithinResultWindow && !result
+  // Players can record within the window; group admins can record after it (with a reason)
+  const canRecordResult = match.status !== 'cancelled' && effectivePlayerCount >= 4 && !result && isPastMatchTime
+    && (isWithinResultWindow ? isParticipant : isGroupAdmin)
+  const isAdminOverride = canRecordResult && !isWithinResultWindow && isGroupAdmin
+  const resultEntryClosed = isPastMatchTime && !isWithinResultWindow && !result && !isGroupAdmin
   const canSwitchTeams = isParticipant || isGroupAdmin
   const userElo = (profile as any)?.internal_ranking ?? null
   const canClaim = !!(match && profile && (match as any).is_open && !isParticipant && playerIds.length < 4
@@ -2551,10 +2569,7 @@ export function MatchDetailPage() {
         <div className="px-5 mb-4">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center">
             <p className="text-[13px] font-semibold text-gray-600">Result entry closed</p>
-            <p className="text-[11px] text-gray-400 mt-1">No result entered within 24 hours of match time.</p>
-            {canEdit && (
-              <p className="text-[11px] text-[#009688] mt-1">Played at a different time? Edit the match to update.</p>
-            )}
+            <p className="text-[11px] text-gray-400 mt-1">The result window has passed. A group admin can still enter the result.</p>
           </div>
         </div>
       )}
@@ -2562,13 +2577,27 @@ export function MatchDetailPage() {
       {/* Actions */}
       <div className="px-5 flex flex-col gap-2">
         {canRecordResult && (
-          <button
-            onClick={() => setShowRecordResult(true)}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
-          >
-            <Trophy className="h-4 w-4" />
-            Record Result
-          </button>
+          <div>
+            {isAdminOverride && (
+              <div className="mb-2">
+                <p className="text-[11px] font-semibold text-amber-700 mb-1.5">Admin late entry — reason required</p>
+                <input
+                  value={adminOverrideReason}
+                  onChange={e => setAdminOverrideReason(e.target.value)}
+                  placeholder="e.g. team was away on holiday"
+                  className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] text-gray-800 placeholder:text-amber-300 focus:outline-none focus:border-amber-400"
+                />
+              </div>
+            )}
+            <button
+              onClick={() => setShowRecordResult(true)}
+              disabled={isAdminOverride && !adminOverrideReason.trim()}
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Trophy className="h-4 w-4" />
+              {isAdminOverride ? 'Record Result (Admin Override)' : 'Record Result'}
+            </button>
+          </div>
         )}
 
         <div className="grid grid-cols-2 gap-2">
@@ -2783,10 +2812,12 @@ export function MatchDetailPage() {
       {/* Sheets */}
       <RecordResultSheet
         open={showRecordResult}
-        onClose={() => setShowRecordResult(false)}
+        onClose={() => { setShowRecordResult(false); setAdminOverrideReason(''); }}
         match={match}
         players={players}
         currentUserId={currentUserId}
+        isAdminOverride={isAdminOverride}
+        adminOverrideReason={adminOverrideReason}
       />
 
       <EditMatchSheet

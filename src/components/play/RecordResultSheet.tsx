@@ -30,6 +30,8 @@ interface RecordResultSheetProps {
   match: Match
   players: Player[]
   currentUserId: string
+  isAdminOverride?: boolean
+  adminOverrideReason?: string
 }
 
 function initTeams(
@@ -51,7 +53,7 @@ function initTeams(
 }
 
 
-export function RecordResultSheet({ open, onClose, match, players, currentUserId }: RecordResultSheetProps) {
+export function RecordResultSheet({ open, onClose, match, players, currentUserId, isAdminOverride, adminOverrideReason }: RecordResultSheetProps) {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const [step, setStep] = useState(1)
@@ -119,6 +121,10 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
         submitted_by:        currentUserId,
         is_friendly:         match.match_type === 'casual',
         sets_data:           setsData,
+        ...(isAdminOverride ? {
+          admin_override_by:     currentUserId,
+          admin_override_reason: adminOverrideReason?.trim() || null,
+        } : {}),
       }
 
       console.log('[RecordResult] inserting payload:', payload)

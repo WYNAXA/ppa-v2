@@ -57,6 +57,7 @@ interface Standing {
   win_rate: number       // wins / sets played * 100
   games_won: number      // total games won across all sets
   win_streak: number     // current consecutive set-wins
+  form: number           // Bayesian shrinkage avg: (points + C*PRIOR) / (played + C)
   season_elo?: number
   profile?: { name: string; avatar_url: string | null }
 }
@@ -211,22 +212,23 @@ function useStandings(leagueId: string) {
         streakMap[uid] = streak
       }
 
-      // Canonical five-rung tiebreak (mirrors award_weekly_jerseys yellow):
-      // ranking_points DESC, wins DESC, losses ASC, game_diff DESC, internal_ranking ASC
-      const sorted = [...rows].sort((a, b) => {
+      const PRIOR = 1.5
+      const C = 6
+
+      // Compute form for each row, then sort by form DESC, points DESC, sets ASC
+      const withForm = rows.map((r) => {
+        const pts = (r.ranking_points ?? r.points ?? 0) as number
+        const sets = (r.matches_played ?? r.played ?? 0) as number
+        const form = (pts + C * PRIOR) / (sets + C)
+        return { ...r, _form: form }
+      })
+
+      const sorted = [...withForm].sort((a, b) => {
+        const formDiff = b._form - a._form
+        if (formDiff !== 0) return formDiff
         const ptsDiff = ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number)
         if (ptsDiff !== 0) return ptsDiff
-        const winsDiff = ((b.wins ?? b.won ?? 0) as number) - ((a.wins ?? a.won ?? 0) as number)
-        if (winsDiff !== 0) return winsDiff
-        const lossesDiff = ((a.losses ?? a.lost ?? 0) as number) - ((b.losses ?? b.lost ?? 0) as number)
-        if (lossesDiff !== 0) return lossesDiff
-        const aGd = (gdMap[a.user_id]?.won ?? 0) - (gdMap[a.user_id]?.lost ?? 0)
-        const bGd = (gdMap[b.user_id]?.won ?? 0) - (gdMap[b.user_id]?.lost ?? 0)
-        if (aGd !== bGd) return bGd - aGd
-        // Fifth rung: lower ELO ranks higher (underdog earned it)
-        const aElo = profileMap[a.user_id]?.internal_ranking ?? 9999
-        const bElo = profileMap[b.user_id]?.internal_ranking ?? 9999
-        return aElo - bElo
+        return ((a.matches_played ?? a.played ?? 0) as number) - ((b.matches_played ?? b.played ?? 0) as number)
       })
 
       return sorted.map((r, i) => {
@@ -247,6 +249,7 @@ function useStandings(leagueId: string) {
           win_rate: played > 0 ? Math.round(won / played * 100) : 0,
           games_won: gd?.won ?? 0,
           win_streak: streakMap[r.user_id] ?? 0,
+          form: r._form,
           season_elo: r.season_elo as number | undefined,
           profile: profileMap[r.user_id],
         }
@@ -1887,7 +1890,6 @@ export function LeagueDetailPage() {
   const isMexicano = league?.match_type === 'mexicano'
   const isPairs    = league?.match_type === 'pairs'
   const isAdmin    = league?.created_by === currentUserId
-  const isEloLeague = league?.match_type === 'individual' && league?.format === 'round_robin'
   const [showPairSheet, setShowPairSheet] = useState(false)
 
   const TABS: Array<{ id: Tab; label: string }> = [
@@ -2261,7 +2263,7 @@ export function LeagueDetailPage() {
                       ? (row as TeamStanding).team_name ?? 'Unknown'
                       : (row as Standing).profile?.name ?? 'Unknown'
                     const indRow = row as Standing
-                    const pts = isPairs ? row.points : isEloLeague ? Math.round(indRow.season_elo ?? 1230) : row.points
+                    const pts = isPairs ? row.points : indRow.form.toFixed(2)
                     const gd = isPairs ? (row as TeamStanding).game_difference : (row as Standing).game_difference
                     const styles = [
                       { bg: 'bg-gradient-to-r from-amber-50 to-yellow-50', border: 'border-amber-100', text: 'text-amber-600', pts_text: 'text-amber-700', emoji: '🏆', label: 'Champion' },
@@ -2277,7 +2279,7 @@ export function LeagueDetailPage() {
                         </div>
                         <div className="text-right">
                           <p className={cn('text-[20px] font-black', styles.pts_text)}>{pts}</p>
-                          <p className={cn('text-[10px] font-semibold', styles.text)}>{!isPairs && isEloLeague ? 'ELO' : gd != null ? `GD ${gd >= 0 ? '+' : ''}${gd}` : 'pts'}</p>
+                          <p className={cn('text-[10px] font-semibold', styles.text)}>{isPairs && gd != null ? `GD ${gd >= 0 ? '+' : ''}${gd}` : 'Form'}</p>
                         </div>
                       </div>
                     )
@@ -2303,8 +2305,8 @@ export function LeagueDetailPage() {
                     <p className="text-[15px] font-bold text-gray-900 truncate">{indStandings[0].profile?.name ?? 'Unknown'}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-[20px] font-black text-amber-700">{isEloLeague ? Math.round(indStandings[0].season_elo ?? 1230) : indStandings[0].points}</p>
-                    <p className="text-[10px] text-amber-500 font-semibold">{isEloLeague ? 'ELO' : 'pts'}</p>
+                    <p className="text-[20px] font-black text-amber-700">{indStandings[0].form.toFixed(2)}</p>
+                    <p className="text-[10px] text-amber-500 font-semibold">Form</p>
                   </div>
                 </div>
               ) : null}
@@ -2482,23 +2484,13 @@ export function LeagueDetailPage() {
                             </span>
                           </>
                         )}
-                        headlineLabel={isEloLeague ? 'ELO' : 'P'}
-                        headline={(row, isMe) =>
-                          isEloLeague ? (() => {
-                            const elo = Math.round(row.season_elo ?? 1230)
-                            const delta = elo - 1230
-                            return (
-                              <>
-                                <span className={cn('text-[11px] font-bold block', isMe ? 'text-[#009688]' : 'text-gray-800')}>{elo}</span>
-                                <span className={cn('text-[9px] font-semibold', delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-500' : 'text-gray-400')}>
-                                  {delta > 0 ? `+${delta}` : delta < 0 ? `${delta}` : '—'}
-                                </span>
-                              </>
-                            )
-                          })() : (
-                            <span className="text-[12px] text-gray-500">{row.played}</span>
-                          )
-                        }
+                        headlineLabel="Form"
+                        headline={(row, isMe) => (
+                          <>
+                            <span className={cn('text-[12px] font-bold block', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.form.toFixed(2)}</span>
+                            <span className="text-[9px] text-gray-400">pts/set</span>
+                          </>
+                        )}
                         headlineLabel2="Pts"
                         headline2={(row, isMe) => (
                           <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>
@@ -2513,7 +2505,7 @@ export function LeagueDetailPage() {
                             <span className={cn(row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
                               GD <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
                             </span>
-                            {!isEloLeague && <span>P <span className="font-bold text-gray-700">{row.played}</span></span>}
+                            <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
                           </>
                         )}
                       />
@@ -2647,9 +2639,7 @@ export function LeagueDetailPage() {
                   </>
                 )
               })()}
-              {!isEloLeague && (
-                <p className="text-[11px] text-gray-400 mt-2">Win 3 · Draw 1 · Loss 0 — each set counts separately</p>
-              )}
+              <p className="text-[11px] text-gray-400 mt-2">Win 3 · Draw 1 · Loss 0 per set. Everyone starts at 1.50 — the more you play, the more your Form reflects your own results.</p>
               {/* ── Entertainer jersey ── */}
               {(currentEntertainer || entertainerRace.length > 0 || entertainerHistory.length > 0) && (
                 <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">

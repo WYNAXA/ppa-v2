@@ -5,7 +5,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Zap, Share2, Plus, X, AlertTriangle } from 'lucide-react'
-import { format, parseISO } from 'date-fns'
+import { format, parseISO, differenceInCalendarDays } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { sendNotification } from '@/lib/notifications'
@@ -54,7 +54,7 @@ interface Standing {
   points: number
   game_difference: number
   internal_ranking: number
-  win_rate: number       // wins / matches_played * 100
+  win_rate: number       // wins / sets played * 100
   games_won: number      // total games won across all sets
   win_streak: number     // current consecutive set-wins
   season_elo?: number
@@ -2211,10 +2211,10 @@ export function LeagueDetailPage() {
         </div>
       </div>
 
-      {/* League summary — matches played count (leader shown in standings card) */}
+      {/* League summary — sets played count (leader shown in standings card) */}
       <div className="px-5 pt-3 pb-1">
         <p className="text-[12px] text-gray-500">
-          {standings.reduce((s, r) => s + r.played, 0) / 2} matches played
+          {standings.reduce((s, r) => s + r.played, 0) / 4} sets played
         </p>
       </div>
 
@@ -2311,28 +2311,43 @@ export function LeagueDetailPage() {
 
               {/* Progress bar */}
               {(() => {
-                const rows = isPairs ? teamStandings : indStandings
-                const n = rows.length
-                const totalFixtures = n > 1 ? n * (n - 1) / 2 : 0
-                const fixturesPlayed = rows.length > 0 ? Math.max(...rows.map((s) => s.played)) : 0
-                const pct = league?.max_rounds
-                  ? Math.min(100, Math.round((currentRound / league.max_rounds) * 100))
-                  : totalFixtures > 0 ? Math.min(100, Math.round((fixturesPlayed / totalFixtures) * 100)) : 0
-                return (totalFixtures > 0 || league?.max_rounds) ? (
+                if (league?.max_rounds) {
+                  const pct = Math.min(100, Math.round((currentRound / league.max_rounds) * 100))
+                  return (
+                    <div>
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-[11px] font-semibold text-gray-500">
+                          Round {currentRound} of {league.max_rounds}
+                        </p>
+                        <p className="text-[11px] text-gray-400">{pct}% complete</p>
+                      </div>
+                      <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  )
+                }
+                if (!league?.season_start || !league?.season_end) return null
+                const today = new Date()
+                const start = parseISO(league.season_start)
+                const end = parseISO(league.season_end)
+                const totalDays = differenceInCalendarDays(end, start)
+                if (totalDays <= 0) return null
+                const elapsed = differenceInCalendarDays(today, start)
+                const pct = Math.min(100, Math.max(0, Math.round((elapsed / totalDays) * 100)))
+                const remaining = differenceInCalendarDays(end, today)
+                const label = remaining <= 0 ? 'Season ended' : `Season · ${remaining} day${remaining === 1 ? '' : 's'} left`
+                return (
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <p className="text-[11px] font-semibold text-gray-500">
-                        {league?.max_rounds
-                          ? `Round ${currentRound} of ${league.max_rounds}`
-                          : `${fixturesPlayed} of ${totalFixtures} fixtures played`}
-                      </p>
-                      <p className="text-[11px] text-gray-400">{pct}% complete</p>
+                      <p className="text-[11px] font-semibold text-gray-500">{label}</p>
+                      <p className="text-[11px] text-gray-400">{pct}%</p>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
-                ) : null
+                )
               })()}
 
               {/* About this league */}
@@ -2632,6 +2647,9 @@ export function LeagueDetailPage() {
                   </>
                 )
               })()}
+              {!isEloLeague && (
+                <p className="text-[11px] text-gray-400 mt-2">Win 3 · Draw 1 · Loss 0 — each set counts separately</p>
+              )}
               {/* ── Entertainer jersey ── */}
               {(currentEntertainer || entertainerRace.length > 0 || entertainerHistory.length > 0) && (
                 <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">

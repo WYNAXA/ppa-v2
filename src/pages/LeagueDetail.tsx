@@ -649,7 +649,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
         .from('group_members')
         .select('user_id')
         .eq('group_id', groupId!)
-        .eq('status', 'approved')
+        .in('status', ['approved', 'ringer'])
       if (!data || data.length === 0) return []
       const ids = data.map(m => m.user_id)
       const { data: profiles } = await supabase

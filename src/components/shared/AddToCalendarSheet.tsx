@@ -89,18 +89,15 @@ export function AddToCalendarSheet({ open, onClose, event }: AddToCalendarSheetP
   const googleUrl  = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(event.title)}&dates=${startISO}/${endISO}&location=${encodeURIComponent(event.location)}`
   const outlookUrl = `https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(event.title)}&startdt=${event.start.toISOString()}&enddt=${event.end.toISOString()}&location=${encodeURIComponent(event.location)}`
 
-  const iosStandalone = isIOSStandalone()
-
-  // On iOS standalone, all three options use .ics — iOS handles it natively and
-  // offers to add to whichever calendar the user has configured (Apple, Google, etc.).
-  // On a normal browser, Google/Outlook open their web UIs directly.
+  // Google/Outlook open their web UIs via openUrl (anchor click, works in all
+  // contexts including the native iOS app). Apple Calendar downloads .ics.
   const options = [
     {
       label:       'Google Calendar',
-      description: iosStandalone ? 'Adds via device calendar' : 'Opens in a new tab',
+      description: 'Opens in a new tab',
       icon:        <Calendar className="h-4 w-4 text-blue-600" />,
       bg:          'bg-blue-50',
-      action:      () => { iosStandalone ? downloadIcs(event) : openUrl(googleUrl); onClose() },
+      action:      () => { openUrl(googleUrl); onClose() },
     },
     {
       label:       'Apple Calendar',
@@ -111,10 +108,10 @@ export function AddToCalendarSheet({ open, onClose, event }: AddToCalendarSheetP
     },
     {
       label:       'Outlook',
-      description: iosStandalone ? 'Adds via device calendar' : 'Opens in a new tab',
+      description: 'Opens in a new tab',
       icon:        <Calendar className="h-4 w-4 text-blue-800" />,
       bg:          'bg-blue-50',
-      action:      () => { iosStandalone ? downloadIcs(event) : openUrl(outlookUrl); onClose() },
+      action:      () => { openUrl(outlookUrl); onClose() },
     },
   ]
 

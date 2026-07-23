@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Trophy, BarChart2, Calendar } from 'lucide-react'
+import { ChevronLeft, Trophy, BarChart2, Calendar, UserPlus, Lock } from 'lucide-react'
 import { ReportButton } from '@/components/shared/ReportButton'
 import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
@@ -12,6 +12,9 @@ import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
 import { PEER_VOTE_CATEGORIES } from '@/lib/achievements'
+import { fetchSetStats } from '@/lib/setStats'
+import { sendNotification } from '@/lib/notifications'
+import { toast } from 'sonner'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -186,6 +189,43 @@ export function PlayerProfilePage() {
     },
   })
 
+  const { data: isConnected = false } = useQuery<boolean>({
+    queryKey: ['connection-status', currentUserId, playerId],
+    enabled: !!currentUserId && !!playerId && playerId !== currentUserId,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('player_connections')
+        .select('id', { count: 'exact', head: true })
+        .or(`and(user_id.eq.${currentUserId},connected_user_id.eq.${playerId}),and(user_id.eq.${playerId},connected_user_id.eq.${currentUserId})`)
+        .eq('status', 'accepted')
+      return (count ?? 0) > 0
+    },
+    staleTime: 60_000,
+  })
+
+  const { data: playerSetStats } = useQuery({
+    queryKey: ['player-set-stats', playerId],
+    enabled: !!playerId && isConnected,
+    queryFn: () => fetchSetStats(playerId!),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const queryClient = useQueryClient()
+  const connectMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('player_connections').insert({ user_id: currentUserId, connected_user_id: playerId, status: 'pending' })
+      if (error) throw error
+      sendNotification({
+        user_id: playerId!, type: 'connection_request', title: t('community.notif_connection_request'),
+        message: `${profile?.name ?? 'A player'} wants to connect with you.`, related_id: currentUserId,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['connection-status', currentUserId, playerId] })
+      toast.success(t('community.toast_connection_sent'))
+    },
+  })
+
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -322,6 +362,46 @@ export function PlayerProfilePage() {
             />
           </div>
         </div>
+      </div>
+
+      {/* Set stats — connection gated */}
+      <div className="mx-5 mb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <BarChart2 className="h-4 w-4 text-gray-400" />
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('you.win_rate')}</p>
+        </div>
+        {isConnected && playerSetStats ? (
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="flex items-center justify-around">
+              <div className="text-center">
+                <p className="text-[28px] font-black text-teal-600">{playerSetStats.winRate}%</p>
+                <p className="text-[11px] text-gray-400">{t('you.win_rate')}</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[28px] font-black text-gray-700">{playerSetStats.totalSets}</p>
+                <p className="text-[11px] text-gray-400">Sets</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-3">
+              <span className="text-[12px] text-gray-500">W <span className="font-bold text-gray-700">{playerSetStats.wins}</span></span>
+              <span className="text-[12px] text-gray-500">D <span className="font-bold text-gray-700">{playerSetStats.draws}</span></span>
+              <span className="text-[12px] text-gray-500">L <span className="font-bold text-gray-700">{playerSetStats.losses}</span></span>
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 p-5 text-center">
+            <Lock className="h-5 w-5 text-gray-300 mx-auto mb-2" />
+            <p className="text-[13px] text-gray-500">Connect with {player.name.split(' ')[0]} to see their full stats</p>
+            <button
+              onClick={() => connectMutation.mutate()}
+              disabled={connectMutation.isPending}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#009688] px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              {connectMutation.isPending ? 'Sending…' : t('community.connect')}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Common matches */}

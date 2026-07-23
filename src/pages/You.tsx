@@ -19,6 +19,7 @@ import { RewardsCard } from '@/components/rewards/RewardsCard'
 import { subscribeToPush, unsubscribeFromPush } from '@/lib/push'
 import { EloHistoryChart } from '@/components/compete/EloHistoryChart'
 import { classifyKernel } from '@/lib/setClassification'
+import { fetchSetStats } from '@/lib/setStats'
 import { EloStageCard } from '@/components/compete/EloStageCard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -92,10 +93,11 @@ function useYouStats(userId: string) {
     queryKey: ['you-stats', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const [resultsData, rankData] = await Promise.all([
+      const [setStats, resultsData, rankData] = await Promise.all([
+        fetchSetStats(userId),
         supabase
           .from('match_results')
-          .select('result_type, team1_players, team2_players, sets_data')
+          .select('team1_players, team2_players, sets_data')
           .or(`team1_players.cs.{${userId}},team2_players.cs.{${userId}}`)
           .eq('verification_status', 'verified')
           .not('is_friendly', 'is', true)
@@ -106,8 +108,10 @@ function useYouStats(userId: string) {
           .gt('internal_ranking', 0),
       ])
 
+      const { totalSets: total, wins, losses, draws, winRate } = setStats
+
+      // Compute bestStreak and partnerWins from the same data
       const results = resultsData.data ?? []
-      let wins = 0, losses = 0, draws = 0
       let streak = 0, bestStreak = 0
       const partnerWins: Record<string, number> = {}
 
@@ -123,11 +127,10 @@ function useYouStats(userId: string) {
           if (isVoid) continue
 
           if (g1 === g2) {
-            draws++; streak = 0
+            streak = 0
           } else {
             const userTeamWon = (inTeam1 && g1 > g2) || (!inTeam1 && g2 > g1)
             if (userTeamWon) {
-              wins++
               streak++
               if (streak > bestStreak) bestStreak = streak
               for (const pid of teammates) {
@@ -136,14 +139,11 @@ function useYouStats(userId: string) {
                 }
               }
             } else {
-              losses++; streak = 0
+              streak = 0
             }
           }
         }
       }
-
-      const total = wins + losses + draws
-      const winRate = total > 0 ? Math.round((wins / total) * 100) : 0
 
       // Rank position
       const topCount = rankData.count ?? 0

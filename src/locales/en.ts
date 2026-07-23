@@ -960,6 +960,7 @@ export default {
     scoring_one_set_desc: '9 games or super tiebreak',
     scoring_custom_label: 'Free-form scoring (no validation)',
     scoring_custom_desc: 'Admin defines the scoring',
+    scoring_ppl_fixed: 'Just play — every set is recorded. Sets of 6 or more games count even if unfinished.',
     start_date_label: 'Start date',
     end_date_label: 'End date',
     max_players_label: 'Max players/teams',

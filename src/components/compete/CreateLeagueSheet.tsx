@@ -221,11 +221,13 @@ function Step2({
   setForm,
   userId,
   hideTypeAndFormat,
+  isPpl,
 }: {
   form: FormState
   setForm: (f: FormState) => void
   userId: string
   hideTypeAndFormat?: boolean
+  isPpl?: boolean
 }) {
   const [infoFormat, setInfoFormat] = useState<Format | null>(null)
   const { t } = useTranslation()
@@ -340,29 +342,33 @@ function Step2({
         {/* Scoring format */}
         <div>
           <label className="block text-[13px] font-medium text-gray-700 mb-2">{t('create_league.match_scoring_label')}</label>
-          <div className="space-y-1.5">
-            {SCORING_FORMAT_KEYS.map((id) => (
-              <button
-                key={id}
-                onClick={() => setForm({ ...form, scoringFormat: id })}
-                className={cn(
-                  'w-full flex items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-all',
-                  form.scoringFormat === id ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 bg-white'
-                )}
-              >
-                <div className={cn(
-                  'h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
-                  form.scoringFormat === id ? 'border-[#009688]' : 'border-gray-300'
-                )}>
-                  {form.scoringFormat === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
-                </div>
-                <div>
-                  <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.scoring_${id}_label`)}</p>
-                  <p className="text-[11px] text-gray-400">{t(`create_league.scoring_${id}_desc`)}</p>
-                </div>
-              </button>
-            ))}
-          </div>
+          {isPpl ? (
+            <p className="text-[12px] text-gray-500">{t('create_league.scoring_ppl_fixed')}</p>
+          ) : (
+            <div className="space-y-1.5">
+              {SCORING_FORMAT_KEYS.map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setForm({ ...form, scoringFormat: id })}
+                  className={cn(
+                    'w-full flex items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-all',
+                    form.scoringFormat === id ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 bg-white'
+                  )}
+                >
+                  <div className={cn(
+                    'h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
+                    form.scoringFormat === id ? 'border-[#009688]' : 'border-gray-300'
+                  )}>
+                    {form.scoringFormat === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
+                  </div>
+                  <div>
+                    <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.scoring_${id}_label`)}</p>
+                    <p className="text-[11px] text-gray-400">{t(`create_league.scoring_${id}_desc`)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Start / End dates */}
@@ -422,7 +428,7 @@ function Step2({
 const VISIBILITY_KEYS: Visibility[] = ['group_only', 'open', 'invite_only']
 const JOIN_MODE_KEYS: JoinMode[] = ['auto_add', 'invite', 'open']
 
-function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => void }) {
+function Step3({ form, setForm, isPpl }: { form: FormState; setForm: (f: FormState) => void; isPpl?: boolean }) {
   const { t } = useTranslation()
   return (
     <div>
@@ -517,7 +523,7 @@ function Step3({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
             { label: t('create_league.review_type'),    value: form.leagueType ?? '—' },
             { label: t('create_league.review_name'),    value: form.name || '—' },
             { label: t('create_league.review_format'),  value: form.format?.replace(/_/g, ' ') ?? '—' },
-            { label: t('create_league.review_scoring'), value: form.scoringFormat.replace(/_/g, ' ') },
+            { label: t('create_league.review_scoring'), value: isPpl ? 'Just play — every set recorded' : form.scoringFormat.replace(/_/g, ' ') },
             { label: t('create_league.review_starts'),  value: form.startDate || '—' },
             { label: t('create_league.review_ends'),    value: form.endDate || '—' },
           ].map(({ label, value }) => (
@@ -769,8 +775,8 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   transition={{ duration: 0.2 }}
                 >
                   {step === 1 && <StepPreset onSelect={handlePresetSelect} />}
-                  {presetMode === 'padel_players_league' && step === 2 && <Step2 form={form} setForm={setForm} userId={user?.id ?? ''} hideTypeAndFormat />}
-                  {presetMode === 'padel_players_league' && step === 3 && <Step3 form={form} setForm={setForm} />}
+                  {presetMode === 'padel_players_league' && step === 2 && <Step2 form={form} setForm={setForm} userId={user?.id ?? ''} hideTypeAndFormat isPpl />}
+                  {presetMode === 'padel_players_league' && step === 3 && <Step3 form={form} setForm={setForm} isPpl />}
                   {presetMode === 'custom' && step === 2 && <Step1 form={form} setForm={setForm} />}
                   {presetMode === 'custom' && step === 3 && <Step2 form={form} setForm={setForm} userId={user?.id ?? ''} />}
                   {presetMode === 'custom' && step === 4 && <Step3 form={form} setForm={setForm} />}

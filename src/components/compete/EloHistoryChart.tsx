@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine, Area, AreaChart } from 'recharts'
-import { format, parseISO, subMonths } from 'date-fns'
+import { format, parseISO, subMonths, differenceInCalendarDays } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
 import { TrendingUp, TrendingDown } from 'lucide-react'
@@ -46,7 +46,6 @@ function CustomTooltip({ active, payload }: any) {
 export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
   const locale = useDateLocale()
   const { t } = useTranslation()
-  const [range, setRange] = useState<TimeRange>('3m')
   const [selectedPoint, setSelectedPoint] = useState<HistoryPoint | null>(null)
 
   // Fetch current ELO from profile
@@ -82,6 +81,31 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
     },
     staleTime: 5 * 60 * 1000,
   })
+
+  // Compute history span and determine which range pills are enabled
+  const historySpan = useMemo(() => {
+    if (rawHistory.length < 2) return 0
+    try {
+      return differenceInCalendarDays(new Date(rawHistory[rawHistory.length - 1].date), new Date(rawHistory[0].date))
+    } catch { return 0 }
+  }, [rawHistory])
+
+  const rangeEnabled: Record<TimeRange, boolean> = {
+    '1m': historySpan > 30,
+    '3m': historySpan > 90,
+    '6m': historySpan > 180,
+    'all': true,
+  }
+
+  const defaultRange: TimeRange = rangeEnabled['1m'] ? '1m' : rangeEnabled['3m'] ? '3m' : rangeEnabled['6m'] ? '6m' : 'all'
+  const [range, setRange] = useState<TimeRange>('all')
+  const [hasInitialized, setHasInitialized] = useState(false)
+  useEffect(() => {
+    if (rawHistory.length > 0 && !hasInitialized) {
+      setRange(defaultRange)
+      setHasInitialized(true)
+    }
+  }, [rawHistory.length, defaultRange, hasInitialized])
 
   // Time-filtered data
   const history = rawHistory
@@ -121,9 +145,11 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
         {(['1m', '3m', '6m', 'all'] as TimeRange[]).map(r => (
           <button
             key={r}
+            disabled={!rangeEnabled[r]}
             onClick={() => setRange(r)}
             className={cn(
               'rounded-full px-3 py-1 text-[11px] font-semibold transition-colors',
+              !rangeEnabled[r] ? 'bg-gray-100 text-gray-300 opacity-50 cursor-default' :
               range === r ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-500'
             )}
           >

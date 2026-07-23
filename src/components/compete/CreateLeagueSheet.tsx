@@ -138,7 +138,7 @@ function StepPreset({ onSelect }: { onSelect: (mode: PresetMode) => void }) {
               <p className="font-semibold text-gray-900">Padel Players League</p>
               <span className="text-[9px] font-bold uppercase tracking-wide bg-teal-100 text-teal-700 rounded-full px-1.5 py-0.5">Recommended</span>
             </div>
-            <p className="text-[13px] text-gray-500 mt-0.5">Set-by-set scoring on a season ELO ladder — our flagship format.</p>
+            <p className="text-[13px] text-gray-500 mt-0.5">For groups who play when they can. Everyone ranked fairly whether they play weekly or now and then — plus jerseys and categories so more than one person can win.</p>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
         </button>
@@ -151,7 +151,7 @@ function StepPreset({ onSelect }: { onSelect: (mode: PresetMode) => void }) {
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-gray-900">Custom league</p>
-            <p className="text-[13px] text-gray-500 mt-0.5">Pick your own league type, format, and scoring rules.</p>
+            <p className="text-[13px] text-gray-500 mt-0.5">Round robin, Mexicano and other formats with fixed fixtures. Pick your own type, format and scoring rules.</p>
           </div>
           <ChevronRight className="h-5 w-5 text-gray-300 shrink-0" />
         </button>

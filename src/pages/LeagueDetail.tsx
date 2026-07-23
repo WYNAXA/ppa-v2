@@ -1208,11 +1208,14 @@ function LeagueAboutCard({ league }: { league: LeagueInfo }) {
   const { t } = useTranslation('', { keyPrefix: 'create_league' })
   if (!league.format) return null
 
+  const isPpl = league.match_type === 'individual' && league.format === 'round_robin'
+  const formatKey = isPpl ? 'ppl' : league.format
+
   const rows: Array<{ label: string; value: string }> = []
 
   rows.push({
     label: t('about_format'),
-    value: t(`format_${league.format}_title`),
+    value: t(`format_${formatKey}_title`),
   })
 
   if (league.scoring_format) {
@@ -1235,7 +1238,7 @@ function LeagueAboutCard({ league }: { league: LeagueInfo }) {
   return (
     <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
       <p className="text-[11px] font-bold text-gray-500 uppercase tracking-wide mb-2">{t('about_this_league')}</p>
-      <p className="text-[13px] text-gray-600 mb-3">{t(`format_${league.format}_desc`)}</p>
+      <p className="text-[13px] text-gray-600 mb-3">{t(`format_${formatKey}_desc`)}</p>
       <div className="space-y-1.5">
         {rows.map((r) => (
           <div key={r.label} className="flex items-baseline gap-2">

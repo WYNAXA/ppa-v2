@@ -437,6 +437,22 @@ function useEntertainerHistory(leagueId: string) {
   })
 }
 
+function useLeagueClimbers(leagueId: string) {
+  return useQuery<{ user_id: string; elo_gained: number }[]>({
+    queryKey: ['league-climbers', leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_league_climbers', { p_league_id: leagueId })
+      if (error) return []
+      return (data ?? []).map((r: Record<string, unknown>) => ({
+        user_id: r.user_id as string,
+        elo_gained: Number(r.elo_gained),
+      }))
+    },
+    staleTime: 60_000,
+  })
+}
+
 function useFixtures(leagueId: string, _groupIds: string[]) {
   return useQuery({
     queryKey: ['league-fixtures', leagueId],
@@ -1865,7 +1881,7 @@ export function LeagueDetailPage() {
   const queryClient       = useQueryClient()
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
-  const [standingsView, setStandingsView] = useState<'form' | 'points' | 'games_won' | 'game_diff'>('form')
+  const [standingsView, setStandingsView] = useState<'form' | 'points' | 'climbers' | 'games_won' | 'game_diff'>('form')
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
@@ -1909,6 +1925,7 @@ export function LeagueDetailPage() {
   const jerseyByUser = Object.fromEntries(jerseys.map((j) => [j.user_id, j.jersey_type]))
   const { data: entertainerRace = [] } = useEntertainerRace(id)
   const { data: entertainerHistory = [] } = useEntertainerHistory(id)
+  const { data: climbers = [] } = useLeagueClimbers(id)
   const currentEntertainer = jerseys.find((j) => j.jersey_type === 'entertainer' || j.jersey_type === 'blue')
   const { data: leagueMembers = [] } = useLeagueMembers(id)
   const { data: currentRound = 0 } = useCurrentRound(id)
@@ -2449,6 +2466,7 @@ export function LeagueDetailPage() {
                       {([
                         { id: 'form' as const, label: 'Form' },
                         { id: 'points' as const, label: 'Pts' },
+                        { id: 'climbers' as const, label: 'Climb' },
                         { id: 'games_won' as const, label: 'GW' },
                         { id: 'game_diff' as const, label: 'GD' },
                       ]).map((v) => (
@@ -2609,6 +2627,49 @@ export function LeagueDetailPage() {
                         )}
                       />
                     )}
+
+                    {/* Climbers */}
+                    {standingsView === 'climbers' && (() => {
+                      const climberMap = Object.fromEntries(climbers.map(c => [c.user_id, c.elo_gained]))
+                      const climberRows = [...standings]
+                        .map(s => ({ ...s, elo_gained: climberMap[s.user_id] ?? 0 }))
+                        .sort((a, b) => b.elo_gained - a.elo_gained || b.form - a.form)
+                      return (
+                        <>
+                          <p className="text-[11px] text-gray-400 mb-3">Career ELO gained. Tracking started 23 Jun.</p>
+                          <StandingsAccordion<Standing & { elo_gained: number }>
+                            rows={climberRows}
+                            isMe={(row) => row.user_id === currentUserId}
+                            identity={(row, isMe) => (
+                              <>
+                                <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                                <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                  {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                  {jerseyByUser[row.user_id] && (
+                                    <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                  )}
+                                  {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
+                                </span>
+                              </>
+                            )}
+                            headlineLabel="ELO"
+                            headline={(row) => (
+                              <span className={cn('text-[12px] font-bold', row.elo_gained > 0 ? 'text-green-600' : row.elo_gained < 0 ? 'text-red-500' : 'text-gray-400')}>
+                                {row.elo_gained > 0 ? '+' : ''}{row.elo_gained}
+                              </span>
+                            )}
+                            detail={(row) => (
+                              <>
+                                <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
+                                <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                                <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
+                                <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                              </>
+                            )}
+                          />
+                        </>
+                      )
+                    })()}
                   </>
                 )
               })()}

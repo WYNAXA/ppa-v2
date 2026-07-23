@@ -1865,7 +1865,7 @@ export function LeagueDetailPage() {
   const queryClient       = useQueryClient()
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
-  const [standingsView, setStandingsView] = useState<'points' | 'win_rate' | 'games_won' | 'game_diff' | 'streak'>('points')
+  const [standingsView, setStandingsView] = useState<'form' | 'points' | 'games_won' | 'game_diff'>('form')
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
@@ -2428,32 +2428,29 @@ export function LeagueDetailPage() {
                 })()}
               </>
               ) : (() => {
-                // Sort and filter standings based on active view
+                // Sort standings based on active view
                 const viewRows = (() => {
                   switch (standingsView) {
-                    case 'win_rate':
-                      return [...standings].filter(s => s.played >= 4).sort((a, b) => b.win_rate - a.win_rate || b.won - a.won)
+                    case 'points':
+                      return [...standings].sort((a, b) => b.points - a.points || b.form - a.form)
                     case 'games_won':
-                      return [...standings].sort((a, b) => b.games_won - a.games_won)
+                      return [...standings].sort((a, b) => b.games_won - a.games_won || b.form - a.form)
                     case 'game_diff':
-                      return [...standings].sort((a, b) => b.game_difference - a.game_difference || b.games_won - a.games_won)
-                    case 'streak':
-                      return [...standings].sort((a, b) => b.win_streak - a.win_streak || b.won - a.won)
+                      return [...standings].sort((a, b) => b.game_difference - a.game_difference || b.form - a.form)
                     default:
-                      return standings // already sorted by 5-rung
+                      return standings // already sorted by form DESC, points DESC, played ASC
                   }
                 })()
 
                 return (
                   <>
-                    {/* View toggle — horizontally scrollable for 5 segments on mobile */}
+                    {/* View toggle */}
                     <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5 mb-3 overflow-x-auto no-scrollbar">
                       {([
+                        { id: 'form' as const, label: 'Form' },
                         { id: 'points' as const, label: 'Pts' },
-                        { id: 'win_rate' as const, label: 'Win%' },
                         { id: 'games_won' as const, label: 'GW' },
                         { id: 'game_diff' as const, label: 'GD' },
-                        { id: 'streak' as const, label: '🔥' },
                       ]).map((v) => (
                         <button
                           key={v.id}
@@ -2468,8 +2465,8 @@ export function LeagueDetailPage() {
                       ))}
                     </div>
 
-                    {/* Points */}
-                    {standingsView === 'points' && (
+                    {/* Form */}
+                    {standingsView === 'form' && (
                       <StandingsAccordion<Standing>
                         rows={viewRows}
                         isMe={(row) => row.user_id === currentUserId}
@@ -2481,6 +2478,7 @@ export function LeagueDetailPage() {
                               {jerseyByUser[row.user_id] && (
                                 <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                               )}
+                              {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
                           </>
                         )}
@@ -2511,39 +2509,42 @@ export function LeagueDetailPage() {
                       />
                     )}
 
-                    {/* Win Rate */}
-                    {standingsView === 'win_rate' && (
-                      <>
-                        <StandingsAccordion<Standing>
-                          rows={viewRows}
-                          isMe={(row) => row.user_id === currentUserId}
-                          identity={(row, isMe) => (
-                            <>
-                              <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                              <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                                {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
-                                {jerseyByUser[row.user_id] && (
-                                  <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
-                                )}
-                              </span>
-                            </>
-                          )}
-                          headlineLabel="Win%"
-                          headline={(row) => (
-                            <span className="text-[12px] font-bold text-[#009688]">{row.win_rate}%</span>
-                          )}
-                          detail={(row) => (
-                            <>
-                              <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
-                              <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
-                              <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
-                            </>
-                          )}
-                        />
-                        {viewRows.length === 0 && (
-                          <p className="text-[12px] text-gray-400 text-center py-4">No players with 4+ sets played yet</p>
+                    {/* Points */}
+                    {standingsView === 'points' && (
+                      <StandingsAccordion<Standing>
+                        rows={viewRows}
+                        isMe={(row) => row.user_id === currentUserId}
+                        identity={(row, isMe) => (
+                          <>
+                            <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {jerseyByUser[row.user_id] && (
+                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                              )}
+                              {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
+                            </span>
+                          </>
                         )}
-                      </>
+                        headlineLabel="Pts"
+                        headline={(row, isMe) => (
+                          <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.points}</span>
+                        )}
+                        headlineLabel2="Form"
+                        headline2={(row, isMe) => (
+                          <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                            {row.form.toFixed(2)}
+                          </span>
+                        )}
+                        detail={(row) => (
+                          <>
+                            <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
+                            <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                            <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
+                            <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                          </>
+                        )}
+                      />
                     )}
 
                     {/* Games Won */}
@@ -2559,6 +2560,7 @@ export function LeagueDetailPage() {
                               {jerseyByUser[row.user_id] && (
                                 <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                               )}
+                              {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
                           </>
                         )}
@@ -2588,6 +2590,7 @@ export function LeagueDetailPage() {
                               {jerseyByUser[row.user_id] && (
                                 <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                               )}
+                              {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
                           </>
                         )}
@@ -2602,36 +2605,6 @@ export function LeagueDetailPage() {
                             <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
                             <span>GW <span className="font-bold text-gray-700">{row.games_won}</span></span>
                             <span>GL <span className="font-bold text-gray-700">{row.games_won - row.game_difference}</span></span>
-                          </>
-                        )}
-                      />
-                    )}
-
-                    {/* Streak */}
-                    {standingsView === 'streak' && (
-                      <StandingsAccordion<Standing>
-                        rows={viewRows}
-                        isMe={(row) => row.user_id === currentUserId}
-                        identity={(row, isMe) => (
-                          <>
-                            <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
-                              {jerseyByUser[row.user_id] && (
-                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
-                              )}
-                            </span>
-                          </>
-                        )}
-                        headlineLabel="🔥"
-                        headline={(row) => (
-                          <span className="text-[12px] font-bold text-orange-500">{row.win_streak > 0 ? `${row.win_streak}🔥` : '0'}</span>
-                        )}
-                        detail={(row) => (
-                          <>
-                            <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
-                            <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
-                            <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
                           </>
                         )}
                       />

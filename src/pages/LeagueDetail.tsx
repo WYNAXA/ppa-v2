@@ -1905,6 +1905,7 @@ export function LeagueDetailPage() {
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false)
   const [quickSessionKey, setQuickSessionKey] = useState(0)
   const [showQuickSession, setShowQuickSession] = useState(false)
+  const [showScoringSheet, setShowScoringSheet] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const { t: tPairs } = useTranslation('', { keyPrefix: 'pairs' })
 
@@ -2501,6 +2502,18 @@ export function LeagueDetailPage() {
                       ))}
                     </div>
 
+                    <div className="flex items-start justify-between mb-3">
+                      <p className="text-[11px] text-gray-400 flex-1">
+                        {standingsView === 'form' && 'How well you\'re playing — points per set, adjusted for how much you\'ve played.'}
+                        {standingsView === 'points' && 'Total points this season — 3 for a set win, 1 for a draw.'}
+                        {standingsView === 'climbers' && 'Rating gained since tracking began on 23 Jun.'}
+                        {standingsView === 'upsets' && 'Sets won against pairs rated 150+ above yours.'}
+                        {standingsView === 'games_won' && 'Total games won across all your sets.'}
+                        {standingsView === 'game_diff' && 'Games won minus games lost.'}
+                      </p>
+                      <button onClick={() => setShowScoringSheet(true)} className="text-[11px] text-[#009688] font-semibold whitespace-nowrap ml-2">How scoring works</button>
+                    </div>
+
                     {/* Form */}
                     {standingsView === 'form' && (
                       <StandingsAccordion<Standing>
@@ -2653,9 +2666,7 @@ export function LeagueDetailPage() {
                         .map(s => ({ ...s, elo_gained: climberMap[s.user_id] ?? 0 }))
                         .sort((a, b) => b.elo_gained - a.elo_gained || b.form - a.form)
                       return (
-                        <>
-                          <p className="text-[11px] text-gray-400 mb-3">Career ELO gained. Tracking started 23 Jun.</p>
-                          <StandingsAccordion<Standing & { elo_gained: number }>
+                        <StandingsAccordion<Standing & { elo_gained: number }>
                             rows={climberRows}
                             isMe={(row) => row.user_id === currentUserId}
                             identity={(row, isMe) => (
@@ -2685,7 +2696,6 @@ export function LeagueDetailPage() {
                               </>
                             )}
                           />
-                        </>
                       )
                     })()}
 
@@ -2696,9 +2706,7 @@ export function LeagueDetailPage() {
                         .map(s => ({ ...s, upset_wins: upsetMap[s.user_id] ?? 0 }))
                         .sort((a, b) => b.upset_wins - a.upset_wins || b.form - a.form)
                       return (
-                        <>
-                          <p className="text-[11px] text-gray-400 mb-3">Sets won against pairs rated 150+ above you. Since 23 Jun.</p>
-                          <StandingsAccordion<Standing & { upset_wins: number }>
+                        <StandingsAccordion<Standing & { upset_wins: number }>
                             rows={upsetRows}
                             isMe={(row) => row.user_id === currentUserId}
                             identity={(row, isMe) => (
@@ -2728,13 +2736,11 @@ export function LeagueDetailPage() {
                               </>
                             )}
                           />
-                        </>
                       )
                     })()}
                   </>
                 )
               })()}
-              <p className="text-[11px] text-gray-400 mt-2">Win 3 · Draw 1 · Loss 0 per set. Everyone starts at 1.50 — the more you play, the more your Form reflects your own results.</p>
               {/* ── Entertainer jersey ── */}
               {(currentEntertainer || entertainerRace.length > 0 || entertainerHistory.length > 0) && (
                 <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">
@@ -3163,6 +3169,72 @@ export function LeagueDetailPage() {
           }}
         />
       )}
+
+      {/* How scoring works sheet */}
+      <AnimatePresence>
+        {showScoringSheet && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[55] bg-black/40"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowScoringSheet(false)}
+            />
+            <motion.div
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[80vh] flex flex-col"
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+            >
+              <div className="flex justify-center pt-3 pb-1 shrink-0">
+                <div className="h-1 w-10 rounded-full bg-gray-200" />
+              </div>
+              <div className="flex items-center justify-between px-5 py-3 shrink-0">
+                <button onClick={() => setShowScoringSheet(false)} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
+                  <X className="h-4 w-4 text-gray-600" />
+                </button>
+                <h2 className="text-[15px] font-bold text-gray-900">How scoring works</h2>
+                <div className="w-9" />
+              </div>
+              <div className="overflow-y-auto flex-1 px-5 pb-8 space-y-5">
+                <div>
+                  <p className="text-[13px] font-bold text-gray-900">FORM</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">How well you&#39;re playing</p>
+                  <p className="text-[12px] text-gray-600">Points per set, adjusted for how much you&#39;ve played. Everyone starts at 1.50 and moves toward their own record as they play more sets. Why adjusted? Someone who wins 2 of their first 3 sets shouldn&#39;t top the league ahead of someone who has won 30 of 45. The adjustment fades as you play more.</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-gray-900">PTS</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">Total points this season</p>
+                  <p className="text-[12px] text-gray-600">3 points for winning a set, 1 for a draw, 0 for a loss. This rewards turning up and playing often.</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-gray-900">CLIMB</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">Rating gained</p>
+                  <p className="text-[12px] text-gray-600">How much your career rating has risen. Beating stronger opponents gains you more than beating weaker ones. Players already rated highly have less room to climb. Tracking started 23 Jun 2026.</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-gray-900">UPSETS</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">Beating stronger pairs</p>
+                  <p className="text-[12px] text-gray-600">Sets you won where the opposing pair&#39;s combined rating was at least 150 above yours. Both winners are credited.</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-gray-900">GW</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">Games won</p>
+                  <p className="text-[12px] text-gray-600">The individual games inside each set, added up across the season.</p>
+                </div>
+                <div>
+                  <p className="text-[13px] font-bold text-gray-900">GD</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">Game difference</p>
+                  <p className="text-[12px] text-gray-600">Games won minus games lost. Shows how close your sets tend to be.</p>
+                </div>
+                <p className="text-[11px] text-gray-400 text-center">Your position in the table is decided by Form.</p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   )
 }

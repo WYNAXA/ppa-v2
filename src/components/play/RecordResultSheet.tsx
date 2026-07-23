@@ -65,8 +65,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   const [creatingNext, setCreatingNext] = useState(false)
   const [selectedForSwap, setSelectedForSwap] = useState<string | null>(null)
 
-  // TUNABLE: max sets per result. Casual = best-of-3 (3); league set-as-match = high practical ceiling (9).
-  const maxSets = match?.league_id ? 9 : 3
+  // TUNABLE: max sets per result. league_id is set by a DB trigger after result
+  // recording, so it's always null here. Use a flat cap — nobody is forced to fill all 9.
+  const maxSets = 9
 
   // Guard: initialise teams ONCE on open, never re-derived
   const initialisedRef = useRef(false)

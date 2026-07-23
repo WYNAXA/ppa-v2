@@ -3502,7 +3502,7 @@ function PointsAtStakeSection({
         </div>
       </div>
       {!isLeagueMatch && (
-        <p className="text-[10px] text-gray-400 mt-2 text-center italic">No league points — not in a league</p>
+        <p className="text-[10px] text-gray-400 mt-2 text-center italic">Not yet played</p>
       )}
     </div>
   )
@@ -3595,7 +3595,7 @@ function PointsAtStakeParticipant({
       </AnimatePresence>
 
       {!isLeagueMatch && (
-        <p className="text-[10px] text-gray-400 mt-2 text-center italic">No league points — not in a league</p>
+        <p className="text-[10px] text-gray-400 mt-2 text-center italic">Not yet played</p>
       )}
     </div>
   )

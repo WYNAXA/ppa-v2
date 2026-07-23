@@ -453,6 +453,22 @@ function useLeagueClimbers(leagueId: string) {
   })
 }
 
+function useLeagueUpsets(leagueId: string) {
+  return useQuery<{ user_id: string; upset_wins: number }[]>({
+    queryKey: ['league-upsets', leagueId],
+    enabled: !!leagueId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_league_upsets', { p_league_id: leagueId })
+      if (error) return []
+      return (data ?? []).map((r: Record<string, unknown>) => ({
+        user_id: r.user_id as string,
+        upset_wins: Number(r.upset_wins),
+      }))
+    },
+    staleTime: 60_000,
+  })
+}
+
 function useFixtures(leagueId: string, _groupIds: string[]) {
   return useQuery({
     queryKey: ['league-fixtures', leagueId],
@@ -1881,7 +1897,7 @@ export function LeagueDetailPage() {
   const queryClient       = useQueryClient()
   const currentUserId     = profile?.id ?? ''
   const [activeTab, setActiveTab] = useState<Tab>('standings')
-  const [standingsView, setStandingsView] = useState<'form' | 'points' | 'climbers' | 'games_won' | 'game_diff'>('form')
+  const [standingsView, setStandingsView] = useState<'form' | 'points' | 'climbers' | 'upsets' | 'games_won' | 'game_diff'>('form')
   const [quickResultMatch, setQuickResultMatch] = useState<FixtureMatch | null>(null)
   const [showFixturePicker, setShowFixturePicker] = useState(false)
   const locale = useDateLocale()
@@ -1926,6 +1942,7 @@ export function LeagueDetailPage() {
   const { data: entertainerRace = [] } = useEntertainerRace(id)
   const { data: entertainerHistory = [] } = useEntertainerHistory(id)
   const { data: climbers = [] } = useLeagueClimbers(id)
+  const { data: upsets = [] } = useLeagueUpsets(id)
   const currentEntertainer = jerseys.find((j) => j.jersey_type === 'entertainer' || j.jersey_type === 'blue')
   const { data: leagueMembers = [] } = useLeagueMembers(id)
   const { data: currentRound = 0 } = useCurrentRound(id)
@@ -2467,6 +2484,7 @@ export function LeagueDetailPage() {
                         { id: 'form' as const, label: 'Form' },
                         { id: 'points' as const, label: 'Pts' },
                         { id: 'climbers' as const, label: 'Climb' },
+                        { id: 'upsets' as const, label: 'Upsets' },
                         { id: 'games_won' as const, label: 'GW' },
                         { id: 'game_diff' as const, label: 'GD' },
                       ]).map((v) => (
@@ -2656,6 +2674,49 @@ export function LeagueDetailPage() {
                             headline={(row) => (
                               <span className={cn('text-[12px] font-bold', row.elo_gained > 0 ? 'text-green-600' : row.elo_gained < 0 ? 'text-red-500' : 'text-gray-400')}>
                                 {row.elo_gained > 0 ? '+' : ''}{row.elo_gained}
+                              </span>
+                            )}
+                            detail={(row) => (
+                              <>
+                                <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
+                                <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                                <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
+                                <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                              </>
+                            )}
+                          />
+                        </>
+                      )
+                    })()}
+
+                    {/* Upsets */}
+                    {standingsView === 'upsets' && (() => {
+                      const upsetMap = Object.fromEntries(upsets.map(u => [u.user_id, u.upset_wins]))
+                      const upsetRows = [...standings]
+                        .map(s => ({ ...s, upset_wins: upsetMap[s.user_id] ?? 0 }))
+                        .sort((a, b) => b.upset_wins - a.upset_wins || b.form - a.form)
+                      return (
+                        <>
+                          <p className="text-[11px] text-gray-400 mb-3">Sets won against pairs rated 150+ above you. Since 23 Jun.</p>
+                          <StandingsAccordion<Standing & { upset_wins: number }>
+                            rows={upsetRows}
+                            isMe={(row) => row.user_id === currentUserId}
+                            identity={(row, isMe) => (
+                              <>
+                                <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
+                                <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                  {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                  {jerseyByUser[row.user_id] && (
+                                    <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                  )}
+                                  {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
+                                </span>
+                              </>
+                            )}
+                            headlineLabel="Wins"
+                            headline={(row) => (
+                              <span className={cn('text-[12px] font-bold', row.upset_wins > 0 ? 'text-[#009688]' : 'text-gray-400')}>
+                                {row.upset_wins}
                               </span>
                             )}
                             detail={(row) => (

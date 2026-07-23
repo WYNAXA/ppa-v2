@@ -18,6 +18,7 @@ import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
 import { subscribeToPush, unsubscribeFromPush } from '@/lib/push'
 import { EloHistoryChart } from '@/components/compete/EloHistoryChart'
+import { classifyKernel } from '@/lib/setClassification'
 import { EloStageCard } from '@/components/compete/EloStageCard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -94,8 +95,10 @@ function useYouStats(userId: string) {
       const [resultsData, rankData] = await Promise.all([
         supabase
           .from('match_results')
-          .select('result_type, team1_players, team2_players')
+          .select('result_type, team1_players, team2_players, sets_data')
           .or(`team1_players.cs.{${userId}},team2_players.cs.{${userId}}`)
+          .eq('verification_status', 'verified')
+          .not('is_friendly', 'is', true)
           .order('created_at', { ascending: true }),
         supabase
           .from('profiles')
@@ -111,27 +114,35 @@ function useYouStats(userId: string) {
       for (const r of results) {
         const inTeam1  = (r.team1_players as string[]).includes(userId)
         const teammates = inTeam1 ? (r.team1_players as string[]) : (r.team2_players as string[])
+        const sets = (r.sets_data ?? []) as Array<Record<string, unknown>>
 
-        if (r.result_type === 'draw') {
-          draws++; streak = 0
-        } else if (
-          (inTeam1 && r.result_type === 'team1_win') ||
-          (!inTeam1 && r.result_type === 'team2_win')
-        ) {
-          wins++
-          streak++
-          if (streak > bestStreak) bestStreak = streak
-          for (const pid of teammates) {
-            if (pid !== userId) {
-              partnerWins[pid] = (partnerWins[pid] ?? 0) + 1
+        for (const s of sets) {
+          const g1 = (s.team1 ?? s.team1_score ?? 0) as number
+          const g2 = (s.team2 ?? s.team2_score ?? 0) as number
+          const { isVoid } = classifyKernel(g1, g2)
+          if (isVoid) continue
+
+          if (g1 === g2) {
+            draws++; streak = 0
+          } else {
+            const userTeamWon = (inTeam1 && g1 > g2) || (!inTeam1 && g2 > g1)
+            if (userTeamWon) {
+              wins++
+              streak++
+              if (streak > bestStreak) bestStreak = streak
+              for (const pid of teammates) {
+                if (pid !== userId) {
+                  partnerWins[pid] = (partnerWins[pid] ?? 0) + 1
+                }
+              }
+            } else {
+              losses++; streak = 0
             }
           }
-        } else {
-          losses++; streak = 0
         }
       }
 
-      const total = results.length
+      const total = wins + losses + draws
       const winRate = total > 0 ? Math.round((wins / total) * 100) : 0
 
       // Rank position

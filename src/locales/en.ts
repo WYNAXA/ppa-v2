@@ -195,7 +195,7 @@ export default {
     wins: 'Wins',
     losses: 'Losses',
     draws: 'Draws',
-    win_rate: 'Win rate',
+    win_rate: 'Win rate (sets)',
     trend_30d: '30d trend',
     recent_form: 'Recent form',
     no_matches_yet: 'No matches yet',

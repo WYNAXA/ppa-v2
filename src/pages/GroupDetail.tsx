@@ -36,6 +36,7 @@ interface Group {
   allow_join_requests: boolean | null
   allow_ringers: boolean | null
   ringer_approval: string | null
+  auto_match_enabled: boolean | null
   created_at: string | null
   banner_url: string | null
 }
@@ -82,7 +83,7 @@ function useGroup(groupId: string) {
     queryFn: async (): Promise<Group | null> => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, allow_join_requests, allow_ringers, ringer_approval, created_at, banner_url')
+        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, allow_join_requests, allow_ringers, ringer_approval, auto_match_enabled, created_at, banner_url')
         .eq('id', groupId)
         .maybeSingle()
       if (error) throw error
@@ -994,6 +995,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
   const [allowJoinRequests, setAllowJoinRequests] = useState(group.allow_join_requests ?? true)
   const [allowRingers, setAllowRingers] = useState(group.allow_ringers ?? true)
   const [ringerApproval, setRingerApproval] = useState<'admin' | 'any_member'>((group.ringer_approval as 'admin' | 'any_member') ?? 'admin')
+  const [autoMatchEnabled, setAutoMatchEnabled] = useState(group.auto_match_enabled ?? false)
   const [saving, setSaving]         = useState(false)
   const [saved, setSaved]           = useState(false)
   const [uploading, setUploading]   = useState(false)
@@ -1057,6 +1059,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       allow_join_requests: visibility === 'open' ? true : allowJoinRequests,
       allow_ringers: allowRingers,
       ringer_approval: ringerApproval,
+      auto_match_enabled: autoMatchEnabled,
     }).eq('id', group.id)
     setSaving(false)
     if (error) { toast.error(t('group_detail.save_failed')); return }
@@ -1451,6 +1454,27 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Match Generation */}
+              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
+                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Match Generation</p>
+                <div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[13px] text-gray-700">Auto-generate matches</span>
+                    <button
+                      type="button"
+                      onClick={() => setAutoMatchEnabled(v => !v)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoMatchEnabled ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoMatchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-gray-400 mt-1">When voting closes, create the matches automatically. Turn this off if you'd rather review and generate them yourself.</p>
+                  {!autoMatchEnabled && members.filter(m => m.role === 'admin').length < 2 && (
+                    <p className="text-[11px] text-gray-400 mt-1 italic">You're the only admin. Consider adding a second so matches still get generated when you're away.</p>
+                  )}
+                </div>
               </div>
 
               <div>

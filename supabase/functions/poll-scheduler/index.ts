@@ -10,6 +10,7 @@
  */
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { timingSafeEqual } from "https://deno.land/std@0.190.0/crypto/timing_safe_equal.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 import { isUserAvailableForSlot } from "../_shared/timeUtils.ts";
 import {
@@ -84,6 +85,17 @@ serve(async (req: Request) => {
     } else if (mode === "confirm") {
       return await handleConfirm(supabase, poll_id, body.schedule, body.benched_ids);
     } else if (mode === "auto") {
+      const cronSecret = Deno.env.get("POLL_CRON_SECRET");
+      if (!cronSecret) {
+        return json({ error: "auto mode not configured" }, 500);
+      }
+      const provided = req.headers.get("x-cron-secret") ?? "";
+      const encoder = new TextEncoder();
+      const a = encoder.encode(cronSecret);
+      const b = encoder.encode(provided);
+      if (a.byteLength !== b.byteLength || !timingSafeEqual(a, b)) {
+        return json({ error: "unauthorized" }, 401);
+      }
       return await handleAuto(supabase, poll_id, poll, timeSlots, isRange);
     } else {
       return json({ error: 'mode must be "propose", "breakdown", "recompute", "confirm", or "auto"' }, 400);

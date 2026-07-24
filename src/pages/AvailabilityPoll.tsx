@@ -366,7 +366,7 @@ export function AvailabilityPollPage() {
       } else {
         // Legacy slot-model poll
         responseData.selected_slots = cantDoWeek ? [] : selectedSlots
-        responseData.flexible_times = Object.keys(customTimeRanges).length > 0
+        responseData.flexible_times = !cantDoWeek && Object.keys(customTimeRanges).length > 0
           ? { custom_time_ranges: customTimeRanges }
           : {}
       }

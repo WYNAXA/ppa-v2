@@ -83,8 +83,10 @@ serve(async (req: Request) => {
       return await handleRecompute(supabase, poll, timeSlots, body.schedule, isRange);
     } else if (mode === "confirm") {
       return await handleConfirm(supabase, poll_id, body.schedule, body.benched_ids);
+    } else if (mode === "auto") {
+      return await handleAuto(supabase, poll_id, poll, timeSlots, isRange);
     } else {
-      return json({ error: 'mode must be "propose", "breakdown", "recompute", or "confirm"' }, 400);
+      return json({ error: 'mode must be "propose", "breakdown", "recompute", "confirm", or "auto"' }, 400);
     }
   } catch (err: any) {
     console.error("poll-scheduler error:", err);
@@ -94,14 +96,28 @@ serve(async (req: Request) => {
 
 // ── MODE: propose ────────────────────────────────────────────────────────────
 
-async function handlePropose(
+interface ProposalData {
+  proposals: any[];
+  players_scheduled: string[];
+  players_benched: string[];
+  total_participation: number;
+  profiles: Record<string, any>;
+  slot_availability: Record<string, string[]>;
+  clusters?: any;
+}
+
+type ProposalResult =
+  | { kind: "ok"; data: ProposalData }
+  | { kind: "insufficient"; message: string };
+
+async function computeProposals(
   supabase: any,
   poll: any,
   timeSlots: TimeSlot[],
   togetherness: boolean,
   balanceTeams: boolean = false,
   isRange: boolean = false,
-): Promise<Response> {
+): Promise<ProposalResult> {
 
   // 2. Fetch poll_responses
   const selectCols = "user_id, selected_slots, flexible_times, can_play_twice, availability_ranges, preferred_date, max_matches";
@@ -111,9 +127,8 @@ async function handlePropose(
     .select(selectCols)
     .eq("poll_id", poll.id);
 
-  if (respErr) return json({ error: "Failed to fetch responses" }, 500);
-  if (!responses || responses.length < 2) {
-    return json({ success: true, proposals: [], message: "Need at least 2 responses" });
+  if (respErr || !responses || responses.length < 2) {
+    return { kind: "insufficient", message: "Need at least 2 responses" };
   }
 
   // 3. BRANCH: range vs legacy availability
@@ -137,7 +152,7 @@ async function handlePropose(
       }));
 
     if (rangeResponses.length < 2) {
-      return json({ success: true, proposals: [], message: "Need at least 2 range responses" });
+      return { kind: "insufficient", message: "Need at least 2 range responses" };
     }
 
     const virtual = rangesToVirtualSlots(rangeResponses);
@@ -305,7 +320,7 @@ async function handlePropose(
 
       const candidates: string[] = [];
       for (const r of engineResponses) {
-        if (!r.selected_slots.includes(m.slotId)) continue;
+        if (!(r.selected_slots ?? []).includes(m.slotId)) continue;
         // Check if swapping this candidate into ANY position yields >= 60min window
         let eligible = false;
         for (let i = 0; i < m.playerIds.length; i++) {
@@ -413,16 +428,70 @@ async function handlePropose(
     }
   }
 
-  return json({
-    success: true,
-    proposals,
-    players_scheduled: output.playersScheduled,
-    players_benched: output.playersBenched,
-    total_participation: output.totalParticipation,
-    profiles: profilesMap,
-    slot_availability: slotAvailability,
-    clusters,
-  });
+  return {
+    kind: "ok",
+    data: {
+      proposals,
+      players_scheduled: output.playersScheduled,
+      players_benched: output.playersBenched,
+      total_participation: output.totalParticipation,
+      profiles: profilesMap,
+      slot_availability: slotAvailability,
+      clusters,
+    },
+  };
+}
+
+async function handlePropose(
+  supabase: any,
+  poll: any,
+  timeSlots: TimeSlot[],
+  togetherness: boolean,
+  balanceTeams: boolean = false,
+  isRange: boolean = false,
+): Promise<Response> {
+  const result = await computeProposals(supabase, poll, timeSlots, togetherness, balanceTeams, isRange);
+  if (result.kind === "insufficient") {
+    return json({ success: true, proposals: [], message: result.message });
+  }
+  return json({ success: true, ...result.data });
+}
+
+// ── MODE: auto ──────────────────────────────────────────────────────────────
+
+async function handleAuto(
+  supabase: any,
+  pollId: string,
+  poll: any,
+  timeSlots: TimeSlot[],
+  isRange: boolean,
+): Promise<Response> {
+  const result = await computeProposals(supabase, poll, timeSlots, false, false, isRange);
+  if (result.kind === "insufficient") {
+    return json({ success: true, matches_created: 0, reason: result.message });
+  }
+  if (result.data.proposals.length === 0) {
+    return json({ success: true, matches_created: 0, reason: "no proposals" });
+  }
+
+  // Transform proposals into the confirm schedule shape,
+  // matching PollAdminView.tsx handleConfirmSchedule exactly.
+  const schedule = result.data.proposals
+    .filter((m: any) => (m.player_ids ?? m.playerIds)?.length >= 2)
+    .map((m: any) => {
+      const entry: any = {
+        player_ids: m.player_ids ?? m.playerIds,
+        match_date: m.match_date ?? m.date,
+        match_time: m.match_time ?? ((m.timeSlot?.split('-')[0]?.trim() ?? '19:00') + ':00'),
+        slot_id: m.slot_id ?? m.slotId ?? null,
+        additional_options: m.additional_options ?? {},
+      };
+      if (m.window_start) entry.window_start = m.window_start;
+      if (m.window_end) entry.window_end = m.window_end;
+      return entry;
+    });
+
+  return await handleConfirm(supabase, pollId, schedule, result.data.players_benched);
 }
 
 // ── MODE: breakdown ─────────────────────────────────────────────────────────
@@ -531,7 +600,7 @@ async function handleRecompute(
       slotPlayers.set(slot.id, new Set<string>());
     }
     for (const r of virtual.responses) {
-      for (const sid of r.selected_slots) {
+      for (const sid of (r.selected_slots ?? [])) {
         if (!slotPlayers.has(sid)) slotPlayers.set(sid, new Set());
         slotPlayers.get(sid)!.add(r.user_id);
       }

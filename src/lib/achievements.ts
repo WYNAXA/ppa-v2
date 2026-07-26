@@ -20,10 +20,9 @@ export const ACHIEVEMENT_LIBRARY: Record<string, AchievementDef> = {
   // Global career (permanent)
   first_win:       { name: 'First Victory',      emoji: '🏆', description: 'Won your first match',               rarity: 'common',   permanent: true,  scope: 'global' },
   on_fire:         { name: 'On Fire',             emoji: '🔥', description: '3 wins in a row',                    rarity: 'uncommon', permanent: true,  scope: 'global' },
-  consistent:      { name: 'Consistent',          emoji: '⚡', description: 'Played 20 sets',                    rarity: 'common',   permanent: true,  scope: 'global' },
+  court_time:      { name: 'Court Time',          emoji: '🎾', description: 'Sets logged over your padel journey', rarity: 'common',  permanent: true,  scope: 'global' },
   sharp_shooter:   { name: 'Sharp Shooter',       emoji: '🎯', description: '70%+ win rate over 20+ sets',       rarity: 'rare',     permanent: true,  scope: 'global' },
   social:          { name: 'Social Butterfly',     emoji: '👥', description: 'Member of 3+ groups',               rarity: 'uncommon', permanent: true,  scope: 'global' },
-  veteran:         { name: 'Veteran',             emoji: '🌟', description: '100+ sets played',                   rarity: 'rare',     permanent: true,  scope: 'global' },
   league_champion: { name: 'League Champion',     emoji: '👑', description: 'Won a league season',                rarity: 'epic',     permanent: true,  scope: 'global' },
   // League/match (earnable multiple times)
   perfectionist:   { name: 'Perfectionist',       emoji: '💎', description: 'Won 6-0, 6-0',                      rarity: 'rare',     permanent: false, scope: 'league', canEarnMultiple: true },
@@ -46,6 +45,37 @@ export const ACHIEVEMENT_LIBRARY: Record<string, AchievementDef> = {
 export const BADGE_DEFINITIONS: Record<string, { label: string; emoji: string }> = Object.fromEntries(
   Object.entries(ACHIEVEMENT_LIBRARY).map(([key, def]) => [key, { label: def.name, emoji: def.emoji }])
 )
+
+// ── Court Time tiers ────────────────────────────────────────────────
+
+export const COURT_TIME_TIERS = [
+  { tier: 'bronze',   minSets: 20 },
+  { tier: 'silver',   minSets: 50 },
+  { tier: 'gold',     minSets: 100 },
+  { tier: 'platinum', minSets: 200 },
+  { tier: 'diamond',  minSets: 400 },
+] as const
+
+export function courtTimeTier(totalSets: number): string | null {
+  let result: string | null = null
+  for (const t of COURT_TIME_TIERS) {
+    if (totalSets >= t.minSets) result = t.tier
+  }
+  return result
+}
+
+// ── Tier rank (shared) ──────────────────────────────────────────────
+
+export function tierRank(t: string | null): number {
+  switch (t) {
+    case 'diamond':  return 5
+    case 'platinum': return 4
+    case 'gold':     return 3
+    case 'silver':   return 2
+    case 'bronze':   return 1
+    default:         return 0
+  }
+}
 
 // ────────────────────────────────────────────────────────────────────
 // Jersey types. Blue (Entertainer) is awarded weekly by cron.
@@ -114,9 +144,7 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
     const conditions: Record<string, boolean> = {
       first_win: setStats.wins >= 1,
       on_fire: streak >= 3,
-      consistent: setStats.totalSets >= 20,
       social: (groupCount ?? 0) >= 3,
-      veteran: setStats.totalSets >= 100,
       sharp_shooter: setStats.totalSets >= 20 && setStats.winRate >= 70,
     }
     for (const [key, met] of Object.entries(conditions)) {
@@ -150,27 +178,76 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
       if (avgOpp - ((me?.internal_ranking as number) ?? 1500) >= 200) earned.push('giant_slayer')
     }
 
-    if (earned.length === 0) return []
+    const awards: BadgeAward[] = []
 
-    // Insert into user_badges (for backwards compat)
-    await supabase.from('user_badges').insert(earned.map(badge_key => ({ user_id: userId, badge_key })))
+    if (earned.length > 0) {
+      // Insert into user_badges (for backwards compat)
+      await supabase.from('user_badges').insert(earned.map(badge_key => ({ user_id: userId, badge_key })))
 
-    // Send notification for each earned achievement
-    sendNotifications(
-      earned.map(key => ({
-        user_id: userId,
-        type: 'achievement',
-        title: `${ACHIEVEMENT_LIBRARY[key]?.emoji ?? '🏆'} ${ACHIEVEMENT_LIBRARY[key]?.name ?? key} earned!`,
-        message: ACHIEVEMENT_LIBRARY[key]?.description ?? 'New achievement unlocked',
-        related_id: userId,
-      }))
-    )
+      // Send notification for each earned achievement
+      sendNotifications(
+        earned.map(key => ({
+          user_id: userId,
+          type: 'achievement',
+          title: `${ACHIEVEMENT_LIBRARY[key]?.emoji ?? '🏆'} ${ACHIEVEMENT_LIBRARY[key]?.name ?? key} earned!`,
+          message: ACHIEVEMENT_LIBRARY[key]?.description ?? 'New achievement unlocked',
+          related_id: userId,
+        }))
+      )
 
-    return earned.map(key => ({
-      badge_key: key,
-      label: ACHIEVEMENT_LIBRARY[key]?.name ?? key,
-      emoji: ACHIEVEMENT_LIBRARY[key]?.emoji ?? '🏅',
-    }))
+      for (const key of earned) {
+        awards.push({
+          badge_key: key,
+          label: ACHIEVEMENT_LIBRARY[key]?.name ?? key,
+          emoji: ACHIEVEMENT_LIBRARY[key]?.emoji ?? '🏅',
+        })
+      }
+    }
+
+    // ── Court Time tiered badge ────────────────────────────────────────
+    const ctTier = courtTimeTier(setStats.totalSets)
+    if (ctTier) {
+      const { data: ctRow } = await supabase
+        .from('user_badges')
+        .select('tier')
+        .eq('user_id', userId)
+        .eq('badge_key', 'court_time')
+        .maybeSingle()
+
+      const currentTier = (ctRow?.tier as string) ?? null
+
+      if (tierRank(currentTier) < tierRank(ctTier)) {
+        if (currentTier != null) {
+          await supabase
+            .from('user_badges')
+            .update({ tier: ctTier, earned_at: new Date().toISOString() })
+            .eq('user_id', userId)
+            .eq('badge_key', 'court_time')
+        } else {
+          await supabase
+            .from('user_badges')
+            .insert({ user_id: userId, badge_key: 'court_time', tier: ctTier })
+        }
+
+        const def = ACHIEVEMENT_LIBRARY['court_time']
+        const tierLabel = ctTier.charAt(0).toUpperCase() + ctTier.slice(1)
+        awards.push({
+          badge_key: 'court_time',
+          label: `${def?.name ?? 'Court Time'} (${tierLabel})`,
+          emoji: def?.emoji ?? '🎾',
+        })
+
+        sendNotification({
+          user_id: userId,
+          type: 'achievement',
+          title: `${def?.emoji ?? '🎾'} ${tierLabel} ${def?.name ?? 'Court Time'}!`,
+          message: def?.description ?? 'Sets logged over your padel journey',
+          related_id: userId,
+        })
+      }
+    }
+
+    return awards
   } catch { return [] }
 }
 
@@ -226,8 +303,6 @@ export async function checkAndAwardPeerVoteBadges(playerIds: string[]): Promise<
         if (!newTier) continue
 
         // Skip if already at this tier or higher
-        const tierRank = (t: string | null) =>
-          t === 'gold' ? 3 : t === 'silver' ? 2 : t === 'bronze' ? 1 : 0
         if (tierRank(currentTier ?? null) >= tierRank(newTier)) continue
 
         // 4. Upsert the badge row

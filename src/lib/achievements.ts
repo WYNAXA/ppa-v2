@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { sendNotification, sendNotifications } from '@/lib/notifications'
+import { fetchSetStats } from '@/lib/setStats'
 import i18n from '@/i18n'
 
 // ── Achievement Library ──────────────────────────────────────────────────────
@@ -19,10 +20,10 @@ export const ACHIEVEMENT_LIBRARY: Record<string, AchievementDef> = {
   // Global career (permanent)
   first_win:       { name: 'First Victory',      emoji: '🏆', description: 'Won your first match',               rarity: 'common',   permanent: true,  scope: 'global' },
   on_fire:         { name: 'On Fire',             emoji: '🔥', description: '3 wins in a row',                    rarity: 'uncommon', permanent: true,  scope: 'global' },
-  consistent:      { name: 'Consistent',          emoji: '⚡', description: 'Played 10 matches',                  rarity: 'common',   permanent: true,  scope: 'global' },
-  sharp_shooter:   { name: 'Sharp Shooter',       emoji: '🎯', description: '70%+ win rate (10+ matches)',        rarity: 'rare',     permanent: true,  scope: 'global' },
+  consistent:      { name: 'Consistent',          emoji: '⚡', description: 'Played 20 sets',                    rarity: 'common',   permanent: true,  scope: 'global' },
+  sharp_shooter:   { name: 'Sharp Shooter',       emoji: '🎯', description: '70%+ win rate over 20+ sets',       rarity: 'rare',     permanent: true,  scope: 'global' },
   social:          { name: 'Social Butterfly',     emoji: '👥', description: 'Member of 3+ groups',               rarity: 'uncommon', permanent: true,  scope: 'global' },
-  veteran:         { name: 'Veteran',             emoji: '🌟', description: '50+ matches played',                 rarity: 'rare',     permanent: true,  scope: 'global' },
+  veteran:         { name: 'Veteran',             emoji: '🌟', description: '100+ sets played',                   rarity: 'rare',     permanent: true,  scope: 'global' },
   league_champion: { name: 'League Champion',     emoji: '👑', description: 'Won a league season',                rarity: 'epic',     permanent: true,  scope: 'global' },
   // League/match (earnable multiple times)
   perfectionist:   { name: 'Perfectionist',       emoji: '💎', description: 'Won 6-0, 6-0',                      rarity: 'rare',     permanent: false, scope: 'league', canEarnMultiple: true },
@@ -86,25 +87,20 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
       .from('user_badges').select('badge_key').eq('user_id', userId)
     const existing = new Set((existingRows ?? []).map(r => r.badge_key as string))
 
-    // Only count verified results — unverified/disputed results must not affect badges
+    // Set-level stats for career badges (verified, non-friendly only)
+    const setStats = await fetchSetStats(userId)
+
+    // Streak: count consecutive match-level wins (most recent first)
     const { data: allResults } = await supabase
       .from('match_results')
       .select('result_type, team1_players, team2_players, sets_data')
       .eq('verification_status', 'verified')
+      .not('is_friendly', 'is', true)
       .or(`team1_players.cs.{${userId}},team2_players.cs.{${userId}}`)
       .order('created_at', { ascending: false })
-    if (!allResults) return []
 
-    const totalMatches = allResults.length
-    const wins = allResults.filter(r => {
-      const inTeam1 = (r.team1_players as string[]).includes(userId)
-      return (inTeam1 && r.result_type === 'team1_win') || (!inTeam1 && r.result_type === 'team2_win')
-    }).length
-    const winRate = totalMatches > 0 ? (wins / totalMatches) * 100 : 0
-
-    // Streak
     let streak = 0
-    for (const r of allResults) {
+    for (const r of (allResults ?? [])) {
       const inTeam1 = (r.team1_players as string[]).includes(userId)
       const won = (inTeam1 && r.result_type === 'team1_win') || (!inTeam1 && r.result_type === 'team2_win')
       if (won) streak++; else break
@@ -116,19 +112,19 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
 
     const earned: string[] = []
     const conditions: Record<string, boolean> = {
-      first_win: wins >= 1,
+      first_win: setStats.wins >= 1,
       on_fire: streak >= 3,
-      consistent: totalMatches >= 10,
+      consistent: setStats.totalSets >= 20,
       social: (groupCount ?? 0) >= 3,
-      veteran: totalMatches >= 50,
-      sharp_shooter: totalMatches >= 10 && winRate >= 70,
+      veteran: setStats.totalSets >= 100,
+      sharp_shooter: setStats.totalSets >= 20 && setStats.winRate >= 70,
     }
     for (const [key, met] of Object.entries(conditions)) {
       if (met && !existing.has(key)) earned.push(key)
     }
 
     // Check perfectionist on most recent result
-    if (allResults.length > 0) {
+    if (allResults && allResults.length > 0) {
       const latest = allResults[0]
       const inTeam1 = (latest.team1_players as string[]).includes(userId)
       const won = (inTeam1 && latest.result_type === 'team1_win') || (!inTeam1 && latest.result_type === 'team2_win')
@@ -144,7 +140,7 @@ export async function checkAndAwardBadges(userId: string): Promise<BadgeAward[]>
     }
 
     // Giant slayer on most recent win
-    if (allResults.length > 0 && streak >= 1) {
+    if (allResults && allResults.length > 0 && streak >= 1) {
       const latest = allResults[0]
       const inTeam1 = (latest.team1_players as string[]).includes(userId)
       const opponentIds = inTeam1 ? latest.team2_players as string[] : latest.team1_players as string[]

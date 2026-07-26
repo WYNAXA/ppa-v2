@@ -153,7 +153,7 @@ export const FAQS: FaqItem[] = [
     id: 'what-badges',
     topic: 'badges',
     q: 'What badges can I earn?',
-    a: 'Badges are earned automatically as you play. Current earnable badges include First Victory (your first win), On Fire (3-win streak), Consistent (10 matches), Sharp Shooter (70%+ win rate over 10+ matches), Social Butterfly (member of 3+ groups), Veteran (50+ matches), Perfectionist (winning 6-0, 6-0), and Giant Slayer (beating a team rated 200+ points above you). Peer-vote badges (bronze, silver, gold per award category) are earned from the votes you receive across all your matches.',
+    a: 'Badges are earned automatically as you play. Current earnable badges include First Victory (your first win), On Fire (3-win streak), Consistent (20 sets), Sharp Shooter (70%+ win rate over 20+ sets), Social Butterfly (member of 3+ groups), Veteran (100+ sets), Perfectionist (winning 6-0, 6-0), and Giant Slayer (beating a team rated 200+ points above you). Peer-vote badges (bronze, silver, gold per award category) are earned from the votes you receive across all your matches.',
   },
   /* Peer voting */
   {

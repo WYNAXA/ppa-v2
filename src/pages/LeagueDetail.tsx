@@ -1738,6 +1738,7 @@ function JerseyLegendSheet({ open, onClose, jerseys, standings }: {
                   )
                 })}
               </div>
+              <p className="text-[12px] text-gray-500 mt-4">{t('league.jersey_legend_footer')}</p>
             </div>
           </motion.div>
         </>

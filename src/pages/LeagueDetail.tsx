@@ -1303,10 +1303,10 @@ const SCORING_MIN_SETS: Record<string, number> = {
 }
 
 const SCORING_FORMAT_LABELS: Record<string, string> = {
-  standard: 'Best of 3 sets',
-  short_sets: 'Short sets (best of 3)',
-  one_set: 'One set',
-  custom: 'Custom',
+  standard: 'league.scoring_best_of_3',
+  short_sets: 'league.scoring_short_sets',
+  one_set: 'league.scoring_one_set',
+  custom: 'league.scoring_custom',
 }
 
 function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scoringFormat, setAsMatch, minSetsPerFixture }: {
@@ -1319,6 +1319,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
   setAsMatch?: boolean
   minSetsPerFixture?: number
 }) {
+  const { t } = useTranslation()
   const [step, setStep] = useState(1)
   const [sets, setSets] = useState<QuickSetScore[]>([{ team1: '', team2: '' }])
   const [submitting, setSubmitting] = useState(false)
@@ -1332,8 +1333,8 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
     // Using this pattern to avoid effect — resets when sheet closes
   }
 
-  const team1Names = match?.players?.filter((p) => match.player_ids.slice(0, 2).includes(p.id)).map((p) => p.name.split(' ')[0]) ?? ['Team 1']
-  const team2Names = match?.players?.filter((p) => match.player_ids.slice(2, 4).includes(p.id)).map((p) => p.name.split(' ')[0]) ?? ['Team 2']
+  const team1Names = match?.players?.filter((p) => match.player_ids.slice(0, 2).includes(p.id)).map((p) => p.name.split(' ')[0]) ?? [t('match.team1')]
+  const team2Names = match?.players?.filter((p) => match.player_ids.slice(2, 4).includes(p.id)).map((p) => p.name.split(' ')[0]) ?? [t('match.team2')]
 
   function countWins(): [number, number] {
     let t1 = 0, t2 = 0
@@ -1348,10 +1349,10 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
   const [t1Wins, t2Wins] = countWins()
   const resultType = t1Wins > t2Wins ? 'team1_win' : t2Wins > t1Wins ? 'team2_win' : 'draw'
   const resultLabel = resultType === 'team1_win'
-    ? `${team1Names.join(' & ')} win ${t1Wins}-${t2Wins}`
+    ? t('league.team_win_score', { names: team1Names.join(' & '), score: `${t1Wins}-${t2Wins}` })
     : resultType === 'team2_win'
-    ? `${team2Names.join(' & ')} win ${t2Wins}-${t1Wins}`
-    : `Draw ${t1Wins}-${t2Wins}`
+    ? t('league.team_win_score', { names: team2Names.join(' & '), score: `${t2Wins}-${t1Wins}` })
+    : t('league.draw_score', { score: `${t1Wins}-${t2Wins}` })
   const canAdvance = sets.some((s) => s.team1 !== '' && s.team2 !== '')
 
   function handleReset() {
@@ -1416,7 +1417,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
       queryClient.invalidateQueries({ queryKey: ['match', match.id] })
       handleClose()
     } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : 'Failed to submit result')
+      setError(e instanceof Error ? e.message : t('league.submit_result_failed'))
     } finally {
       setSubmitting(false)
     }
@@ -1449,7 +1450,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
               <button onClick={handleClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-600" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Enter Result</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('league.enter_result')}</h2>
               <div className="w-9" />
             </div>
 
@@ -1459,12 +1460,12 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                   {/* Team labels */}
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-center flex-1">
-                      <p className="text-[11px] font-bold text-teal-700 uppercase tracking-wide">Team 1</p>
+                      <p className="text-[11px] font-bold text-teal-700 uppercase tracking-wide">{t('match.team1')}</p>
                       <p className="text-[12px] text-gray-600 truncate">{team1Names.join(' & ')}</p>
                     </div>
-                    <span className="text-gray-300 text-sm px-2">vs</span>
+                    <span className="text-gray-300 text-sm px-2">{t('league.vs')}</span>
                     <div className="text-center flex-1">
-                      <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wide">Team 2</p>
+                      <p className="text-[11px] font-bold text-orange-600 uppercase tracking-wide">{t('match.team2')}</p>
                       <p className="text-[12px] text-gray-600 truncate">{team2Names.join(' & ')}</p>
                     </div>
                   </div>
@@ -1483,7 +1484,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                           setAsMatch && unfinished && 'bg-amber-50 border border-amber-200 rounded-xl px-2 py-1',
                         )}
                       >
-                        <span className="text-[12px] text-gray-400 w-12">Set {i + 1}</span>
+                        <span className="text-[12px] text-gray-400 w-12">{t('league.set_number', { number: i + 1 })}</span>
                         <input
                           ref={(el) => { quickInputRefs.current[`${i}-team1`] = el }}
                           type="number"
@@ -1522,17 +1523,17 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                           completed ? (
                             <span className="text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5 bg-teal-50 text-teal-700 border-teal-200">
                               <span className="inline-block w-2.5 h-2.5 rounded-full bg-teal-500" />
-                              Finished
+                              {t('league.set_finished')}
                             </span>
                           ) : total >= 6 ? (
                             <span className="text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5 bg-amber-100 text-amber-700 border-amber-300 font-semibold">
                               <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
-                              Couldn&apos;t finish
+                              {t('league.set_couldnt_finish')}
                             </span>
                           ) : (
                             <span className="text-[11px] rounded-full px-2.5 py-1 border ml-1 whitespace-nowrap inline-flex items-center gap-1.5 bg-amber-50 text-amber-600 border-amber-200">
                               <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />
-                              Couldn&apos;t finish &middot; won&apos;t count
+                              {t('league.set_couldnt_finish_wont_count')}
                             </span>
                           )
                         )}
@@ -1540,7 +1541,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     )
                   })}
                   {setAsMatch && (
-                    <p className="text-[11px] text-gray-400 text-center mt-1 mb-3">Each set is checked automatically — &lsquo;Finished&rsquo; means a complete set; &lsquo;Couldn&apos;t finish&rsquo; shows if you stopped early (it still counts, scored on games played).</p>
+                    <p className="text-[11px] text-gray-400 text-center mt-1 mb-3">{t('league.set_check_explanation')}</p>
                   )}
 
                   {sets.length < 5 && (
@@ -1548,7 +1549,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                       onClick={() => setSets((prev) => [...prev, { team1: '', team2: '' }])}
                       className="w-full rounded-xl border border-dashed border-gray-200 py-2 text-[12px] text-gray-400 hover:border-teal-300 hover:text-teal-600 transition-colors mb-3"
                     >
-                      + Add set
+                      {t('league.add_set')}
                     </button>
                   )}
 
@@ -1557,7 +1558,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                     disabled={!canAdvance}
                     className="mt-2 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                   >
-                    Next
+                    {t('league.next')}
                   </button>
                 </div>
               )}
@@ -1582,7 +1583,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                       onClick={() => setStep(1)}
                       className="flex-1 rounded-2xl border border-gray-200 py-3.5 text-[14px] font-semibold text-gray-700"
                     >
-                      Back
+                      {t('league.back')}
                     </button>
                     <button
                       onClick={() => {
@@ -1612,29 +1613,29 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                       disabled={submitting}
                       className="flex-1 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
-                      {submitting ? 'Submitting...' : 'Submit Result'}
+                      {submitting ? t('league.submitting') : t('league.submit_result')}
                     </button>
                   </div>
 
                   {/* Incomplete match confirmation */}
                   {showIncompleteConfirm && (
                     <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3">
-                      <p className="text-[13px] font-semibold text-amber-800 mb-1">Match incomplete</p>
+                      <p className="text-[13px] font-semibold text-amber-800 mb-1">{t('league.match_incomplete')}</p>
                       <p className="text-[12px] text-amber-700 mb-3">
-                        This league uses {SCORING_FORMAT_LABELS[scoringFormat ?? 'standard'] ?? scoringFormat}. Submit with only {sets.filter((s) => s.team1 !== '' && s.team2 !== '').length} set{sets.filter((s) => s.team1 !== '' && s.team2 !== '').length !== 1 ? 's' : ''}?
+                        {t('league.incomplete_confirm', { format: t(SCORING_FORMAT_LABELS[scoringFormat ?? 'standard'] ?? scoringFormat ?? ''), count: sets.filter((s) => s.team1 !== '' && s.team2 !== '').length })}
                       </p>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setShowIncompleteConfirm(false)}
                           className="flex-1 rounded-xl border border-gray-200 py-2 text-[12px] font-semibold text-gray-600"
                         >
-                          Cancel
+                          {t('match.cancel')}
                         </button>
                         <button
                           onClick={() => { setShowIncompleteConfirm(false); handleSubmit() }}
                           className="flex-1 rounded-xl bg-amber-500 py-2 text-[12px] font-bold text-white"
                         >
-                          Submit incomplete
+                          {t('league.submit_incomplete')}
                         </button>
                       </div>
                     </div>
@@ -1657,6 +1658,7 @@ function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
   fixtures: FixtureMatch[]
   onSelect: (match: FixtureMatch) => void
 }) {
+  const { t } = useTranslation()
   const locale = useDateLocale()
   const unplayed = fixtures.filter((m) => m.status !== 'completed' && m.status !== 'cancelled')
 
@@ -1685,13 +1687,13 @@ function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
               <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-600" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Select Fixture</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('league.select_fixture')}</h2>
               <div className="w-9" />
             </div>
             <div className="overflow-y-auto flex-1 px-5 pb-8">
               {unplayed.length === 0 ? (
                 <div className="py-10 text-center">
-                  <p className="text-[13px] text-gray-400">No unplayed fixtures</p>
+                  <p className="text-[13px] text-gray-400">{t('league.no_unplayed_fixtures')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -1738,6 +1740,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
   currentUserId: string
   queryClient: ReturnType<typeof useQueryClient>
 }) {
+  const { t } = useTranslation()
   const [selected, setSelected] = useState<Set<string>>(() => new Set())
   const [rounds, setRounds] = useState(3)
   const [generating, setGenerating] = useState(false)
@@ -1783,7 +1786,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
       }
 
       const { error } = await supabase.from('matches').insert(matchesToCreate)
-      if (error) { toast.error('Failed to create matches'); return }
+      if (error) { toast.error(t('league.create_matches_failed')); return }
       queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
       onClose()
     } finally {
@@ -1816,23 +1819,23 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
               <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-600" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Quick Session</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('league.quick_session')}</h2>
               <div className="w-9" />
             </div>
 
             {/* Player list */}
             <div className="overflow-y-auto flex-1 px-5 pb-4">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Who's here today?</p>
+                <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">{t('league.whos_here_today')}</p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelected(new Set(standings.map((s) => s.user_id)))}
                     className="text-[11px] font-semibold text-teal-600"
-                  >Select all</button>
+                  >{t('league.select_all')}</button>
                   <button
                     onClick={() => setSelected(new Set())}
                     className="text-[11px] font-semibold text-gray-400"
-                  >Clear all</button>
+                  >{t('league.clear_all')}</button>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-1">
@@ -1846,7 +1849,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
                     )}
                   >
                     <PlayerAvatar name={s.profile?.name ?? '?'} avatarUrl={s.profile?.avatar_url ?? null} size="sm" />
-                    <span className="text-[12px] font-semibold text-gray-900 flex-1 truncate">{s.profile?.name ?? 'Unknown'}</span>
+                    <span className="text-[12px] font-semibold text-gray-900 flex-1 truncate">{s.profile?.name ?? t('league.unknown')}</span>
                     <span className={cn(
                       'text-[11px] font-bold',
                       selected.has(s.user_id) ? 'text-teal-600' : 'text-gray-300',
@@ -1861,7 +1864,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
             {/* Rounds stepper + generate */}
             <div className="shrink-0 border-t border-gray-100 px-5 py-4 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[13px] font-semibold text-gray-700">Rounds</span>
+                <span className="text-[13px] font-semibold text-gray-700">{t('league.rounds')}</span>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setRounds((r) => Math.max(1, r - 1))}
@@ -1881,7 +1884,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
                 disabled={selectedCount < 4 || generating}
                 className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {generating ? 'Generating…' : selectedCount < 4 ? 'Select at least 4 players' : `Generate session (${effectiveRounds} round${effectiveRounds > 1 ? 's' : ''})`}
+                {generating ? t('league.generating') : selectedCount < 4 ? t('league.select_at_least_4') : t('league.generate_session', { count: effectiveRounds })}
               </button>
             </div>
           </motion.div>

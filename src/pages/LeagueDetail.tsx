@@ -2518,7 +2518,7 @@ export function LeagueDetailPage() {
                       <p className="text-[11px] text-gray-400 flex-1">
                         {standingsView === 'form' && t('league.explainer_form')}
                         {standingsView === 'points' && t('league.explainer_pts')}
-                        {standingsView === 'climbers' && t('league.explainer_climb', { date: '23 Jun' })}
+                        {standingsView === 'climbers' && (league?.season_start ? t('league.explainer_climb', { date: (() => { try { return format(parseISO(league.season_start), 'd MMM', { locale }) } catch { return league.season_start } })() }) : t('league.explainer_climb_no_date'))}
                         {standingsView === 'upsets' && t('league.explainer_upsets')}
                         {standingsView === 'games_won' && t('league.explainer_gw')}
                         {standingsView === 'game_diff' && t('league.explainer_gd')}
@@ -3224,7 +3224,7 @@ export function LeagueDetailPage() {
                 <div>
                   <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_climb_heading')}</p>
                   <p className="text-[12px] italic text-gray-500 mb-1">{t('league.scoring_sheet_climb_subtitle')}</p>
-                  <p className="text-[12px] text-gray-600">{t('league.scoring_sheet_climb_body')}</p>
+                  <p className="text-[12px] text-gray-600">{league?.season_start ? t('league.scoring_sheet_climb_body', { date: (() => { try { return format(parseISO(league.season_start), 'd MMM yyyy', { locale }) } catch { return league.season_start } })() }) : t('league.scoring_sheet_climb_body_no_date')}</p>
                 </div>
                 <div>
                   <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_upsets_heading')}</p>

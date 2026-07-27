@@ -40,20 +40,20 @@ import {
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 
-const TYPE_STYLES: Record<string, { label: string; className: string }> = {
-  competitive: { label: 'Competitive', className: 'bg-orange-50 text-orange-600 border-orange-100' },
-  friendly:    { label: 'Friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100'     },
-  casual:      { label: 'Casual',      className: 'bg-gray-50 text-gray-500 border-gray-100'     },
-  group:       { label: 'Group',       className: 'bg-teal-50 text-teal-600 border-teal-100'     },
+const TYPE_STYLES: Record<string, { labelKey: string; className: string }> = {
+  competitive: { labelKey: 'match.competitive', className: 'bg-orange-50 text-orange-600 border-orange-100' },
+  friendly:    { labelKey: 'match.friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100'     },
+  casual:      { labelKey: 'match.casual',      className: 'bg-gray-50 text-gray-500 border-gray-100'     },
+  group:       { labelKey: 'match.group_type',  className: 'bg-teal-50 text-teal-600 border-teal-100'     },
 }
 
-const STATUS_STYLES: Record<string, { label: string; className: string; dot: string }> = {
-  confirmed:  { label: 'Confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
-  scheduled:  { label: 'Confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
-  open:       { label: 'Open',       className: 'bg-orange-50 text-orange-600 border-orange-100', dot: 'bg-orange-400' },
-  pending:    { label: 'Pending',    className: 'bg-yellow-50 text-yellow-700 border-yellow-100', dot: 'bg-yellow-400' },
-  completed:  { label: 'Completed',  className: 'bg-gray-50 text-gray-500 border-gray-100',      dot: 'bg-gray-400'   },
-  cancelled:  { label: 'Cancelled',  className: 'bg-red-50 text-red-500 border-red-100',         dot: 'bg-red-400'    },
+const STATUS_STYLES: Record<string, { labelKey: string; className: string; dot: string }> = {
+  confirmed:  { labelKey: 'match.confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
+  scheduled:  { labelKey: 'match.confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
+  open:       { labelKey: 'match.open',       className: 'bg-orange-50 text-orange-600 border-orange-100', dot: 'bg-orange-400' },
+  pending:    { labelKey: 'match.pending',    className: 'bg-yellow-50 text-yellow-700 border-yellow-100', dot: 'bg-yellow-400' },
+  completed:  { labelKey: 'match.completed',  className: 'bg-gray-50 text-gray-500 border-gray-100',      dot: 'bg-gray-400'   },
+  cancelled:  { labelKey: 'match.cancelled',  className: 'bg-red-50 text-red-500 border-red-100',         dot: 'bg-red-400'    },
 }
 
 interface DisputeProposal {
@@ -196,6 +196,7 @@ async function fetchMatchDetail(id: string): Promise<{
 }
 
 function ResultBanner({ result, players, currentUserId }: { result: MatchResult; players: Profile[]; currentUserId?: string }) {
+  const { t } = useTranslation()
   const getPlayer = (id: string) => players.find((p) => p.id === id)
   // sets_data may be stored as a JSON string in the DB — handle both key conventions
   const rawSets: Array<Record<string, unknown>> = (() => {
@@ -226,7 +227,7 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
     <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-100 p-4">
       <div className="flex items-center gap-2 mb-3">
         <Trophy className="h-4 w-4 text-[#009688]" />
-        <p className="text-[12px] font-bold text-gray-700 uppercase tracking-wide">Result</p>
+        <p className="text-[12px] font-bold text-gray-700 uppercase tracking-wide">{t('match.result_heading')}</p>
         <span className={cn(
           'ml-auto text-[10px] font-semibold rounded-full px-2 py-0.5 border',
           result.verification_status === 'verified'
@@ -241,12 +242,12 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
             ? 'bg-red-50 text-red-700 border-red-100'
             : 'bg-yellow-50 text-yellow-700 border-yellow-100'
         )}>
-          {result.verification_status === 'verified' ? 'Verified'
-            : result.verification_status === 'disputed' ? 'Disputed'
-            : result.verification_status === 'submitter_review' || result.verification_status === 'opponent_review' ? 'In Review'
-            : result.verification_status === 'admin_review' ? 'Admin Review'
-            : result.verification_status === 'cancelled' ? 'Cancelled'
-            : 'Pending'}
+          {result.verification_status === 'verified' ? t('match.verified')
+            : result.verification_status === 'disputed' ? t('match.disputed')
+            : result.verification_status === 'submitter_review' || result.verification_status === 'opponent_review' ? t('match.in_review')
+            : result.verification_status === 'admin_review' ? t('match.admin_review')
+            : result.verification_status === 'cancelled' ? t('match.cancelled')
+            : t('match.pending')}
         </span>
       </div>
 
@@ -524,10 +525,10 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['ringer-requests', id] })
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      toast.success('Response sent')
+      toast.success(t('match.response_sent'))
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Something went wrong — please try again')
+      toast.error(err.message || t('match.something_went_wrong'))
     },
   })
 
@@ -544,11 +545,11 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['open-matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
       queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
-      toast.success('You\'ve claimed the open spot')
+      toast.success(t('match.claimed_open_spot'))
     },
     onError: (err: any) => {
       console.error('Claim failed:', err)
-      toast.error(err?.message ?? 'Failed to claim match. Try again.')
+      toast.error(err?.message ?? t('match.claim_failed'))
     },
   })
 
@@ -576,11 +577,11 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['my-invitation', id] })
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      toast.success('Response sent')
+      toast.success(t('match.response_sent'))
     },
     onError: (err: any) => {
       console.error('Invitation response failed:', err)
-      toast.error(err?.message ?? 'Failed to respond. Try again.')
+      toast.error(err?.message ?? t('match.respond_failed'))
     },
   })
 
@@ -636,11 +637,11 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['pending-invitees', id] })
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
-      toast.success('Player confirmed')
+      toast.success(t('match.player_confirmed'))
     },
     onError: (err: any) => {
       console.error('Confirm invitee failed:', err)
-      toast.error(err?.message ?? 'Failed to confirm player. Try again.')
+      toast.error(err?.message ?? t('match.confirm_player_failed'))
     },
     onSettled: () => { setConfirmingInviteeId(null) },
   })
@@ -668,7 +669,7 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to send lift request')
+      toast.error(err.message || t('match.lift_request_failed'))
     },
   })
 
@@ -702,7 +703,7 @@ export function MatchDetailPage() {
       const { data: names } = await supabase.from('profiles').select('id, name').in('id', riderIds)
       const nameMap: Record<string, string> = {}
       for (const p of names ?? []) nameMap[p.id] = p.name
-      return data.map((r) => ({ ...r, requesterName: nameMap[r.requester_id] ?? 'Player' }))
+      return data.map((r) => ({ ...r, requesterName: nameMap[r.requester_id] ?? t('match.player_fallback') }))
     },
   })
 
@@ -729,7 +730,7 @@ export function MatchDetailPage() {
           .eq('status', 'accepted')
 
         if ((acceptedCount ?? 0) >= totalSeats) {
-          throw new Error('No seats left — all seats are taken')
+          throw new Error(t('match.no_seats_left'))
         }
       }
 
@@ -761,7 +762,7 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Something went wrong — please try again')
+      toast.error(err.message || t('match.something_went_wrong'))
     },
   })
 
@@ -782,7 +783,7 @@ export function MatchDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['travel-requests', id, profile?.id] })
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to save pickup time')
+      toast.error(err.message || t('match.pickup_time_failed'))
     },
   })
 
@@ -803,7 +804,7 @@ export function MatchDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
     },
-    onError: (err: Error) => { toast.error(err.message || 'Failed to update') },
+    onError: (err: Error) => { toast.error(err.message || t('match.update_failed')) },
   })
 
   const toggleOfferingMutation = useMutation({
@@ -814,7 +815,7 @@ export function MatchDetailPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['match-travel', id] })
     },
-    onError: (err: Error) => { toast.error(err.message || 'Failed to update') },
+    onError: (err: Error) => { toast.error(err.message || t('match.update_failed')) },
   })
 
   // Travel prefs guard removed — toggles always available for participants
@@ -857,7 +858,7 @@ export function MatchDetailPage() {
         .in('id', requesterIds)
       const nameMap: Record<string, string> = {}
       for (const p of names ?? []) nameMap[p.id] = p.name
-      return data.map((r) => ({ ...r, requesterName: nameMap[r.requester_id] ?? 'Player' }))
+      return data.map((r) => ({ ...r, requesterName: nameMap[r.requester_id] ?? t('match.player_fallback') }))
     },
   })
 
@@ -956,7 +957,7 @@ export function MatchDetailPage() {
     },
     onError: (err: Error) => {
       console.error('[VoteMutation]', err)
-      toast.error(err.message || 'Something went wrong — please try again')
+      toast.error(err.message || t('match.something_went_wrong'))
     },
   })
 
@@ -971,8 +972,8 @@ export function MatchDetailPage() {
   if (error || !data) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
-        <p className="text-[14px] text-gray-500">Match not found.</p>
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[#009688] font-semibold">Go back</button>
+        <p className="text-[14px] text-gray-500">{t('match.not_found')}</p>
+        <button onClick={() => navigate(-1)} className="text-[13px] text-[#009688] font-semibold">{t('match.go_back')}</button>
       </div>
     )
   }
@@ -1031,7 +1032,7 @@ export function MatchDetailPage() {
     && myInvitation?.status !== 'pending')
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
-  const statusStyle = STATUS_STYLES[match.status] ?? { label: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }
+  const statusStyle = STATUS_STYLES[match.status] ?? { labelKey: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }
 
   const formattedDate = (() => {
     try { return format(parseISO(match.match_date), 'EEEE, d MMMM yyyy', { locale }) } catch { return match.match_date }
@@ -1045,7 +1046,7 @@ export function MatchDetailPage() {
       .join(' & ')
     const start = new Date(`${match.match_date}T${match.match_time}`)
     return {
-      title:    `Padel Match${opponentNames ? ` vs ${opponentNames}` : ''}`,
+      title:    opponentNames ? t('match.calendar_title', { opponents: opponentNames }) : t('match.share_title'),
       start,
       end:      new Date(start.getTime() + 90 * 60 * 1000),
       location: match.booked_venue_name ?? '',
@@ -1054,10 +1055,10 @@ export function MatchDetailPage() {
 
   const handleShare = async () => {
     const url   = `${window.location.origin}/matches/${id}`
-    const venue = match.booked_venue_name ?? 'TBC'
+    const venue = match.booked_venue_name ?? t('match.venue_tbc')
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Padel Match', text: `Join my padel match on ${formattedDate} at ${venue}`, url })
+        await navigator.share({ title: t('match.share_title'), text: t('match.share_text', { date: formattedDate, venue }), url })
       } catch { /* user cancelled */ }
     } else {
       await navigator.clipboard.writeText(url)
@@ -1076,7 +1077,7 @@ export function MatchDetailPage() {
     setConfirmLeave(false)
     if (error) {
       console.error('Leave match failed:', error)
-      toast.error(error.message ?? 'Failed to leave match')
+      toast.error(error.message ?? t('match.leave_failed'))
       return
     }
     if (navigator.vibrate) navigator.vibrate(10)
@@ -1090,7 +1091,7 @@ export function MatchDetailPage() {
     queryClient.invalidateQueries({ queryKey: ['open-matches'] })
     queryClient.invalidateQueries({ queryKey: ['travel-requests'] })
     queryClient.invalidateQueries({ queryKey: ['notifications'] })
-    toast.success('Left the match')
+    toast.success(t('match.left_the_match'))
     navigate('/home')
   }
 
@@ -1136,13 +1137,13 @@ export function MatchDetailPage() {
         body: JSON.stringify({ match_id: data.match.id }),
       })
       const resBody = await res.json().catch(() => ({}))
-      if (!res.ok) { throw new Error(resBody.error || 'Failed to cancel match') }
+      if (!res.ok) { throw new Error(resBody.error || t('match.cancel_match_failed')) }
       if (navigator.vibrate) navigator.vibrate(10)
       queryClient.invalidateQueries({ queryKey: ['match', id] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
       queryClient.invalidateQueries({ queryKey: ['play-matches'] })
     } catch (err: any) {
-      setCancelError(err?.message ?? 'Failed to cancel match. Please try again.')
+      setCancelError(err?.message ?? t('match.cancel_match_failed_retry'))
     } finally {
       setCancelling(false)
       setConfirmCancel(false)
@@ -1202,7 +1203,7 @@ export function MatchDetailPage() {
         navigate('/play')
       }
     } catch (err: any) {
-      setDeleteError(err?.message ?? 'Delete failed. Please try again or contact support.')
+      setDeleteError(err?.message ?? t('match.delete_failed_retry'))
     } finally {
       setDeleting(false)
       setConfirmDelete(false)
@@ -1245,7 +1246,7 @@ export function MatchDetailPage() {
   const SLOT_COUNT = 4
   const slots = Array.from({ length: SLOT_COUNT }, (_, i) => {
     const pid = playerIds[i]
-    if (pid) return players.find((p) => p.id === pid) ?? { id: pid, name: 'Unknown' }
+    if (pid) return players.find((p) => p.id === pid) ?? { id: pid, name: t('match.unknown_player') }
     const guestIndex = i - playerIds.length
     if (guestIndex >= 0 && guestIndex < guestNames.length) {
       return { id: `guest_${i}`, name: guestNames[guestIndex], isGuest: true as const }
@@ -1271,7 +1272,7 @@ export function MatchDetailPage() {
           <ChevronLeft className="h-5 w-5 text-gray-600" />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-[18px] font-bold text-gray-900 leading-tight">Match</h1>
+          <h1 className="text-[18px] font-bold text-gray-900 leading-tight">{t('match.title')}</h1>
           <p className="text-[12px] text-gray-400 truncate">{formattedDate}</p>
         </div>
       </div>
@@ -1284,11 +1285,11 @@ export function MatchDetailPage() {
       >
         <div className="flex flex-wrap gap-1.5 mb-3">
           <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', typeStyle.className)}>
-            {typeStyle.label}
+            {t(typeStyle.labelKey)}
           </span>
           <span className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', statusStyle.className)}>
             <span className={cn('h-1.5 w-1.5 rounded-full', statusStyle.dot)} />
-            {statusStyle.label}
+            {t(statusStyle.labelKey)}
           </span>
         </div>
 
@@ -1308,11 +1309,11 @@ export function MatchDetailPage() {
             <div className="flex-1 min-w-0">
               <p className="text-[13px] text-gray-700 truncate">
                 {match.booked_venue_name}
-                {match.booked_court_number != null && ` · Court ${match.booked_court_number}`}
+                {match.booked_court_number != null && ` · ${t('match.court_number', { number: match.booked_court_number })}`}
               </p>
               {venueDistance != null && (
                 <p className="text-[11px] text-gray-400 mt-0.5">
-                  {formatDistance(venueDistance)} away · ~{driveMinutes(venueDistance)} min drive · ~{walkMinutes(venueDistance)} min walk
+                  {t('match.venue_distance', { distance: formatDistance(venueDistance), drive: driveMinutes(venueDistance), walk: walkMinutes(venueDistance) })}
                 </p>
               )}
             </div>
@@ -1324,7 +1325,7 @@ export function MatchDetailPage() {
                 className="flex-shrink-0 flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-100 px-2 py-1 text-[11px] font-semibold text-blue-600"
               >
                 <Navigation className="h-3 w-3" />
-                Directions
+                {t('match.directions')}
               </a>
             )}
           </div>
@@ -1346,7 +1347,7 @@ export function MatchDetailPage() {
         >
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-            <p className="text-[13px] font-bold text-green-800">All 4 players confirmed!</p>
+            <p className="text-[13px] font-bold text-green-800">{t('match.all_players_confirmed')}</p>
           </div>
           {(match as any).booking_status !== 'booked' && (
             <div className="mt-2 space-y-1.5">
@@ -1354,13 +1355,13 @@ export function MatchDetailPage() {
                 onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
                 className="w-full rounded-xl bg-green-600 py-2 text-[12px] font-bold text-white"
               >
-                Book a Court
+                {t('match.book_court')}
               </button>
               <button
                 onClick={() => setShowSelfReportSheet(true)}
                 className="w-full rounded-xl border border-gray-200 py-2 text-[12px] font-medium text-gray-600"
               >
-                I've booked a court
+                {t('match.booked_elsewhere')}
               </button>
             </div>
           )}
@@ -1371,13 +1372,13 @@ export function MatchDetailPage() {
       {match.player_ids.length < 4 && match.status !== 'completed' && match.status !== 'cancelled' && (
         <div className="mx-5 mb-4">
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[11px] font-semibold text-gray-500">{match.player_ids.length} of 4 players joined</p>
+            <p className="text-[11px] font-semibold text-gray-500">{t('match.players_joined', { count: match.player_ids.length })}</p>
             {(isParticipant || isGroupAdmin) && (
               <button
                 onClick={() => setShowInvite(true)}
                 className="text-[11px] font-semibold text-[#009688]"
               >
-                + Add player
+                {t('match.add_player_plus')}
               </button>
             )}
           </div>
@@ -1392,7 +1393,7 @@ export function MatchDetailPage() {
 
       {/* Players */}
       <div className="px-5 mb-4">
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Players</p>
+        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('match.players')}</p>
         <div className="grid grid-cols-2 gap-2">
           {slots.map((player, i) => {
             const isClickable = player && player.id !== currentUserId && !('isGuest' in player && player.isGuest) && !player.id.startsWith('guest_')
@@ -1424,10 +1425,10 @@ export function MatchDetailPage() {
                     )}
                   </div>
                   {player.id === currentUserId && (
-                    <span className="text-[9px] font-bold text-[#009688] bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">You</span>
+                    <span className="text-[9px] font-bold text-[#009688] bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.you_badge')}</span>
                   )}
                   {'isGuest' in player && player.isGuest && (
-                    <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full flex-shrink-0">Guest</span>
+                    <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.guest_badge')}</span>
                   )}
                 </>
               ) : (
@@ -1440,10 +1441,10 @@ export function MatchDetailPage() {
                       onClick={() => setShowInvite(true)}
                       className="text-[11px] text-teal-600 font-semibold"
                     >
-                      Add player
+                      {t('match.invite_player')}
                     </button>
                   ) : (
-                    <p className="text-[11px] text-gray-400 italic">Waiting…</p>
+                    <p className="text-[11px] text-gray-400 italic">{t('match.waiting')}</p>
                   )}
                 </>
               )}

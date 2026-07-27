@@ -2513,27 +2513,27 @@ export function MatchDetailPage() {
       {/* Invitation response banner */}
       {myInvitation?.status === 'pending' && new Date(myInvitation.expires_at) > new Date() && (
         <div className="mx-5 mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-          <p className="text-[14px] font-bold text-blue-900 mb-1">You've been invited to this match</p>
-          <p className="text-[12px] text-blue-700 mb-3">Reply by {format(parseISO(myInvitation.expires_at), 'EEE d MMM, HH:mm', { locale })}</p>
+          <p className="text-[14px] font-bold text-blue-900 mb-1">{t('match.invited_to_match')}</p>
+          <p className="text-[12px] text-blue-700 mb-3">{t('match.reply_by', { date: format(parseISO(myInvitation.expires_at), 'EEE d MMM, HH:mm', { locale }) })}</p>
           <div className="flex gap-2">
             <button onClick={() => respondInvitationMutation.mutate(true)} disabled={respondInvitationMutation.isPending}
               className="flex-1 rounded-xl bg-blue-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
-              Yes, I can play
+              {t('match.yes_i_can_play')}
             </button>
             <button onClick={() => respondInvitationMutation.mutate(false)} disabled={respondInvitationMutation.isPending}
               className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 disabled:opacity-50">
-              Can't make it
+              {t('match.cant_make_it')}
             </button>
           </div>
         </div>
       )}
       {myInvitation?.status === 'accepted' && !isParticipant && (
         <div className="mx-5 mb-4 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3">
-          <p className="text-[13px] font-semibold text-blue-900 mb-0.5">You accepted this invitation</p>
+          <p className="text-[13px] font-semibold text-blue-900 mb-0.5">{t('match.you_accepted_invitation')}</p>
           <p className="text-[12px] text-blue-700">
             {myInvitation.is_broadcast
-              ? 'Waiting on the host to confirm you for the match.'
-              : "You'll be added to the match shortly."}
+              ? t('match.waiting_host_confirm')
+              : t('match.will_be_added_shortly')}
           </p>
         </div>
       )}
@@ -2548,7 +2548,7 @@ export function MatchDetailPage() {
             disabled={claimOpenMutation.isPending}
             className="w-full rounded-xl bg-purple-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
           >
-            {claimOpenMutation.isPending ? 'Claiming\u2026' : t('open_matches.claim_button')}
+            {claimOpenMutation.isPending ? t('match.claiming') : t('open_matches.claim_button')}
           </button>
         </div>
       )}
@@ -2568,8 +2568,8 @@ export function MatchDetailPage() {
       {resultEntryClosed && (
         <div className="px-5 mb-4">
           <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center">
-            <p className="text-[13px] font-semibold text-gray-600">Result entry closed</p>
-            <p className="text-[11px] text-gray-400 mt-1">The result window has passed. A group admin can still enter the result.</p>
+            <p className="text-[13px] font-semibold text-gray-600">{t('match.result_entry_closed')}</p>
+            <p className="text-[11px] text-gray-400 mt-1">{t('match.result_window_passed')}</p>
           </div>
         </div>
       )}
@@ -2580,11 +2580,11 @@ export function MatchDetailPage() {
           <div>
             {isAdminOverride && (
               <div className="mb-2">
-                <p className="text-[11px] font-semibold text-amber-700 mb-1.5">Admin late entry — reason required</p>
+                <p className="text-[11px] font-semibold text-amber-700 mb-1.5">{t('match.admin_late_entry_reason')}</p>
                 <input
                   value={adminOverrideReason}
                   onChange={e => setAdminOverrideReason(e.target.value)}
-                  placeholder="e.g. team was away on holiday"
+                  placeholder={t('match.late_entry_placeholder')}
                   className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] text-gray-800 placeholder:text-amber-300 focus:outline-none focus:border-amber-400"
                 />
               </div>
@@ -2595,7 +2595,7 @@ export function MatchDetailPage() {
               className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Trophy className="h-4 w-4" />
-              {isAdminOverride ? 'Record Result (Admin Override)' : 'Record Result'}
+              {isAdminOverride ? t('match.record_result_admin') : t('match.record_result')}
             </button>
           </div>
         )}
@@ -2610,27 +2610,27 @@ export function MatchDetailPage() {
                     <div>
                       <p className="text-[14px] font-bold text-teal-800">{match.booked_venue_name}</p>
                       {match.booked_court_number != null && (
-                        <p className="text-[12px] text-teal-600">Court {match.booked_court_number}</p>
+                        <p className="text-[12px] text-teal-600">{t('match.court_number', { number: match.booked_court_number })}</p>
                       )}
                       {(match as any).booking_reference && (
-                        <p className="text-[11px] text-gray-400 mt-0.5">Ref: {(match as any).booking_reference}</p>
+                        <p className="text-[11px] text-gray-400 mt-0.5">{t('match.booking_ref', { ref: (match as any).booking_reference })}</p>
                       )}
                     </div>
-                    <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">Booked</span>
+                    <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">{t('match.booked')}</span>
                   </div>
                   <div className="flex items-center gap-3 mt-2">
                     <button
                       onClick={() => navigate(`/booking/${linkedBooking.id}`)}
                       className="text-[11px] text-[#009688] font-semibold"
                     >
-                      Payment & booking
+                      {t('match.payment_and_booking')}
                     </button>
                     {(match as any).booked_by === currentUserId && (
                       <button
                         onClick={() => setConfirmCancelBooking(true)}
                         className="text-[11px] text-red-500 font-semibold"
                       >
-                        Cancel booking
+                        {t('match.cancel_booking')}
                       </button>
                     )}
                   </div>
@@ -2645,13 +2645,13 @@ export function MatchDetailPage() {
                     className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
                   >
                     <BookOpen className="h-4 w-4" />
-                    Book Court
+                    {t('match.book_court')}
                   </button>
                   <button
                     onClick={() => setShowSelfReportSheet(true)}
                     className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-medium text-gray-600"
                   >
-                    I booked elsewhere
+                    {t('match.booked_elsewhere')}
                   </button>
                 </>
               )
@@ -2664,7 +2664,7 @@ export function MatchDetailPage() {
               className="flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 py-3 text-[13px] font-semibold text-orange-700"
             >
               <Users className="h-4 w-4" />
-              Ask ringers
+              {t('match.ask_ringers')}
             </button>
           )}
           {playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
@@ -2673,7 +2673,7 @@ export function MatchDetailPage() {
               className="flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 py-3 text-[13px] font-semibold text-blue-700"
             >
               <Users className="h-4 w-4" />
-              Ask network
+              {t('match.ask_network')}
             </button>
           )}
           {playerIds.length < 4 && !(match as any).is_open && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
@@ -2681,32 +2681,32 @@ export function MatchDetailPage() {
               onClick={() => setShowPushToOpen(true)}
               className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
             >
-              Push to Open
+              {t('match.push_to_open')}
             </button>
           )}
           {(match as any).is_open && (isParticipant || isGroupAdmin) && (
             <>
               <div className="flex items-center justify-center gap-1.5 rounded-xl border border-green-200 bg-green-50 py-3 text-[13px] font-semibold text-green-700">
                 <CheckCircle className="h-4 w-4" />
-                Open match
+                {t('match.open_match')}
               </div>
               <button
                 onClick={() => setShowPushToOpen(true)}
                 className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
               >
-                Edit ELO range
+                {t('match.edit_elo_range')}
               </button>
               <button
                 onClick={async () => {
                   const { error } = await supabase.rpc('revert_open_match', { p_match_id: match.id })
-                  if (error) { toast.error('Failed to close open match'); return }
-                  toast.success('Match is now private')
+                  if (error) { toast.error(t('match.close_open_failed')); return }
+                  toast.success(t('match.match_now_private'))
                   queryClient.invalidateQueries({ queryKey: ['match', id] })
                 }}
                 className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-600"
               >
                 <XCircle className="h-4 w-4" />
-                Make private
+                {t('match.make_private')}
               </button>
             </>
           )}
@@ -2716,7 +2716,7 @@ export function MatchDetailPage() {
               className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
             >
               <Edit2 className="h-4 w-4" />
-              Edit Match
+              {t('match.edit_match')}
             </button>
           )}
           {isParticipant && !isCreator && match.status !== 'completed' && match.status !== 'cancelled' && (
@@ -2725,7 +2725,7 @@ export function MatchDetailPage() {
               className="flex items-center justify-center gap-1.5 rounded-xl border border-red-100 py-3 text-[13px] font-semibold text-red-500"
             >
               <LogOut className="h-4 w-4" />
-              Leave
+              {t('match.leave')}
             </button>
           )}
           {calendarEvent && (
@@ -2734,7 +2734,7 @@ export function MatchDetailPage() {
               className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
             >
               <CalendarPlus className="h-4 w-4" />
-              Add to Calendar
+              {t('match.add_to_calendar')}
             </button>
           )}
           <button
@@ -2742,7 +2742,7 @@ export function MatchDetailPage() {
             className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
           >
             <Share2 className="h-4 w-4" />
-            Share
+            {t('match.share')}
           </button>
           {canCancel && (
             <button
@@ -2750,7 +2750,7 @@ export function MatchDetailPage() {
               className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-3 text-[13px] font-semibold text-amber-600"
             >
               <Ban className="h-4 w-4" />
-              Cancel
+              {t('match.cancel')}
             </button>
           )}
           {canDelete && (
@@ -2759,7 +2759,7 @@ export function MatchDetailPage() {
               className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 py-3 text-[13px] font-semibold text-red-500"
             >
               <Trash2 className="h-4 w-4" />
-              Delete
+              {t('match.delete')}
             </button>
           )}
           {canPlayAnother && (
@@ -2769,7 +2769,7 @@ export function MatchDetailPage() {
               className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
-              {creatingNext ? 'Creating\u2026' : 'Play Another'}
+              {creatingNext ? t('match.creating') : t('match.play_another')}
             </button>
           )}
           <div className="col-span-2 flex justify-center pt-1">
@@ -2782,15 +2782,15 @@ export function MatchDetailPage() {
       {pendingInvitees.length > 0 && (isParticipant || isGroupAdmin) && playerIds.length < 4 && (
         <div className="px-5 mt-4">
           <h3 className="text-[13px] font-semibold text-gray-700 mb-2">
-            Pending invitees ({pendingInvitees.length})
+            {t('match.pending_invitees', { count: pendingInvitees.length })}
           </h3>
           <div className="space-y-2">
             {pendingInvitees.map((p: any) => (
               <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2.5">
                 <PlayerAvatar name={p.inviteeName} avatarUrl={p.inviteeAvatar} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-900 truncate">{p.inviteeName ?? 'Unknown'}</p>
-                  <p className="text-[11px] text-gray-500">ELO {p.inviteeElo ?? '—'} · Accepted</p>
+                  <p className="text-[13px] font-semibold text-gray-900 truncate">{p.inviteeName ?? t('match.unknown_player')}</p>
+                  <p className="text-[11px] text-gray-500">{t('match.elo_accepted', { elo: p.inviteeElo ?? '—' })}</p>
                 </div>
                 <button
                   onClick={() => confirmInviteeMutation.mutate(p.invitee_id)}
@@ -2801,7 +2801,7 @@ export function MatchDetailPage() {
                       : 'bg-blue-600 disabled:bg-blue-400'
                   }`}
                 >
-                  {confirmingInviteeId === p.invitee_id ? 'Confirming…' : 'Confirm'}
+                  {confirmingInviteeId === p.invitee_id ? t('match.confirming') : t('match.confirm_result')}
                 </button>
               </div>
             ))}
@@ -2863,7 +2863,7 @@ export function MatchDetailPage() {
                 <div className="h-1 w-10 rounded-full bg-gray-200" />
               </div>
               <div className="flex items-center justify-between px-5 py-3">
-                <h2 className="text-[15px] font-bold text-gray-900">Choose a driver</h2>
+                <h2 className="text-[15px] font-bold text-gray-900">{t('match.choose_a_driver')}</h2>
                 <button onClick={() => setShowLiftChooser(false)} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
                   <XCircle className="h-4 w-4 text-gray-500" />
                 </button>
@@ -2880,16 +2880,16 @@ export function MatchDetailPage() {
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-gray-800">{driver.name}</p>
                         {suggestion && travelInfo.hasLocationData && (
-                          <p className="text-[11px] text-gray-400">{formatDistance(suggestion.distanceMiles)} away</p>
+                          <p className="text-[11px] text-gray-400">{t('match.distance_away', { distance: formatDistance(suggestion.distanceMiles) })}</p>
                         )}
                         {driver.max_passengers > 0 && (
-                          <p className="text-[10px] text-gray-400">{driver.max_passengers} seat{driver.max_passengers !== 1 ? 's' : ''} available</p>
+                          <p className="text-[10px] text-gray-400">{t('match.seats_available', { count: driver.max_passengers })}</p>
                         )}
                       </div>
                       {myReq?.status === 'accepted' ? (
-                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">Accepted</span>
+                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">{t('match.accepted')}</span>
                       ) : myReq?.status === 'pending' ? (
-                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-gray-100 text-gray-400">Requested</span>
+                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-gray-100 text-gray-400">{t('match.requested')}</span>
                       ) : myReq?.status === 'declined' ? (
                         <button
                           onClick={() => {
@@ -2899,7 +2899,7 @@ export function MatchDetailPage() {
                           disabled={requestLiftMutation.isPending}
                           className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-500"
                         >
-                          Ask again
+                          {t('match.ask_again')}
                         </button>
                       ) : (
                         <button
@@ -2910,7 +2910,7 @@ export function MatchDetailPage() {
                           disabled={!!hasActiveRequest || requestLiftMutation.isPending}
                           className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white disabled:opacity-50"
                         >
-                          Ask
+                          {t('match.ask')}
                         </button>
                       )}
                     </div>
@@ -2946,23 +2946,23 @@ export function MatchDetailPage() {
                   <LogOut className="h-5 w-5 text-red-500" />
                 </div>
               </div>
-              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">Leave this match?</p>
+              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('match.leave_confirm')}</p>
               <p className="text-[13px] text-gray-500 text-center mb-6">
-                Your spot will become available to other players.
+                {t('match.leave_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmLeave(false)}
                   className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
                 >
-                  Cancel
+                  {t('match.cancel')}
                 </button>
                 <button
                   onClick={handleLeave}
                   disabled={leaving}
                   className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
-                  {leaving ? 'Leaving…' : 'Leave Match'}
+                  {leaving ? t('match.leaving') : t('match.leave_match')}
                 </button>
               </div>
             </motion.div>
@@ -2989,23 +2989,23 @@ export function MatchDetailPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <h3 className="text-[16px] font-bold text-gray-900 mb-2">Cancel this match?</h3>
+              <h3 className="text-[16px] font-bold text-gray-900 mb-2">{t('match.cancel_match_confirm')}</h3>
               <p className="text-[13px] text-gray-500 mb-5">
-                All players will be notified. The match record will be kept but marked as cancelled.
+                {t('match.cancel_match_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmCancel(false)}
                   className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
                 >
-                  Go back
+                  {t('match.go_back')}
                 </button>
                 <button
                   onClick={handleCancelMatch}
                   disabled={cancelling}
                   className="flex-1 rounded-2xl bg-amber-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
-                  {cancelling ? 'Cancelling\u2026' : 'Cancel Match'}
+                  {cancelling ? t('match.cancelling') : t('match.cancel_match')}
                 </button>
               </div>
             </motion.div>
@@ -3032,23 +3032,23 @@ export function MatchDetailPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <h3 className="text-[16px] font-bold text-gray-900 mb-2">Cancel this booking?</h3>
+              <h3 className="text-[16px] font-bold text-gray-900 mb-2">{t('match.cancel_booking_confirm')}</h3>
               <p className="text-[13px] text-gray-500 mb-5">
-                All players will be notified. You'll need to book a new court.
+                {t('match.cancel_booking_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmCancelBooking(false)}
                   className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
                 >
-                  Go back
+                  {t('match.go_back')}
                 </button>
                 <button
                   onClick={handleCancelBooking}
                   disabled={cancellingBooking}
                   className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
-                  {cancellingBooking ? 'Cancelling\u2026' : 'Cancel booking'}
+                  {cancellingBooking ? t('match.cancelling') : t('match.cancel_booking')}
                 </button>
               </div>
             </motion.div>
@@ -3132,23 +3132,23 @@ export function MatchDetailPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <h3 className="text-[16px] font-bold text-red-600 mb-2">Delete this match permanently?</h3>
+              <h3 className="text-[16px] font-bold text-red-600 mb-2">{t('match.delete_match_confirm')}</h3>
               <p className="text-[13px] text-gray-500 mb-5">
-                This cannot be undone. All results, votes, and history will be deleted.
+                {t('match.delete_match_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmDelete(false)}
                   className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
                 >
-                  Go back
+                  {t('match.go_back')}
                 </button>
                 <button
                   onClick={handleDeleteMatch}
                   disabled={deleting}
                   className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
-                  {deleting ? 'Deleting\u2026' : 'Delete Forever'}
+                  {deleting ? t('match.deleting') : t('match.delete_forever')}
                 </button>
               </div>
             </motion.div>
@@ -3193,7 +3193,7 @@ export function MatchDetailPage() {
             exit={{ opacity: 0, y: 16 }}
             className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[70] bg-gray-900 text-white text-[13px] font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none"
           >
-            Link copied!
+            {t('match.link_copied')}
           </motion.div>
         )}
       </AnimatePresence>

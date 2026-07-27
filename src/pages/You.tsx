@@ -12,7 +12,7 @@ import * as Sentry from '@sentry/react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
-import { BADGE_DEFINITIONS, PEER_VOTE_CATEGORIES } from '@/lib/achievements'
+import { BADGE_DEFINITIONS, PEER_VOTE_CATEGORIES, COURT_TIME_TIERS, courtTimeTier } from '@/lib/achievements'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
@@ -57,6 +57,7 @@ interface Achievement {
   id: string
   badge_key: string
   earned_at: string
+  tier: string | null
 }
 
 interface MyYouStats {
@@ -246,7 +247,7 @@ function useAchievements(userId: string) {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('user_badges')
-        .select('id, badge_key, earned_at')
+        .select('id, badge_key, earned_at, tier')
         .eq('user_id', userId)
         .order('earned_at', { ascending: false })
       if (error) return []
@@ -1294,12 +1295,62 @@ export function YouPage() {
           )}
         </section>
 
+        {/* ── Court Time ── */}
+        {(() => {
+          const totalSets = stats?.totalMatches ?? 0
+          const ctBadge = achievements.find(a => a.badge_key === 'court_time')
+          const currentTier = ctBadge?.tier ?? courtTimeTier(totalSets)
+          const tierIdx = currentTier ? COURT_TIME_TIERS.findIndex(t => t.tier === currentTier) : -1
+          const nextTier = tierIdx >= 0 && tierIdx < COURT_TIME_TIERS.length - 1 ? COURT_TIME_TIERS[tierIdx + 1] : null
+          const setsToNext = nextTier ? nextTier.minSets - totalSets : null
+          const ctTierColors: Record<string, string> = {
+            bronze: 'border-orange-200 bg-orange-50',
+            silver: 'border-gray-200 bg-gray-50',
+            gold: 'border-amber-200 bg-amber-50',
+            platinum: 'border-slate-300 bg-slate-50',
+            diamond: 'border-cyan-200 bg-cyan-50',
+          }
+          const ctTierTextColors: Record<string, string> = {
+            bronze: 'text-orange-600',
+            silver: 'text-gray-500',
+            gold: 'text-amber-600',
+            platinum: 'text-slate-600',
+            diamond: 'text-cyan-600',
+          }
+          const tierLabel = currentTier ? currentTier.charAt(0).toUpperCase() + currentTier.slice(1) : null
+          return (
+            <section>
+              <div className={cn('rounded-xl border p-4', currentTier ? ctTierColors[currentTier] : 'border-dashed border-gray-200 bg-gray-50/50')}>
+                <div className="flex items-center gap-3">
+                  <span className="text-[28px]">🎾</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="text-[14px] font-bold text-gray-900">Court Time</p>
+                      {tierLabel && (
+                        <span className={cn('text-[9px] font-bold uppercase tracking-wide rounded-full px-1.5 py-0.5', currentTier ? `${ctTierColors[currentTier]} ${ctTierTextColors[currentTier]}` : '')}>
+                          {tierLabel}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-gray-500 mt-0.5">
+                      {totalSets} logged sets
+                      {setsToNext != null && setsToNext > 0
+                        ? ` · ${setsToNext} to ${(nextTier!.tier.charAt(0).toUpperCase() + nextTier!.tier.slice(1))}`
+                        : currentTier === 'diamond' ? ' · Diamond' : !currentTier ? ` · ${COURT_TIME_TIERS[0].minSets - totalSets} to Bronze` : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )
+        })()}
+
         {/* ── Achievements ── */}
-        {achievements.length > 0 && (
+        {achievements.filter(a => a.badge_key !== 'court_time').length > 0 && (
           <section ref={achievementsRef} style={{ scrollMarginTop: '80px' }}>
             <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.achievements')}</h2>
             <div className="grid grid-cols-3 gap-2">
-              {achievements.map((a) => {
+              {achievements.filter(a => a.badge_key !== 'court_time').map((a) => {
                 const meta = {
                   label: t(`achievements.${a.badge_key}`, { defaultValue: BADGE_DEFINITIONS[a.badge_key]?.label ?? a.badge_key }),
                   emoji: BADGE_DEFINITIONS[a.badge_key]?.emoji ?? '🏅',

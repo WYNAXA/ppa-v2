@@ -153,7 +153,7 @@ export const FAQS: FaqItem[] = [
     id: 'what-badges',
     topic: 'badges',
     q: 'What badges can I earn?',
-    a: 'Badges are earned automatically as you play. Current earnable badges include First Victory (your first win), On Fire (3-win streak), Consistent (20 sets), Sharp Shooter (70%+ win rate over 20+ sets), Social Butterfly (member of 3+ groups), Veteran (100+ sets), Perfectionist (winning 6-0, 6-0), and Giant Slayer (beating a team rated 200+ points above you). Peer-vote badges (bronze, silver, gold per award category) are earned from the votes you receive across all your matches.',
+    a: 'Badges are earned automatically as you play. Career badges are permanent: First Victory (your first win), On Fire (3 wins in a row), Court Time (a tiered badge for total sets played, running Bronze at 20 sets, Silver at 50, Gold at 100, Platinum at 200 and Diamond at 400), Sharp Shooter (70%+ win rate over 20+ sets), Social Butterfly (member of 3+ groups) and League Champion (won a league season). League badges can be earned more than once: Perfectionist (won 6-0, 6-0), Giant Slayer (beat someone rated 200+ ELO above you), Escape Artist (won after losing the first set), Rampage (5-win streak in a league), Phoenix Rising (won after a 5-loss streak), Most Improved (biggest ELO gain in a week) and Scoreline Specialist (3 wins with identical scores). Peer-vote badges (bronze, silver and gold per award category) come from votes you receive across all your matches.',
   },
   /* Peer voting */
   {

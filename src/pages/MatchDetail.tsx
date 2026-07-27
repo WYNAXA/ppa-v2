@@ -2111,7 +2111,7 @@ export function MatchDetailPage() {
                                 {count}
                               </span>
                               {isLeader && isTied && (
-                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5 uppercase">Tied</span>
+                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5 uppercase">{t('match.tied')}</span>
                               )}
                             </div>
                           )
@@ -2181,7 +2181,7 @@ export function MatchDetailPage() {
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Car className="h-4 w-4 text-[#009688]" />
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Getting there</p>
+                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('match.getting_there')}</p>
               </div>
 
               {/* ── PART 1: Confirmed-lift banner ── */}
@@ -2192,13 +2192,13 @@ export function MatchDetailPage() {
                     <span className="text-[16px]">🚗</span>
                     <div className="flex-1 min-w-0">
                       <p className="text-[13px] font-semibold text-green-800">
-                        {myAcceptedDriver.name.split(' ')[0]} is picking you up
+                        {t('match.x_is_picking_you_up', { name: myAcceptedDriver.name.split(' ')[0] })}
                         {myAccepted?.pickup_time && (
-                          <span className="text-green-600 font-normal"> at {myAccepted.pickup_time.slice(0, 5)}</span>
+                          <span className="text-green-600 font-normal"> {t('match.at_time', { time: myAccepted.pickup_time.slice(0, 5) })}</span>
                         )}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-[10px] font-bold text-green-700">Confirmed</span>
+                    <span className="shrink-0 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-[10px] font-bold text-green-700">{t('match.confirmed')}</span>
                   </div>
                 </div>
               )}
@@ -2209,7 +2209,7 @@ export function MatchDetailPage() {
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[16px]">🚗</span>
                     <p className="text-[13px] font-semibold text-green-800 flex-1">
-                      You're driving {confirmedRiders.map((r) => r.requesterName.split(' ')[0]).join(' & ')}
+                      {t('match.youre_driving_x', { names: confirmedRiders.map((r) => r.requesterName.split(' ')[0]).join(' & ') })}
                     </p>
                   </div>
 
@@ -2222,7 +2222,7 @@ export function MatchDetailPage() {
                           className="w-full flex items-center justify-between"
                         >
                           <p className="text-[12px] font-semibold text-gray-800">{rider.requesterName.split(' ')[0]}</p>
-                          <span className="text-[10px] text-gray-400">{expandedRiderId === rider.requester_id ? 'Hide' : 'Details'}</span>
+                          <span className="text-[10px] text-gray-400">{expandedRiderId === rider.requester_id ? t('match.hide') : t('match.details')}</span>
                         </button>
 
                         {/* Pickup time (Part 2) */}
@@ -2237,15 +2237,15 @@ export function MatchDetailPage() {
                                 time: e.target.value ? `${e.target.value}:00` : null,
                               })}
                               className="text-[12px] text-gray-700 bg-transparent border-none p-0 focus:outline-none"
-                              placeholder="Set pickup time"
+                              placeholder={t('match.set_pickup_time')}
                             />
                             {!rider.pickup_time && (
-                              <span className="text-[10px] text-gray-400 italic">Set pickup time</span>
+                              <span className="text-[10px] text-gray-400 italic">{t('match.set_pickup_time')}</span>
                             )}
                           </div>
                         )}
                         {matchCompleted && rider.pickup_time && (
-                          <p className="text-[11px] text-gray-500 mt-1">Pickup: {rider.pickup_time.slice(0, 5)}</p>
+                          <p className="text-[11px] text-gray-500 mt-1">{t('match.pickup_at', { time: rider.pickup_time.slice(0, 5) })}</p>
                         )}
 
                         {/* Address (Part 3 — privacy-gated, expanded) */}
@@ -2257,7 +2257,7 @@ export function MatchDetailPage() {
                                 {[riderAddress.postal_code, riderAddress.city].filter(Boolean).join(', ')}
                               </p>
                             ) : (
-                              <p className="text-[11px] text-gray-400 italic">No address saved</p>
+                              <p className="text-[11px] text-gray-400 italic">{t('match.no_address_saved')}</p>
                             )}
                           </div>
                         )}
@@ -2277,7 +2277,7 @@ export function MatchDetailPage() {
                         className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 text-[12px] font-bold text-white"
                       >
                         <Navigation className="h-3.5 w-3.5" />
-                        Navigate (Google Maps)
+                        {t('match.navigate_google_maps')}
                       </a>
                     )
                   })()}
@@ -2290,23 +2290,23 @@ export function MatchDetailPage() {
                   {/* Incoming lift requests (driver sees) */}
                   {incomingRequests.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-[11px] font-semibold text-gray-500 mb-2">Lift requests</p>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-2">{t('match.lift_requests')}</p>
                       <div className="space-y-2">
                         {incomingRequests.map((req) => (
                           <div key={req.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
-                            <p className="text-[12px] font-semibold text-orange-800">{req.requesterName} wants a lift</p>
+                            <p className="text-[12px] font-semibold text-orange-800">{t('match.x_wants_a_lift', { name: req.requesterName })}</p>
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
                                 className="rounded-lg bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white"
                               >
-                                Accept
+                                {t('match.accept')}
                               </button>
                               <button
                                 onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
                                 className="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600"
                               >
-                                Decline
+                                {t('match.decline')}
                               </button>
                             </div>
                           </div>
@@ -2319,7 +2319,7 @@ export function MatchDetailPage() {
                   {/* Your driving status — always visible for participants on active matches */}
                   {!matchCompleted && isParticipant && (
                     <div className="mb-3 space-y-2">
-                      <p className="text-[11px] font-semibold text-gray-500 mb-1">Your travel</p>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-1">{t('match.your_travel')}</p>
                       <button
                         onClick={() => toggleDrivingMutation.mutate()}
                         disabled={toggleDrivingMutation.isPending}
@@ -2331,12 +2331,12 @@ export function MatchDetailPage() {
                         <div className="flex items-center gap-2">
                           <Car className="h-4 w-4" />
                           <div className="text-left">
-                            <span>Driving</span>
-                            <p className="text-[10px] font-normal opacity-70">Making my own way there</p>
+                            <span>{t('match.driving')}</span>
+                            <p className="text-[10px] font-normal opacity-70">{t('match.making_own_way')}</p>
                           </div>
                         </div>
                         <span className={cn('text-[11px] rounded-full px-2 py-0.5', amDriving ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-400')}>
-                          {amDriving ? 'Yes' : 'No'}
+                          {amDriving ? t('match.yes') : t('match.no')}
                         </span>
                       </button>
                       {amDriving && (
@@ -2351,12 +2351,12 @@ export function MatchDetailPage() {
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             <div className="text-left">
-                              <span>Offering a lift</span>
-                              <p className="text-[10px] font-normal opacity-70">Happy to take passengers</p>
+                              <span>{t('match.offering_a_lift')}</span>
+                              <p className="text-[10px] font-normal opacity-70">{t('match.happy_to_take_passengers')}</p>
                             </div>
                           </div>
                           <span className={cn('text-[11px] rounded-full px-2 py-0.5', amOffering ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-400')}>
-                            {amOffering ? 'Yes' : 'No'}
+                            {amOffering ? t('match.yes') : t('match.no')}
                           </span>
                         </button>
                       )}
@@ -2366,7 +2366,7 @@ export function MatchDetailPage() {
                   {/* Drivers */}
                   {(travelInfo?.drivers.length ?? 0) > 0 && (
                     <div className="mb-3">
-                      <p className="text-[11px] font-semibold text-gray-500 mb-2">Drivers</p>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-2">{t('match.drivers')}</p>
                       <div className="space-y-1.5">
                         {travelInfo!.drivers.map((driver) => (
                           <div key={driver.id} className="flex items-center gap-2.5">
@@ -2374,14 +2374,14 @@ export function MatchDetailPage() {
                             <div className="flex-1 min-w-0">
                               <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name}</p>
                               <p className="text-[11px] text-gray-400">
-                                {driver.offering_lifts ? `Offering a lift · ${driver.max_passengers} seat${driver.max_passengers !== 1 ? 's' : ''}` : 'Driving'}
+                                {driver.offering_lifts ? t('match.offering_lift_seats', { count: driver.max_passengers }) : t('match.driving')}
                               </p>
                             </div>
                             <span className={cn(
                               'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
                               driver.offering_lifts ? 'bg-teal-50 border border-teal-100 text-teal-600' : 'bg-gray-100 text-gray-500'
                             )}>
-                              {driver.offering_lifts ? 'Offering lift' : 'Driving'}
+                              {driver.offering_lifts ? t('match.offering_lift_badge') : t('match.driving')}
                             </span>
                           </div>
                         ))}
@@ -2392,7 +2392,7 @@ export function MatchDetailPage() {
                   {/* Needs a lift */}
                   {(travelInfo?.needsLift.length ?? 0) > 0 && (
                     <div className={(travelInfo?.drivers.length ?? 0) > 0 ? '' : 'mb-2'}>
-                      <p className="text-[11px] font-semibold text-gray-500 mb-2">Need a lift</p>
+                      <p className="text-[11px] font-semibold text-gray-500 mb-2">{t('match.need_a_lift')}</p>
                       <div className="space-y-1.5">
                         {travelInfo!.needsLift.map((passenger) => {
                           const isMe = passenger.id === profile?.id
@@ -2408,10 +2408,10 @@ export function MatchDetailPage() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
                                 {isMe && acceptedDriverLocal && (
-                                  <p className="text-[11px] text-green-600">Riding with {acceptedDriverLocal.name.split(' ')[0]}</p>
+                                  <p className="text-[11px] text-green-600">{t('match.riding_with_x', { name: acceptedDriverLocal.name.split(' ')[0] })}</p>
                                 )}
                                 {isMe && !acceptedDriverLocal && pendingRequests.length > 0 && (
-                                  <p className="text-[11px] text-gray-400">Waiting for response</p>
+                                  <p className="text-[11px] text-gray-400">{t('match.waiting_for_response')}</p>
                                 )}
                               </div>
                               {isMe && !acceptedDriverLocal && (travelInfo!.drivers.length > 0) && (
@@ -2420,12 +2420,12 @@ export function MatchDetailPage() {
                                   className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white"
                                 >
                                   <Car className="h-3 w-3 inline mr-1" />
-                                  Ask for a lift
+                                  {t('match.ask_for_a_lift')}
                                 </button>
                               )}
                               {isMe && acceptedDriverLocal && (
                                 <span className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">
-                                  Lift confirmed
+                                  {t('match.lift_confirmed')}
                                 </span>
                               )}
                             </div>
@@ -2438,7 +2438,7 @@ export function MatchDetailPage() {
                   {/* No location data — prompt to enable */}
                   {!travelInfo?.hasLocationData && (travelInfo?.drivers.length ?? 0) === 0 && !hasConfirmedLift && (
                     <div className="text-center py-1">
-                      <p className="text-[12px] text-gray-500 mb-2">Enable location to coordinate lifts</p>
+                      <p className="text-[12px] text-gray-500 mb-2">{t('match.enable_location_prompt')}</p>
                       <button
                         onClick={() => {
                           if (!navigator.geolocation || !profile?.id) return
@@ -2453,7 +2453,7 @@ export function MatchDetailPage() {
                         }}
                         className="rounded-xl bg-[#009688] px-4 py-2 text-[12px] font-bold text-white"
                       >
-                        Enable location
+                        {t('match.enable_location')}
                       </button>
                     </div>
                   )}
@@ -2463,7 +2463,7 @@ export function MatchDetailPage() {
                    (travelInfo?.needsLift.length ?? 0) === 0 &&
                    !hasConfirmedLift &&
                    travelInfo?.hasLocationData && (
-                    <p className="text-[12px] text-gray-400 text-center py-1">No travel info yet</p>
+                    <p className="text-[12px] text-gray-400 text-center py-1">{t('match.no_travel_info')}</p>
                   )}
                 </>
               )}

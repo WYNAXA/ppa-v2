@@ -3226,6 +3226,7 @@ function TeamsAndPrediction({
   isLeagueMatch,
   currentUserId,
 }: TeamsAndPredictionProps) {
+  const { t } = useTranslation('', { keyPrefix: 'match' })
   const queryClient = useQueryClient()
 
   const serverIndex = useMemo(
@@ -3295,7 +3296,7 @@ function TeamsAndPrediction({
       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
         <div className="flex items-center gap-2 mb-3">
           <BarChart2 className="h-4 w-4 text-[#009688]" />
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Teams &amp; Prediction</p>
+          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('teams_prediction_title')}</p>
           <AnimatePresence>
             {savedTick && (
               <motion.span
@@ -3305,31 +3306,31 @@ function TeamsAndPrediction({
                 className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-green-600"
               >
                 <CheckCircle className="h-3 w-3" />
-                Teams saved
+                {t('teams_saved')}
               </motion.span>
             )}
             {saveError && !savedTick && (
-              <span className="ml-auto text-[10px] font-semibold text-red-500">Couldn't save — reverted</span>
+              <span className="ml-auto text-[10px] font-semibold text-red-500">{t('teams_save_failed')}</span>
             )}
           </AnimatePresence>
         </div>
 
         <TeamRow
-          label="Team 1"
+          label={t('team1')}
           players={team1Players}
           winProb={prediction.team1WinProb}
           highlight={team1Higher && prediction.hasRankings}
         />
         <div className="h-2" />
         <TeamRow
-          label="Team 2"
+          label={t('team2')}
           players={team2Players}
           winProb={prediction.team2WinProb}
           highlight={!team1Higher && prediction.hasRankings}
         />
 
         {!prediction.hasRankings && (
-          <p className="text-[10px] text-gray-400 mt-2 text-center italic">Predictions unavailable</p>
+          <p className="text-[10px] text-gray-400 mt-2 text-center italic">{t('predictions_unavailable')}</p>
         )}
 
         {/* Points at stake */}
@@ -3349,7 +3350,7 @@ function TeamsAndPrediction({
             className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2 text-[12px] font-semibold text-gray-700 active:scale-[0.98] transition-transform"
           >
             <Shuffle className="h-3.5 w-3.5" />
-            Switch teams
+            {t('switch_teams')}
           </button>
         )}
       </div>
@@ -3368,6 +3369,7 @@ function TeamRow({
   winProb: number
   highlight: boolean
 }) {
+  const { t } = useTranslation('', { keyPrefix: 'match' })
   return (
     <div
       className={cn(
@@ -3392,7 +3394,7 @@ function TeamRow({
         <p className={cn('text-[16px] font-black leading-none', highlight ? 'text-[#009688]' : 'text-gray-500')}>
           {winProb}%
         </p>
-        <p className="text-[9px] text-gray-400 mt-0.5">to win</p>
+        <p className="text-[9px] text-gray-400 mt-0.5">{t('to_win')}</p>
       </div>
     </div>
   )
@@ -3411,10 +3413,11 @@ function PointsAtStakeSection({
   isLeagueMatch: boolean
   currentUserId: string
 }) {
+  const { t } = useTranslation('', { keyPrefix: 'match' })
   if (isFriendly) {
     return (
       <p className="text-[10px] text-gray-400 mt-3 text-center italic">
-        Friendly match — no points at stake. Career ratings will not be affected.
+        {t('friendly_no_stakes')}
       </p>
     )
   }
@@ -3453,7 +3456,7 @@ function PointsAtStakeSection({
   const deltaColor = (d: number) => d > 0 ? 'text-green-700' : d < 0 ? 'text-red-500' : 'text-gray-500'
   const formatLp = (lp: number | null) => {
     if (lp === null) return null
-    return `+${lp} league pt${lp !== 1 ? 's' : ''}`
+    return t('league_points_gain', { count: lp })
   }
 
   if (isParticipant) {
@@ -3488,21 +3491,21 @@ function PointsAtStakeSection({
 
   return (
     <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Points at stake</p>
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('points_at_stake')}</p>
       <div className="flex justify-between text-[11px]">
         <div>
-          <span className="text-gray-500">Team 1 wins: </span>
+          <span className="text-gray-500">{t('team1_wins_label')} </span>
           <span className={cn('font-bold', deltaColor(t1Win))}>{formatDelta(t1Win)} ELO</span>
-          {t1Lp !== null && <span className="text-[#009688] font-semibold ml-1">+{t1Lp} pts</span>}
+          {t1Lp !== null && <span className="text-[#009688] font-semibold ml-1">{t('league_points_gain', { count: t1Lp })}</span>}
         </div>
         <div>
-          <span className="text-gray-500">Team 2 wins: </span>
+          <span className="text-gray-500">{t('team2_wins_label')} </span>
           <span className={cn('font-bold', deltaColor(t2Win))}>{formatDelta(t2Win)} ELO</span>
-          {t2Lp !== null && <span className="text-[#009688] font-semibold ml-1">+{t2Lp} pts</span>}
+          {t2Lp !== null && <span className="text-[#009688] font-semibold ml-1">{t('league_points_gain', { count: t2Lp })}</span>}
         </div>
       </div>
       {!isLeagueMatch && (
-        <p className="text-[10px] text-gray-400 mt-2 text-center italic">Not yet played</p>
+        <p className="text-[10px] text-gray-400 mt-2 text-center italic">{t('not_yet_played')}</p>
       )}
     </div>
   )
@@ -3521,28 +3524,29 @@ function PointsAtStakeParticipant({
   formatDelta: (d: number) => string; deltaColor: (d: number) => string
   formatLp: (lp: number | null) => string | null
 }) {
+  const { t } = useTranslation('', { keyPrefix: 'match' })
   const [showAll, setShowAll] = useState(false)
 
   return (
     <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Points at stake</p>
+      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('points_at_stake')}</p>
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <span className="text-[12px] text-gray-600">If you win</span>
+          <span className="text-[12px] text-gray-600">{t('if_you_win')}</span>
           <div className="flex items-center gap-3">
             <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
             {winLp !== null && <span className="text-[11px] font-semibold text-[#009688]">{formatLp(winLp)}</span>}
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[12px] text-gray-600">If you draw</span>
+          <span className="text-[12px] text-gray-600">{t('if_you_draw')}</span>
           <div className="flex items-center gap-3">
             <span className={cn('text-[13px] font-bold', deltaColor(drawD))}>{formatDelta(drawD)} ELO</span>
             {drawLp !== null && <span className="text-[11px] font-semibold text-gray-500">{formatLp(drawLp)}</span>}
           </div>
         </div>
         <div className="flex items-center justify-between">
-          <span className="text-[12px] text-gray-600">If you lose</span>
+          <span className="text-[12px] text-gray-600">{t('if_you_lose')}</span>
           <div className="flex items-center gap-3">
             <span className={cn('text-[13px] font-bold', deltaColor(loseD))}>{formatDelta(loseD)} ELO</span>
             {loseLp !== null && <span className="text-[11px] font-semibold text-gray-400">{formatLp(loseLp)}</span>}
@@ -3555,7 +3559,7 @@ function PointsAtStakeParticipant({
         onClick={() => setShowAll(v => !v)}
         className="w-full text-center text-[11px] font-semibold text-[#009688] mt-2 py-1"
       >
-        {showAll ? 'Hide all players' : 'View all players'}
+        {showAll ? t('hide_all_players') : t('view_all_players')}
       </button>
 
       <AnimatePresence>
@@ -3568,7 +3572,7 @@ function PointsAtStakeParticipant({
           >
             <div className="border-t border-gray-100 mt-1 pt-2 space-y-2">
               <div>
-                <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">Team 1 — if they win</p>
+                <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">{t('team1_if_they_win')}</p>
                 {team1Players.map((p, i) => (
                   <div key={p.id} className="flex items-center justify-between py-0.5">
                     <span className="text-[12px] text-gray-700">{p.name?.split(' ')[0]}</span>
@@ -3579,7 +3583,7 @@ function PointsAtStakeParticipant({
                 ))}
               </div>
               <div>
-                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">Team 2 — if they win</p>
+                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">{t('team2_if_they_win')}</p>
                 {team2Players.map((p, i) => (
                   <div key={p.id} className="flex items-center justify-between py-0.5">
                     <span className="text-[12px] text-gray-700">{p.name?.split(' ')[0]}</span>
@@ -3595,7 +3599,7 @@ function PointsAtStakeParticipant({
       </AnimatePresence>
 
       {!isLeagueMatch && (
-        <p className="text-[10px] text-gray-400 mt-2 text-center italic">Not yet played</p>
+        <p className="text-[10px] text-gray-400 mt-2 text-center italic">{t('not_yet_played')}</p>
       )}
     </div>
   )

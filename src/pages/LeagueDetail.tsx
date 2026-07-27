@@ -365,6 +365,7 @@ function useLeagueTeams(leagueId: string) {
 interface JerseyEntry {
   user_id: string
   jersey_type: string
+  jersey_color: string
 }
 
 const JERSEY_EMOJI: Record<string, string> = {
@@ -389,7 +390,7 @@ function useLeagueJerseys(leagueId: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('league_jerseys')
-        .select('user_id, jersey_type')
+        .select('user_id, jersey_type, jersey_color')
         .eq('league_id', leagueId)
       return data ?? []
     },
@@ -946,6 +947,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
       league_id: league.id,
       user_id: jerseyUserId,
       jersey_type: jerseyNumber,
+      jersey_color: jerseyNumber,
       awarded_week: new Date().toISOString().split('T')[0],
       previous_holder: previousHolder,
     })
@@ -1949,12 +1951,12 @@ export function LeagueDetailPage() {
   const { data: teamStandings = [] } = useTeamStandings(id, isPairs)
   const { data: leagueTeams = [] } = useLeagueTeams(id)
   const { data: jerseys = [] } = useLeagueJerseys(id)
-  const jerseyByUser = Object.fromEntries(jerseys.map((j) => [j.user_id, j.jersey_type]))
+  const jerseyByUser = Object.fromEntries(jerseys.map((j) => [j.user_id, j.jersey_color]))
   const { data: entertainerRace = [] } = useEntertainerRace(id)
   const { data: entertainerHistory = [] } = useEntertainerHistory(id)
   const { data: climbers = [] } = useLeagueClimbers(id)
   const { data: upsets = [] } = useLeagueUpsets(id)
-  const currentEntertainer = jerseys.find((j) => j.jersey_type === 'entertainer' || j.jersey_type === 'blue')
+  const currentEntertainer = jerseys.find((j) => j.jersey_color === 'blue')
   const { data: leagueMembers = [] } = useLeagueMembers(id)
   const { data: currentRound = 0 } = useCurrentRound(id)
   const isSeasonComplete = league?.max_rounds != null && currentRound >= league.max_rounds

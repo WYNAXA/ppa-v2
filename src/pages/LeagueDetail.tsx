@@ -375,11 +375,11 @@ const JERSEY_EMOJI: Record<string, string> = {
   black:  '\u26AB',
 }
 const JERSEY_LABEL: Record<string, string> = {
-  yellow: 'Leader',
-  green:  'Underdog',
-  red:    'Most Improved',
-  blue:   'Entertainer',
-  black:  'Wooden Spoon',
+  yellow: 'league.jersey_leader',
+  green:  'league.jersey_underdog',
+  red:    'league.jersey_most_improved',
+  blue:   'league.jersey_entertainer',
+  black:  'league.jersey_wooden_spoon',
 }
 
 function useLeagueJerseys(leagueId: string) {
@@ -1917,6 +1917,7 @@ export function LeagueDetailPage() {
   const [showScoringSheet, setShowScoringSheet] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const { t: tPairs } = useTranslation('', { keyPrefix: 'pairs' })
+  const { t } = useTranslation()
 
   async function handleShare(leagueName: string) {
     const url = `${window.location.origin}/compete/leagues/${id}`
@@ -1935,11 +1936,11 @@ export function LeagueDetailPage() {
   const [showPairSheet, setShowPairSheet] = useState(false)
 
   const TABS: Array<{ id: Tab; label: string }> = [
-    { id: 'standings', label: 'Standings' },
-    { id: 'fixtures',  label: 'Fixtures'  },
-    { id: 'results',   label: 'Results'   },
-    ...(isMexicano ? [{ id: 'mexicano' as Tab, label: 'Mexicano' }] : []),
-    ...(isAdmin ? [{ id: 'admin' as Tab, label: 'Admin' }] : []),
+    { id: 'standings', label: t('league.tab_standings') },
+    { id: 'fixtures',  label: t('league.tab_fixtures')  },
+    { id: 'results',   label: t('league.tab_results')   },
+    ...(isMexicano ? [{ id: 'mexicano' as Tab, label: t('league.tab_mexicano') }] : []),
+    ...(isAdmin ? [{ id: 'admin' as Tab, label: t('league.tab_admin') }] : []),
   ]
 
   const { data: standings = [], isLoading: loadingStandings } = useStandings(id)
@@ -1992,7 +1993,7 @@ export function LeagueDetailPage() {
       queryClient.invalidateQueries({ queryKey: ['league-standings', id] })
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to join league')
+      toast.error(err.message || t('league.join_failed'))
     },
   })
 
@@ -2049,14 +2050,14 @@ export function LeagueDetailPage() {
         if (n >= 2) {
           const autoMaxRounds = n % 2 === 0 ? n - 1 : n
           const { error: mrErr } = await supabase.from('leagues').update({ max_rounds: autoMaxRounds }).eq('id', id)
-          if (mrErr) toast.error('Failed to set max rounds')
+          if (mrErr) toast.error(t('league.max_rounds_failed'))
           queryClient.invalidateQueries({ queryKey: ['league', id] })
         }
       }
 
       // Season complete check
       if (league?.max_rounds != null && nextRound >= league.max_rounds) {
-        toast.error(`Season complete. All ${league.max_rounds} rounds have been generated.`)
+        toast.error(t('league.season_complete_all_rounds', { count: league.max_rounds }))
         return
       }
 
@@ -2064,7 +2065,7 @@ export function LeagueDetailPage() {
 
       if (isPairs) {
         if (leagueTeams.length < 2) {
-          toast.error('Need at least 2 pairs to generate a round')
+          toast.error(t('league.need_2_pairs'))
           return
         }
         const teamIds = leagueTeams.map((t) => t.id)
@@ -2097,7 +2098,7 @@ export function LeagueDetailPage() {
         // Each "entity" in the round-robin is a player; pairings produce 2 players per side
         const playerIds = standings.map((s) => s.user_id)
         if (playerIds.length < 4) {
-          toast.error('Need at least 4 players to generate a round')
+          toast.error(t('league.need_4_players_round'))
           return
         }
 
@@ -2145,8 +2146,8 @@ export function LeagueDetailPage() {
   if (!league) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-        <p className="text-[14px] text-gray-500">League not found</p>
-        <button onClick={() => goBack(navigate, '/compete')} className="mt-4 text-[13px] text-teal-600 font-semibold">Go back</button>
+        <p className="text-[14px] text-gray-500">{t('league.league_not_found')}</p>
+        <button onClick={() => goBack(navigate, '/compete')} className="mt-4 text-[13px] text-teal-600 font-semibold">{t('match.go_back')}</button>
       </div>
     )
   }
@@ -2184,7 +2185,7 @@ export function LeagueDetailPage() {
                 <>
                   <span className="text-gray-300">·</span>
                   <span className="text-[11px] font-semibold text-gray-500">
-                    {isSeasonComplete ? 'Season complete' : `Round ${currentRound} of ${league.max_rounds}`}
+                    {isSeasonComplete ? t('league.season_complete') : t('league.round_of', { current: currentRound, total: league.max_rounds })}
                   </span>
                 </>
               )}
@@ -2209,21 +2210,21 @@ export function LeagueDetailPage() {
       {/* Invitation banner */}
       {pendingInvite && (
         <div className="mx-5 mb-3 rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3">
-          <p className="text-[13px] font-bold text-teal-800 mb-2">You've been invited to this league</p>
+          <p className="text-[13px] font-bold text-teal-800 mb-2">{t('league.invited_to_league')}</p>
           <div className="flex gap-2">
             <button
               onClick={() => acceptInviteMutation.mutate()}
               disabled={acceptInviteMutation.isPending}
               className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-50"
             >
-              {acceptInviteMutation.isPending ? 'Joining…' : 'Accept & Join'}
+              {acceptInviteMutation.isPending ? t('league.joining') : t('league.accept_and_join')}
             </button>
             <button
               onClick={() => declineInviteMutation.mutate()}
               disabled={declineInviteMutation.isPending}
               className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
             >
-              Decline
+              {t('match.decline')}
             </button>
           </div>
         </div>
@@ -2260,7 +2261,7 @@ export function LeagueDetailPage() {
       {/* League summary — sets played count (leader shown in standings card) */}
       <div className="px-5 pt-3 pb-1">
         <p className="text-[12px] text-gray-500">
-          {standings.reduce((s, r) => s + r.played, 0) / 4} sets played
+          {standings.reduce((s, r) => s + r.played, 0) / 4} {t('league.sets_played')}
         </p>
       </div>
 
@@ -2278,7 +2279,7 @@ export function LeagueDetailPage() {
           {/* ── Standings ── */}
           {activeTab === 'standings' && (
             loadingStandings ? <TabSkeleton /> :
-            standings.length === 0 && !isPairs ? <EmptyTab message="No standings yet" /> :
+            standings.length === 0 && !isPairs ? <EmptyTab message={t('league.no_standings')} /> :
             isPairs && leagueTeams.length === 0 ? (
               <div className="space-y-3">
                 {league && <LeagueAboutCard league={league} />}
@@ -2304,15 +2305,15 @@ export function LeagueDetailPage() {
                   {/* Podium */}
                   {(isPairs ? teamStandings : indStandings).slice(0, 3).map((row, i) => {
                     const name = isPairs
-                      ? (row as TeamStanding).team_name ?? 'Unknown'
-                      : (row as Standing).profile?.name ?? 'Unknown'
+                      ? (row as TeamStanding).team_name ?? t('league.unknown')
+                      : (row as Standing).profile?.name ?? t('league.unknown')
                     const indRow = row as Standing
                     const pts = isPairs ? row.points : indRow.form.toFixed(2)
                     const gd = isPairs ? (row as TeamStanding).game_difference : (row as Standing).game_difference
                     const styles = [
-                      { bg: 'bg-gradient-to-r from-amber-50 to-yellow-50', border: 'border-amber-100', text: 'text-amber-600', pts_text: 'text-amber-700', emoji: '🏆', label: 'Champion' },
-                      { bg: 'bg-gradient-to-r from-gray-50 to-slate-50', border: 'border-gray-200', text: 'text-gray-500', pts_text: 'text-gray-700', emoji: '🥈', label: '2nd Place' },
-                      { bg: 'bg-gradient-to-r from-orange-50 to-amber-50', border: 'border-orange-100', text: 'text-orange-500', pts_text: 'text-orange-700', emoji: '🥉', label: '3rd Place' },
+                      { bg: 'bg-gradient-to-r from-amber-50 to-yellow-50', border: 'border-amber-100', text: 'text-amber-600', pts_text: 'text-amber-700', emoji: '🏆', label: t('league.champion') },
+                      { bg: 'bg-gradient-to-r from-gray-50 to-slate-50', border: 'border-gray-200', text: 'text-gray-500', pts_text: 'text-gray-700', emoji: '🥈', label: t('league.second_place') },
+                      { bg: 'bg-gradient-to-r from-orange-50 to-amber-50', border: 'border-orange-100', text: 'text-orange-500', pts_text: 'text-orange-700', emoji: '🥉', label: t('league.third_place') },
                     ][i]
                     return (
                       <div key={i} className={cn('rounded-2xl border px-4 py-3 flex items-center gap-3', styles.bg, styles.border)}>
@@ -2323,7 +2324,7 @@ export function LeagueDetailPage() {
                         </div>
                         <div className="text-right">
                           <p className={cn('text-[20px] font-black', styles.pts_text)}>{pts}</p>
-                          <p className={cn('text-[10px] font-semibold', styles.text)}>{isPairs && gd != null ? `GD ${gd >= 0 ? '+' : ''}${gd}` : 'Form'}</p>
+                          <p className={cn('text-[10px] font-semibold', styles.text)}>{isPairs && gd != null ? t('league.gd_value', { value: `${gd >= 0 ? '+' : ''}${gd}` }) : t('league.form_label')}</p>
                         </div>
                       </div>
                     )
@@ -2333,24 +2334,24 @@ export function LeagueDetailPage() {
                 <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 px-4 py-3 flex items-center gap-3">
                   <p className="text-[28px] leading-none">🥇</p>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Current Leader</p>
-                    <p className="text-[15px] font-bold text-gray-900 truncate">{teamStandings[0].team_name ?? 'Unknown'}</p>
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">{t('league.current_leader')}</p>
+                    <p className="text-[15px] font-bold text-gray-900 truncate">{teamStandings[0].team_name ?? t('league.unknown')}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[20px] font-black text-amber-700">{teamStandings[0].points}</p>
-                    <p className="text-[10px] text-amber-500 font-semibold">pts</p>
+                    <p className="text-[10px] text-amber-500 font-semibold">{t('league.pts_label')}</p>
                   </div>
                 </div>
               ) : indStandings[0] && !isPairs ? (
                 <div className="rounded-2xl bg-gradient-to-r from-amber-50 to-yellow-50 border border-amber-100 px-4 py-3 flex items-center gap-3">
                   <p className="text-[28px] leading-none">🥇</p>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">Current Leader</p>
-                    <p className="text-[15px] font-bold text-gray-900 truncate">{indStandings[0].profile?.name ?? 'Unknown'}</p>
+                    <p className="text-[10px] font-bold text-amber-600 uppercase tracking-wide mb-0.5">{t('league.current_leader')}</p>
+                    <p className="text-[15px] font-bold text-gray-900 truncate">{indStandings[0].profile?.name ?? t('league.unknown')}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[20px] font-black text-amber-700">{indStandings[0].form.toFixed(2)}</p>
-                    <p className="text-[10px] text-amber-500 font-semibold">Form</p>
+                    <p className="text-[10px] text-amber-500 font-semibold">{t('league.form_label')}</p>
                   </div>
                 </div>
               ) : null}
@@ -2363,9 +2364,9 @@ export function LeagueDetailPage() {
                     <div>
                       <div className="flex justify-between items-center mb-1">
                         <p className="text-[11px] font-semibold text-gray-500">
-                          Round {currentRound} of {league.max_rounds}
+                          {t('league.round_of', { current: currentRound, total: league.max_rounds })}
                         </p>
-                        <p className="text-[11px] text-gray-400">{pct}% complete</p>
+                        <p className="text-[11px] text-gray-400">{t('league.pct_complete', { pct })}</p>
                       </div>
                       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                         <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${pct}%` }} />
@@ -2382,7 +2383,7 @@ export function LeagueDetailPage() {
                 const elapsed = differenceInCalendarDays(today, start)
                 const pct = Math.min(100, Math.max(0, Math.round((elapsed / totalDays) * 100)))
                 const remaining = differenceInCalendarDays(end, today)
-                const label = remaining <= 0 ? 'Season ended' : `Season · ${remaining} day${remaining === 1 ? '' : 's'} left`
+                const label = remaining <= 0 ? t('league.season_ended') : t('league.season_days_left', { count: remaining })
                 return (
                   <div>
                     <div className="flex justify-between items-center mb-1">
@@ -2402,7 +2403,7 @@ export function LeagueDetailPage() {
               {/* Prizes */}
               {league?.prizes && (
                 <div className="rounded-2xl bg-purple-50 border border-purple-100 px-4 py-3">
-                  <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wide mb-1">Prizes</p>
+                  <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wide mb-1">{t('league.prizes')}</p>
                   <p className="text-[13px] text-gray-800">{league.prizes}</p>
                 </div>
               )}
@@ -2423,22 +2424,22 @@ export function LeagueDetailPage() {
                         {row.team_name ?? `${row.player1?.name?.split(' ')[0] ?? '?'} & ${row.player2?.name?.split(' ')[0] ?? '?'}`}{isMe ? ' ★' : ''}
                       </span>
                       {[row.player1_id, row.player2_id].map((pid) => jerseyByUser[pid] ? (
-                        <span key={pid} className="flex-shrink-0 text-[12px] leading-none" title={JERSEY_LABEL[jerseyByUser[pid]] ?? 'Jersey'}>{JERSEY_EMOJI[jerseyByUser[pid]] ?? ''}</span>
+                        <span key={pid} className="flex-shrink-0 text-[12px] leading-none" title={t(JERSEY_LABEL[jerseyByUser[pid]] ?? 'league.jersey_fallback')}>{JERSEY_EMOJI[jerseyByUser[pid]] ?? ''}</span>
                       ) : null)}
                     </>
                   )}
-                  headlineLabel="Pts"
+                  headlineLabel={t('league.pts_headline')}
                   headline={(row, isMe) => (
                     <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.points}</span>
                   )}
                   detail={(row) => (
                     <>
-                      <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
-                      <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
-                      <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
-                      <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
+                      <span>{t('league.stat_p')} <span className="font-bold text-gray-700">{row.played}</span></span>
+                      <span>{t('league.stat_w')} <span className="font-bold text-gray-700">{row.won}</span></span>
+                      <span>{t('league.stat_d')} <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                      <span>{t('league.stat_l')} <span className="font-bold text-gray-700">{row.lost}</span></span>
                       <span className={cn(row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
-                        GD <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
+                        {t('league.stat_gd')} <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
                       </span>
                     </>
                   )}
@@ -2454,11 +2455,11 @@ export function LeagueDetailPage() {
                       <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 flex items-start gap-2">
                         <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
                         <p className="text-[12px] text-amber-700">
-                          {unpairedMembers.length} player{unpairedMembers.length > 1 ? 's are' : ' is'} unpaired. Find them a partner or remove them from the league before the season completes.
+                          {t('league.players_unpaired', { count: unpairedMembers.length })}
                         </p>
                       </div>
                       <div className="rounded-2xl border border-dashed border-gray-200 p-3">
-                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Awaiting Partner</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('league.awaiting_partner')}</p>
                         {unpairedMembers.map((m) => (
                           <div key={m.id} className="flex items-center gap-2 py-1.5">
                             <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="sm" />
@@ -2491,12 +2492,12 @@ export function LeagueDetailPage() {
                     {/* View toggle */}
                     <div className="flex bg-gray-100 rounded-xl p-1 gap-0.5 mb-3 overflow-x-auto no-scrollbar">
                       {([
-                        { id: 'form' as const, label: 'Form' },
-                        { id: 'points' as const, label: 'Pts' },
-                        { id: 'climbers' as const, label: 'Climb' },
-                        { id: 'upsets' as const, label: 'Upsets' },
-                        { id: 'games_won' as const, label: 'GW' },
-                        { id: 'game_diff' as const, label: 'GD' },
+                        { id: 'form' as const, label: t('league.tab_form') },
+                        { id: 'points' as const, label: t('league.tab_pts') },
+                        { id: 'climbers' as const, label: t('league.tab_climb') },
+                        { id: 'upsets' as const, label: t('league.tab_upsets') },
+                        { id: 'games_won' as const, label: t('league.tab_gw') },
+                        { id: 'game_diff' as const, label: t('league.tab_gd') },
                       ]).map((v) => (
                         <button
                           key={v.id}
@@ -2513,14 +2514,14 @@ export function LeagueDetailPage() {
 
                     <div className="flex items-start justify-between mb-3">
                       <p className="text-[11px] text-gray-400 flex-1">
-                        {standingsView === 'form' && 'How well you\'re playing — points per set, adjusted for how much you\'ve played.'}
-                        {standingsView === 'points' && 'Total points this season — 3 for a set win, 1 for a draw.'}
-                        {standingsView === 'climbers' && 'Rating gained since tracking began on 23 Jun.'}
-                        {standingsView === 'upsets' && 'Sets won against pairs rated 150+ above yours.'}
-                        {standingsView === 'games_won' && 'Total games won across all your sets.'}
-                        {standingsView === 'game_diff' && 'Games won minus games lost.'}
+                        {standingsView === 'form' && t('league.explainer_form')}
+                        {standingsView === 'points' && t('league.explainer_pts')}
+                        {standingsView === 'climbers' && t('league.explainer_climb', { date: '23 Jun' })}
+                        {standingsView === 'upsets' && t('league.explainer_upsets')}
+                        {standingsView === 'games_won' && t('league.explainer_gw')}
+                        {standingsView === 'game_diff' && t('league.explainer_gd')}
                       </p>
-                      <button onClick={() => setShowScoringSheet(true)} className="text-[11px] text-[#009688] font-semibold whitespace-nowrap ml-2">How scoring works</button>
+                      <button onClick={() => setShowScoringSheet(true)} className="text-[11px] text-[#009688] font-semibold whitespace-nowrap ml-2">{t('league.how_scoring_works')}</button>
                     </div>
 
                     {/* Form */}
@@ -2532,7 +2533,7 @@ export function LeagueDetailPage() {
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                               )}
@@ -2540,14 +2541,14 @@ export function LeagueDetailPage() {
                             </span>
                           </>
                         )}
-                        headlineLabel="Form"
+                        headlineLabel={t('league.form_label')}
                         headline={(row, isMe) => (
                           <>
                             <span className={cn('text-[12px] font-bold block', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.form.toFixed(2)}</span>
-                            <span className="text-[9px] text-gray-400">pts/set</span>
+                            <span className="text-[9px] text-gray-400">{t('league.pts_per_set')}</span>
                           </>
                         )}
-                        headlineLabel2="Pts"
+                        headlineLabel2={t('league.pts_headline')}
                         headline2={(row, isMe) => (
                           <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                             {row.points}
@@ -2555,13 +2556,13 @@ export function LeagueDetailPage() {
                         )}
                         detail={(row) => (
                           <>
-                            <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
-                            <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
-                            <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
+                            <span>{t('league.stat_w')} <span className="font-bold text-gray-700">{row.won}</span></span>
+                            <span>{t('league.stat_d')} <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                            <span>{t('league.stat_l')} <span className="font-bold text-gray-700">{row.lost}</span></span>
                             <span className={cn(row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
-                              GD <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
+                              {t('league.stat_gd')} <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
                             </span>
-                            <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                            <span>{t('league.stat_p')} <span className="font-bold text-gray-700">{row.played}</span></span>
                           </>
                         )}
                       />
@@ -2576,7 +2577,7 @@ export function LeagueDetailPage() {
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                               )}
@@ -2584,11 +2585,11 @@ export function LeagueDetailPage() {
                             </span>
                           </>
                         )}
-                        headlineLabel="Pts"
+                        headlineLabel={t('league.pts_headline')}
                         headline={(row, isMe) => (
                           <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.points}</span>
                         )}
-                        headlineLabel2="Form"
+                        headlineLabel2={t('league.form_label')}
                         headline2={(row, isMe) => (
                           <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                             {row.form.toFixed(2)}
@@ -2596,10 +2597,10 @@ export function LeagueDetailPage() {
                         )}
                         detail={(row) => (
                           <>
-                            <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
-                            <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
-                            <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
-                            <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                            <span>{t('league.stat_w')} <span className="font-bold text-gray-700">{row.won}</span></span>
+                            <span>{t('league.stat_d')} <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                            <span>{t('league.stat_l')} <span className="font-bold text-gray-700">{row.lost}</span></span>
+                            <span>{t('league.stat_p')} <span className="font-bold text-gray-700">{row.played}</span></span>
                           </>
                         )}
                       />
@@ -2614,7 +2615,7 @@ export function LeagueDetailPage() {
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                               )}
@@ -2622,14 +2623,14 @@ export function LeagueDetailPage() {
                             </span>
                           </>
                         )}
-                        headlineLabel="GW"
+                        headlineLabel={t('league.tab_gw')}
                         headline={(row) => (
                           <span className="text-[12px] font-bold text-[#009688]">{row.games_won}</span>
                         )}
                         detail={(row) => (
                           <>
-                            <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
-                            <span>GL <span className="font-bold text-gray-700">{row.games_won - row.game_difference}</span></span>
+                            <span>{t('league.stat_p')} <span className="font-bold text-gray-700">{row.played}</span></span>
+                            <span>{t('league.stat_gl')} <span className="font-bold text-gray-700">{row.games_won - row.game_difference}</span></span>
                           </>
                         )}
                       />
@@ -2644,7 +2645,7 @@ export function LeagueDetailPage() {
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                              {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                              {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                               )}
@@ -2652,7 +2653,7 @@ export function LeagueDetailPage() {
                             </span>
                           </>
                         )}
-                        headlineLabel="GD"
+                        headlineLabel={t('league.tab_gd')}
                         headline={(row) => (
                           <span className={cn('text-[12px] font-bold', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-gray-400')}>
                             {row.game_difference > 0 ? '+' : ''}{row.game_difference}
@@ -2660,9 +2661,9 @@ export function LeagueDetailPage() {
                         )}
                         detail={(row) => (
                           <>
-                            <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
-                            <span>GW <span className="font-bold text-gray-700">{row.games_won}</span></span>
-                            <span>GL <span className="font-bold text-gray-700">{row.games_won - row.game_difference}</span></span>
+                            <span>{t('league.stat_p')} <span className="font-bold text-gray-700">{row.played}</span></span>
+                            <span>{t('league.stat_gw')} <span className="font-bold text-gray-700">{row.games_won}</span></span>
+                            <span>{t('league.stat_gl')} <span className="font-bold text-gray-700">{row.games_won - row.game_difference}</span></span>
                           </>
                         )}
                       />
@@ -2682,7 +2683,7 @@ export function LeagueDetailPage() {
                               <>
                                 <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                                 <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                                  {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                  {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
                                     <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                                   )}
@@ -2690,7 +2691,7 @@ export function LeagueDetailPage() {
                                 </span>
                               </>
                             )}
-                            headlineLabel="ELO"
+                            headlineLabel={t('league.elo_headline')}
                             headline={(row) => (
                               <span className={cn('text-[12px] font-bold', row.elo_gained > 0 ? 'text-green-600' : row.elo_gained < 0 ? 'text-red-500' : 'text-gray-400')}>
                                 {row.elo_gained > 0 ? '+' : ''}{row.elo_gained}
@@ -2698,10 +2699,10 @@ export function LeagueDetailPage() {
                             )}
                             detail={(row) => (
                               <>
-                                <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
-                                <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
-                                <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
-                                <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                                <span>{t('league.stat_w')} <span className="font-bold text-gray-700">{row.won}</span></span>
+                                <span>{t('league.stat_d')} <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                                <span>{t('league.stat_l')} <span className="font-bold text-gray-700">{row.lost}</span></span>
+                                <span>{t('league.stat_p')} <span className="font-bold text-gray-700">{row.played}</span></span>
                               </>
                             )}
                           />
@@ -2722,7 +2723,7 @@ export function LeagueDetailPage() {
                               <>
                                 <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
                                 <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
-                                  {row.profile?.name ?? 'Unknown'}{isMe ? ' ★' : ''}
+                                  {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
                                     <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
                                   )}
@@ -2730,7 +2731,7 @@ export function LeagueDetailPage() {
                                 </span>
                               </>
                             )}
-                            headlineLabel="Wins"
+                            headlineLabel={t('league.wins_headline')}
                             headline={(row) => (
                               <span className={cn('text-[12px] font-bold', row.upset_wins > 0 ? 'text-[#009688]' : 'text-gray-400')}>
                                 {row.upset_wins}
@@ -2738,10 +2739,10 @@ export function LeagueDetailPage() {
                             )}
                             detail={(row) => (
                               <>
-                                <span>W <span className="font-bold text-gray-700">{row.won}</span></span>
-                                <span>D <span className="font-bold text-gray-700">{row.drawn}</span></span>
-                                <span>L <span className="font-bold text-gray-700">{row.lost}</span></span>
-                                <span>P <span className="font-bold text-gray-700">{row.played}</span></span>
+                                <span>{t('league.stat_w')} <span className="font-bold text-gray-700">{row.won}</span></span>
+                                <span>{t('league.stat_d')} <span className="font-bold text-gray-700">{row.drawn}</span></span>
+                                <span>{t('league.stat_l')} <span className="font-bold text-gray-700">{row.lost}</span></span>
+                                <span>{t('league.stat_p')} <span className="font-bold text-gray-700">{row.played}</span></span>
                               </>
                             )}
                           />

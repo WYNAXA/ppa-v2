@@ -570,6 +570,7 @@ function MexicanoTab({
   leagueId: string
   isAdmin: boolean
 }) {
+  const { t } = useTranslation()
   const { profile } = useAuth()
   const queryClient = useQueryClient()
   const sorted      = [...standings].sort((a, b) => b.points - a.points)
@@ -602,12 +603,12 @@ function MexicanoTab({
       queryClient.invalidateQueries({ queryKey: ['league-fixtures', leagueId] })
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to generate matches')
+      toast.error(err.message || t('league.generate_matches_failed'))
     },
   })
 
   if (standings.length < 4) {
-    return <EmptyTab message="Need at least 4 players to generate Mexicano pairings" />
+    return <EmptyTab message={t('league.mexicano_need_4')} />
   }
 
   return (
@@ -615,31 +616,31 @@ function MexicanoTab({
       <div className="rounded-2xl border border-teal-100 bg-teal-50 p-4 mb-4">
         <div className="flex items-center gap-2 mb-1">
           <Zap className="h-4 w-4 text-teal-600" />
-          <p className="text-[13px] font-bold text-teal-800">Next Round Pairings</p>
+          <p className="text-[13px] font-bold text-teal-800">{t('league.next_round_pairings')}</p>
         </div>
-        <p className="text-[12px] text-teal-600">Based on current standings — top players face each other</p>
+        <p className="text-[12px] text-teal-600">{t('league.pairings_description')}</p>
       </div>
 
       <div className="space-y-3 mb-5">
         {rounds.map((round, i) => (
           <div key={i} className="rounded-xl border border-gray-100 bg-gray-50 p-3">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">Court {i + 1}</p>
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('match.court_number', { number: i + 1 })}</p>
             <div className="flex items-center gap-3">
               <div className="flex-1">
                 {round.pair1.map((p) => (
                   <div key={p.user_id} className="flex items-center gap-1.5 mb-1">
                     <PlayerAvatar name={p.profile?.name} avatarUrl={p.profile?.avatar_url} size="sm" />
-                    <span className="text-[12px] font-semibold text-gray-800 truncate">{p.profile?.name ?? 'Unknown'}</span>
+                    <span className="text-[12px] font-semibold text-gray-800 truncate">{p.profile?.name ?? t('league.unknown')}</span>
                     <span className="text-[10px] text-gray-400">{p.points}pts</span>
                   </div>
                 ))}
               </div>
-              <span className="text-[11px] font-bold text-gray-400">vs</span>
+              <span className="text-[11px] font-bold text-gray-400">{t('league.vs')}</span>
               <div className="flex-1">
                 {round.pair2.map((p) => (
                   <div key={p.user_id} className="flex items-center gap-1.5 mb-1">
                     <PlayerAvatar name={p.profile?.name} avatarUrl={p.profile?.avatar_url} size="sm" />
-                    <span className="text-[12px] font-semibold text-gray-800 truncate">{p.profile?.name ?? 'Unknown'}</span>
+                    <span className="text-[12px] font-semibold text-gray-800 truncate">{p.profile?.name ?? t('league.unknown')}</span>
                     <span className="text-[10px] text-gray-400">{p.points}pts</span>
                   </div>
                 ))}
@@ -655,14 +656,14 @@ function MexicanoTab({
           disabled={generateMutation.isPending}
           className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
         >
-          {generateMutation.isPending ? 'Generating…' : 'Generate Next Round Matches'}
+          {generateMutation.isPending ? t('league.generating') : t('league.generate_next_round')}
         </button>
       )}
       {generateMutation.isError && (
-        <p className="mt-2 text-[12px] text-red-500 text-center">Failed to generate matches. Try again.</p>
+        <p className="mt-2 text-[12px] text-red-500 text-center">{t('league.generate_failed_retry')}</p>
       )}
       {generateMutation.isSuccess && (
-        <p className="mt-2 text-[12px] text-green-600 text-center font-semibold">Matches created!</p>
+        <p className="mt-2 text-[12px] text-green-600 text-center font-semibold">{t('league.matches_created')}</p>
       )}
     </div>
   )
@@ -671,6 +672,7 @@ function MexicanoTab({
 // ── Invite from group ─────────────────────────────────────────────────────────
 
 function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; standings: Standing[] }) {
+  const { t } = useTranslation()
   const { profile } = useAuth()
   const queryClient = useQueryClient()
   const [invitedIds, setInvitedIds] = useState<string[]>([])
@@ -729,7 +731,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
       p_user_ids: notInLeague.map((p) => p.id),
     })
     if (error) {
-      toast.error(error.message || 'Failed to add members')
+      toast.error(error.message || t('league.add_members_failed'))
       setAddingAll(false)
       return
     }
@@ -766,12 +768,12 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
   return (
     <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Invite Players</p>
-        <span className="text-[11px] text-gray-400">{standings.length} members</span>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.invite_players')}</p>
+        <span className="text-[11px] text-gray-400">{t('league.n_members', { count: standings.length })}</span>
       </div>
 
       <button onClick={handleShare} className="w-full rounded-xl border border-teal-200 bg-teal-50 py-2.5 text-[13px] font-semibold text-teal-700 mb-2">
-        {linkCopied ? 'Link copied!' : 'Copy invite link'}
+        {linkCopied ? t('match.link_copied') : t('league.copy_invite_link')}
       </button>
 
       {/* Search players */}
@@ -780,7 +782,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
           type="text"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Search players to invite…"
+          placeholder={t('league.search_players_placeholder')}
           style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
           className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] outline-none focus:border-teal-500 focus:ring-1 focus:ring-teal-500/20"
         />
@@ -801,14 +803,14 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
                     invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white'
                   )}
                 >
-                  {invitedIds.includes(p.id) ? 'Invited ✓' : 'Invite'}
+                  {invitedIds.includes(p.id) ? t('league.invited_check') : t('league.invite')}
                 </button>
               </div>
             ))}
           </div>
         )}
         {trimmed.length >= 2 && filteredSearch.length === 0 && (
-          <p className="text-[11px] text-gray-400 text-center mt-2">No players found</p>
+          <p className="text-[11px] text-gray-400 text-center mt-2">{t('league.no_players_found')}</p>
         )}
       </div>
 
@@ -816,7 +818,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
       {groupId && notInLeague.length > 0 && (
         <>
           <div className="flex items-center justify-between">
-            <p className="text-[11px] text-gray-500">{notInLeague.length} group members not yet in league:</p>
+            <p className="text-[11px] text-gray-500">{t('league.group_members_not_in_league', { count: notInLeague.length })}</p>
             <button
               onClick={handleAddAll}
               disabled={addingAll || addedAll}
@@ -825,7 +827,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
                 addedAll ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white disabled:opacity-50'
               )}
             >
-              {addedAll ? 'Added!' : addingAll ? 'Adding…' : 'Add all'}
+              {addedAll ? t('league.added') : addingAll ? t('league.adding') : t('league.add_all')}
             </button>
           </div>
           <div className="space-y-1.5 max-h-48 overflow-y-auto">
@@ -844,7 +846,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
                     invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white'
                   )}
                 >
-                  {invitedIds.includes(p.id) ? 'Invited ✓' : 'Invite'}
+                  {invitedIds.includes(p.id) ? t('league.invited_check') : t('league.invite')}
                 </button>
               </div>
             ))}
@@ -853,7 +855,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
       )}
 
       {groupId && notInLeague.length === 0 && (
-        <p className="text-[12px] text-gray-400 text-center py-2">All group members are in this league</p>
+        <p className="text-[12px] text-gray-400 text-center py-2">{t('league.all_members_in_league')}</p>
       )}
     </div>
   )
@@ -862,6 +864,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
 // ── Admin tab ─────────────────────────────────────────────────────────────────
 
 function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMatches }: { league: LeagueInfo; standings: Standing[]; onNavigate: (path: string) => void; onResetPairs?: () => void; hasTeams?: boolean; hasMatches?: boolean }) {
+  const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [selectedUserId, setSelectedUserId] = useState('')
   const [pointsDelta, setPointsDelta] = useState('')
@@ -910,8 +913,8 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
 
   // Manual admin jersey types — green/red/blue are auto-computed by cron, not manually assignable
   const JERSEY_COLOURS = [
-    { id: 'yellow', emoji: '\u{1F7E1}', label: 'Leader', desc: 'Currently leading the league' },
-    { id: 'black', emoji: '\u26AB', label: 'Wooden Spoon', desc: 'Bottom of the standings' },
+    { id: 'yellow', emoji: '\u{1F7E1}', label: t('league.jersey_leader'), desc: 'Currently leading the league' },
+    { id: 'black', emoji: '\u26AB', label: t('league.jersey_wooden_spoon'), desc: 'Bottom of the standings' },
   ]
 
   async function saveJersey() {
@@ -935,7 +938,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     if (delError) {
       setSavingJersey(false)
       console.error('[Jersey] delete error:', delError)
-      toast.error(delError.message ?? 'Failed to clear jersey')
+      toast.error(delError.message ?? t('league.clear_jersey_failed'))
       return
     }
 
@@ -949,10 +952,10 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     setSavingJersey(false)
     if (error) {
       console.error('[Jersey] insert error:', error)
-      toast.error(error.message ?? 'Failed to assign jersey')
+      toast.error(error.message ?? t('league.assign_jersey_failed'))
       return
     }
-    toast.success('Jersey assigned!')
+    toast.success(t('league.jersey_assigned'))
     queryClient.invalidateQueries({ queryKey: ['league-jerseys', league.id] })
     setJerseyUserId('')
     setJerseyNumber('')
@@ -986,7 +989,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
     <div className="space-y-4">
       {/* Edit league name */}
       <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">League Name</p>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.league_name_heading')}</p>
         {editingName ? (
           <>
             <input
@@ -1000,7 +1003,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
                 onClick={() => { setEditingName(false); setNewName(league.name) }}
                 className="flex-1 rounded-xl border border-gray-200 py-2 text-[12px] font-semibold text-gray-600"
               >
-                Cancel
+                {t('match.cancel')}
               </button>
               <button
                 onClick={async () => {
@@ -1008,8 +1011,8 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
                   setSavingName(true)
                   const { error } = await supabase.from('leagues').update({ name: newName.trim() }).eq('id', league.id)
                   setSavingName(false)
-                  if (error) { toast.error(error.message ?? 'Failed to update name'); return }
-                  toast.success('League name updated')
+                  if (error) { toast.error(error.message ?? t('league.update_name_failed')); return }
+                  toast.success(t('league.name_updated'))
                   queryClient.invalidateQueries({ queryKey: ['league', league.id] })
                   queryClient.invalidateQueries({ queryKey: ['my-leagues-compete'] })
                   queryClient.invalidateQueries({ queryKey: ['my-leagues-discovery'] })
@@ -1018,7 +1021,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
                 disabled={savingName || !newName.trim()}
                 className="flex-1 rounded-xl bg-[#009688] py-2 text-[12px] font-bold text-white disabled:opacity-40"
               >
-                {savingName ? 'Saving…' : 'Save'}
+                {savingName ? t('league.saving') : t('match.save')}
               </button>
             </div>
           </>
@@ -1028,25 +1031,25 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
             className="w-full flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2.5 text-left"
           >
             <span className="text-[13px] text-gray-900 truncate">{league.name}</span>
-            <span className="text-[11px] text-[#009688] font-semibold ml-2">Edit</span>
+            <span className="text-[11px] text-[#009688] font-semibold ml-2">{t('league.edit')}</span>
           </button>
         )}
       </div>
 
       {/* Points adjustment */}
       <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Manual Points Adjustment</p>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.manual_points_heading')}</p>
         <select
           value={selectedUserId}
           onChange={e => setSelectedUserId(e.target.value)}
           className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
         >
-          <option value="">Select player…</option>
+          <option value="">{t('league.select_player')}</option>
           {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         {selectedUserId && (
           <p className="text-[12px] text-gray-500">
-            Current: <span className="font-bold text-gray-900">{standings.find(s => s.user_id === selectedUserId)?.points ?? 0}</span> points
+            {t('league.current_points', { points: standings.find(s => s.user_id === selectedUserId)?.points ?? 0 })}
             {pointsDelta && (
               <span className="ml-2">&rarr; <span className="font-bold text-[#009688]">{(standings.find(s => s.user_id === selectedUserId)?.points ?? 0) + parseInt(pointsDelta, 10)}</span> points</span>
             )}
@@ -1056,13 +1059,13 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           type="number"
           value={pointsDelta}
           onChange={e => setPointsDelta(e.target.value.replace(/[^0-9-]/g, ''))}
-          placeholder="Points change (e.g. 5 or -3)"
+          placeholder={t('league.points_change_placeholder')}
           className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
         />
         <input
           value={reason}
           onChange={e => setReason(e.target.value)}
-          placeholder="Reason (optional)"
+          placeholder={t('league.reason_placeholder')}
           className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
         />
         <button
@@ -1070,19 +1073,19 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           disabled={adjusting || !selectedUserId || !pointsDelta}
           className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
         >
-          {adjustSaved ? 'Saved!' : adjusting ? 'Saving…' : 'Apply Adjustment'}
+          {adjustSaved ? t('league.saved') : adjusting ? t('league.saving') : t('league.apply_adjustment')}
         </button>
       </div>
 
       {/* Jersey assignment */}
       <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Assign Jersey Number</p>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.assign_jersey_heading')}</p>
         <select
           value={jerseyUserId}
           onChange={e => setJerseyUserId(e.target.value)}
           className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
         >
-          <option value="">Select player…</option>
+          <option value="">{t('league.select_player')}</option>
           {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
         <div className="grid grid-cols-5 gap-2">
@@ -1105,13 +1108,13 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           disabled={savingJersey || !jerseyUserId || !jerseyNumber}
           className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
         >
-          {savingJersey ? 'Saving…' : 'Assign Jersey'}
+          {savingJersey ? t('league.saving') : t('league.assign_jersey')}
         </button>
       </div>
 
       {/* Amend end date */}
       <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">League End Date</p>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.end_date_heading')}</p>
         <input
           type="date"
           value={newEndDate}
@@ -1123,15 +1126,15 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           disabled={savingDate || !newEndDate}
           className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
         >
-          {dateSaved ? 'Saved!' : savingDate ? 'Saving…' : 'Update End Date'}
+          {dateSaved ? t('league.saved') : savingDate ? t('league.saving') : t('league.update_end_date')}
         </button>
       </div>
 
       {/* Minimum sets per fixture */}
       <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Minimum Sets Per Fixture</p>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.min_sets_heading')}</p>
         <div className="flex items-center justify-between">
-          <span className="text-[13px] text-gray-600">How many sets must be entered before a result can be submitted</span>
+          <span className="text-[13px] text-gray-600">{t('league.min_sets_description')}</span>
           <div className="flex items-center gap-3">
             <button
               onClick={() => { if (minSets > 1) saveMinSets(minSets - 1) }}
@@ -1146,7 +1149,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
             >+</button>
           </div>
         </div>
-        {minSetsSaved && <p className="text-[11px] text-teal-600 font-semibold">Saved!</p>}
+        {minSetsSaved && <p className="text-[11px] text-teal-600 font-semibold">{t('league.saved')}</p>}
       </div>
 
       {/* Invite from group */}
@@ -1155,28 +1158,28 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
       {/* Reset pairs (only for pairs leagues with no matches played yet) */}
       {league.match_type === 'pairs' && hasTeams && !hasMatches && onResetPairs && (
         <div className="rounded-2xl border border-amber-100 p-4 space-y-3">
-          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Pairs</p>
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.pairs_heading')}</p>
           <button
             onClick={() => {
-              if (!confirm('Reset all pairs? This deletes the current pair assignments. You can only do this before any matches are played.')) return
+              if (!confirm(t('league.reset_pairs_confirm'))) return
               onResetPairs()
             }}
             className="w-full rounded-xl border border-amber-200 py-2.5 text-[13px] font-semibold text-amber-600"
           >
-            Reset Pairs
+            {t('league.reset_pairs')}
           </button>
         </div>
       )}
 
       {/* Delete league */}
       <div className="rounded-2xl border border-red-100 p-4 space-y-3">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Danger Zone</p>
+        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.danger_zone')}</p>
         <button
           onClick={async () => {
-            if (!confirm('Delete this league? All fixtures and standings will be lost.')) return
+            if (!confirm(t('league.delete_league_confirm'))) return
             const { error, count } = await supabase.from('leagues').delete({ count: 'exact' }).eq('id', league.id)
             if (error || count === 0) {
-              toast.error(error?.message ?? 'Failed to delete league. You may not have permission.')
+              toast.error(error?.message ?? t('league.delete_league_failed'))
               return
             }
             queryClient.invalidateQueries({ queryKey: ['my-leagues-compete'] })
@@ -1188,7 +1191,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           }}
           className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
         >
-          Delete League
+          {t('league.delete_league')}
         </button>
       </div>
     </div>

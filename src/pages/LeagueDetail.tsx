@@ -2758,13 +2758,13 @@ export function LeagueDetailPage() {
                   {/* Current holder */}
                   {currentEntertainer && (() => {
                     const holderPlayer = standings.find((s) => s.user_id === currentEntertainer.user_id)
-                    const holderName = holderPlayer?.profile?.name ?? 'Player'
+                    const holderName = holderPlayer?.profile?.name ?? t('match.player_fallback')
                     return (
                       <div className="flex items-center gap-3">
                         <span className="text-[20px]">🔵</span>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-bold text-navy">Entertainer</p>
-                          <p className="text-[11px] text-gray-500 truncate">{holderName} holds the jersey</p>
+                          <p className="text-[13px] font-bold text-navy">{t('league.jersey_entertainer')}</p>
+                          <p className="text-[11px] text-gray-500 truncate">{t('league.holds_jersey', { name: holderName })}</p>
                         </div>
                       </div>
                     )
@@ -2773,13 +2773,13 @@ export function LeagueDetailPage() {
                   {/* This week's race */}
                   {entertainerRace.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">This week</p>
-                      <p className="text-[10px] text-amber-600 italic mb-2">Verified votes only — updates as results are verified</p>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('league.this_week')}</p>
+                      <p className="text-[10px] text-amber-600 italic mb-2">{t('league.verified_votes_only')}</p>
                       <div className="space-y-1.5">
                         {entertainerRace.map((entry, idx) => {
                           const standingsPlayer = standings.find((s) => s.user_id === entry.user_id)
                           const memberPlayer = !standingsPlayer ? leagueMembers.find((m: Record<string, unknown>) => m.user_id === entry.user_id) : null
-                          const name = standingsPlayer?.profile?.name ?? (((memberPlayer as Record<string, unknown>)?.name as string) || 'Player')
+                          const name = standingsPlayer?.profile?.name ?? (((memberPlayer as Record<string, unknown>)?.name as string) || t('match.player_fallback'))
                           return (
                             <div key={entry.user_id} className="flex items-center gap-2.5">
                               <span className={cn(
@@ -2801,11 +2801,11 @@ export function LeagueDetailPage() {
                   {/* Past entertainers */}
                   {entertainerHistory.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">Past Entertainers</p>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('league.past_entertainers')}</p>
                       <div className="space-y-1">
                         {entertainerHistory.slice(0, 4).map((h) => {
                           const p = standings.find((s) => s.user_id === h.user_id)
-                          const nm = p?.profile?.name ?? 'Player'
+                          const nm = p?.profile?.name ?? t('match.player_fallback')
                           return (
                             <div key={h.week_start} className="flex items-center gap-2 text-[11px]">
                               <span className="text-gray-400 w-16 flex-shrink-0">
@@ -2844,7 +2844,7 @@ export function LeagueDetailPage() {
                         disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
                         className="flex-1 rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {generatingRound ? 'Generating…' : currentRound === 0 ? 'Generate Round 1' : 'Generate Next Round'}
+                        {generatingRound ? t('league.generating') : currentRound === 0 ? t('league.generate_round_1') : t('league.generate_next_round')}
                       </button>
                     )}
                     {!isSeasonComplete && league?.match_type === 'individual' && (
@@ -2852,7 +2852,7 @@ export function LeagueDetailPage() {
                         onClick={() => { setQuickSessionKey((k) => k + 1); setShowQuickSession(true) }}
                         className="flex-1 rounded-2xl bg-amber-500 py-3 text-[13px] font-bold text-white"
                       >
-                        Quick session
+                        {t('league.quick_session')}
                       </button>
                     )}
                     {!isSeasonComplete && (
@@ -2861,7 +2861,7 @@ export function LeagueDetailPage() {
                         className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-[13px] font-bold text-white"
                       >
                         <Zap className="h-4 w-4" />
-                        Live
+                        {t('league.live')}
                       </button>
                     )}
                   </div>
@@ -2883,16 +2883,16 @@ export function LeagueDetailPage() {
                   <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
                     {results.length > 0 ? (
                       <>
-                        <p className="text-[15px] font-bold text-gray-700 mb-1">Round complete!</p>
+                        <p className="text-[15px] font-bold text-gray-700 mb-1">{t('league.round_complete')}</p>
                         <p className="text-[12px] text-gray-400">
-                          {isAdmin ? 'Generate the next round to continue' : 'Waiting for the next round to be scheduled'}
+                          {isAdmin ? t('league.generate_to_continue') : t('league.waiting_next_round')}
                         </p>
                       </>
                     ) : (
                       <>
-                        <p className="text-[15px] font-bold text-gray-700 mb-1">Ready to start!</p>
+                        <p className="text-[15px] font-bold text-gray-700 mb-1">{t('league.ready_to_start')}</p>
                         <p className="text-[12px] text-gray-400">
-                          {isAdmin ? 'Tap Generate Next Round to create your first fixtures' : 'Waiting for the season to start'}
+                          {isAdmin ? t('league.tap_generate_first') : t('league.waiting_season_start')}
                         </p>
                       </>
                     )}
@@ -2935,19 +2935,19 @@ export function LeagueDetailPage() {
                             onClick={() => setQuickResultMatch(match)}
                             className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-1 text-[11px] font-semibold text-teal-700"
                           >
-                            Enter result
+                            {t('league.enter_result')}
                           </button>
                         )}
                         <button
                           onClick={async () => {
-                            if (!confirm('Cancel this match? It will be removed from the fixtures.')) return
+                            if (!confirm(t('league.cancel_fixture_confirm'))) return
                             const { error } = await supabase.from('matches').update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
-                            if (error) { toast.error('Failed to cancel match'); return }
+                            if (error) { toast.error(t('league.cancel_fixture_failed')); return }
                             queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
                           }}
                           className="rounded-lg border border-red-200 px-3 py-1 text-[11px] font-semibold text-red-500"
                         >
-                          Cancel match
+                          {t('league.cancel_fixture')}
                         </button>
                       </div>
                     )}
@@ -2962,7 +2962,7 @@ export function LeagueDetailPage() {
           {/* ── Results ── */}
           {activeTab === 'results' && (
             loadingResults ? <TabSkeleton /> :
-            results.length === 0 ? <EmptyTab message="No results yet" /> : (
+            results.length === 0 ? <EmptyTab message={t('league.no_results')} /> : (
               <div className="space-y-2">
                 {results.map((match) => {
                   const r = match.result
@@ -2983,7 +2983,7 @@ export function LeagueDetailPage() {
                               ? 'bg-green-50 text-green-700 border-green-100'
                               : 'bg-yellow-50 text-yellow-700 border-yellow-100'
                           )}>
-                            {r.verification_status === 'verified' ? 'Verified' : 'Pending'}
+                            {r.verification_status === 'verified' ? t('match.verified') : t('match.pending')}
                           </span>
                         )}
                       </div>
@@ -3006,7 +3006,7 @@ export function LeagueDetailPage() {
                           </p>
                         </div>
                       ) : (
-                        <p className="text-[12px] text-gray-400">No result recorded</p>
+                        <p className="text-[12px] text-gray-400">{t('league.no_result_recorded')}</p>
                       )}
                     </button>
                   )
@@ -3032,7 +3032,7 @@ export function LeagueDetailPage() {
               hasMatches={fixtures.length > 0}
               onResetPairs={async () => {
                 const { error } = await supabase.from('league_teams').delete().eq('league_id', id)
-                if (error) { toast.error('Failed to reset pairs'); return }
+                if (error) { toast.error(t('league.reset_pairs_failed')); return }
                 queryClient.invalidateQueries({ queryKey: ['league-teams', id] })
                 queryClient.invalidateQueries({ queryKey: ['league-team-standings', id] })
               }}
@@ -3055,18 +3055,18 @@ export function LeagueDetailPage() {
             <div className="px-5 pb-4 mt-4">
               <button
                 onClick={async () => {
-                  if (!window.confirm('Start a new season? This resets every member\u2019s season ELO to 1230 and clears season W/L and points for this league. Career ELO is not affected. This cannot be undone.')) return
+                  if (!window.confirm(t('league.new_season_confirm'))) return
                   const { error } = await supabase.rpc('reset_league_season', { p_league_id: league.id })
                   if (error) {
                     console.warn('[LeagueDetail] reset_league_season error:', error)
-                    toast.error('Failed to reset season')
+                    toast.error(t('league.reset_season_failed'))
                     return
                   }
                   queryClient.invalidateQueries({ queryKey: ['league-standings', id] })
                 }}
                 className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
               >
-                Start new season
+                {t('league.start_new_season')}
               </button>
             </div>
           )}
@@ -3088,7 +3088,7 @@ export function LeagueDetailPage() {
             onClick={() => setShowLeaveConfirm(true)}
             className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
           >
-            Leave League
+            {t('league.leave_league')}
           </button>
         </div>
       )}
@@ -3106,9 +3106,9 @@ export function LeagueDetailPage() {
               className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
             >
-              <h3 className="text-[15px] font-bold text-gray-900 mb-2">Leave this league?</h3>
+              <h3 className="text-[15px] font-bold text-gray-900 mb-2">{t('league.leave_league_confirm')}</h3>
               <p className="text-[13px] text-gray-500 mb-5">
-                Your standings and ELO from this league will be preserved but you won't appear in future fixtures.
+                {t('league.leave_league_sub')}
               </p>
               <div className="flex gap-3">
                 <button
@@ -3116,7 +3116,7 @@ export function LeagueDetailPage() {
                   disabled={leaving}
                   className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
                 >
-                  Cancel
+                  {t('match.cancel')}
                 </button>
                 <button
                   disabled={leaving}
@@ -3127,7 +3127,7 @@ export function LeagueDetailPage() {
                       .from('league_members').delete()
                       .eq('league_id', id).eq('user_id', currentUserId)
                     if (memErr) {
-                      toast.error(memErr.message ?? 'Failed to leave league')
+                      toast.error(memErr.message ?? t('league.leave_league_failed'))
                       setLeaving(false)
                       return
                     }
@@ -3146,7 +3146,7 @@ export function LeagueDetailPage() {
                   }}
                   className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white disabled:opacity-50"
                 >
-                  {leaving ? 'Leaving…' : 'Leave League'}
+                  {leaving ? t('match.leaving') : t('league.leave_league')}
                 </button>
               </div>
             </motion.div>
@@ -3205,41 +3205,41 @@ export function LeagueDetailPage() {
                 <button onClick={() => setShowScoringSheet(false)} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
                   <X className="h-4 w-4 text-gray-600" />
                 </button>
-                <h2 className="text-[15px] font-bold text-gray-900">How scoring works</h2>
+                <h2 className="text-[15px] font-bold text-gray-900">{t('league.how_scoring_works')}</h2>
                 <div className="w-9" />
               </div>
               <div className="overflow-y-auto flex-1 px-5 pb-8 space-y-5">
                 <div>
-                  <p className="text-[13px] font-bold text-gray-900">FORM</p>
-                  <p className="text-[12px] italic text-gray-500 mb-1">How well you&#39;re playing</p>
-                  <p className="text-[12px] text-gray-600">Points per set, adjusted for how much you&#39;ve played. Everyone starts at 1.50 and moves toward their own record as they play more sets. Why adjusted? Someone who wins 2 of their first 3 sets shouldn&#39;t top the league ahead of someone who has won 30 of 45. The adjustment fades as you play more.</p>
+                  <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_form_heading')}</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">{t('league.scoring_sheet_form_subtitle')}</p>
+                  <p className="text-[12px] text-gray-600">{t('league.scoring_sheet_form_body')}</p>
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-gray-900">PTS</p>
-                  <p className="text-[12px] italic text-gray-500 mb-1">Total points this season</p>
-                  <p className="text-[12px] text-gray-600">3 points for winning a set, 1 for a draw, 0 for a loss. This rewards turning up and playing often.</p>
+                  <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_pts_heading')}</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">{t('league.scoring_sheet_pts_subtitle')}</p>
+                  <p className="text-[12px] text-gray-600">{t('league.scoring_sheet_pts_body')}</p>
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-gray-900">CLIMB</p>
-                  <p className="text-[12px] italic text-gray-500 mb-1">Rating gained</p>
-                  <p className="text-[12px] text-gray-600">How much your career rating has risen. Beating stronger opponents gains you more than beating weaker ones. Players already rated highly have less room to climb. Tracking started 23 Jun 2026.</p>
+                  <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_climb_heading')}</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">{t('league.scoring_sheet_climb_subtitle')}</p>
+                  <p className="text-[12px] text-gray-600">{t('league.scoring_sheet_climb_body')}</p>
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-gray-900">UPSETS</p>
-                  <p className="text-[12px] italic text-gray-500 mb-1">Beating stronger pairs</p>
-                  <p className="text-[12px] text-gray-600">Sets you won where the opposing pair&#39;s combined rating was at least 150 above yours. Both winners are credited.</p>
+                  <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_upsets_heading')}</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">{t('league.scoring_sheet_upsets_subtitle')}</p>
+                  <p className="text-[12px] text-gray-600">{t('league.scoring_sheet_upsets_body')}</p>
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-gray-900">GW</p>
-                  <p className="text-[12px] italic text-gray-500 mb-1">Games won</p>
-                  <p className="text-[12px] text-gray-600">The individual games inside each set, added up across the season.</p>
+                  <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_gw_heading')}</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">{t('league.scoring_sheet_gw_subtitle')}</p>
+                  <p className="text-[12px] text-gray-600">{t('league.scoring_sheet_gw_body')}</p>
                 </div>
                 <div>
-                  <p className="text-[13px] font-bold text-gray-900">GD</p>
-                  <p className="text-[12px] italic text-gray-500 mb-1">Game difference</p>
-                  <p className="text-[12px] text-gray-600">Games won minus games lost. Shows how close your sets tend to be.</p>
+                  <p className="text-[13px] font-bold text-gray-900">{t('league.scoring_sheet_gd_heading')}</p>
+                  <p className="text-[12px] italic text-gray-500 mb-1">{t('league.scoring_sheet_gd_subtitle')}</p>
+                  <p className="text-[12px] text-gray-600">{t('league.scoring_sheet_gd_body')}</p>
                 </div>
-                <p className="text-[11px] text-gray-400 text-center">Your position in the table is decided by Form.</p>
+                <p className="text-[11px] text-gray-400 text-center">{t('league.scoring_sheet_closing')}</p>
               </div>
             </motion.div>
           </>

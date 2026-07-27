@@ -1407,6 +1407,7 @@ export default {
     prize_placeholder: 'e.g. crate of beer',
     prize_scheme_saved: 'Prizes saved',
     prize_scheme_save_failed: 'Failed to save prizes',
+    prize_label: 'Prize',
   },
   open_matches: {
     page_title: 'Open Matches',

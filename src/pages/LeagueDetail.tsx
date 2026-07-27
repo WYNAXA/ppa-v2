@@ -1767,11 +1767,12 @@ const JERSEY_HOWTO: Record<string, string> = {
   black:  'league.jersey_howto_black',
 }
 
-function JerseyLegendSheet({ open, onClose, jerseys, standings }: {
+function JerseyLegendSheet({ open, onClose, jerseys, standings, prizeScheme }: {
   open: boolean
   onClose: () => void
   jerseys: JerseyEntry[]
   standings: Standing[]
+  prizeScheme: PrizeScheme | null
 }) {
   const { t } = useTranslation()
 
@@ -1831,6 +1832,9 @@ function JerseyLegendSheet({ open, onClose, jerseys, standings }: {
                             )}
                           </p>
                         )}
+                        {prizeScheme?.jerseys?.[color] ? (
+                          <p className="text-[11px] text-purple-600 mt-1">{t('league.prize_label')}: {prizeScheme.jerseys[color]}</p>
+                        ) : null}
                       </div>
                     </div>
                   )
@@ -2716,6 +2720,19 @@ export function LeagueDetailPage() {
                       </p>
                       <button onClick={() => setShowScoringSheet(true)} className="text-[11px] text-[#009688] font-semibold whitespace-nowrap ml-2">{t('league.how_scoring_works')}</button>
                     </div>
+                    {(() => {
+                      const catMap: Record<string, string> = { form: 'form', points: 'pts', climbers: 'climb', upsets: 'upsets', games_won: 'gw', game_diff: 'gd' }
+                      const catKey = catMap[standingsView]
+                      const cat = catKey ? league?.prize_scheme?.categories?.[catKey] : null
+                      if (!cat) return null
+                      const parts = [
+                        cat['1'] ? `${t('league.prize_gold')}: ${cat['1']}` : null,
+                        cat['2'] ? `${t('league.prize_silver')}: ${cat['2']}` : null,
+                        cat['3'] ? `${t('league.prize_bronze')}: ${cat['3']}` : null,
+                      ].filter(Boolean)
+                      if (parts.length === 0) return null
+                      return <p className="text-[11px] text-purple-600 mb-3">🏆 {parts.join(' · ')}</p>
+                    })()}
 
                     {/* Form */}
                     {standingsView === 'form' && (
@@ -3279,6 +3296,7 @@ export function LeagueDetailPage() {
         onClose={() => setShowJerseyLegend(false)}
         jerseys={jerseys}
         standings={standings}
+        prizeScheme={league?.prize_scheme ?? null}
       />
 
       {/* Leave league — visible to members who are NOT the creator */}

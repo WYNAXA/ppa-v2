@@ -1479,7 +1479,7 @@ export function MatchDetailPage() {
         const submittedBy = result.submitted_by ?? ''
         const submittingTeam = result.team1_players?.includes(submittedBy) ? result.team1_players : result.team2_players
         const isOnSubmittingTeam = submittingTeam?.includes(currentUserId)
-        const submitterName = players.find(p => p.id === submittedBy)?.name ?? 'Submitter'
+        const submitterName = players.find(p => p.id === submittedBy)?.name ?? t('match.result_submitter')
 
         const t1Names = result.team1_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ') ?? '?'
         const t2Names = result.team2_players?.map((pid: string) => players.find(p => p.id === pid)?.name?.split(' ')[0] ?? '?').join(' + ') ?? '?'
@@ -1544,12 +1544,12 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-                <p className="text-[13px] font-semibold text-gray-500 text-center">Legacy dispute — pending cleanup</p>
+                <p className="text-[13px] font-semibold text-gray-500 text-center">{t('match.legacy_dispute_pending')}</p>
                 {disputeInfo && (isParticipant || isGroupAdmin) && (
                   <div className="mt-2 pt-2 border-t border-gray-200">
                     <p className="text-[12px] text-gray-500">
                       <span className="font-semibold">{disputeInfo.voterName}</span>
-                      {disputeInfo.reason ? `: "${disputeInfo.reason}"` : ' disputed this result'}
+                      {disputeInfo.reason ? `: "${disputeInfo.reason}"` : ` ${t('match.x_disputed_result')}`}
                     </p>
                   </div>
                 )}
@@ -1563,8 +1563,8 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               <div className="rounded-2xl border border-orange-200 bg-orange-50 p-3 text-center">
-                <p className="text-[13px] font-semibold text-orange-700">Escalated to group admin</p>
-                <p className="text-[11px] text-gray-500 mt-1">An admin will resolve this dispute.</p>
+                <p className="text-[13px] font-semibold text-orange-700">{t('match.escalated_to_group_admin')}</p>
+                <p className="text-[11px] text-gray-500 mt-1">{t('match.admin_will_resolve')}</p>
               </div>
             </div>
           )
@@ -1575,18 +1575,18 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-                <p className="text-[13px] font-bold text-gray-800 mb-2">Your result was disputed</p>
+                <p className="text-[13px] font-bold text-gray-800 mb-2">{t('match.your_result_disputed')}</p>
 
-                <p className="text-[11px] font-semibold text-gray-500 mb-1">Your original score</p>
+                <p className="text-[11px] font-semibold text-gray-500 mb-1">{t('match.your_original_score')}</p>
                 {renderScoreSummary(result.sets_data, result.team1_score, result.team2_score, result.result_type)}
 
                 {disputeProposal && (
                   <>
                     <p className="text-[11px] font-semibold text-gray-500 mb-1">
-                      {disputeProposal.voterName}'s proposed score
+                      {t('match.their_proposed_score', { name: disputeProposal.voterName })}
                     </p>
                     {disputeProposal.reason && (
-                      <p className="text-[11px] text-red-600 italic mb-1">Reason: "{disputeProposal.reason}"</p>
+                      <p className="text-[11px] text-red-600 italic mb-1">{t('match.dispute_reason', { reason: disputeProposal.reason })}</p>
                     )}
                     {renderScoreSummary(disputeProposal.sets_data, disputeProposal.team1_score, disputeProposal.team2_score, disputeProposal.result_type)}
                   </>
@@ -1594,13 +1594,13 @@ export function MatchDetailPage() {
 
                 {hoursUntilDeadline > 0 && (
                   <p className="text-[11px] text-gray-400 mb-3 text-center">
-                    Auto-accepts opponent's proposal in {hoursUntilDeadline}h
+                    {t('match.auto_accepts_opponent_proposal', { hours: hoursUntilDeadline })}
                   </p>
                 )}
 
                 {showCounterProposal ? (
                   <div>
-                    <p className="text-[12px] font-semibold text-gray-700 mb-2">Your counter-proposal</p>
+                    <p className="text-[12px] font-semibold text-gray-700 mb-2">{t('match.your_counter_proposal')}</p>
                     <ScoreEntryPanel
                       team1Names={t1Names}
                       team2Names={t2Names}
@@ -1613,7 +1613,7 @@ export function MatchDetailPage() {
                         onClick={() => setShowCounterProposal(false)}
                         className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
                       >
-                        Cancel
+                        {t('match.cancel')}
                       </button>
                       <button
                         onClick={async () => {
@@ -1637,7 +1637,7 @@ export function MatchDetailPage() {
                             proposed_team2_score: t2,
                             proposed_result_type: counterResultType,
                           })
-                          if (voteErr) { console.warn('[Dispute] counter vote error:', voteErr); toast.error('Failed to submit counter'); return }
+                          if (voteErr) { console.warn('[Dispute] counter vote error:', voteErr); toast.error(t('match.counter_submit_failed')); return }
 
                           const { error: updateErr } = await supabase.from('match_results').update({
                             verification_status: 'opponent_review',
@@ -1659,12 +1659,12 @@ export function MatchDetailPage() {
 
                           setShowCounterProposal(false)
                           queryClient.invalidateQueries({ queryKey: ['match', id] })
-                          toast.success('Counter-proposal submitted')
+                          toast.success(t('match.counter_submitted'))
                         }}
                         disabled={!counterResultType}
                         className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-40"
                       >
-                        Submit Counter
+                        {t('match.submit_counter')}
                       </button>
                     </div>
                   </div>
@@ -1682,20 +1682,20 @@ export function MatchDetailPage() {
                           review_deadline: null,
                           last_proposal_by: null,
                         }).eq('id', result.id)
-                        if (error) { console.warn('[Dispute] accept error:', error); toast.error('Failed to accept'); return }
+                        if (error) { console.warn('[Dispute] accept error:', error); toast.error(t('match.accept_failed')); return }
                         queryClient.invalidateQueries({ queryKey: ['match', id] })
-                        toast.success('Proposal accepted')
+                        toast.success(t('match.proposal_accepted'))
                       }}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700"
                     >
                       <CheckCircle className="h-4 w-4" />
-                      Accept
+                      {t('match.accept')}
                     </button>
                     <button
                       onClick={() => setShowCounterProposal(true)}
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-orange-200 py-2.5 text-[13px] font-semibold text-orange-600"
                     >
-                      Counter
+                      {t('match.counter')}
                     </button>
                   </div>
                 )}
@@ -1709,9 +1709,9 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-3 text-center">
-                <p className="text-[13px] font-semibold text-yellow-700">Waiting for submitter to respond</p>
+                <p className="text-[13px] font-semibold text-yellow-700">{t('match.waiting_submitter_respond')}</p>
                 {hoursUntilDeadline > 0 && (
-                  <p className="text-[11px] text-gray-400 mt-1">Auto-accepts your proposal in {hoursUntilDeadline}h</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{t('match.auto_accepts_your_proposal', { hours: hoursUntilDeadline })}</p>
                 )}
               </div>
             </div>
@@ -1723,13 +1723,13 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-                <p className="text-[13px] font-bold text-gray-800 mb-2">Counter-proposal from {submitterName}</p>
+                <p className="text-[13px] font-bold text-gray-800 mb-2">{t('match.counter_proposal_from', { name: submitterName })}</p>
 
                 {counterProposal && renderScoreSummary(counterProposal.sets_data, counterProposal.team1_score, counterProposal.team2_score, counterProposal.result_type)}
 
                 {hoursUntilDeadline > 0 && (
                   <p className="text-[11px] text-gray-400 mb-3 text-center">
-                    Auto-accepts in {hoursUntilDeadline}h
+                    {t('match.auto_accepts_in', { hours: hoursUntilDeadline })}
                   </p>
                 )}
 
@@ -1746,9 +1746,9 @@ export function MatchDetailPage() {
                         review_deadline: null,
                         last_proposal_by: null,
                       }).eq('id', result.id)
-                      if (error) { console.warn('[Dispute] accept counter error:', error); toast.error('Failed to accept'); return }
+                      if (error) { console.warn('[Dispute] accept counter error:', error); toast.error(t('match.accept_failed')); return }
                       queryClient.invalidateQueries({ queryKey: ['match', id] })
-                      toast.success('Counter-proposal accepted')
+                      toast.success(t('match.counter_proposal_accepted'))
                     }}
                     className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700"
                   >
@@ -1764,7 +1764,7 @@ export function MatchDetailPage() {
                         review_deadline: null,
                         last_proposal_by: null,
                       }).eq('id', result.id)
-                      if (escErr) { console.warn('[Dispute] escalate error:', escErr); toast.error('Failed to escalate'); return }
+                      if (escErr) { console.warn('[Dispute] escalate error:', escErr); toast.error(t('match.escalate_failed')); return }
 
                       // Notify group admins
                       if (match.group_id) {
@@ -1795,12 +1795,12 @@ export function MatchDetailPage() {
                       }
 
                       queryClient.invalidateQueries({ queryKey: ['match', id] })
-                      toast.success('Escalated to admin')
+                      toast.success(t('match.escalated_to_admin'))
                     }}
                     className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600"
                   >
                     <XCircle className="h-4 w-4" />
-                    Escalate
+                    {t('match.escalate')}
                   </button>
                 </div>
               </div>
@@ -1813,9 +1813,9 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-3 text-center">
-                <p className="text-[13px] font-semibold text-yellow-700">Waiting for opponent to respond</p>
+                <p className="text-[13px] font-semibold text-yellow-700">{t('match.waiting_opponent_respond')}</p>
                 {hoursUntilDeadline > 0 && (
-                  <p className="text-[11px] text-gray-400 mt-1">Auto-accepts your counter in {hoursUntilDeadline}h</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{t('match.auto_accepts_your_counter', { hours: hoursUntilDeadline })}</p>
                 )}
               </div>
             </div>
@@ -1828,7 +1828,7 @@ export function MatchDetailPage() {
             <div className="px-5 mb-4">
               {showEditScores ? (
                 <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
-                  <p className="text-[13px] font-bold text-gray-800 mb-2">Edit scores</p>
+                  <p className="text-[13px] font-bold text-gray-800 mb-2">{t('match.edit_scores')}</p>
                   <ScoreEntryPanel
                     team1Names={t1Names}
                     team2Names={t2Names}
@@ -1841,7 +1841,7 @@ export function MatchDetailPage() {
                       onClick={() => setShowEditScores(false)}
                       className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
                     >
-                      Cancel
+                      {t('match.cancel')}
                     </button>
                     <button
                       onClick={async () => {
@@ -1853,7 +1853,7 @@ export function MatchDetailPage() {
                           .eq('match_result_id', result.id)
                           .neq('voter_id', profile.id)
                         if (voteCount && (voteCount as any[]).length > 0) {
-                          toast.error("Can't edit — opponent has already responded")
+                          toast.error(t('match.cant_edit_opponent_responded'))
                           return
                         }
                         const completedSets = editSets.filter(s => s.team1 !== '' && s.team2 !== '')
@@ -1870,30 +1870,30 @@ export function MatchDetailPage() {
                           team2_score: t2,
                           result_type: editResultType,
                         }).eq('id', result.id)
-                        if (error) { console.warn('[EditResult] update error:', error); toast.error('Failed to update'); return }
+                        if (error) { console.warn('[EditResult] update error:', error); toast.error(t('match.update_failed')); return }
                         setShowEditScores(false)
                         queryClient.invalidateQueries({ queryKey: ['match', id] })
-                        toast.success('Scores updated')
+                        toast.success(t('match.scores_updated'))
                       }}
                       disabled={!editResultType}
                       className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-40"
                     >
-                      Save
+                      {t('match.save')}
                     </button>
                   </div>
                 </div>
               ) : (
                 <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
-                  <p className="text-[13px] font-semibold text-green-700">You submitted this result</p>
-                  <p className="text-[11px] text-gray-400 mt-1">Awaiting verification from opposing team</p>
+                  <p className="text-[13px] font-semibold text-green-700">{t('match.you_submitted_result')}</p>
+                  <p className="text-[11px] text-gray-400 mt-1">{t('match.awaiting_verification')}</p>
                   {hoursUntilAutoVerify > 0 && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">Auto-verifies in {hoursUntilAutoVerify}h</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{t('match.auto_verifies_in', { hours: hoursUntilAutoVerify })}</p>
                   )}
                   <button
                     onClick={() => setShowEditScores(true)}
                     className="mt-2 rounded-xl border border-green-200 bg-white px-4 py-1.5 text-[12px] font-semibold text-green-700"
                   >
-                    Edit scores
+                    {t('match.edit_scores')}
                   </button>
                 </div>
               )}
@@ -1911,7 +1911,7 @@ export function MatchDetailPage() {
                   myVote === 'dispute' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
                 )}>
                   <p className={cn('text-[13px] font-semibold', myVote === 'dispute' ? 'text-red-700' : 'text-green-700')}>
-                    {myVote === 'dispute' ? 'Result disputed' : 'Result confirmed'}
+                    {myVote === 'dispute' ? t('match.result_disputed_toast') : t('match.result_confirmed_toast')}
                   </p>
                 </div>
               </div>
@@ -1921,28 +1921,28 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
-                <p className="text-[13px] font-bold text-gray-800 mb-1">Verify this result?</p>
+                <p className="text-[13px] font-bold text-gray-800 mb-1">{t('match.verify_result')}</p>
                 {hoursUntilAutoVerify > 0 && (
-                  <p className="text-[11px] text-gray-400 mb-2">Auto-verifies in {hoursUntilAutoVerify}h if no response</p>
+                  <p className="text-[11px] text-gray-400 mb-2">{t('match.auto_verifies_if_no_response', { hours: hoursUntilAutoVerify })}</p>
                 )}
                 <p className="text-[12px] text-gray-500 mb-3">
                   {viewerOnTeam1 ? result.team1_score : result.team2_score}{'\u2013'}{viewerOnTeam1 ? result.team2_score : result.team1_score} {'\u00b7'}{' '}
                   {result.result_type === 'team1_win'
-                    ? `${t1Names} win`
+                    ? t('match.team_wins', { names: t1Names })
                     : result.result_type === 'team2_win'
-                    ? `${t2Names} win`
-                    : 'Draw'}
+                    ? t('match.team_wins', { names: t2Names })
+                    : t('matches.draw')}
                 </p>
                 {showDisputeInput ? (
                   <div>
                     <textarea
                       value={disputeReason}
                       onChange={(e) => setDisputeReason(e.target.value)}
-                      placeholder="Describe the issue (optional)"
+                      placeholder={t('match.describe_issue_placeholder')}
                       className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-red-300 mb-2 resize-none"
                       rows={3}
                     />
-                    <p className="text-[12px] font-semibold text-gray-700 mb-2">What was the correct score?</p>
+                    <p className="text-[12px] font-semibold text-gray-700 mb-2">{t('match.correct_score_q')}</p>
                     <ScoreEntryPanel
                       team1Names={t1Names}
                       team2Names={t2Names}
@@ -1955,7 +1955,7 @@ export function MatchDetailPage() {
                         onClick={() => setShowDisputeInput(false)}
                         className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
                       >
-                        Cancel
+                        {t('match.cancel')}
                       </button>
                       <button
                         onClick={async () => {
@@ -1980,7 +1980,7 @@ export function MatchDetailPage() {
                             proposed_result_type: disputeResultType,
                             round: 1,
                           })
-                          if (voteErr) { console.warn('[Dispute] vote error:', voteErr); toast.error('Failed to submit dispute'); return }
+                          if (voteErr) { console.warn('[Dispute] vote error:', voteErr); toast.error(t('match.dispute_submit_failed')); return }
 
                           const { error: updateErr } = await supabase.from('match_results').update({
                             verification_status: 'submitter_review',
@@ -2004,12 +2004,12 @@ export function MatchDetailPage() {
                           setVoteSubmitted(true)
                           setShowDisputeInput(false)
                           queryClient.invalidateQueries({ queryKey: ['match', id] })
-                          toast.success('Dispute submitted')
+                          toast.success(t('match.dispute_submitted'))
                         }}
                         disabled={!disputeResultType}
                         className="flex-1 rounded-xl bg-red-500 py-2 text-[13px] font-bold text-white disabled:opacity-50"
                       >
-                        Submit Dispute
+                        {t('match.submit_dispute')}
                       </button>
                     </div>
                   </div>
@@ -2021,7 +2021,7 @@ export function MatchDetailPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700 disabled:opacity-50"
                     >
                       <CheckCircle className="h-4 w-4" />
-                      Confirm
+                      {t('match.confirm_result')}
                     </button>
                     <button
                       onClick={() => setShowDisputeInput(true)}
@@ -2029,7 +2029,7 @@ export function MatchDetailPage() {
                       className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
-                      Dispute
+                      {t('match.dispute_result')}
                     </button>
                   </div>
                 )}

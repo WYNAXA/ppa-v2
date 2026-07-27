@@ -366,6 +366,8 @@ interface JerseyEntry {
   user_id: string
   jersey_type: string
   jersey_color: string
+  reason_value: number | null
+  awarded_week: string | null
 }
 
 const JERSEY_EMOJI: Record<string, string> = {
@@ -390,7 +392,7 @@ function useLeagueJerseys(leagueId: string) {
     queryFn: async () => {
       const { data } = await supabase
         .from('league_jerseys')
-        .select('user_id, jersey_type, jersey_color')
+        .select('user_id, jersey_type, jersey_color, reason_value, awarded_week')
         .eq('league_id', leagueId)
       return data ?? []
     },
@@ -1655,6 +1657,95 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
   )
 }
 
+// ── JerseyLegendSheet ────────────────────────────────────────────────────────
+
+const JERSEY_ORDER = ['yellow', 'green', 'red', 'blue', 'black'] as const
+
+const JERSEY_HOWTO: Record<string, string> = {
+  yellow: 'league.jersey_howto_yellow',
+  green:  'league.jersey_howto_green',
+  red:    'league.jersey_howto_red',
+  blue:   'league.jersey_howto_blue',
+  black:  'league.jersey_howto_black',
+}
+
+function JerseyLegendSheet({ open, onClose, jerseys, standings }: {
+  open: boolean
+  onClose: () => void
+  jerseys: JerseyEntry[]
+  standings: Standing[]
+}) {
+  const { t } = useTranslation()
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-[55] bg-black/40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+          <motion.div
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[70vh] flex flex-col"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
+              <div className="h-1 w-10 rounded-full bg-gray-200" />
+            </div>
+            <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
+                <X className="h-4 w-4 text-gray-600" />
+              </button>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('league.jersey_legend_title')}</h2>
+              <div className="w-9" />
+            </div>
+            <div className="overflow-y-auto flex-1 px-5 pb-8">
+              <p className="text-[12px] text-gray-500 mb-4">{t('league.jersey_legend_intro')}</p>
+              <div className="space-y-3">
+                {JERSEY_ORDER.map((color) => {
+                  const holder = jerseys.find((j) => j.jersey_color === color)
+                  const holderPlayer = holder ? standings.find((s) => s.user_id === holder.user_id) : null
+                  const holderName = holderPlayer?.profile?.name ?? null
+
+                  return (
+                    <div key={color} className="flex items-start gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                      <span className="text-[20px] leading-none mt-0.5">{JERSEY_EMOJI[color]}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-bold text-gray-900">{t(JERSEY_LABEL[color])}</p>
+                        <p className="text-[11px] text-gray-500">{t(JERSEY_HOWTO[color])}</p>
+                        {holderName && (
+                          <p className="text-[11px] text-teal-600 font-semibold mt-1">
+                            {t('league.jersey_held_by', { name: holderName })}
+                            {holder?.reason_value != null && color === 'green' && (
+                              <span className="text-gray-400 font-normal ml-1">· {t('league.jersey_value_green', { value: holder.reason_value })}</span>
+                            )}
+                            {holder?.reason_value != null && color === 'red' && (
+                              <span className="text-gray-400 font-normal ml-1">· {t('league.jersey_value_red', { value: holder.reason_value })}</span>
+                            )}
+                            {holder?.reason_value != null && color === 'blue' && (
+                              <span className="text-gray-400 font-normal ml-1">· {t('league.jersey_value_blue', { count: holder.reason_value })}</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  )
+}
+
 // ── FixturePickerSheet ───────────────────────────────────────────────────────
 
 function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
@@ -1917,6 +2008,7 @@ export function LeagueDetailPage() {
   const [quickSessionKey, setQuickSessionKey] = useState(0)
   const [showQuickSession, setShowQuickSession] = useState(false)
   const [showScoringSheet, setShowScoringSheet] = useState(false)
+  const [showJerseyLegend, setShowJerseyLegend] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const { t: tPairs } = useTranslation('', { keyPrefix: 'pairs' })
   const { t } = useTranslation()
@@ -2426,7 +2518,7 @@ export function LeagueDetailPage() {
                         {row.team_name ?? `${row.player1?.name?.split(' ')[0] ?? '?'} & ${row.player2?.name?.split(' ')[0] ?? '?'}`}{isMe ? ' ★' : ''}
                       </span>
                       {[row.player1_id, row.player2_id].map((pid) => jerseyByUser[pid] ? (
-                        <span key={pid} className="flex-shrink-0 text-[12px] leading-none" title={t(JERSEY_LABEL[jerseyByUser[pid]] ?? 'league.jersey_fallback')}>{JERSEY_EMOJI[jerseyByUser[pid]] ?? ''}</span>
+                        <button key={pid} onClick={() => setShowJerseyLegend(true)} className="flex-shrink-0 text-[12px] leading-none">{JERSEY_EMOJI[jerseyByUser[pid]] ?? ''}</button>
                       ) : null)}
                     </>
                   )}
@@ -2537,7 +2629,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2581,7 +2673,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2619,7 +2711,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2649,7 +2741,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2687,7 +2779,7 @@ export function LeagueDetailPage() {
                                 <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                                   {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
-                                    <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                    <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
                                   )}
                                   {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                                 </span>
@@ -2727,7 +2819,7 @@ export function LeagueDetailPage() {
                                 <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
                                   {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
-                                    <span className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</span>
+                                    <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
                                   )}
                                   {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                                 </span>
@@ -3081,6 +3173,13 @@ export function LeagueDetailPage() {
         onClose={() => setShowFixturePicker(false)}
         fixtures={fixtures}
         onSelect={(match) => setQuickResultMatch(match)}
+      />
+
+      <JerseyLegendSheet
+        open={showJerseyLegend}
+        onClose={() => setShowJerseyLegend(false)}
+        jerseys={jerseys}
+        standings={standings}
       />
 
       {/* Leave league — visible to members who are NOT the creator */}

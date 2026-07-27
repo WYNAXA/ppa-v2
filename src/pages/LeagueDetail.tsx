@@ -41,6 +41,12 @@ interface LeagueInfo {
   prizes: string | null
   max_rounds: number | null
   min_sets_per_fixture: number | null
+  prize_scheme: PrizeScheme | null
+}
+
+type PrizeScheme = {
+  categories: Record<string, { '1': string; '2': string; '3': string }>
+  jerseys: Record<string, string>
 }
 
 interface Standing {
@@ -113,7 +119,7 @@ function useLeague(id: string) {
     queryFn: async (): Promise<LeagueInfo | null> => {
       const { data, error } = await supabase
         .from('leagues')
-        .select('id, name, status, match_type, format, scoring_format, visibility, season_start, season_end, max_participants, min_elo, max_elo, linked_group_ids, created_by, city, prizes, max_rounds, min_sets_per_fixture')
+        .select('id, name, status, match_type, format, scoring_format, visibility, season_start, season_end, max_participants, min_elo, max_elo, linked_group_ids, created_by, city, prizes, max_rounds, min_sets_per_fixture, prize_scheme')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -891,6 +897,20 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
   const [newName, setNewName] = useState(league.name)
   const [savingName, setSavingName] = useState(false)
 
+  const PRIZE_CATEGORIES = ['form', 'pts', 'climb', 'upsets', 'gw', 'gd'] as const
+  const PRIZE_CATEGORY_KEYS: Record<string, string> = {
+    form: 'league.tab_form', pts: 'league.tab_pts', climb: 'league.tab_climb',
+    upsets: 'league.tab_upsets', gw: 'league.tab_gw', gd: 'league.tab_gd',
+  }
+  const PRIZE_JERSEY_ORDER = ['yellow', 'green', 'red', 'blue', 'black'] as const
+  const emptyScheme: PrizeScheme = {
+    categories: Object.fromEntries(PRIZE_CATEGORIES.map(c => [c, { '1': '', '2': '', '3': '' }])),
+    jerseys: Object.fromEntries(PRIZE_JERSEY_ORDER.map(j => [j, ''])),
+  }
+  const [prizeScheme, setPrizeScheme] = useState<PrizeScheme>(league.prize_scheme ?? emptyScheme)
+  const [showPrizeScheme, setShowPrizeScheme] = useState(false)
+  const [savingPrizes, setSavingPrizes] = useState(false)
+
   async function saveAdjustment() {
     if (!selectedUserId || !pointsDelta) return
     setAdjusting(true)
@@ -1174,6 +1194,84 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           </button>
         </div>
       )}
+
+      {/* Prize scheme */}
+      <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
+        <button
+          onClick={() => setShowPrizeScheme(v => !v)}
+          className="w-full flex items-center justify-between"
+        >
+          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.prize_scheme_heading')}</p>
+          <span className="text-[11px] text-gray-400">{showPrizeScheme ? '▲' : '▼'}</span>
+        </button>
+        {showPrizeScheme && (
+          <div className="space-y-4">
+            <p className="text-[11px] text-gray-500">{t('league.prize_scheme_hint')}</p>
+
+            {/* Categories */}
+            {PRIZE_CATEGORIES.map(cat => (
+              <div key={cat}>
+                <p className="text-[12px] font-semibold text-gray-700 mb-1.5">{t(PRIZE_CATEGORY_KEYS[cat])}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(['1', '2', '3'] as const).map(place => (
+                    <div key={place}>
+                      <label className="text-[10px] text-gray-400 font-semibold mb-0.5 block">
+                        {place === '1' ? t('league.prize_gold') : place === '2' ? t('league.prize_silver') : t('league.prize_bronze')}
+                      </label>
+                      <input
+                        value={prizeScheme.categories[cat]?.[place] ?? ''}
+                        onChange={e => setPrizeScheme(prev => ({
+                          ...prev,
+                          categories: { ...prev.categories, [cat]: { ...prev.categories[cat], [place]: e.target.value } },
+                        }))}
+                        placeholder={t('league.prize_placeholder')}
+                        className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {/* Jerseys */}
+            <div>
+              <p className="text-[12px] font-semibold text-gray-700 mb-1.5">{t('league.jersey_legend_title')}</p>
+              <div className="space-y-2">
+                {PRIZE_JERSEY_ORDER.map(color => (
+                  <div key={color} className="flex items-center gap-2">
+                    <span className="text-[16px] w-6 text-center">{JERSEY_EMOJI[color]}</span>
+                    <span className="text-[11px] text-gray-600 w-20 shrink-0">{t(JERSEY_LABEL[color])}</span>
+                    <input
+                      value={prizeScheme.jerseys[color] ?? ''}
+                      onChange={e => setPrizeScheme(prev => ({
+                        ...prev,
+                        jerseys: { ...prev.jerseys, [color]: e.target.value },
+                      }))}
+                      placeholder={t('league.prize_placeholder')}
+                      className="flex-1 rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={async () => {
+                setSavingPrizes(true)
+                const { error } = await supabase.from('leagues').update({ prize_scheme: prizeScheme }).eq('id', league.id)
+                setSavingPrizes(false)
+                if (error) { toast.error(t('league.prize_scheme_save_failed')); return }
+                toast.success(t('league.prize_scheme_saved'))
+                queryClient.invalidateQueries({ queryKey: ['league', league.id] })
+              }}
+              disabled={savingPrizes}
+              className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+            >
+              {savingPrizes ? t('league.saving') : t('match.save')}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Delete league */}
       <div className="rounded-2xl border border-red-100 p-4 space-y-3">

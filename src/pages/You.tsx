@@ -12,6 +12,7 @@ import * as Sentry from '@sentry/react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { confirmDialog } from '@/components/shared/ConfirmDialog'
 import { BADGE_DEFINITIONS, PEER_VOTE_CATEGORIES, COURT_TIME_TIERS, courtTimeTier } from '@/lib/achievements'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
@@ -1555,7 +1556,10 @@ export function YouPage() {
               onClick={async () => {
                 const email = authProfile?.email
                 if (!email) return
-                if (!window.confirm(`Send a password reset email to ${email}?`)) return
+                if (!await confirmDialog({
+                  title: t('you.send_reset_email_confirm', { email, defaultValue: 'Send a password reset email to {{email}}?' }),
+                  confirmLabel: t('common.send', 'Send'),
+                })) return
                 setResettingPw(true)
                 try {
                   const { error } = await supabase.auth.resetPasswordForEmail(email)

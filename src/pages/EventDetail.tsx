@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
@@ -11,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
+import { confirmDialog } from '@/components/shared/ConfirmDialog'
 
 type RsvpStatus = 'going' | 'interested' | 'not_going'
 
@@ -117,6 +119,7 @@ export function EventDetailPage() {
   const userId        = user?.id ?? ''
   const queryClient   = useQueryClient()
   const locale = useDateLocale()
+  const { t } = useTranslation()
 
   const [deleting, setDeleting] = useState(false)
   const [showCalendar, setShowCalendar] = useState(false)
@@ -171,7 +174,12 @@ export function EventDetailPage() {
   }
 
   async function handleDelete() {
-    if (!window.confirm(`Delete "${ev.title}"? This cannot be undone.`)) return
+    if (!await confirmDialog({
+      title: t('community.delete_event_confirm_title', { title: ev.title, defaultValue: 'Delete "{{title}}"?' }),
+      message: t('common.cannot_be_undone', 'This cannot be undone.'),
+      destructive: true,
+      confirmLabel: t('common.delete', 'Delete'),
+    })) return
     setDeleting(true)
     const { error } = await supabase.from('events').delete().eq('id', ev.id)
     setDeleting(false)

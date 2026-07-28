@@ -6,6 +6,7 @@ import { Toaster } from 'sonner'
 import { AuthProvider } from '@/context/AuthContext'
 import { useAuth } from '@/hooks/useAuth'
 import { BottomNav } from '@/components/shared/BottomNav'
+import { ConfirmProvider } from '@/components/shared/ConfirmDialog'
 import { SplashScreen } from '@/components/shared/SplashScreen'
 import { AuthPage } from '@/pages/Auth'
 import ResetPasswordPage from '@/pages/ResetPassword'
@@ -267,8 +268,10 @@ export default function App() {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <Toaster position="top-center" toastOptions={{ style: { background: 'white', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '0.75rem' } }} />
-          <AppShell />
+          <ConfirmProvider>
+            <Toaster position="top-center" toastOptions={{ style: { background: 'white', color: '#1f2937', border: '1px solid #e5e7eb', borderRadius: '0.75rem' } }} />
+            <AppShell />
+          </ConfirmProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>

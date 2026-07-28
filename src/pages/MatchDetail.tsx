@@ -1157,23 +1157,12 @@ export function MatchDetailPage() {
     const matchId = data.match.id
 
     try {
-      // 1. Fetch match_result IDs for child-row cleanup
-      const { data: results } = await supabase
-        .from('match_results').select('id').eq('match_id', matchId)
-      const resultIds = (results ?? []).map((r: any) => r.id)
-
-      // 2. Cascade delete child rows in dependency order
-      if (resultIds.length > 0) {
-        await supabase.from('rating_history').delete().in('match_result_id', resultIds)
-        await supabase.from('match_result_votes').delete().in('match_result_id', resultIds)
-      }
-      await supabase.from('match_peer_votes').delete().eq('match_id', matchId)
-      await supabase.from('match_results').delete().eq('match_id', matchId)
-      await supabase.from('travel_requests').delete().eq('match_id', matchId)
-      // Clean up old notifications referencing this match
-      await supabase.from('notifications').delete().eq('related_id', matchId)
-      // Delete the match itself
-      const { error: matchDelErr } = await supabase.from('matches').delete().eq('id', matchId)
+      // Delete via delete_match_cascade RPC. It runs in one transaction and,
+      // crucially, REVERSES each player's applied ELO (internal_ranking +
+      // matches_played) before removing rating_history — otherwise career ratings
+      // drift upward on every deletion (KNOWN_ISSUES / audit finding H1). It also
+      // cascades all child rows (results, votes, travel, notifications).
+      const { error: matchDelErr } = await supabase.rpc('delete_match_cascade', { p_match_id: matchId })
       if (matchDelErr) throw matchDelErr
 
       // 3. Notify real participants AFTER cascade (so notifications don't get nuked)

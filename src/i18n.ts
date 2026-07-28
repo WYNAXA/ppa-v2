@@ -24,6 +24,17 @@ export const SUPPORTED_LANGUAGES = [
 
 const SUPPORTED_CODES = SUPPORTED_LANGUAGES.map((l) => l.code)
 
+// Languages that render right-to-left. Keep in sync with SUPPORTED_LANGUAGES.
+const RTL_LANGUAGES = new Set(['ar'])
+
+// Reflect the active language onto <html> so layout direction and lang are
+// correct (fixes Arabic rendering LTR). Called on init and on every switch.
+function applyDocumentLanguage(code: string) {
+  if (typeof document === 'undefined') return
+  document.documentElement.setAttribute('lang', code)
+  document.documentElement.setAttribute('dir', RTL_LANGUAGES.has(code) ? 'rtl' : 'ltr')
+}
+
 const savedLang = (() => {
   if (typeof localStorage === 'undefined') return 'en'
   const stored = localStorage.getItem(STORAGE_KEY)
@@ -50,8 +61,12 @@ i18n
     interpolation: { escapeValue: false },
   })
 
+// Apply direction/lang for the initially-loaded language.
+applyDocumentLanguage(savedLang)
+
 export function setLanguage(code: string) {
   i18n.changeLanguage(code)
+  applyDocumentLanguage(code)
   localStorage.setItem(STORAGE_KEY, code)
   // Clear stale keys from other naming conventions
   localStorage.removeItem('language')

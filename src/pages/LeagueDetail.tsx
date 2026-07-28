@@ -13,6 +13,7 @@ import { classifyKernel } from '@/lib/setClassification'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { PairAvatar } from '@/components/shared/PairAvatar'
+import { confirmDialog } from '@/components/shared/ConfirmDialog'
 import { PairAssignmentSheet } from '@/components/compete/PairAssignmentSheet'
 import { cn } from '@/lib/utils'
 import { StandingsAccordion } from '@/components/league/StandingsAccordion'
@@ -1184,8 +1185,8 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
         <div className="rounded-2xl border border-amber-100 p-4 space-y-3">
           <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.pairs_heading')}</p>
           <button
-            onClick={() => {
-              if (!confirm(t('league.reset_pairs_confirm'))) return
+            onClick={async () => {
+              if (!await confirmDialog({ title: t('league.reset_pairs_confirm'), destructive: true })) return
               onResetPairs()
             }}
             className="w-full rounded-xl border border-amber-200 py-2.5 text-[13px] font-semibold text-amber-600"
@@ -1278,7 +1279,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
         <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('league.danger_zone')}</p>
         <button
           onClick={async () => {
-            if (!confirm(t('league.delete_league_confirm'))) return
+            if (!await confirmDialog({ title: t('league.delete_league_confirm'), destructive: true })) return
             const { error, count } = await supabase.from('leagues').delete({ count: 'exact' }).eq('id', league.id)
             if (error || count === 0) {
               toast.error(error?.message ?? t('league.delete_league_failed'))
@@ -3150,7 +3151,7 @@ export function LeagueDetailPage() {
                         )}
                         <button
                           onClick={async () => {
-                            if (!confirm(t('league.cancel_fixture_confirm'))) return
+                            if (!await confirmDialog({ title: t('league.cancel_fixture_confirm'), destructive: true })) return
                             const { error } = await supabase.from('matches').update({ status: 'cancelled', is_open: false, open_elo_min: null, open_elo_max: null }).eq('id', match.id)
                             if (error) { toast.error(t('league.cancel_fixture_failed')); return }
                             queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
@@ -3265,7 +3266,7 @@ export function LeagueDetailPage() {
             <div className="px-5 pb-4 mt-4">
               <button
                 onClick={async () => {
-                  if (!window.confirm(t('league.new_season_confirm'))) return
+                  if (!await confirmDialog({ title: t('league.new_season_confirm'), destructive: true })) return
                   const { error } = await supabase.rpc('reset_league_season', { p_league_id: league.id })
                   if (error) {
                     console.warn('[LeagueDetail] reset_league_season error:', error)

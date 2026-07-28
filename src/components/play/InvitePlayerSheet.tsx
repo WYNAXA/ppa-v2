@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, UserPlus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
@@ -30,6 +31,7 @@ function useDebounce<T>(value: T, delay: number) {
 }
 
 export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: InvitePlayerSheetProps) {
+  const { t } = useTranslation()
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<PlayerResult[]>([])
   const [searching, setSearching] = useState(false)
@@ -148,7 +150,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
               <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
                 <X className="h-4 w-4 text-gray-600" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Invite Player</h2>
+              <h2 className="text-[15px] font-bold text-gray-900">{t('invite.title')}</h2>
               <div className="w-9" />
             </div>
 
@@ -162,7 +164,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search by name…"
+                  placeholder={t('invite.search_placeholder')}
                   autoFocus
                   className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                 />
@@ -175,7 +177,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
               )}
 
               {inviteMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mb-3">Failed to invite player. Try again.</p>
+                <p className="text-[12px] text-red-500 text-center mb-3">{t('invite.failed')}</p>
               )}
 
               {results.length > 0 && (
@@ -199,13 +201,13 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
 
               {!searching && debouncedQuery.length >= 2 && results.length === 0 && (
                 <div className="py-10 text-center">
-                  <p className="text-[13px] text-gray-400">No players found for "{debouncedQuery}"</p>
+                  <p className="text-[13px] text-gray-400">{t('invite.no_results', { query: debouncedQuery })}</p>
                 </div>
               )}
 
               {query.length < 2 && !searching && !showGuestForm && (
                 <div className="py-10 text-center">
-                  <p className="text-[13px] text-gray-400">Type a name to search players</p>
+                  <p className="text-[13px] text-gray-400">{t('invite.type_to_search')}</p>
                 </div>
               )}
 
@@ -219,18 +221,18 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                     <UserPlus className="h-4 w-4 text-gray-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-600">Add guest player</p>
-                    <p className="text-[11px] text-gray-400">Someone without an account</p>
+                    <p className="text-[13px] font-semibold text-gray-600">{t('invite.add_guest')}</p>
+                    <p className="text-[11px] text-gray-400">{t('invite.guest_description')}</p>
                   </div>
                 </button>
               ) : (
                 <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                  <p className="text-[13px] font-bold text-gray-700">Add Guest Player</p>
+                  <p className="text-[13px] font-bold text-gray-700">{t('invite.add_guest_title')}</p>
                   <input
                     type="text"
                     value={guestName}
                     onChange={(e) => setGuestName(e.target.value)}
-                    placeholder="Name (required)"
+                    placeholder={t('invite.guest_name_placeholder')}
                     autoFocus
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                   />
@@ -238,25 +240,25 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                     type="text"
                     value={guestContact}
                     onChange={(e) => setGuestContact(e.target.value)}
-                    placeholder="Phone or email (optional)"
+                    placeholder={t('invite.guest_contact_placeholder')}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                   />
                   {guestMutation.isError && (
-                    <p className="text-[12px] text-red-500">Failed to add guest. Try again.</p>
+                    <p className="text-[12px] text-red-500">{t('invite.add_guest_failed')}</p>
                   )}
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowGuestForm(false); setGuestName(''); setGuestContact('') }}
                       className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
                     >
-                      Cancel
+                      {t('match.cancel')}
                     </button>
                     <button
                       onClick={() => guestMutation.mutate()}
                       disabled={!guestName.trim() || guestMutation.isPending}
                       className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
                     >
-                      {guestMutation.isPending ? 'Adding...' : 'Add Guest'}
+                      {guestMutation.isPending ? t('invite.adding_guest') : t('invite.add_guest_button')}
                     </button>
                   </div>
                 </div>

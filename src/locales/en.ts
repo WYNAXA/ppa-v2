@@ -23,6 +23,8 @@ export default {
     go_back: 'Go back',
     get_started: 'Get Started',
     see_all: 'See all',
+    cannot_be_undone: 'This cannot be undone.',
+    send: 'Send',
   },
   nav: {
     home: 'Home',
@@ -628,6 +630,7 @@ export default {
     requests_count: 'Requests ({{count}})',
     toast_connection_failed: 'Couldn\'t send request — please try again',
     players_load_failed: 'Couldn\'t load players',
+    delete_event_confirm_title: 'Delete "{{title}}"?',
   },
   group_detail: {
     save_failed: 'Couldn\'t save changes — please try again',

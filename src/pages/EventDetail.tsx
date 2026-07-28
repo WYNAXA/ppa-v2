@@ -175,10 +175,10 @@ export function EventDetailPage() {
 
   async function handleDelete() {
     if (!await confirmDialog({
-      title: t('community.delete_event_confirm_title', { title: ev.title, defaultValue: 'Delete "{{title}}"?' }),
-      message: t('common.cannot_be_undone', 'This cannot be undone.'),
+      title: t('community.delete_event_confirm_title', { title: ev.title }),
+      message: t('common.cannot_be_undone'),
       destructive: true,
-      confirmLabel: t('common.delete', 'Delete'),
+      confirmLabel: t('common.delete'),
     })) return
     setDeleting(true)
     const { error } = await supabase.from('events').delete().eq('id', ev.id)

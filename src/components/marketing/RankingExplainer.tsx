@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ChevronDown } from 'lucide-react'
+import { K_FACTOR_TIERS } from '@/lib/eloPreview'
 
 /* ── Mirror of the REAL ranking formula from supabase/functions/process-elo ── */
 
@@ -9,18 +10,18 @@ function calculateExpected(playerRating: number, opponentRating: number): number
 }
 
 function calculateKFactor(matchesPlayed: number): number {
-  if (matchesPlayed <= 20) return 40
-  if (matchesPlayed <= 50) return 20
-  if (matchesPlayed <= 200) return 10
-  return 5
+  for (const tier of K_FACTOR_TIERS) {
+    if (tier.maxMatches !== null && matchesPlayed <= tier.maxMatches) return tier.k
+  }
+  return K_FACTOR_TIERS[K_FACTOR_TIERS.length - 1].k
 }
 
-const EXPERIENCE_LABELS = [
-  { labelKey: 'ranking.exp_new', matches: 10, k: 40 },
-  { labelKey: 'ranking.exp_learning', matches: 35, k: 20 },
-  { labelKey: 'ranking.exp_regular', matches: 100, k: 10 },
-  { labelKey: 'ranking.exp_veteran', matches: 250, k: 5 },
-]
+const EXPERIENCE_LABELS = K_FACTOR_TIERS.map((tier, i) => {
+  const prev = i > 0 ? K_FACTOR_TIERS[i - 1] : null
+  const minMatches = prev ? prev.maxMatches! + 1 : 1
+  const sampleMatches = tier.maxMatches !== null ? Math.round((minMatches + tier.maxMatches) / 2) : (prev ? prev.maxMatches! + 50 : 100)
+  return { minMatches, maxMatches: tier.maxMatches, k: tier.k, sampleMatches }
+})
 
 interface SetScore { team1: string; team2: string; played: boolean }
 
@@ -104,8 +105,8 @@ export function RankingExplainer() {
     const { team1Score, team2Score, result: winner } = determineResult(sets)
     if (winner === null) return null
 
-    const t1Matches = EXPERIENCE_LABELS[team1Exp].matches
-    const t2Matches = EXPERIENCE_LABELS[team2Exp].matches
+    const t1Matches = EXPERIENCE_LABELS[team1Exp].sampleMatches
+    const t2Matches = EXPERIENCE_LABELS[team2Exp].sampleMatches
 
     const dominant1 = winner === 'team1' && isDominantWin(sets, true)
     const dominant2 = winner === 'team2' && isDominantWin(sets, false)
@@ -169,7 +170,7 @@ export function RankingExplainer() {
               className="w-full rounded-lg border border-teal-200 bg-white px-3 py-2 text-[13px] text-navy outline-none focus:ring-2 focus:ring-teal-500/30"
             >
               {EXPERIENCE_LABELS.map((l, i) => (
-                <option key={i} value={i}>{t(l.labelKey)} — K={l.k}</option>
+                <option key={i} value={i}>{l.maxMatches !== null ? t('ranking.exp_tier_bounded', { min: l.minMatches, max: l.maxMatches }) : t('ranking.exp_tier_unbounded', { min: l.minMatches })} — K={l.k}</option>
               ))}
             </select>
           </div>
@@ -206,7 +207,7 @@ export function RankingExplainer() {
               className="w-full rounded-lg border border-orange-200 bg-white px-3 py-2 text-[13px] text-navy outline-none focus:ring-2 focus:ring-orange-500/30"
             >
               {EXPERIENCE_LABELS.map((l, i) => (
-                <option key={i} value={i}>{t(l.labelKey)} — K={l.k}</option>
+                <option key={i} value={i}>{l.maxMatches !== null ? t('ranking.exp_tier_bounded', { min: l.minMatches, max: l.maxMatches }) : t('ranking.exp_tier_unbounded', { min: l.minMatches })} — K={l.k}</option>
               ))}
             </select>
           </div>
@@ -226,10 +227,10 @@ export function RankingExplainer() {
                       onChange={(e) => updateSet(i, 'played', e.target.checked)}
                       className="rounded border-gray-300 text-teal-500 focus:ring-teal-500/30 h-4 w-4"
                     />
-                    <span className="text-[12px] font-medium text-gray-500">{t('ranking.set_number', { number: i + 1 })}</span>
+                    <span className="text-[12px] font-medium text-gray-500">{t('league.set_number', { number: i + 1 })}</span>
                   </label>
                 ) : (
-                  <span className="text-[12px] font-medium text-gray-500 pl-0.5">{t('ranking.set_number', { number: 1 })}</span>
+                  <span className="text-[12px] font-medium text-gray-500 pl-0.5">{t('league.set_number', { number: 1 })}</span>
                 )}
                 <div className={`flex items-center gap-2 ${!s.played && i > 0 ? 'opacity-30 pointer-events-none' : ''}`}>
                   <input
@@ -331,9 +332,9 @@ export function RankingExplainer() {
                   {/* Step 2 */}
                   <div>
                     <p className="font-semibold text-navy mb-1">{t('ranking.step_kfactor')}</p>
-                    <p>{t('ranking.team_a')}: K = <strong>{result.t1.kFactor}</strong> ({t(EXPERIENCE_LABELS[team1Exp].labelKey)})</p>
-                    <p>{t('ranking.team_b')}: K = <strong>{result.t2.kFactor}</strong> ({t(EXPERIENCE_LABELS[team2Exp].labelKey)})</p>
-                    <p className="text-[11px] text-gray-400 mt-1">{t('ranking.kfactor_explanation')}</p>
+                    <p>{t('ranking.team_a')}: K = <strong>{result.t1.kFactor}</strong> ({EXPERIENCE_LABELS[team1Exp].maxMatches !== null ? t('ranking.exp_tier_bounded', { min: EXPERIENCE_LABELS[team1Exp].minMatches, max: EXPERIENCE_LABELS[team1Exp].maxMatches }) : t('ranking.exp_tier_unbounded', { min: EXPERIENCE_LABELS[team1Exp].minMatches })})</p>
+                    <p>{t('ranking.team_b')}: K = <strong>{result.t2.kFactor}</strong> ({EXPERIENCE_LABELS[team2Exp].maxMatches !== null ? t('ranking.exp_tier_bounded', { min: EXPERIENCE_LABELS[team2Exp].minMatches, max: EXPERIENCE_LABELS[team2Exp].maxMatches }) : t('ranking.exp_tier_unbounded', { min: EXPERIENCE_LABELS[team2Exp].minMatches })})</p>
+                    <p className="text-[11px] text-gray-400 mt-1">{t('ranking.kfactor_explanation', { k1: K_FACTOR_TIERS[0].k, m1: K_FACTOR_TIERS[0].maxMatches, k2: K_FACTOR_TIERS[1].k, m2: K_FACTOR_TIERS[1].maxMatches, k3: K_FACTOR_TIERS[2].k, m3: K_FACTOR_TIERS[2].maxMatches, k4: K_FACTOR_TIERS[3].k })}</p>
                   </div>
                   {/* Step 3 */}
                   <div>

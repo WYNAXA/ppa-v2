@@ -10,11 +10,18 @@ function calculateExpected(playerRating: number, opponentRating: number): number
   return 1 / (1 + Math.pow(10, (opponentRating - playerRating) / 400))
 }
 
+export const K_FACTOR_TIERS = [
+  { maxMatches: 20,   k: 40 },
+  { maxMatches: 50,   k: 20 },
+  { maxMatches: 200,  k: 10 },
+  { maxMatches: null,  k: 5 },
+] as const
+
 function calculateKFactor(matchesPlayed: number): number {
-  if (matchesPlayed <= 20) return 40
-  if (matchesPlayed <= 50) return 20
-  if (matchesPlayed <= 200) return 10
-  return 5
+  for (const tier of K_FACTOR_TIERS) {
+    if (tier.maxMatches !== null && matchesPlayed <= tier.maxMatches) return tier.k
+  }
+  return K_FACTOR_TIERS[K_FACTOR_TIERS.length - 1].k
 }
 
 function computeDelta(

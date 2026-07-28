@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
+import { useTranslation } from 'react-i18next'
 import { Bell, CheckCircle, XCircle, Clock, ChevronDown, ChevronUp, Users, Zap, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { sendNotification, sendNotifications } from '@/lib/notifications'
@@ -54,6 +55,7 @@ interface ResponseWithProfile {
 // ── Countdown Timer ─────────────────────────────────────────────────────────
 
 function PollCountdown({ closesAt }: { closesAt: string }) {
+  const { t } = useTranslation()
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0, expired: false })
 
   useEffect(() => {
@@ -101,7 +103,7 @@ function PollCountdown({ closesAt }: { closesAt: string }) {
   if (timeLeft.expired) {
     return (
       <div className={cn('rounded-2xl border px-4 py-3 text-center', colours.expired)}>
-        <p className="text-[13px] font-semibold">Poll Closed</p>
+        <p className="text-[13px] font-semibold">{t('polls.poll_closed')}</p>
       </div>
     )
   }
@@ -112,14 +114,14 @@ function PollCountdown({ closesAt }: { closesAt: string }) {
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4" />
           <span className="text-[12px] font-semibold">
-            {urgency === 'critical' ? 'Closing soon!' : urgency === 'warning' ? 'Closing today' : 'Time remaining'}
+            {urgency === 'critical' ? t('polls.closing_soon') : urgency === 'warning' ? t('polls.closing_today') : t('polls.time_remaining')}
           </span>
         </div>
         <div className="flex items-center gap-3">
-          {timeLeft.days > 0 && unitBox(timeLeft.days, 'days')}
-          {unitBox(timeLeft.hours, 'hrs')}
-          {unitBox(timeLeft.minutes, 'min')}
-          {unitBox(timeLeft.seconds, 'sec')}
+          {timeLeft.days > 0 && unitBox(timeLeft.days, t('polls.unit_days'))}
+          {unitBox(timeLeft.hours, t('polls.unit_hrs'))}
+          {unitBox(timeLeft.minutes, t('polls.unit_min'))}
+          {unitBox(timeLeft.seconds, t('polls.unit_sec'))}
         </div>
       </div>
     </div>
@@ -150,6 +152,8 @@ export function PollAdminView({
     return { ...poll, time_slots: ts as PollSlot[], additional_options: ao as string[] }
   }, [poll])
 
+  const { t } = useTranslation()
+
   // Range-poll detection: poll_dates set = range model
   const isRangePoll = Array.isArray(poll.poll_dates) && poll.poll_dates.length > 0
 
@@ -171,11 +175,11 @@ export function PollAdminView({
       }
       const { error } = await supabase.from('polls').update(updates).eq('id', pollId)
       if (error) throw error
-      toast.success(updates.status === 'open' ? 'Poll reopened' : 'Deadline updated')
+      toast.success(updates.status === 'open' ? t('polls.poll_reopened') : t('polls.deadline_updated'))
       setEditingDeadline(false)
       onRefetch()
     } catch (e: any) {
-      toast.error(e?.message ?? 'Failed to update deadline')
+      toast.error(e?.message ?? t('polls.deadline_update_failed'))
     } finally {
       setSavingDeadline(false)
     }
@@ -468,15 +472,15 @@ export function PollAdminView({
       // Wrap the flat proposals into a single schedule object for the existing render
       const proposals = data.proposals ?? []
       if (proposals.length === 0) {
-        setGenerateError('No match options returned. Ensure enough players have voted.')
+        setGenerateError(t('polls.no_options_error'))
         setMatchSchedules([])
       } else {
         const playerNames = (m: any) =>
-          (m.player_ids ?? []).map((pid: string) => data.profiles?.[pid]?.name ?? 'Unknown')
+          (m.player_ids ?? []).map((pid: string) => data.profiles?.[pid]?.name ?? t('league.unknown'))
         const schedule = {
           scheduleNumber: 1,
-          strategyName: 'Optimal Schedule',
-          strategyDescription: `${data.total_participation ?? proposals.length * 4} players placed, ${(data.players_benched ?? []).length} benched`,
+          strategyName: t('polls.optimal_schedule'),
+          strategyDescription: t('polls.strategy_desc', { placed: data.total_participation ?? proposals.length * 4, benched: (data.players_benched ?? []).length }),
           isRecommended: true,
           totalMatches: proposals.length,
           totalPlayers: data.total_participation ?? 0,
@@ -494,7 +498,7 @@ export function PollAdminView({
       }
     } catch (e: any) {
       console.error('[PollScheduler] error:', e)
-      setGenerateError(e?.message ?? 'Unknown error')
+      setGenerateError(e?.message ?? t('league.unknown'))
     } finally {
       setGenerating(false)
     }
@@ -570,7 +574,7 @@ export function PollAdminView({
     pids[playerIdx] = newPlayerId
     match.player_ids = pids
     match.playerIds = pids
-    match.playerNames = pids.map((pid: string) => engineProfiles[pid]?.name ?? 'Unknown')
+    match.playerNames = pids.map((pid: string) => engineProfiles[pid]?.name ?? t('league.unknown'))
     matches[matchIdx] = match
     setSwapTarget(null)
     handleScheduleEdit({ ...selectedSchedule, matches })
@@ -628,7 +632,7 @@ export function PollAdminView({
       const data = await res.json()
       if (!res.ok) throw new Error(data?.error ?? `HTTP ${res.status}`)
 
-      toast.success(`${data.matches_created} match${data.matches_created !== 1 ? 'es' : ''} scheduled`)
+      toast.success(t('polls.matches_scheduled', { count: data.matches_created }))
       setConfirmResult({ matchesCreated: data.matches_created ?? 0 })
       setMatchSchedules([])
       setSelectedSchedule(null)
@@ -636,7 +640,7 @@ export function PollAdminView({
       onRefetch()
     } catch (e: any) {
       console.error('[PollScheduler] confirm error:', e)
-      toast.error(e?.message ?? 'Failed to confirm schedule')
+      toast.error(e?.message ?? t('polls.confirm_failed'))
     } finally {
       setConfirming(false)
     }
@@ -656,7 +660,7 @@ export function PollAdminView({
   }
 
   function firstName(name?: string | null) {
-    return name?.split(' ')[0] ?? 'Unknown'
+    return name?.split(' ')[0] ?? t('league.unknown')
   }
 
   function additionalIcon(opt: string) {
@@ -688,13 +692,13 @@ export function PollAdminView({
                 disabled={savingDeadline || !newDeadline}
                 className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
               >
-                {savingDeadline ? 'Saving...' : 'Save'}
+                {savingDeadline ? t('polls.saving_deadline') : t('match.save')}
               </button>
               <button
                 onClick={() => setEditingDeadline(false)}
                 className="rounded-lg border border-gray-200 px-3 py-1.5 text-[11px] font-semibold text-gray-500"
               >
-                Cancel
+                {t('match.cancel')}
               </button>
             </div>
           ) : (
@@ -705,7 +709,7 @@ export function PollAdminView({
               }}
               className="text-[11px] font-semibold text-[#009688] hover:text-[#00796B]"
             >
-              {poll.status === 'processed' ? 'Reopen poll' : 'Edit deadline'}
+              {poll.status === 'processed' ? t('polls.reopen_poll') : t('polls.edit_deadline')}
             </button>
           )}
         </div>
@@ -724,7 +728,7 @@ export function PollAdminView({
         >
           <CheckCircle className="h-5 w-5 text-[#009688] mx-auto mb-1" />
           <p className="text-[18px] font-bold text-gray-900">{availableResponses.length}</p>
-          <p className="text-[10px] text-gray-500 font-medium">Available</p>
+          <p className="text-[10px] text-gray-500 font-medium">{t('polls.available')}</p>
         </button>
 
         <button
@@ -738,7 +742,7 @@ export function PollAdminView({
         >
           <XCircle className="h-5 w-5 text-red-400 mx-auto mb-1" />
           <p className="text-[18px] font-bold text-gray-900">{unavailableResponses.length}</p>
-          <p className="text-[10px] text-gray-500 font-medium">Unavailable</p>
+          <p className="text-[10px] text-gray-500 font-medium">{t('polls.unavailable')}</p>
         </button>
 
         <button
@@ -752,7 +756,7 @@ export function PollAdminView({
         >
           <Clock className="h-5 w-5 text-amber-400 mx-auto mb-1" />
           <p className="text-[18px] font-bold text-gray-900">{notVotedMembers.length}</p>
-          <p className="text-[10px] text-gray-500 font-medium">Not Voted</p>
+          <p className="text-[10px] text-gray-500 font-medium">{t('polls.not_voted')}</p>
         </button>
       </div>
 
@@ -767,11 +771,11 @@ export function PollAdminView({
             className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50"
           >
             <div className="px-4 py-3 space-y-2">
-              <p className="text-[12px] font-semibold text-teal-700 uppercase tracking-wide">Available Players</p>
+              <p className="text-[12px] font-semibold text-teal-700 uppercase tracking-wide">{t('polls.available_players')}</p>
               {availableResponses.map((r) => (
                 <div key={r.user_id} className="flex items-center gap-2">
                   <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
-                  <span className="text-[13px] text-gray-700">{r.profile?.name ?? 'Unknown'}</span>
+                  <span className="text-[13px] text-gray-700">{r.profile?.name ?? t('league.unknown')}</span>
                 </div>
               ))}
             </div>
@@ -787,11 +791,11 @@ export function PollAdminView({
             className="overflow-hidden rounded-2xl border border-red-100 bg-red-50"
           >
             <div className="px-4 py-3 space-y-2">
-              <p className="text-[12px] font-semibold text-red-700 uppercase tracking-wide">Unavailable</p>
+              <p className="text-[12px] font-semibold text-red-700 uppercase tracking-wide">{t('polls.unavailable')}</p>
               {unavailableResponses.map((r) => (
                 <div key={r.user_id} className="flex items-center gap-2">
                   <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
-                  <span className="text-[13px] text-gray-500">{r.profile?.name ?? 'Unknown'}</span>
+                  <span className="text-[13px] text-gray-500">{r.profile?.name ?? t('league.unknown')}</span>
                 </div>
               ))}
             </div>
@@ -808,14 +812,14 @@ export function PollAdminView({
           >
             <div className="px-4 py-3 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-[12px] font-semibold text-amber-700 uppercase tracking-wide">Not Voted</p>
+                <p className="text-[12px] font-semibold text-amber-700 uppercase tracking-wide">{t('polls.not_voted')}</p>
                 {isAdmin && notVotedMembers.some((m) => !remindedUsers.has(m.id)) && (
                   <button
                     onClick={handleRemindAll}
                     className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 hover:text-amber-700"
                   >
                     <Bell className="h-3.5 w-3.5" />
-                    Remind All
+                    {t('polls.remind_all')}
                   </button>
                 )}
               </div>
@@ -838,11 +842,11 @@ export function PollAdminView({
                     >
                       {remindedUsers.has(m.id) ? (
                         <>
-                          <CheckCircle className="h-3 w-3" /> Sent
+                          <CheckCircle className="h-3 w-3" /> {t('polls.sent')}
                         </>
                       ) : (
                         <>
-                          <Bell className="h-3 w-3" /> Remind
+                          <Bell className="h-3 w-3" /> {t('polls.remind')}
                         </>
                       )}
                     </button>
@@ -863,11 +867,11 @@ export function PollAdminView({
           >
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-[#009688]" />
-              <h3 className="text-[13px] font-bold text-gray-900">Daily Availability</h3>
+              <h3 className="text-[13px] font-bold text-gray-900">{t('polls.daily_availability')}</h3>
               {breakdownClusters.length > 0 && (
                 <span className="text-[11px] font-semibold text-[#009688]">
-                  {breakdownClusters.filter(c => !c.short).length} match{breakdownClusters.filter(c => !c.short).length !== 1 ? 'es' : ''}
-                  {breakdownClusters.some(c => c.short) && ` · ${breakdownClusters.filter(c => c.short).length} short`}
+                  {t('polls.match_count', { count: breakdownClusters.filter(c => !c.short).length })}
+                  {breakdownClusters.some(c => c.short) && ` ${t('polls.short_count', { count: breakdownClusters.filter(c => c.short).length })}`}
                 </span>
               )}
             </div>
@@ -880,7 +884,7 @@ export function PollAdminView({
           {breakdownExpanded && (
             <div className="space-y-3">
               {breakdownClusters.length === 0 ? (
-                <p className="text-[13px] text-gray-400 py-3 text-center">No overlapping availability yet.</p>
+                <p className="text-[13px] text-gray-400 py-3 text-center">{t('polls.no_overlap')}</p>
               ) : (
                 (() => {
                   const byDate = new Map<string, typeof breakdownClusters>()
@@ -914,9 +918,9 @@ export function PollAdminView({
                                   isShort3 ? 'bg-[#E65100] text-white' :
                                   'bg-gray-200 text-gray-600'
                                 )}>
-                                  {isFull ? `${c.count} players` :
-                                   isShort3 ? `Needs 1 ringer` :
-                                   `${c.count} players`}
+                                  {isFull ? t('polls.player_count', { count: c.count }) :
+                                   isShort3 ? t('polls.needs_ringer') :
+                                   t('polls.player_count', { count: c.count })}
                                 </span>
                               </div>
                               <div className="flex flex-wrap gap-1.5">
@@ -946,7 +950,7 @@ export function PollAdminView({
       {/* Legacy slot polls: keep old daily availability + slot breakdown */}
       {!isRangePoll && dayData.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Daily Availability</h3>
+          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('polls.daily_availability')}</h3>
           {dayData.map(({ day, dateLabel, availablePlayers }) => {
             const count = availablePlayers.length
             const total = groupMembers.length || 1
@@ -960,7 +964,7 @@ export function PollAdminView({
                     <span className="text-[13px] font-semibold text-gray-900">{dateLabel}</span>
                   </div>
                   <span className={cn('text-[12px] font-semibold', count >= 4 ? 'text-[#009688]' : 'text-gray-400')}>
-                    {count}/{total} available
+                    {t('polls.available_of_total', { count, total })}
                   </span>
                 </div>
                 <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
@@ -985,7 +989,7 @@ export function PollAdminView({
       {/* Legacy slot breakdown (non-range polls only) */}
       {!isRangePoll && slotData.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Slot Breakdown</h3>
+          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('polls.slot_breakdown')}</h3>
           {slotData.map(({ slot, voters }) => {
             const isExpanded = expandedSlots.has(slot.id)
             const viable = voters.length >= 4
@@ -998,7 +1002,7 @@ export function PollAdminView({
                 <button onClick={() => toggleSlotExpand(slot.id)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
                   <div className="flex items-center gap-2">
                     <span className="text-[13px] font-semibold text-gray-900">{dateLabel} {slot.start_time}–{slot.end_time}</span>
-                    {viable && <span className="flex items-center gap-0.5 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-700"><Zap className="h-3 w-3" /> Match Ready</span>}
+                    {viable && <span className="flex items-center gap-0.5 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-700"><Zap className="h-3 w-3" /> {t('polls.match_ready')}</span>}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold', viable ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-500')}>{voters.length}</span>
@@ -1012,7 +1016,7 @@ export function PollAdminView({
                         {voters.map((r) => (
                           <div key={r.user_id} className="flex items-center gap-2 py-1.5">
                             <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
-                            <span className="text-[13px] text-gray-700">{r.profile?.name ?? 'Unknown'}</span>
+                            <span className="text-[13px] text-gray-700">{r.profile?.name ?? t('league.unknown')}</span>
                           </div>
                         ))}
                       </div>
@@ -1028,7 +1032,7 @@ export function PollAdminView({
       {/* 6. Additional Options Summary */}
       {additionalSummary.length > 0 && additionalSummary.some((a) => a.players.length > 0) && (
         <div className="space-y-2">
-          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Additional Options</h3>
+          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('polls.additional_options')}</h3>
           {additionalSummary.map(({ option, players }) => (
             <div key={option} className="rounded-2xl border border-gray-100 px-4 py-3">
               <div className="flex items-center justify-between mb-2">
@@ -1063,13 +1067,13 @@ export function PollAdminView({
           {confirmResult && (
             <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3 space-y-2">
               <p className="text-[13px] font-bold text-teal-800">
-                {confirmResult.matchesCreated} match{confirmResult.matchesCreated !== 1 ? 'es' : ''} scheduled
+                {t('polls.matches_scheduled_count', { count: confirmResult.matchesCreated })}
               </p>
               <a
                 href={`/community/groups/${groupId}`}
                 className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#009688] hover:text-[#00796B]"
               >
-                View matches
+                {t('polls.view_matches')}
               </a>
             </div>
           )}
@@ -1079,10 +1083,10 @@ export function PollAdminView({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-[#009688]" />
-              <span className="text-[13px] font-bold text-gray-900">Match Generation</span>
+              <span className="text-[13px] font-bold text-gray-900">{t('polls.match_generation')}</span>
             </div>
             {poll.status === 'processed' ? (
-              <span className="text-[11px] text-gray-400">Poll already processed</span>
+              <span className="text-[11px] text-gray-400">{t('polls.already_processed')}</span>
             ) : (
             <button
               onClick={handleGenerateMatches}
@@ -1092,12 +1096,12 @@ export function PollAdminView({
               {generating ? (
                 <>
                   <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                  Generating...
+                  {t('polls.generating')}
                 </>
               ) : (
                 <>
                   <Users className="h-3.5 w-3.5" />
-                  Generate Options
+                  {t('polls.generate_options')}
                 </>
               )}
             </button>
@@ -1108,44 +1112,44 @@ export function PollAdminView({
           {!confirmResult && generating && (
             <div className="flex flex-col items-center py-6 gap-2">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
-              <p className="text-[12px] text-gray-400">Finding optimal match configurations...</p>
+              <p className="text-[12px] text-gray-400">{t('polls.finding_optimal')}</p>
             </div>
           )}
 
           {generateError && (
             <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
-              <p className="text-[12px] font-semibold text-red-700">Generation failed</p>
+              <p className="text-[12px] font-semibold text-red-700">{t('polls.generation_failed')}</p>
               <p className="text-[11px] text-red-500 mt-0.5">{generateError}</p>
             </div>
           )}
 
           {!confirmResult && !generating && matchSchedules.length === 0 && poll.status !== 'processed' && (
             <p className="text-[11px] text-gray-400">
-              Generate an optimal schedule from poll responses. You can swap players and drop matches before confirming.
+              {t('polls.generate_help')}
             </p>
           )}
 
           {!confirmResult && !generating && matchSchedules.length > 0 && (
             <div className="space-y-3">
               <p className="text-[12px] text-gray-500">
-                {matchSchedules.length} option{matchSchedules.length !== 1 ? 's' : ''} found
+                {t('polls.options_found', { count: matchSchedules.length })}
               </p>
               {matchSchedules.map((schedule, idx) => (
                 <div key={idx} className="rounded-xl border border-gray-200 bg-white px-4 py-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <p className="text-[13px] font-semibold text-gray-900">
-                      {schedule.strategyName ?? `Option ${idx + 1}`}
+                      {schedule.strategyName ?? t('polls.option_number', { number: idx + 1 })}
                     </p>
                     {schedule.isRecommended && (
-                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 rounded-full px-2 py-0.5">Recommended</span>
+                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 rounded-full px-2 py-0.5">{t('polls.recommended')}</span>
                     )}
                   </div>
                   {schedule.strategyDescription && (
                     <p className="text-[11px] text-gray-400">{schedule.strategyDescription}</p>
                   )}
                   <p className="text-[11px] text-gray-500">
-                    {schedule.totalMatches ?? schedule.matches?.length ?? 0} matches · {schedule.totalPlayers ?? 0} players
-                    {(schedule.ringersNeeded ?? 0) > 0 && ` · ${schedule.ringersNeeded} ringers needed`}
+                    {t('polls.option_summary', { matches: schedule.totalMatches ?? schedule.matches?.length ?? 0, players: schedule.totalPlayers ?? 0 })}
+                    {(schedule.ringersNeeded ?? 0) > 0 && ` ${t('polls.ringers_needed', { count: schedule.ringersNeeded })}`}
                   </p>
 
                   {(schedule.matches ?? []).map((match: any, mIdx: number) => {
@@ -1167,7 +1171,7 @@ export function PollAdminView({
                             )}
                             {isRingerMatch && (
                               <span className="ml-2 text-[10px] font-bold text-[#E65100] bg-orange-100 rounded-full px-2 py-0.5">
-                                Needs {match.ringer_count ?? 1} ringer
+                                {t('polls.needs_n_ringers', { count: match.ringer_count ?? 1 })}
                               </span>
                             )}
                           </div>
@@ -1177,9 +1181,8 @@ export function PollAdminView({
                               <button
                                 onClick={() => handleDropMatch(mIdx)}
                                 className="text-[10px] text-[#E65100] hover:text-[#BF360C] font-semibold"
-                                title="Drop this match"
                               >
-                                Drop
+                                {t('polls.drop')}
                               </button>
                             )}
                           </div>
@@ -1188,7 +1191,7 @@ export function PollAdminView({
                         <div className="space-y-1.5 mt-1">
                           {pids.map((pid: string, pIdx: number) => {
                             const profile = engineProfiles[pid]
-                            const name = profile?.name ?? match.playerNames?.[pIdx] ?? 'Unknown'
+                            const name = profile?.name ?? match.playerNames?.[pIdx] ?? t('league.unknown')
                             const isSwapOpen = isSelected && swapTarget?.matchIdx === mIdx && swapTarget?.playerIdx === pIdx
                             const matchSlotId = match.slot_id ?? match.slotId
                             const slotAvail = new Set(slotAvailability[matchSlotId] ?? [])
@@ -1213,15 +1216,15 @@ export function PollAdminView({
                                       onClick={() => setSwapTarget(isSwapOpen ? null : { matchIdx: mIdx, playerIdx: pIdx })}
                                       className="rounded-lg border border-teal-200 px-2.5 py-1 text-[11px] font-semibold text-[#009688] hover:bg-teal-50"
                                     >
-                                      {isSwapOpen ? 'Cancel' : 'Swap'}
+                                      {isSwapOpen ? t('match.cancel') : t('polls.swap')}
                                     </button>
                                   )}
                                 </div>
                                 {isSwapOpen && (
                                   <div className="ml-8 mt-1 mb-1 p-2 bg-white rounded-lg border border-teal-100 space-y-1">
-                                    <p className="text-[11px] text-gray-500 font-semibold">Available for this slot:</p>
+                                    <p className="text-[11px] text-gray-500 font-semibold">{t('polls.available_for_slot')}</p>
                                     {swapCandidates.length === 0 && (
-                                      <p className="text-[11px] text-gray-400">No other available players</p>
+                                      <p className="text-[11px] text-gray-400">{t('polls.no_other_available')}</p>
                                     )}
                                     {swapCandidates.map((benchId: string) => {
                                       const bp = engineProfiles[benchId]
@@ -1255,7 +1258,7 @@ export function PollAdminView({
                         : 'border-[#009688] text-[#009688] hover:bg-teal-50'
                     )}
                   >
-                    {selectedSchedule?.scheduleNumber === schedule.scheduleNumber ? '✓ Selected' : 'Select this option'}
+                    {selectedSchedule?.scheduleNumber === schedule.scheduleNumber ? t('polls.selected') : t('polls.select_option')}
                   </button>
                 </div>
               ))}
@@ -1267,16 +1270,16 @@ export function PollAdminView({
                   disabled={confirming || benchedDirty || recomputing}
                   className="w-full rounded-2xl bg-gray-900 py-3.5 text-[14px] font-bold text-white disabled:opacity-50 mt-2"
                 >
-                  {confirming ? '⏳ Scheduling matches...'
-                    : recomputing ? '⏳ Recomputing...'
-                    : `✓ Confirm — schedule ${selectedSchedule.totalMatches ?? selectedSchedule.matches?.length ?? 0} matches`}
+                  {confirming ? t('polls.scheduling')
+                    : recomputing ? t('polls.recomputing')
+                    : t('polls.confirm_schedule', { count: selectedSchedule.totalMatches ?? selectedSchedule.matches?.length ?? 0 })}
                 </button>
               )}
 
               {/* Benched players summary */}
               {selectedSchedule && playersBenched.length > 0 && (
                 <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] text-amber-700">
-                  <span className="font-semibold">{playersBenched.length} benched:</span>{' '}
+                  <span className="font-semibold">{t('polls.benched_count', { count: playersBenched.length })}</span>{' '}
                   {playersBenched.map(id => engineProfiles[id]?.name?.split(' ')[0] ?? id.slice(0,8)).join(', ')}
                 </div>
               )}
@@ -1284,8 +1287,8 @@ export function PollAdminView({
               {/* Excluded players warning (lack-of-numbers after dropping matches) */}
               {selectedSchedule && excludedCount > 0 && (
                 <div className="rounded-lg bg-gray-100 border border-gray-200 px-3 py-2 text-[11px] text-gray-500">
-                  <span className="font-semibold">{excludedCount} player{excludedCount !== 1 ? 's' : ''} excluded</span>{' '}
-                  — available only at dropped slots, no game this week
+                  <span className="font-semibold">{t('polls.excluded_count', { count: excludedCount })}</span>{' '}
+                  {t('polls.excluded_reason')}
                 </div>
               )}
 
@@ -1298,13 +1301,13 @@ export function PollAdminView({
       {isAdmin && matchesNeedingRingers.length > 0 && (
         <div className="rounded-2xl border border-orange-100 bg-orange-50/30 px-4 py-3 mt-3 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-[12px] font-bold text-orange-700">Matches needing ringers</p>
+            <p className="text-[12px] font-bold text-orange-700">{t('polls.matches_needing_ringers')}</p>
             {matchesNeedingRingers.length >= 1 && (
               <button
                 onClick={() => setAskRingersAll(true)}
                 className="text-[11px] font-semibold text-[#009688] hover:text-[#00796B]"
               >
-                Ask for all
+                {t('polls.ask_for_all')}
               </button>
             )}
           </div>
@@ -1312,13 +1315,13 @@ export function PollAdminView({
             <div key={m.id} className="flex items-center justify-between rounded-xl bg-white border border-orange-100 px-3 py-2">
               <div>
                 <p className="text-[12px] font-medium text-gray-800">{m.match_date} {m.match_time?.slice(0, 5) ?? ''}</p>
-                <p className="text-[10px] text-gray-400">{m.player_ids?.length ?? 0}/4 players</p>
+                <p className="text-[10px] text-gray-400">{t('polls.players_of_four', { count: m.player_ids?.length ?? 0 })}</p>
               </div>
               <button
                 onClick={() => setAskRingersMatchId(m.id)}
                 className="rounded-lg border border-teal-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-teal-700"
               >
-                Ask ringers
+                {t('polls.ask_ringers')}
               </button>
             </div>
           ))}

@@ -1526,6 +1526,12 @@ export default {
     diff_experience_volatility: 'Experience-based volatility \u2014 new players settle faster',
     diff_realtime_preview: 'Real-time preview while your result is pending verification',
     diff_fully_transparent: 'Fully transparent \u2014 every number shown, nothing hidden',
+    tier_newcomer: 'Newcomer',
+    tier_learning: 'Learning',
+    tier_regular: 'Regular',
+    tier_established: 'Established',
+    tier_matches_one: '{{count}} match played',
+    tier_matches_other: '{{count}} matches played',
   },
   open_matches: {
     page_title: 'Open Matches',

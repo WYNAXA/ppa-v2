@@ -11,17 +11,21 @@ function calculateExpected(playerRating: number, opponentRating: number): number
 }
 
 export const K_FACTOR_TIERS = [
-  { maxMatches: 20,   k: 40 },
-  { maxMatches: 50,   k: 20 },
-  { maxMatches: 200,  k: 10 },
-  { maxMatches: null,  k: 5 },
-] as const
+  { maxMatches: 20 as number | null,   k: 40, nameKey: 'ranking.tier_newcomer' },
+  { maxMatches: 50 as number | null,   k: 20, nameKey: 'ranking.tier_learning' },
+  { maxMatches: 200 as number | null,  k: 10, nameKey: 'ranking.tier_regular' },
+  { maxMatches: null as number | null,  k: 5, nameKey: 'ranking.tier_established' },
+]
+
+export function experienceTier(matchesPlayed: number) {
+  for (const tier of K_FACTOR_TIERS) {
+    if (tier.maxMatches !== null && matchesPlayed <= tier.maxMatches) return tier
+  }
+  return K_FACTOR_TIERS[K_FACTOR_TIERS.length - 1]
+}
 
 function calculateKFactor(matchesPlayed: number): number {
-  for (const tier of K_FACTOR_TIERS) {
-    if (tier.maxMatches !== null && matchesPlayed <= tier.maxMatches) return tier.k
-  }
-  return K_FACTOR_TIERS[K_FACTOR_TIERS.length - 1].k
+  return experienceTier(matchesPlayed).k
 }
 
 function computeDelta(

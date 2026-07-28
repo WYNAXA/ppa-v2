@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
 import { PEER_VOTE_CATEGORIES } from '@/lib/achievements'
 import { fetchSetStats } from '@/lib/setStats'
+import { experienceTier } from '@/lib/eloPreview'
 import { sendNotification } from '@/lib/notifications'
 import { toast } from 'sonner'
 
@@ -24,6 +25,7 @@ interface PlayerProfileData {
   avatar_url?: string | null
   internal_ranking?: number | null
   playtomic_level?: number | null
+  matches_played?: number | null
   city?: string | null
 }
 
@@ -56,7 +58,7 @@ async function fetchPlayerProfile(playerId: string, currentUserId: string) {
   const [{ data: player }, { data: myProfile }] = await Promise.all([
     supabase
       .from('profiles')
-      .select('id, name, avatar_url, internal_ranking, playtomic_level, city, can_drive')
+      .select('id, name, avatar_url, internal_ranking, playtomic_level, matches_played, city, can_drive')
       .eq('id', playerId)
       .single(),
     supabase
@@ -289,6 +291,15 @@ export function PlayerProfilePage() {
                 </span>
               )}
             </div>
+            {player.matches_played != null && (
+              <div className="mt-2">
+                <p className="text-[12px] text-gray-500">
+                  {t(experienceTier(player.matches_played).nameKey)}
+                  {' · '}
+                  {t('ranking.tier_matches', { count: player.matches_played })}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </motion.div>

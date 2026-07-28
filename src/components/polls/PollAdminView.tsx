@@ -871,7 +871,7 @@ export function PollAdminView({
               {breakdownClusters.length > 0 && (
                 <span className="text-[11px] font-semibold text-[#009688]">
                   {t('polls.match_count', { count: breakdownClusters.filter(c => !c.short).length })}
-                  {breakdownClusters.some(c => c.short) && ` ${t('polls.short_count', { count: breakdownClusters.filter(c => c.short).length })}`}
+                  {breakdownClusters.some(c => c.short) && ` · ${t('polls.short_count', { count: breakdownClusters.filter(c => c.short).length })}`}
                 </span>
               )}
             </div>
@@ -919,7 +919,7 @@ export function PollAdminView({
                                   'bg-gray-200 text-gray-600'
                                 )}>
                                   {isFull ? t('polls.player_count', { count: c.count }) :
-                                   isShort3 ? t('polls.needs_ringer') :
+                                   isShort3 ? t('polls.needs_n_ringers', { count: 1 }) :
                                    t('polls.player_count', { count: c.count })}
                                 </span>
                               </div>
@@ -1067,7 +1067,7 @@ export function PollAdminView({
           {confirmResult && (
             <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3 space-y-2">
               <p className="text-[13px] font-bold text-teal-800">
-                {t('polls.matches_scheduled_count', { count: confirmResult.matchesCreated })}
+                {t('polls.matches_scheduled', { count: confirmResult.matchesCreated })}
               </p>
               <a
                 href={`/community/groups/${groupId}`}
@@ -1148,8 +1148,8 @@ export function PollAdminView({
                     <p className="text-[11px] text-gray-400">{schedule.strategyDescription}</p>
                   )}
                   <p className="text-[11px] text-gray-500">
-                    {t('polls.option_summary', { matches: schedule.totalMatches ?? schedule.matches?.length ?? 0, players: schedule.totalPlayers ?? 0 })}
-                    {(schedule.ringersNeeded ?? 0) > 0 && ` ${t('polls.ringers_needed', { count: schedule.ringersNeeded })}`}
+                    {t('polls.option_matches', { count: schedule.totalMatches ?? schedule.matches?.length ?? 0 })} · {t('polls.option_players', { count: schedule.totalPlayers ?? 0 })}
+                    {(schedule.ringersNeeded ?? 0) > 0 && ` · ${t('polls.ringers_needed', { count: schedule.ringersNeeded })}`}
                   </p>
 
                   {(schedule.matches ?? []).map((match: any, mIdx: number) => {
@@ -1288,7 +1288,7 @@ export function PollAdminView({
               {selectedSchedule && excludedCount > 0 && (
                 <div className="rounded-lg bg-gray-100 border border-gray-200 px-3 py-2 text-[11px] text-gray-500">
                   <span className="font-semibold">{t('polls.excluded_count', { count: excludedCount })}</span>{' '}
-                  {t('polls.excluded_reason')}
+                  — {t('polls.excluded_reason')}
                 </div>
               )}
 

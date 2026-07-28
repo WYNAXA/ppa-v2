@@ -31,7 +31,10 @@ jobs:
         run: npm run codegen:check
 
       - name: Typecheck
-        run: npx tsc --noEmit
+        # NOTE: `tsc --noEmit` is a no-op here because this repo uses TypeScript
+        # project references (see tsconfig) — it resolves no input files and passes
+        # vacuously. `tsc -b` builds the referenced projects and actually typechecks.
+        run: npx tsc -b
 
       - name: Build
         run: npm run build

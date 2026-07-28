@@ -226,6 +226,7 @@ export function PlayerProfilePage() {
       queryClient.invalidateQueries({ queryKey: ['connection-status', currentUserId, playerId] })
       toast.success(t('community.toast_connection_sent'))
     },
+    onError: () => toast.error(t('community.toast_connection_failed')),
   })
 
   if (isLoading) {
@@ -409,7 +410,7 @@ export function PlayerProfilePage() {
               className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#009688] px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
             >
               <UserPlus className="h-3.5 w-3.5" />
-              {connectMutation.isPending ? 'Sending…' : t('community.connect')}
+              {connectMutation.isPending ? t('community.sending', 'Sending…') : t('community.connect')}
             </button>
           </div>
         )}

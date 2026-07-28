@@ -22,7 +22,7 @@ export function MyConnectionsPage() {
   const [inviteMatch, setInviteMatch] = useState<{ id: string; name: string } | null>(null)
   const [inviteGroup, setInviteGroup] = useState<{ id: string; name: string } | null>(null)
 
-  const { data } = useQuery({
+  const { data, isError } = useQuery({
     queryKey: ['my-connections-full', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -83,7 +83,11 @@ export function MyConnectionsPage() {
           </div>
         )}
 
-        {accepted.length > 0 ? (
+        {isError ? (
+          <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
+            <p className="text-[13px] font-semibold text-gray-500">{t('community.players_load_failed')}</p>
+          </div>
+        ) : accepted.length > 0 ? (
           <div className="space-y-2">
             {accepted.map(conn => (
               <ConnectionCard key={conn.user_id} player={conn}>

@@ -26,6 +26,18 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // Guard: this performs a privileged, potentially destructive full ratings
+  // rebuild. It uses the service-role key internally, so require the caller to
+  // present that same key — only admins/ops hold it. Without this, anyone with
+  // the public anon key and the URL could trigger a rebuild.
+  const authToken = (req.headers.get('Authorization') ?? '').replace(/^Bearer\s+/i, '')
+  if (authToken !== Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,

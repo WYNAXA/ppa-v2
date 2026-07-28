@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Search, UserPlus, Check, Clock } from 'lucide-react'
@@ -16,11 +16,11 @@ export function AllPlayersPage() {
   const { t } = useTranslation()
   const userId = profile?.id ?? ''
   const [search, setSearch] = useState('')
-  const [cityFilter, setCityFilter] = useState(false)
+  // Default "near me" on once the profile (which loads async) has a city; null = not yet chosen by the user.
+  const [cityFilterOverride, setCityFilterOverride] = useState<boolean | null>(null)
+  const cityFilter = cityFilterOverride ?? !!profile?.city
 
-  useEffect(() => { if (profile?.city) setCityFilter(true) }, [profile?.city])
-
-  const { data: players = [] } = useQuery({
+  const { data: players = [], isLoading, isError } = useQuery({
     queryKey: ['all-players', userId, search, cityFilter],
     enabled: !!userId,
     queryFn: async () => {
@@ -65,6 +65,7 @@ export function AllPlayersPage() {
       queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] })
       toast.success(t('community.toast_connection_sent'))
     },
+    onError: () => toast.error(t('community.toast_connection_failed')),
   })
 
   const acceptMutation = useMutation({
@@ -80,6 +81,7 @@ export function AllPlayersPage() {
       queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] })
       toast.success(t('community.toast_connection_accepted'))
     },
+    onError: () => toast.error(t('community.toast_connection_failed')),
   })
 
   function getState(pid: string) {
@@ -102,18 +104,24 @@ export function AllPlayersPage() {
       <div className="px-5 pt-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search players by name..."
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('community.search_players')}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" />
         </div>
         {profile?.city && (
-          <button onClick={() => setCityFilter(v => !v)}
+          <button onClick={() => setCityFilterOverride(!cityFilter)}
             className={`rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${cityFilter ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'}`}>
-            Near me ({profile.city})
+            {t('community.near_me_city', { city: profile.city })}
           </button>
         )}
         <div className="space-y-2">
-          {players.map(p => {
+          {isError ? (
+            <p className="text-center text-[13px] text-gray-400 py-8">{t('community.players_load_failed')}</p>
+          ) : isLoading ? (
+            <p className="text-center text-[13px] text-gray-400 py-8">{t('common.loading', 'Loading…')}</p>
+          ) : players.length === 0 ? (
+            <p className="text-center text-[13px] text-gray-400 py-8">{t('community.no_players_found')}</p>
+          ) : players.map(p => {
             const state = getState(p.id)
             return (
               <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50">

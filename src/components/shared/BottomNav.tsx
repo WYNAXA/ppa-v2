@@ -30,8 +30,8 @@ const NAV_ITEMS = [
   { icon: Home,          key: 'home',      path: '/home',      activePaths: ['/home'] },
   { icon: PadelBallIcon, key: 'play',      path: '/play',      activePaths: ['/play', '/matches'] },
   { icon: Trophy,        key: 'compete',   path: '/compete',   activePaths: ['/compete', '/leagues'] },
-  { icon: Users,         key: 'community', path: '/community', activePaths: ['/community', '/groups'] },
-  { icon: User,          key: 'you',       path: '/you',       activePaths: ['/you', '/profile'] },
+  { icon: Users,         key: 'community', path: '/community', activePaths: ['/community'] },
+  { icon: User,          key: 'you',       path: '/you',       activePaths: ['/you'] },
 ]
 
 export function BottomNav() {

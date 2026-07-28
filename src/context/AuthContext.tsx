@@ -1,6 +1,7 @@
 import { createContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { unsubscribeFromPush } from '@/lib/push'
 import * as Sentry from '@sentry/react'
 
 interface Profile {
@@ -126,6 +127,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const signOut = async () => {
+    // Clear this device's web-push subscription + stored push_token BEFORE signing
+    // out (while RLS still permits the profile write), so a shared device doesn't
+    // keep receiving the previous user's pushes. Best-effort — never block logout.
+    const uid = session?.user?.id
+    if (uid) {
+      try { await unsubscribeFromPush(uid) } catch { /* non-fatal */ }
+    }
     await supabase.auth.signOut()
     Sentry.setUser(null)
     setSession(null)

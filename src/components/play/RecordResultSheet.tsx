@@ -191,7 +191,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
       setStep(4)
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to record result — please try again')
+      toast.error(err.message || t('record_result.record_failed'))
     },
   })
 
@@ -212,7 +212,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
   function getPlayer(id: string): Player | { id: string; name: string; avatar_url: null; isGuest: true } | undefined {
     if (id.startsWith('guest_')) {
       const guestIndex = match.player_ids.indexOf(id) - (match.player_ids.length - guestNamesList.length)
-      const name = guestNamesList[Math.max(0, guestIndex)] ?? 'Guest'
+      const name = guestNamesList[Math.max(0, guestIndex)] ?? t('record_result.guest')
       return { id, name, avatar_url: null, isGuest: true as const }
     }
     return players.find((p) => p.id === id)
@@ -368,7 +368,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               }`}
                             >
                               <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
-                              <span className="text-[12px] font-medium text-gray-800 truncate">{p?.name ?? 'Player'}</span>
+                              <span className="text-[12px] font-medium text-gray-800 truncate">{p?.name ?? t('match.player_fallback')}</span>
                             </button>
                           )
                         })}
@@ -391,16 +391,16 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               }`}
                             >
                               <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
-                              <span className="text-[12px] font-medium text-gray-800 truncate">{p?.name ?? 'Player'}</span>
+                              <span className="text-[12px] font-medium text-gray-800 truncate">{p?.name ?? t('match.player_fallback')}</span>
                             </button>
                           )
                         })}
                       </div>
                     </div>
                     {selectedForSwap ? (
-                      <p className="text-[12px] text-teal-700 text-center mt-3 font-medium">Tap a player on the other team to swap</p>
+                      <p className="text-[12px] text-teal-700 text-center mt-3 font-medium">{t('record_result.tap_to_swap_other')}</p>
                     ) : (
-                      <p className="text-[11px] text-gray-400 text-center mt-3">Tap a player to start a swap</p>
+                      <p className="text-[11px] text-gray-400 text-center mt-3">{t('record_result.tap_to_start_swap')}</p>
                     )}
                     <button
                       onClick={() => setStep(2)}
@@ -475,7 +475,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 type="text"
                                 value={s.note ?? ''}
                                 onChange={(e) => setSets(prev => prev.map((ss, j) => j === i ? { ...ss, note: e.target.value } : ss))}
-                                placeholder="Match didn't finish? Add a note (optional)"
+                                placeholder={t('record_result.note_placeholder')}
                                 className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-gray-700 placeholder:text-amber-400 focus:outline-none focus:border-amber-300"
                               />
                             </div>
@@ -484,7 +484,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           {is76 && (
                             <div className="mt-2 ml-1">
                               <div className="flex items-center gap-2 pl-2">
-                                <span className="text-[11px] text-gray-400">Tie-break:</span>
+                                <span className="text-[11px] text-gray-400">{t('record_result.tiebreak_label')}</span>
                                 <input
                                   ref={(el) => { inputRefs.current[`tb-${i}-team1`] = el }}
                                   type="number"
@@ -508,14 +508,14 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 />
                               </div>
                               {s.tiebreak && s.tiebreak.team1 === 0 && s.tiebreak.team2 === 0 && (
-                                <p className="text-[11px] text-red-500 mt-1 pl-2">Tie-break can't be 0-0</p>
+                                <p className="text-[11px] text-red-500 mt-1 pl-2">{t('record_result.tiebreak_zero_error')}</p>
                               )}
                             </div>
                           )}
                           {isTied66 && (
                             <div className="mt-2 ml-1">
                               <div className="rounded-lg bg-teal-50 border border-teal-100 px-3 py-2 mb-2">
-                                <p className="text-[12px] font-semibold text-teal-700">Set tied 6-6. How did it finish?</p>
+                                <p className="text-[12px] font-semibold text-teal-700">{t('record_result.set_tied_prompt')}</p>
                               </div>
                               <div className="flex gap-2 mb-2">
                                 <button
@@ -527,7 +527,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                       : 'border-gray-200 text-gray-500 hover:border-teal-200'
                                   )}
                                 >
-                                  Tiebreak played
+                                  {t('record_result.tiebreak_played')}
                                 </button>
                                 <button
                                   onClick={() => setTiebreakMode(i, 'time_limit')}
@@ -538,12 +538,12 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                       : 'border-gray-200 text-gray-500 hover:border-orange-200'
                                   )}
                                 >
-                                  Finished on time
+                                  {t('record_result.finished_on_time')}
                                 </button>
                               </div>
                               {s.tiebreak && !s.time_limit && (
                                 <div className="flex items-center gap-2 pl-2">
-                                  <span className="text-[11px] text-gray-400">TB:</span>
+                                  <span className="text-[11px] text-gray-400">{t('record_result.tb_label')}</span>
                                   <input
                                     ref={(el) => { inputRefs.current[`tb-${i}-team1`] = el }}
                                     type="number"
@@ -568,7 +568,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 </div>
                               )}
                               {s.time_limit && (
-                                <p className="text-[11px] text-gray-400 italic pl-2">Drawn set — no winner</p>
+                                <p className="text-[11px] text-gray-400 italic pl-2">{t('record_result.drawn_set')}</p>
                               )}
                             </div>
                           )}
@@ -589,9 +589,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     {resultType && (() => {
                       const t1Names = team1.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
                       const t2Names = team2.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
-                      const label = resultType === 'team1_win' ? `${t1Names} win`
-                        : resultType === 'team2_win' ? `${t2Names} win`
-                        : 'Draw / unfinished'
+                      const label = resultType === 'team1_win' ? t('record_result.team_wins', { names: t1Names })
+                        : resultType === 'team2_win' ? t('record_result.team_wins', { names: t2Names })
+                        : t('record_result.draw_unfinished')
                       const color = resultType === 'team1_win' ? 'text-teal-700 bg-teal-50'
                         : resultType === 'team2_win' ? 'text-orange-600 bg-orange-50'
                         : 'text-gray-600 bg-gray-50'
@@ -617,9 +617,9 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                   const t1Names = team1.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
                   const t2Names = team2.map(id => getPlayer(id)?.name?.split(' ')[0] ?? '?').join(' + ')
                   const outcomeOptions: Array<{ value: 'team1_win' | 'team2_win' | 'draw'; label: string; color: string; border: string; bg: string }> = [
-                    { value: 'team1_win', label: `${t1Names} win`, color: 'text-teal-700', border: 'border-teal-300', bg: 'bg-teal-50' },
-                    { value: 'team2_win', label: `${t2Names} win`, color: 'text-orange-600', border: 'border-orange-300', bg: 'bg-orange-50' },
-                    { value: 'draw', label: 'Draw / unfinished', color: 'text-gray-600', border: 'border-gray-300', bg: 'bg-gray-50' },
+                    { value: 'team1_win', label: t('record_result.team_wins', { names: t1Names }), color: 'text-teal-700', border: 'border-teal-300', bg: 'bg-teal-50' },
+                    { value: 'team2_win', label: t('record_result.team_wins', { names: t2Names }), color: 'text-orange-600', border: 'border-orange-300', bg: 'bg-orange-50' },
+                    { value: 'draw', label: t('record_result.draw_unfinished'), color: 'text-gray-600', border: 'border-gray-300', bg: 'bg-gray-50' },
                   ]
                   return (
                   <motion.div key="step3" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
@@ -638,7 +638,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         return (
                           <div key={i} className="mb-1.5 last:mb-0">
                             <div className="flex items-center justify-between">
-                              <span className="text-[12px] text-gray-500">Set {i + 1}</span>
+                              <span className="text-[12px] text-gray-500">{t('league.set_number', { number: i + 1 })}</span>
                               <div className="flex items-center gap-3">
                                 <span className={cn('text-[16px] font-bold', t1Wins ? 'text-teal-700' : 'text-gray-400')}>
                                   {s.team1}
@@ -651,7 +651,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                   <span className="text-[11px] text-gray-400">({s.tiebreak.team1}-{s.tiebreak.team2})</span>
                                 )}
                                 {s.time_limit && (
-                                  <span className="text-[10px] text-gray-400 italic">time</span>
+                                  <span className="text-[10px] text-gray-400 italic">{t('record_result.time_limited')}</span>
                                 )}
                               </div>
                             </div>
@@ -699,13 +699,13 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center mb-3">
                       <Trophy className="h-7 w-7 text-[#009688]" />
                     </div>
-                    <h3 className="text-[18px] font-bold text-gray-900 mb-1">Result recorded!</h3>
+                    <h3 className="text-[18px] font-bold text-gray-900 mb-1">{t('record_result.result_recorded')}</h3>
 
                     {/* Score summary */}
                     <div className="flex gap-3 justify-center mb-4">
                       {sets.filter(s => s.team1 !== '' && s.team2 !== '').map((s, i) => (
                         <div key={i} className="text-center">
-                          <p className="text-[10px] text-gray-400 mb-0.5">Set {i + 1}</p>
+                          <p className="text-[10px] text-gray-400 mb-0.5">{t('league.set_number', { number: i + 1 })}</p>
                           <p className="text-[16px] font-bold text-gray-900">
                             {s.team1}–{s.team2}
                             {s.tiebreak && !s.time_limit && (
@@ -725,7 +725,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         onClick={() => setShowPeerVoting(true)}
                         className="w-full rounded-2xl bg-purple-50 border border-purple-100 py-2.5 text-[12px] font-bold text-purple-700"
                       >
-                        Rate your teammates
+                        {t('record_result.rate_teammates')}
                       </button>
                     )}
 
@@ -762,7 +762,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                         className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white mt-3 disabled:opacity-50"
                       >
                         <Play className="h-4 w-4" />
-                        {creatingNext ? 'Creating\u2026' : 'Play another set'}
+                        {creatingNext ? t('record_result.creating') : t('record_result.play_another')}
                       </button>
                     )}
 
@@ -770,7 +770,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                       onClick={onClose}
                       className="w-full rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-600 mt-2"
                     >
-                      Finish
+                      {t('record_result.finish')}
                     </button>
 
                     <PeerVotingSheet

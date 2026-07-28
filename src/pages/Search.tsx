@@ -48,7 +48,7 @@ const TYPE_META: Record<SearchResult['type'], {
     icon:  <MapPin className="h-4 w-4" />,
     color: 'bg-orange-50 text-orange-500',
     label: 'Venues',
-    navFn: () => '/play',
+    navFn: (id) => `/venues/${id}`,
   },
   match: {
     icon:  <Calendar className="h-4 w-4" />,

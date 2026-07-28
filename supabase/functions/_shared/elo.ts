@@ -8,7 +8,6 @@
 import { classifyKernel } from './setClassification.ts'
 
 export function calculateExpected(
-export function calculateExpected(
   playerRating: number,
   opponentRating: number,
   homeAdvantage: number = 0

@@ -9,6 +9,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { reverseGeocode } from '@/lib/geocode'
 import { isPushSupported, subscribeToPush } from '@/lib/push'
+import { GetTheAppCard } from '@/components/shared/GetTheAppCard'
+import { shouldShowGetTheApp } from '@/lib/appInstall'
 
 // ── Preserved exports (DB-backed + localStorage fast-path) ──────────────────
 
@@ -69,6 +71,7 @@ export function OnboardingPage() {
   const { t, i18n } = useTranslation()
 
   const [step, setStep] = useState<Step>('welcome')
+  const [finished, setFinished] = useState(false)
   const [saving, setSaving] = useState(false)
 
   // Language
@@ -184,12 +187,32 @@ export function OnboardingPage() {
     await markOnboardingComplete(user.id)
     await refreshProfile()
     setSaving(false)
+    // Web onboarders (not the native app): show a brief "all set" screen with a
+    // Get-the-app nudge. Invite users get routed to the post-join card by AppShell.
+    if (shouldShowGetTheApp()) { setFinished(true); return }
     navigate('/home', { replace: true })
   }
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
   const currentLangName = LANG_OPTIONS.find(l => l.code === selectedLang)?.label ?? 'English'
+
+  if (finished) {
+    return (
+      <div className="min-h-full bg-white flex flex-col items-center justify-center px-8 text-center">
+        <div className="text-5xl mb-3">🎾</div>
+        <h1 className="text-xl font-bold text-gray-900">You're all set!</h1>
+        <p className="mt-2 text-[14px] text-gray-500">Your account is ready.</p>
+        <GetTheAppCard className="mt-6 w-full max-w-xs" />
+        <button
+          onClick={() => navigate('/home', { replace: true })}
+          className="mt-4 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+        >
+          Continue to Padel Players
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-full bg-white flex flex-col">

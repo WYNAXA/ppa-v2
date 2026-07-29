@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { SplashScreen } from '@/components/shared/SplashScreen'
+import { GetTheAppCard } from '@/components/shared/GetTheAppCard'
+import { shouldShowGetTheApp } from '@/lib/appInstall'
 
 const PENDING_KEY = 'pending_match_invite_token'
 
@@ -25,6 +27,7 @@ export function JoinMatchPage() {
   const [preview, setPreview] = useState<Preview | null>(null)
   const [claiming, setClaiming] = useState(false)
   const [claimError, setClaimError] = useState<string | null>(null)
+  const [claimedMatchId, setClaimedMatchId] = useState<string | null>(null)
 
   // Load a public preview of the invite (works logged-out).
   useEffect(() => {
@@ -45,11 +48,33 @@ export function JoinMatchPage() {
       return
     }
     localStorage.removeItem(PENDING_KEY)
-    if (res?.match_id) navigate(`/matches/${res.match_id}`, { replace: true })
-    else navigate('/home', { replace: true })
+    if (res?.match_id) {
+      // Web onboarders: show a "you're in" screen with a Get-the-app nudge first.
+      if (shouldShowGetTheApp()) { setClaimedMatchId(res.match_id); return }
+      navigate(`/matches/${res.match_id}`, { replace: true })
+    } else {
+      navigate('/home', { replace: true })
+    }
   }
 
   if (loading || !preview) return <SplashScreen />
+
+  if (claimedMatchId) {
+    return (
+      <div className="min-h-full bg-white flex flex-col items-center justify-center px-8 text-center">
+        <div className="text-5xl mb-3">🎾</div>
+        <h1 className="text-xl font-bold text-gray-900">You're in!</h1>
+        <p className="mt-2 text-[14px] text-gray-500">You've joined the match.</p>
+        <GetTheAppCard className="mt-6 w-full max-w-xs" />
+        <button
+          onClick={() => navigate(`/matches/${claimedMatchId}`, { replace: true })}
+          className="mt-4 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+        >
+          Go to the match
+        </button>
+      </div>
+    )
+  }
 
   const dateStr = preview.match_date
     ? (() => { try { return new Date(preview.match_date + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) } catch { return preview.match_date } })()

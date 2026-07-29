@@ -1,61 +1,63 @@
 import { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { IPhoneFrame } from './IPhoneFrame'
 import { useReducedMotion } from './useReducedMotion'
 
 interface TourStop {
   id: string
-  label: string
-  heading: string
-  body: string
+  labelKey: string
+  headingKey: string
+  bodyKey: string
   screenshot: string
-  alt: string
+  altKey: string
 }
 
 const STOPS: TourStop[] = [
   {
     id: 'home',
-    label: 'Home',
-    heading: 'Your dashboard',
-    body: 'See upcoming matches, recent results, and quick actions — all in one place.',
+    labelKey: 'tour.home_label',
+    headingKey: 'tour.home_heading',
+    bodyKey: 'tour.home_body',
     screenshot: '/screenshots/home.png',
-    alt: 'Home dashboard showing upcoming matches',
+    altKey: 'tour.home_alt',
   },
   {
     id: 'play',
-    label: 'Play',
-    heading: 'Find your next match',
-    body: 'Browse open matches near you, create your own in seconds, or let Find My Game auto-match you based on availability.',
+    labelKey: 'tour.play_label',
+    headingKey: 'tour.play_heading',
+    bodyKey: 'tour.play_body',
     screenshot: '/screenshots/match.png',
-    alt: 'Play tab — match discovery and scheduling',
+    altKey: 'tour.play_alt',
   },
   {
     id: 'compete',
-    label: 'Compete',
-    heading: 'Leagues and rankings',
-    body: 'Run leagues with Round Robin or Mexicano formats. Track live standings, seasons, and your global ELO ranking.',
+    labelKey: 'tour.compete_label',
+    headingKey: 'tour.compete_heading',
+    bodyKey: 'tour.compete_body',
     screenshot: '/screenshots/leagues.png',
-    alt: 'Compete tab — league standings and rankings',
+    altKey: 'tour.compete_alt',
   },
   {
     id: 'community',
-    label: 'Community',
-    heading: 'Your padel network',
-    body: 'Create or join groups, discover players and coaches, find venues and events near you.',
+    labelKey: 'tour.community_label',
+    headingKey: 'tour.community_heading',
+    bodyKey: 'tour.community_body',
     screenshot: '/screenshots/community.png',
-    alt: 'Community tab — groups and player discovery',
+    altKey: 'tour.community_alt',
   },
   {
     id: 'you',
-    label: 'You',
-    heading: 'Your profile',
-    body: 'Track your stats, win rate, best streak, and earned badges. Customise your avatar and banner.',
+    labelKey: 'tour.you_label',
+    headingKey: 'tour.you_heading',
+    bodyKey: 'tour.you_body',
     screenshot: '/screenshots/you.png',
-    alt: 'Profile tab — stats, achievements, and settings',
+    altKey: 'tour.you_alt',
   },
 ]
 
 /* ── Desktop: pinned phone with scroll-sync ── */
 function DesktopTour() {
+  const { t } = useTranslation()
   const [activeIdx, setActiveIdx] = useState(0)
   const sectionRefs = useRef<(HTMLDivElement | null)[]>([])
   const reducedMotion = useReducedMotion()
@@ -84,7 +86,7 @@ function DesktopTour() {
           <div className="relative">
             <IPhoneFrame
               src={STOPS[activeIdx].screenshot}
-              alt={STOPS[activeIdx].alt}
+              alt={t(STOPS[activeIdx].altKey)}
               width={280}
             />
             {/* Crossfade overlay — stack all images, hide inactive */}
@@ -116,7 +118,7 @@ function DesktopTour() {
             className="min-h-[70vh] flex flex-col justify-center py-12"
           >
             <span className="inline-block text-[12px] font-bold uppercase tracking-wider text-teal-600 mb-2">
-              {stop.label}
+              {t(stop.labelKey)}
             </span>
             <h3
               className="font-display text-[28px] font-extrabold text-navy leading-tight mb-3"
@@ -125,7 +127,7 @@ function DesktopTour() {
                 transition: reducedMotion ? 'none' : 'opacity 0.3s ease',
               }}
             >
-              {stop.heading}
+              {t(stop.headingKey)}
             </h3>
             <p
               className="text-[15px] text-gray-500 leading-relaxed max-w-md"
@@ -134,7 +136,7 @@ function DesktopTour() {
                 transition: reducedMotion ? 'none' : 'opacity 0.3s ease',
               }}
             >
-              {stop.body}
+              {t(stop.bodyKey)}
             </p>
           </div>
         ))}
@@ -145,6 +147,7 @@ function DesktopTour() {
 
 /* ── Mobile: horizontal scroll-snap carousel ── */
 function MobileTour() {
+  const { t } = useTranslation()
   return (
     <div className="px-4">
       <div className="flex gap-5 overflow-x-auto snap-x snap-mandatory scrollbar-none pb-4 -mx-4 px-4">
@@ -153,13 +156,13 @@ function MobileTour() {
             key={stop.id}
             className="snap-center flex-shrink-0 w-[240px] flex flex-col items-center"
           >
-            <IPhoneFrame src={stop.screenshot} alt={stop.alt} width={220} />
+            <IPhoneFrame src={stop.screenshot} alt={t(stop.altKey)} width={220} />
             <div className="mt-4 text-center">
               <span className="text-[11px] font-bold uppercase tracking-wider text-teal-600">
-                {stop.label}
+                {t(stop.labelKey)}
               </span>
-              <h3 className="font-display text-[16px] font-bold text-navy mt-1">{stop.heading}</h3>
-              <p className="text-[12px] text-gray-500 leading-relaxed mt-1 px-2">{stop.body}</p>
+              <h3 className="font-display text-[16px] font-bold text-navy mt-1">{t(stop.headingKey)}</h3>
+              <p className="text-[12px] text-gray-500 leading-relaxed mt-1 px-2">{t(stop.bodyKey)}</p>
             </div>
           </div>
         ))}
@@ -169,14 +172,15 @@ function MobileTour() {
 }
 
 export function FeatureTour() {
+  const { t } = useTranslation()
   return (
     <section className="bg-cream py-16 sm:py-24">
       <div className="text-center mb-12 px-6">
         <p className="text-[13px] font-semibold text-teal-600 uppercase tracking-wider mb-2">
-          Five hubs, one app
+          {t('tour.section_tagline')}
         </p>
         <h2 className="font-display text-[26px] sm:text-[36px] font-extrabold text-navy">
-          Everything at your fingertips
+          {t('tour.section_heading')}
         </h2>
       </div>
 

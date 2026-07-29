@@ -62,6 +62,43 @@ function googleMapsUrl(lat?: number | null, lng?: number | null, address?: strin
   return '#'
 }
 
+// Venues are worldwide — show the price tier in the venue's own currency.
+const CURRENCY_BY_COUNTRY: Record<string, string> = {
+  GB: '£',
+  IE: '€', ES: '€', IT: '€', FR: '€', DE: '€', PT: '€',
+  NL: '€', BE: '€', AT: '€', GR: '€', FI: '€', HR: '€',
+  SI: '€', SK: '€',
+  US: '$', CA: '$', AU: '$', NZ: '$', SG: '$', MX: '$', AR: '$', CL: '$', CO: '$',
+  BR: 'R$', SE: 'kr', NO: 'kr', DK: 'kr', CH: 'CHF', PL: 'zł', CZ: 'Kč',
+  HU: 'Ft', RO: 'lei', RS: 'din', TR: '₺', AE: 'dh', SA: 'SAR', QA: 'QAR',
+  IN: '₹', JP: '¥', CN: '¥', TH: '฿', MY: 'RM', ZA: 'R',
+  KE: 'KSh', NG: '₦', IL: '₪', MA: 'DH', PE: 'S/',
+}
+
+function currencySymbol(countryCode?: string | null): string {
+  return (countryCode && CURRENCY_BY_COUNTRY[countryCode]) || '£'
+}
+
+// Every seed venue was given the same fabricated opening hours. Treat that exact
+// pattern (and null) as "not confirmed" so we invite the venue to update it rather
+// than presenting invented hours as fact.
+function isSeedDefaultHours(oh: Record<string, { open: string; close: string }> | null): boolean {
+  if (!oh) return false
+  const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
+  const weekend = ['saturday', 'sunday']
+  const wk = weekdays.every(d => oh[d]?.open === '07:00' && oh[d]?.close === '22:00')
+  const we = weekend.every(d => oh[d]?.open === '08:00' && oh[d]?.close === '21:00')
+  return wk && we
+}
+
+function WaitingOnInfo({ text }: { text?: string }) {
+  return (
+    <p className="text-sm text-gray-400 italic">
+      {text ?? 'Waiting on updated information from the venue.'}
+    </p>
+  )
+}
+
 function renderStars(rating: number) {
   return Array.from({ length: 5 }, (_, i) => (
     <Star
@@ -198,8 +235,9 @@ export function VenueDetailPage() {
   // ── Derived values ───────────────────────────────────────────────────────
 
   const totalCourts = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
-  const openStatus = venue?.opening_hours ? getOpenStatus(venue.opening_hours as any) : null
-  const pricingLabel = venue?.pricing_tier ? '\u00A3'.repeat(venue.pricing_tier) : null
+  const hoursConfirmed = !!venue?.opening_hours && !isSeedDefaultHours(venue.opening_hours as any)
+  const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any) : null
+  const pricingLabel = venue?.pricing_tier ? currencySymbol(venue.country_code).repeat(venue.pricing_tier) : null
   const venueFacilities = (venue?.facilities as string[] | null) ?? []
 
   // ── Loading / error states ───────────────────────────────────────────────
@@ -417,9 +455,11 @@ export function VenueDetailPage() {
       )}
 
       {/* 5. Opening Hours */}
-      {venue.opening_hours && (
-        <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Opening Hours</h2>
+      <section className="px-5 mt-6">
+        <h2 className="text-base font-semibold text-gray-900 mb-3">Opening Hours</h2>
+        {!hoursConfirmed ? (
+          <WaitingOnInfo text="Opening hours not confirmed yet — waiting on the venue." />
+        ) : (
           <div className="space-y-1">
             {DAY_ORDER.map((dayKey) => {
               const hours = (venue.opening_hours as any)?.[dayKey]
@@ -453,8 +493,8 @@ export function VenueDetailPage() {
               )
             })}
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* 6. Facilities */}
       {venueFacilities.length > 0 && (
@@ -484,17 +524,17 @@ export function VenueDetailPage() {
       )}
 
       {/* 7. About */}
-      {venue.description && (
-        <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-2">About</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">{venue.description}</p>
-          {venue.is_members_only && (
-            <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-              Members only {venue.membership_required ? `\u2014 ${venue.membership_required}` : ''}
-            </div>
-          )}
-        </section>
-      )}
+      <section className="px-5 mt-6">
+        <h2 className="text-base font-semibold text-gray-900 mb-2">About</h2>
+        {venue.description
+          ? <p className="text-sm text-gray-600 leading-relaxed">{venue.description}</p>
+          : <WaitingOnInfo />}
+        {venue.is_members_only && (
+          <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+            Members only {venue.membership_required ? `\u2014 ${venue.membership_required}` : ''}
+          </div>
+        )}
+      </section>
 
       {/* 8. Rate this venue */}
       {hasPlayed && userId && (

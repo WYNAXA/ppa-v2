@@ -64,8 +64,12 @@ export function ForVenuesPage() {
           <span className="text-[#009688]">Take bookings online.</span>
         </h1>
         <p className="mt-4 text-[16px] sm:text-[18px] text-gray-500 max-w-2xl mx-auto leading-relaxed">
-          Free venue management tools. List your courts, set your availability and pricing,
-          and let players discover and book directly. No commission, no lock-in.
+          Free to start — no monthly fee, no lock-in. List your courts, set your availability
+          and pricing, and let players discover and book you directly. You only pay a small
+          fee on bookings taken and paid in-app.
+        </p>
+        <p className="mt-3 text-[13px] font-semibold text-[#009688]">
+          Founding offer: the first 100 venues get Hub Core free for life at a flat 2.25% booking fee.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
@@ -91,8 +95,8 @@ export function ForVenuesPage() {
             {[
               { icon: Building2, title: 'Court management', desc: 'Set up your courts, surfaces, and capacity. Indoor, outdoor, covered — all supported.' },
               { icon: CalendarCheck, title: 'Availability & scheduling', desc: 'Define opening hours and block times. Players see real-time availability.' },
-              { icon: CreditCard, title: 'Online bookings & payments', desc: 'Accept bookings and payments directly. Stripe integration, no commission.' },
-              { icon: Users, title: 'Player discovery', desc: '281 venues listed. Players in your area find and book your courts through the PPA app.' },
+              { icon: CreditCard, title: 'Online bookings & payments', desc: 'Accept bookings and payments directly via Stripe. A small fee only on what you take in-app.' },
+              { icon: Users, title: 'Player discovery', desc: 'Padel venues listed worldwide. Players in your area find and book your courts through the PPA app.' },
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-2xl bg-white border border-gray-100 p-5">
                 <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center mb-4">
@@ -111,7 +115,7 @@ export function ForVenuesPage() {
         <div className="max-w-2xl mx-auto px-5">
           <h2 className="text-[24px] font-bold text-gray-900 text-center mb-3">Your venue is probably already listed</h2>
           <p className="text-[14px] text-gray-500 text-center mb-8">
-            We have 281 padel venues in the UK. Search below — if yours is here, claim it to control your listing.
+            We list padel venues worldwide. Search below — if yours is here, claim it to control your listing.
           </p>
 
           <div className="relative">
@@ -191,7 +195,7 @@ export function ForVenuesPage() {
             <div className="rounded-2xl bg-white border border-gray-100 p-5">
               <p className="text-[28px] mb-2">💳</p>
               <h3 className="text-[14px] font-bold text-gray-900 mb-1">Take bookings directly</h3>
-              <p className="text-[12px] text-gray-500">No commission. Players book and pay through the app. You keep 100%.</p>
+              <p className="text-[12px] text-gray-500">Players book and pay through the app — a small fee only on in-app bookings. Send them to your own link and we take nothing.</p>
             </div>
           </div>
         </div>
@@ -202,7 +206,7 @@ export function ForVenuesPage() {
         <div className="max-w-2xl mx-auto px-5 text-center">
           <h2 className="text-[24px] font-bold text-gray-900 mb-4">Ready to get started?</h2>
           <p className="text-[14px] text-gray-500 mb-8">
-            Set up in under 5 minutes. No commitment, no fees.
+            Set up in under 5 minutes. Free to start, no lock-in — cancel anytime.
           </p>
           <a
             href={VM_URL + '/onboarding'}

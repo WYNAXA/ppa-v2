@@ -9,8 +9,6 @@ import { shareMatchInvite, pickContact, isContactPickerSupported } from '@/lib/i
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import type { Match } from '@/lib/types'
 
-function isGuestSlot(id: string): boolean { return id.startsWith('guest_') }
-
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name: string | null }
 interface PlayerProfile { id: string; name: string; avatar_url: string | null }
@@ -77,22 +75,21 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   const queryClient    = useQueryClient()
   const { profile }    = useAuth()
 
-  // Resolve names for guest slots (guest_<token>) from match_guest_invites.
+  // Guest slots are placeholder UUIDs in player_ids; resolve their names from
+  // match_guest_invites (a player_id is a guest iff it appears in this map).
   const { data: guestNameMap = {} } = useQuery<Record<string, string>>({
-    queryKey: ['match-guest-names', match.id, playerIds.filter(isGuestSlot).join(',')],
+    queryKey: ['match-guest-names', match.id],
     queryFn: async () => {
-      const slots = playerIds.filter(isGuestSlot)
-      if (slots.length === 0) return {}
       const { data } = await supabase
         .from('match_guest_invites')
-        .select('slot_player_id, guest_name')
+        .select('slot_player_id, guest_name, status')
         .eq('match_id', match.id)
-        .in('slot_player_id', slots)
+        .neq('status', 'cancelled')
       const map: Record<string, string> = {}
       for (const r of data ?? []) map[r.slot_player_id as string] = r.guest_name as string
       return map
     },
-    enabled: open && playerIds.some(isGuestSlot),
+    enabled: open,
   })
 
   useEffect(() => {
@@ -417,7 +414,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                   </label>
                   <div className="space-y-2 mb-2">
                     {playerIds.map((pid, idx) => {
-                      const guest = isGuestSlot(pid)
+                      const guest = !!guestNameMap[pid]
                       const p = matchPlayers.find((m) => m.id === pid)
                       const displayName = guest ? (guestNameMap[pid] ?? 'Guest') : (p?.name ?? pid)
                       return (

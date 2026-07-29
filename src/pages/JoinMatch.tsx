@@ -103,7 +103,7 @@ export function JoinMatchPage() {
             <>
               <p className="mt-5 text-[13px] text-gray-500">Create your free account to join — it takes a few seconds.</p>
               <button
-                onClick={() => { localStorage.setItem(PENDING_KEY, token); navigate('/auth') }}
+                onClick={() => { localStorage.setItem(PENDING_KEY, token); navigate(`/auth?invite=${token}&mode=signup`) }}
                 className="mt-3 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
               >
                 Sign up / Log in to join

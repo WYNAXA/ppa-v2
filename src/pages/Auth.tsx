@@ -8,6 +8,10 @@ export function AuthPage() {
   const { session, loading } = useAuth()
   const { t } = useTranslation()
   const [searchParams] = useSearchParams()
+  // Match-invite token carried through auth so email-confirm / cross-device
+  // sign-up still lands the new player back on the invite to join.
+  const invite = searchParams.get('invite')
+  const postAuthTarget = invite ? `/join/match/${invite}` : '/home'
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin'
   const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>(initialMode)
   const [email, setEmail] = useState('')
@@ -25,7 +29,7 @@ export function AuthPage() {
     )
   }
 
-  if (session) return <Navigate to="/home" replace />
+  if (session) return <Navigate to={postAuthTarget} replace />
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -34,7 +38,7 @@ export function AuthPage() {
 
     const { error } = await supabase.auth.signInWithOtp({
       email,
-      options: { emailRedirectTo: `${window.location.origin}/home` },
+      options: { emailRedirectTo: `${window.location.origin}${postAuthTarget}` },
     })
 
     setSubmitting(false)
@@ -83,7 +87,7 @@ export function AuthPage() {
       password,
       options: {
         data: { name: trimmedName },
-        emailRedirectTo: `${window.location.origin}/auth`,
+        emailRedirectTo: invite ? `${window.location.origin}/join/match/${invite}` : `${window.location.origin}/auth`,
       },
     })
     setSubmitting(false)

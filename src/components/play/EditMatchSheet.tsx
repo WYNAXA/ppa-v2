@@ -64,6 +64,9 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
     match.notes?.split('\n').filter((line) => !line.startsWith('Guests:')).join('\n') ?? ''
   )
   const [playerIds, setPlayerIds]     = useState<string[]>(match.player_ids ?? [])
+  // Legacy guests were stored as names in notes ("Guests: A, B"), not in player_ids.
+  const [legacyGuests, setLegacyGuests] = useState<string[]>([])
+  // replacingIdx: index of the slot being replaced; -1 = adding a new slot.
   const [replacingIdx, setReplacingIdx] = useState<number | null>(null)
   const [playerSearch, setPlayerSearch] = useState('')
   const [playerResults, setPlayerResults] = useState<PlayerProfile[]>([])
@@ -104,6 +107,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       setSelectedCourtId('')
       setCourtNumber(match.booked_court_number?.toString() ?? '')
       setPlayerIds(match.player_ids ?? [])
+      setLegacyGuests(match.notes?.match(/Guests: (.+)/)?.[1]?.split(',').map((s) => s.trim()).filter(Boolean) ?? [])
       setReplacingIdx(null)
       setPlayerSearch('')
       setPlayerResults([])
@@ -166,7 +170,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const guestsLine = match.notes?.split('\n').find((line) => line.startsWith('Guests:')) ?? ''
+      const guestsLine = legacyGuests.length ? `Guests: ${legacyGuests.join(', ')}` : ''
       const savedNotes = [notes.trim(), guestsLine].filter(Boolean).join('\n') || null
 
       let resolvedCourtNumber: number | null = null
@@ -194,15 +198,17 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
     },
   })
 
-  // Replace a slot with a brand-new (non-PPA) player: creates a real guest slot +
-  // invite link on the server, mirrors it into local state (so Save stays
+  // Add or replace a slot with a brand-new (non-PPA) player: creates a real guest
+  // slot + invite link on the server, mirrors it into local state (so Save stays
   // consistent), and opens the native share sheet to send the link.
+  // replacingIdx === -1 means "add"; >= 0 means "replace that slot".
   const inviteGuestMutation = useMutation({
     mutationFn: async () => {
       if (replacingIdx === null) return null
       const name = guestName.trim()
       if (!name) return null
-      const replacePid = playerIds[replacingIdx]
+      const isAdd = replacingIdx === -1
+      const replacePid = isAdd ? null : playerIds[replacingIdx]
       const { data, error } = await supabase.rpc('create_match_guest_invite', {
         p_match_id: match.id,
         p_guest_name: name,
@@ -210,11 +216,12 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
         p_replace_player_id: replacePid,
       })
       if (error) throw error
-      return { ...(data as { token?: string; slot?: string }), idx: replacingIdx, name }
+      return { ...(data as { token?: string; slot?: string }), idx: replacingIdx, name, isAdd }
     },
     onSuccess: async (res) => {
-      if (res?.slot != null && res.idx != null) {
-        setPlayerIds((prev) => prev.map((id, i) => (i === res.idx ? res.slot! : id)))
+      if (res?.slot != null) {
+        if (res.isAdd) setPlayerIds((prev) => [...prev, res.slot!])
+        else if (res.idx != null && res.idx >= 0) setPlayerIds((prev) => prev.map((id, i) => (i === res.idx ? res.slot! : id)))
       }
       setReplacingIdx(null)
       setInvitingNew(false)
@@ -431,14 +438,48 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                           >
                             Replace
                           </button>
+                          <button
+                            type="button"
+                            onClick={() => setPlayerIds((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-gray-300 hover:text-red-500 px-1"
+                            aria-label="Remove player"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
                         </div>
                       )
                     })}
+                    {legacyGuests.map((g, gi) => (
+                      <div key={`lg-${gi}`} className="flex items-center gap-2">
+                        <PlayerAvatar name={g} avatarUrl={null} size="sm" />
+                        <span className="flex-1 text-[13px] text-gray-800 truncate">
+                          {g}
+                          <span className="ml-1.5 text-[10px] font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded px-1 py-0.5">guest</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setLegacyGuests((prev) => prev.filter((_, i) => i !== gi))}
+                          className="text-gray-300 hover:text-red-500 px-1"
+                          aria-label="Remove guest"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    ))}
                   </div>
+                  {replacingIdx === null && (playerIds.length + legacyGuests.length) < 4 && (
+                    <button
+                      type="button"
+                      onClick={() => { setReplacingIdx(-1); setPlayerSearch(''); setPlayerResults([]); setInvitingNew(false); setGuestName(''); setGuestContact('') }}
+                      className="mb-2 w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-teal-200 py-2.5 text-[12px] font-semibold text-teal-700 hover:bg-teal-50/40"
+                    >
+                      <UserPlus className="h-4 w-4" /> Add player
+                    </button>
+                  )}
                   {replacingIdx !== null && (
                     <div className="border border-gray-200 rounded-xl p-3">
                       <p className="text-[12px] text-gray-500 mb-2">
-                        Replacing player {replacingIdx + 1} — search for new player:
+                        {replacingIdx === -1 ? 'Add a player — search by name:' : `Replacing player ${replacingIdx + 1} — search by name:`}
                       </p>
                       <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
@@ -458,7 +499,9 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                               key={pr.id}
                               type="button"
                               onClick={() => {
-                                setPlayerIds((prev) => prev.map((id, i) => i === replacingIdx ? pr.id : id))
+                                setPlayerIds((prev) => replacingIdx === -1
+                                  ? (prev.includes(pr.id) ? prev : [...prev, pr.id])
+                                  : prev.map((id, i) => i === replacingIdx ? pr.id : id))
                                 setReplacingIdx(null)
                                 setPlayerSearch('')
                                 setPlayerResults([])

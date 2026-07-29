@@ -52,7 +52,7 @@ CREATE OR REPLACE FUNCTION public.create_match_guest_invite(
 ) RETURNS jsonb
 LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public' AS $$
 DECLARE
-  v_token text := encode(gen_random_bytes(9), 'hex');   -- 18 hex chars, url-safe
+  v_token text := replace(gen_random_uuid()::text, '-', '');   -- 32 hex chars, url-safe (no pgcrypto dep)
   v_slot  uuid := gen_random_uuid();
   v_pids  uuid[];
   v_id    uuid;

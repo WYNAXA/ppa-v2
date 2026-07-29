@@ -28,5 +28,4 @@ export function mobilePlatform(): MobilePlatform {
 }
 
 export const APP_STORE_URL = 'https://apps.apple.com/app/id6762192246'
-// TODO: confirm the real Play Store package id (placeholder below).
-export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.padelplayersapp'
+export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.wynaxa.padelplayers'

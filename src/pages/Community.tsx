@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { formatDistance } from '@/lib/travelUtils'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateGroupSheet } from '@/components/community/CreateGroupSheet'
@@ -692,39 +693,150 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
 
 // ── Nearby Venues ────────────────────────────────────────────────────────────
 
-function NearbyVenuesSection({ userCity }: { userCity?: string | null }) {
+interface NearbyVenue {
+  venue_id: string
+  venue_name: string
+  city: string | null
+  country_code?: string | null
+  indoor_courts?: number | null
+  outdoor_courts?: number | null
+  covered_courts?: number | null
+  ppa_bookable?: boolean | null
+  rating?: number | null
+  photos?: unknown
+  distance_miles?: number | null
+}
+
+type GeoState = 'idle' | 'locating' | 'denied' | 'unavailable'
+
+function firstPhoto(photos: unknown): string | null {
+  if (Array.isArray(photos) && typeof photos[0] === 'string') return photos[0]
+  return null
+}
+
+function NearbyVenuesSection({
+  profile,
+}: {
+  profile?: { city?: string | null; latitude?: number | null; longitude?: number | null } | null
+}) {
   const { t } = useTranslation()
   const navigate = useNavigate()
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [geoState, setGeoState] = useState<GeoState>('idle')
 
-  const { data: venues = [] } = useQuery({
-    queryKey: ['nearby-venues-community', userCity],
+  const requestLocation = (fromButton: boolean) => {
+    if (!('geolocation' in navigator)) { setGeoState('unavailable'); return }
+    if (fromButton) setGeoState('locating')
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        setCoords(c)
+        setGeoState('idle')
+        try { sessionStorage.setItem('ppa_user_coords', JSON.stringify(c)) } catch { /* ignore */ }
+      },
+      (err) => setGeoState(err.code === err.PERMISSION_DENIED ? 'denied' : 'unavailable'),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 5 * 60 * 1000 },
+    )
+  }
+
+  // Seed from last-known coords (this session), else the profile's stored coords.
+  useEffect(() => {
+    const cached = sessionStorage.getItem('ppa_user_coords')
+    if (cached) { try { setCoords(JSON.parse(cached)); return } catch { /* ignore */ } }
+    if (profile?.latitude != null && profile?.longitude != null) {
+      setCoords({ lat: profile.latitude, lng: profile.longitude })
+    }
+  }, [profile?.latitude, profile?.longitude])
+
+  // If the user already granted location, silently upgrade to their live position.
+  useEffect(() => {
+    if (!('geolocation' in navigator) || !navigator.permissions) return
+    navigator.permissions.query({ name: 'geolocation' as PermissionName })
+      .then((res) => { if (res.state === 'granted') requestLocation(false) })
+      .catch(() => { /* Permissions API unsupported — rely on the button */ })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const { data: venues = [] } = useQuery<NearbyVenue[]>({
+    queryKey: ['nearby-venues-community', coords?.lat, coords?.lng, profile?.city],
     queryFn: async () => {
-      let q = supabase
-        .from('padel_venues')
-        .select('venue_id, venue_name, city, indoor_courts, outdoor_courts, ppa_bookable, rating')
-        .limit(8)
-      if (userCity) q = q.ilike('city', `%${userCity}%`)
-      const { data } = await q
-      return data ?? []
+      if (coords) {
+        const { data, error } = await supabase.rpc('venues_near', {
+          p_lat: coords.lat, p_lng: coords.lng, p_radius_miles: 100, p_limit: 10,
+        })
+        if (!error && data) return data as NearbyVenue[]
+      }
+      // Fallback only when we have no coordinates at all: legacy city text match.
+      if (profile?.city) {
+        const { data } = await supabase
+          .from('padel_venues')
+          .select('venue_id, venue_name, city, country_code, indoor_courts, outdoor_courts, covered_courts, ppa_bookable, rating, photos')
+          .ilike('city', `%${profile.city}%`)
+          .limit(8)
+        return (data ?? []) as NearbyVenue[]
+      }
+      return []
     },
   })
 
-  if (venues.length === 0) return null
+  const canAskLocation = geoState !== 'denied' && geoState !== 'unavailable'
 
   return (
     <section>
-      <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.padel_courts_near')}</h2>
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-[16px] font-bold text-gray-900">{t('community.padel_courts_near')}</h2>
+        {canAskLocation && (
+          <button
+            onClick={() => requestLocation(true)}
+            className="flex items-center gap-1 text-[12px] font-semibold text-teal-700 active:scale-95 transition-transform"
+          >
+            <MapPin size={13} />
+            {geoState === 'locating' ? t('community.courts_near_locating') : t('community.courts_near_use_location')}
+          </button>
+        )}
+      </div>
+
+      {venues.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
+          <p className="text-[13px] font-semibold text-gray-700">{t('community.courts_near_empty_title')}</p>
+          <p className="text-[12px] text-gray-400 mt-1 max-w-[280px] mx-auto">
+            {geoState === 'denied' ? t('community.courts_near_denied_sub') : t('community.courts_near_empty_sub')}
+          </p>
+          {canAskLocation && (
+            <button
+              onClick={() => requestLocation(true)}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-teal-600 text-white text-[13px] font-semibold px-4 py-2 active:scale-95 transition-transform"
+            >
+              <MapPin size={14} />
+              {geoState === 'locating' ? t('community.courts_near_locating') : t('community.courts_near_use_location')}
+            </button>
+          )}
+        </div>
+      ) : (
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
         {venues.map((v) => {
-          const courts = (v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0)
+          const courts = (v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0) + (v.covered_courts ?? 0)
+          const hero = firstPhoto(v.photos)
+          const distance = typeof v.distance_miles === 'number' ? v.distance_miles : null
           return (
             <button
               key={v.venue_id}
               onClick={() => navigate(`/venues/${v.venue_id}`)}
               className="flex-shrink-0 w-48 rounded-2xl border border-gray-100 bg-white overflow-hidden text-left active:scale-[0.97] transition-transform"
             >
-              <div className="h-20 bg-gradient-to-br from-teal-600 to-teal-400 flex items-center justify-center">
-                <span className="text-3xl">🎾</span>
+              <div className="h-20 relative">
+                {hero ? (
+                  <img src={hero} alt={v.venue_name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="h-full bg-gradient-to-br from-teal-600 to-teal-400 flex items-center justify-center">
+                    <span className="text-3xl">🎾</span>
+                  </div>
+                )}
+                {distance != null && (
+                  <span className="absolute top-1.5 right-1.5 text-[10px] font-semibold text-white bg-black/45 backdrop-blur rounded-full px-1.5 py-0.5">
+                    {t('community.courts_near_away', { distance: formatDistance(distance) })}
+                  </span>
+                )}
               </div>
               <div className="px-3 py-2.5">
                 <p className="text-[13px] font-bold text-gray-900 truncate">{v.venue_name}</p>
@@ -742,6 +854,7 @@ function NearbyVenuesSection({ userCity }: { userCity?: string | null }) {
           )
         })}
       </div>
+      )}
     </section>
   )
 }
@@ -1332,7 +1445,7 @@ export function CommunityPage() {
 
         {/* ── Nearby Venues ── */}
         <section ref={venuesRef as React.RefObject<HTMLElement>} id="venues" style={{ scrollMarginTop: '120px' }}>
-          <NearbyVenuesSection userCity={profile?.city} />
+          <NearbyVenuesSection profile={profile} />
         </section>
       </div>
 

@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe } from 'lucide-react'
+import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, QrCode, X } from 'lucide-react'
+import QRCodeSVG from 'react-qr-code'
 import { format } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { isSuperAdmin, venueClaimUrl } from '@/lib/admin'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { calculateDistance } from '@/lib/travelUtils'
@@ -84,6 +86,8 @@ export function VenueDetailPage() {
   const locale = useDateLocale()
   const [userRating, setUserRating] = useState(0)
   const [userReview, setUserReview] = useState('')
+  const [showClaimQr, setShowClaimQr] = useState(false)
+  const isAdmin = isSuperAdmin(user?.email)
 
   // ── Queries ──────────────────────────────────────────────────────────────
 
@@ -333,6 +337,49 @@ export function VenueDetailPage() {
           <MapPin size={16} /> Directions
         </button>
       </div>
+
+      {/* Admin-only: QR to hand to the venue owner to claim this venue in the Hub */}
+      {isAdmin && venueId && (
+        <div className="px-5 mt-3">
+          <button
+            onClick={() => setShowClaimQr(true)}
+            className="w-full rounded-xl border border-dashed border-teal-300 bg-teal-50 text-teal-800 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+          >
+            <QrCode size={16} /> Show claim QR (admin)
+          </button>
+        </div>
+      )}
+
+      {/* Claim-QR modal */}
+      {showClaimQr && venueId && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4"
+          onClick={() => setShowClaimQr(false)}
+        >
+          <div
+            className="w-full max-w-sm rounded-3xl bg-white p-6 text-center relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowClaimQr(false)}
+              className="absolute top-4 right-4 text-gray-400 active:scale-90 transition-transform"
+              aria-label="Close"
+            >
+              <X size={20} />
+            </button>
+            <p className="text-[13px] font-semibold text-teal-700">Claim this venue on Wynaxa Hub</p>
+            <h3 className="text-lg font-bold text-gray-900 mt-0.5 mb-4">{venue.venue_name}</h3>
+            <div className="bg-white p-4 rounded-2xl border border-gray-100 inline-block">
+              <QRCodeSVG value={venueClaimUrl(venueId)} size={200} />
+            </div>
+            <p className="text-[12px] text-gray-500 mt-4 leading-relaxed">
+              Ask the owner to scan this with their phone camera. It opens the Hub where they can
+              claim, sign in, or add their venue.
+            </p>
+            <p className="text-[10px] text-gray-300 mt-3 break-all">{venueClaimUrl(venueId)}</p>
+          </div>
+        </div>
+      )}
 
       {/* 4. Courts */}
       {totalCourts > 0 && (

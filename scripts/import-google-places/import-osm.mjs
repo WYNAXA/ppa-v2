@@ -146,7 +146,13 @@ const GENERIC_TOKENS = new Set([
 // A name is "generic" (a bare court, not a venue) if nothing brand-like remains
 // after removing generic tokens and numbers.
 function isGenericCourtName(name) {
-  const toks = normName(name).split(' ').filter((t) => t && !/^\d+$/.test(t) && !GENERIC_TOKENS.has(t));
+  const n = normName(name);
+  // Individual courts often carry a brand/sponsor word but are still just a court,
+  // e.g. "Court 2 (Nicolas Cage)", "CUPRA Center Court 1", "Show Court 1",
+  // "Outdoor Spree 2", "Court P1". Treat "(center) court <n>" patterns as courts.
+  if (/\b(center |centre )?court\s*[a-z]?\d+\b/.test(n)) return true;
+  if (/\b(outdoor|indoor|show|centre|center)\s+(court|spree)\s*\d+\b/.test(n)) return true;
+  const toks = n.split(' ').filter((t) => t && !/^\d+$/.test(t) && !GENERIC_TOKENS.has(t));
   return toks.length === 0;
 }
 

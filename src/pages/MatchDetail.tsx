@@ -380,6 +380,23 @@ export function MatchDetailPage() {
     enabled: !!id,
   })
 
+  // Guest-slot names (guest_<token> placeholders) resolved from match_guest_invites.
+  const guestSlotIds = (data?.match?.player_ids ?? []).filter((pid: string) => pid.startsWith('guest_'))
+  const { data: guestNameMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ['match-guest-names', id, guestSlotIds.join(',')],
+    enabled: !!id && guestSlotIds.length > 0,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from('match_guest_invites')
+        .select('slot_player_id, guest_name')
+        .eq('match_id', id!)
+        .in('slot_player_id', guestSlotIds)
+      const m: Record<string, string> = {}
+      for (const r of rows ?? []) m[r.slot_player_id as string] = r.guest_name as string
+      return m
+    },
+  })
+
   // Linked booking (for cross-link to booking status)
   const { data: linkedBooking } = useQuery<{ id: string; status: string; reservation_state: string | null; payment_state: string | null; source: string | null } | null>({
     queryKey: ['match-booking', id],
@@ -1227,18 +1244,27 @@ export function MatchDetailPage() {
     }
   }
 
-  // Parse guest names stored in notes as "Guests: Name1, Name2"
-  const guestNames = match.notes
-    ?.match(/Guests: (.+)/)?.[1]
-    ?.split(', ') ?? []
+  // Guest names: new guests resolve from match_guest_invites (guestNameMap);
+  // legacy guests were stored in notes as "Guests: Name1, Name2".
+  const legacyGuestNames = match.notes?.match(/Guests: (.+)/)?.[1]?.split(', ') ?? []
+  const guestSlotList = playerIds.filter((p) => p.startsWith('guest_'))
 
   const SLOT_COUNT = 4
   const slots = Array.from({ length: SLOT_COUNT }, (_, i) => {
     const pid = playerIds[i]
-    if (pid) return players.find((p) => p.id === pid) ?? { id: pid, name: t('match.unknown_player') }
-    const guestIndex = i - playerIds.length
-    if (guestIndex >= 0 && guestIndex < guestNames.length) {
-      return { id: `guest_${i}`, name: guestNames[guestIndex], isGuest: true as const }
+    if (pid) {
+      if (pid.startsWith('guest_')) {
+        const legacyIdx = guestSlotList.indexOf(pid)
+        const name = guestNameMap[pid] ?? legacyGuestNames[legacyIdx] ?? t('match.guest', 'Guest')
+        return { id: pid, name, isGuest: true as const }
+      }
+      return players.find((p) => p.id === pid) ?? { id: pid, name: t('match.unknown_player') }
+    }
+    // Legacy: guest names in notes with no player_ids slot
+    const trailingNames = legacyGuestNames.slice(guestSlotList.length)
+    const trailingIdx = i - playerIds.length
+    if (trailingIdx >= 0 && trailingIdx < trailingNames.length) {
+      return { id: `guest_${i}`, name: trailingNames[trailingIdx], isGuest: true as const }
     }
     return null
   })

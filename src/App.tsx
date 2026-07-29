@@ -48,6 +48,7 @@ const AllPlayersPage = lazy(() => import('@/pages/community/AllPlayersPage').the
 const MyConnectionsPage = lazy(() => import('@/pages/community/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
 const OpenMatchesPage = lazy(() => import('@/pages/OpenMatches').then(m => ({ default: m.OpenMatchesPage })))
 const VenueEventDetailPage = lazy(() => import('@/pages/VenueEventDetail').then(m => ({ default: m.VenueEventDetailPage })))
+const JoinMatchPage = lazy(() => import('@/pages/JoinMatch').then(m => ({ default: m.JoinMatchPage })))
 
 
 const queryClient = new QueryClient({
@@ -115,9 +116,21 @@ function ScrollToTop() {
 }
 
 function AppShell() {
-  const { session, loading } = useAuth()
+  const { session, profile, loading } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // After a new player signs up via a match-invite link, bring them back to the
+  // invite once their profile is complete so they can join (see JoinMatch page).
+  useEffect(() => {
+    if (!session || !profile || !isOnboardingComplete(profile)) return
+    if (location.pathname.startsWith('/join/')) return
+    const pending = localStorage.getItem('pending_match_invite_token')
+    if (pending) {
+      localStorage.removeItem('pending_match_invite_token')
+      navigate(`/join/match/${pending}`, { replace: true })
+    }
+  }, [session, profile, location.pathname, navigate])
 
   // ── Native iOS push-notification-click relay ──────────────────────────────
   // The native wrapper (ppa-ios AppDelegate) dispatches a CustomEvent with the
@@ -200,6 +213,9 @@ function AppShell() {
             <Route path="/contact" element={<ContactPage />} />
             <Route path="/venues" element={<ForVenuesPage />} />
             <Route path="/pay/booking/:bookingId/player/:playerId" element={<PayBookingPage />} />
+
+            {/* Guest match-invite deep link (public — new players land here) */}
+            <Route path="/join/match/:token" element={<JoinMatchPage />} />
 
             {/* Onboarding */}
             <Route path="/onboarding" element={<Guard><OnboardingPage /></Guard>} />

@@ -5,7 +5,11 @@ import { X, Search, UserPlus } from 'lucide-react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/lib/supabase'
 import { sendNotification } from '@/lib/notifications'
+import { useAuth } from '@/hooks/useAuth'
+import { shareMatchInvite, pickContact, isContactPickerSupported } from '@/lib/invites'
+import { toast } from 'sonner'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { UserRound } from 'lucide-react'
 
 interface PlayerResult {
   id: string
@@ -32,6 +36,7 @@ function useDebounce<T>(value: T, delay: number) {
 
 export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: InvitePlayerSheetProps) {
   const { t } = useTranslation()
+  const { profile } = useAuth()
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<PlayerResult[]>([])
   const [searching, setSearching] = useState(false)
@@ -93,37 +98,37 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
     },
   })
 
+  // Add a new (non-PPA) player: creates a real guest slot + shareable invite link,
+  // then opens the native share sheet so the host can send it via WhatsApp/Messages.
   const guestMutation = useMutation({
     mutationFn: async () => {
-      if (!guestName.trim()) return
-      const guestId = `guest_${Date.now()}`
-      const newPlayerIds = [...currentPlayerIds, guestId]
-
-      // Fetch current match to get notes
-      const { data: matchData } = await supabase
-        .from('matches')
-        .select('notes')
-        .eq('id', matchId)
-        .single()
-
-      const existingNotes = matchData?.notes ?? ''
-      const guestLine = existingNotes.includes('Guests:')
-        ? existingNotes.replace(/Guests: (.+)/, `Guests: $1, ${guestName.trim()}`)
-        : existingNotes + (existingNotes ? '\n' : '') + `Guests: ${guestName.trim()}`
-
-      const { error } = await supabase.from('matches').update({
-        player_ids: newPlayerIds,
-        notes: guestLine,
-        ...(newPlayerIds.length >= 4 ? { status: 'scheduled' } : {}),
-      }).eq('id', matchId)
+      const name = guestName.trim()
+      if (!name) return null
+      const { data, error } = await supabase.rpc('create_match_guest_invite', {
+        p_match_id: matchId,
+        p_guest_name: name,
+        p_contact: guestContact.trim() || null,
+      })
       if (error) throw error
+      return (data as { token?: string })?.token ?? null
     },
-    onSuccess: () => {
+    onSuccess: async (token) => {
       queryClient.invalidateQueries({ queryKey: ['match', matchId] })
       queryClient.invalidateQueries({ queryKey: ['matches'] })
+      if (token) {
+        const res = await shareMatchInvite({ token, guestName: guestName.trim(), inviterName: profile?.name })
+        if (res === 'copied') toast.success(t('invite.link_copied', 'Invite link copied — paste it to them'))
+      }
       onClose()
     },
   })
+
+  async function chooseFromContacts() {
+    const c = await pickContact()
+    if (!c) return
+    if (c.name) setGuestName(c.name)
+    if (c.tel || c.email) setGuestContact(c.tel ?? c.email ?? '')
+  }
 
   return (
     <AnimatePresence>
@@ -228,6 +233,15 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
               ) : (
                 <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
                   <p className="text-[13px] font-bold text-gray-700">{t('invite.add_guest_title')}</p>
+                  {isContactPickerSupported() && (
+                    <button
+                      type="button"
+                      onClick={chooseFromContacts}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white py-2.5 text-[13px] font-semibold text-teal-700"
+                    >
+                      <UserRound className="h-4 w-4" /> {t('invite.from_contacts', 'Choose from contacts')}
+                    </button>
+                  )}
                   <input
                     type="text"
                     value={guestName}
@@ -240,9 +254,10 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                     type="text"
                     value={guestContact}
                     onChange={(e) => setGuestContact(e.target.value)}
-                    placeholder={t('invite.guest_contact_placeholder')}
+                    placeholder={t('invite.guest_contact_optional', 'Phone or email (optional)')}
                     className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
                   />
+                  <p className="text-[11px] text-gray-400 leading-snug">{t('invite.guest_share_hint', "We'll create an invite link — the share sheet opens so you can send it via WhatsApp or Messages. No number needed.")}</p>
                   {guestMutation.isError && (
                     <p className="text-[12px] text-red-500">{t('invite.add_guest_failed')}</p>
                   )}
@@ -258,7 +273,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                       disabled={!guestName.trim() || guestMutation.isPending}
                       className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
                     >
-                      {guestMutation.isPending ? t('invite.adding_guest') : t('invite.add_guest_button')}
+                      {guestMutation.isPending ? t('invite.adding_guest') : t('invite.invite_and_share', 'Invite & share link')}
                     </button>
                   </div>
                 </div>

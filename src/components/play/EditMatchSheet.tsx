@@ -1,10 +1,15 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, MapPin, Search, Users } from 'lucide-react'
+import { X, MapPin, Search, Users, UserPlus, UserRound } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/hooks/useAuth'
+import { shareMatchInvite, pickContact, isContactPickerSupported } from '@/lib/invites'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import type { Match } from '@/lib/types'
+
+function isGuestSlot(id: string): boolean { return id.startsWith('guest_') }
 
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name: string | null }
@@ -64,9 +69,31 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   const [replacingIdx, setReplacingIdx] = useState<number | null>(null)
   const [playerSearch, setPlayerSearch] = useState('')
   const [playerResults, setPlayerResults] = useState<PlayerProfile[]>([])
+  const [invitingNew, setInvitingNew] = useState(false)
+  const [guestName, setGuestName]     = useState('')
+  const [guestContact, setGuestContact] = useState('')
   const debouncedPlayerSearch = useDebounce(playerSearch, 280)
   const debouncedQuery = useDebounce(venueQuery, 280)
   const queryClient    = useQueryClient()
+  const { profile }    = useAuth()
+
+  // Resolve names for guest slots (guest_<token>) from match_guest_invites.
+  const { data: guestNameMap = {} } = useQuery<Record<string, string>>({
+    queryKey: ['match-guest-names', match.id, playerIds.filter(isGuestSlot).join(',')],
+    queryFn: async () => {
+      const slots = playerIds.filter(isGuestSlot)
+      if (slots.length === 0) return {}
+      const { data } = await supabase
+        .from('match_guest_invites')
+        .select('slot_player_id, guest_name')
+        .eq('match_id', match.id)
+        .in('slot_player_id', slots)
+      const map: Record<string, string> = {}
+      for (const r of data ?? []) map[r.slot_player_id as string] = r.guest_name as string
+      return map
+    },
+    enabled: open && playerIds.some(isGuestSlot),
+  })
 
   useEffect(() => {
     if (open) {
@@ -83,6 +110,9 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       setReplacingIdx(null)
       setPlayerSearch('')
       setPlayerResults([])
+      setInvitingNew(false)
+      setGuestName('')
+      setGuestContact('')
     }
   }, [open, match])
 
@@ -166,6 +196,48 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       onClose()
     },
   })
+
+  // Replace a slot with a brand-new (non-PPA) player: creates a real guest slot +
+  // invite link on the server, mirrors it into local state (so Save stays
+  // consistent), and opens the native share sheet to send the link.
+  const inviteGuestMutation = useMutation({
+    mutationFn: async () => {
+      if (replacingIdx === null) return null
+      const name = guestName.trim()
+      if (!name) return null
+      const replacePid = playerIds[replacingIdx]
+      const { data, error } = await supabase.rpc('create_match_guest_invite', {
+        p_match_id: match.id,
+        p_guest_name: name,
+        p_contact: guestContact.trim() || null,
+        p_replace_player_id: replacePid,
+      })
+      if (error) throw error
+      return { ...(data as { token?: string; slot?: string }), idx: replacingIdx, name }
+    },
+    onSuccess: async (res) => {
+      if (res?.slot != null && res.idx != null) {
+        setPlayerIds((prev) => prev.map((id, i) => (i === res.idx ? res.slot! : id)))
+      }
+      setReplacingIdx(null)
+      setInvitingNew(false)
+      setGuestName('')
+      setGuestContact('')
+      queryClient.invalidateQueries({ queryKey: ['match', match.id] })
+      queryClient.invalidateQueries({ queryKey: ['match-guest-names', match.id] })
+      if (res?.token) {
+        const r = await shareMatchInvite({ token: res.token, guestName: res.name, inviterName: profile?.name })
+        if (r === 'copied') toast.success('Invite link copied — paste it to them')
+      }
+    },
+  })
+
+  async function chooseGuestFromContacts() {
+    const c = await pickContact()
+    if (!c) return
+    if (c.name) setGuestName(c.name)
+    if (c.tel || c.email) setGuestContact(c.tel ?? c.email ?? '')
+  }
 
   return (
     <AnimatePresence>
@@ -345,14 +417,19 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                   </label>
                   <div className="space-y-2 mb-2">
                     {playerIds.map((pid, idx) => {
+                      const guest = isGuestSlot(pid)
                       const p = matchPlayers.find((m) => m.id === pid)
+                      const displayName = guest ? (guestNameMap[pid] ?? 'Guest') : (p?.name ?? pid)
                       return (
                         <div key={pid} className="flex items-center gap-2">
-                          <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url ?? null} size="sm" />
-                          <span className="flex-1 text-[13px] text-gray-800 truncate">{p?.name ?? pid}</span>
+                          <PlayerAvatar name={displayName} avatarUrl={guest ? null : (p?.avatar_url ?? null)} size="sm" />
+                          <span className="flex-1 text-[13px] text-gray-800 truncate">
+                            {displayName}
+                            {guest && <span className="ml-1.5 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1 py-0.5">invite pending</span>}
+                          </span>
                           <button
                             type="button"
-                            onClick={() => { setReplacingIdx(idx); setPlayerSearch(''); setPlayerResults([]) }}
+                            onClick={() => { setReplacingIdx(idx); setPlayerSearch(''); setPlayerResults([]); setInvitingNew(false); setGuestName(''); setGuestContact('') }}
                             className="text-[11px] font-semibold text-teal-600 border border-teal-200 rounded-lg px-2 py-1"
                           >
                             Replace
@@ -397,9 +474,59 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                           ))}
                         </div>
                       )}
+                      {/* Invite a brand-new (non-PPA) player */}
+                      {!invitingNew ? (
+                        <button
+                          type="button"
+                          onClick={() => { setInvitingNew(true); setGuestName(playerSearch.trim()) }}
+                          className="mt-2 w-full flex items-center gap-2 rounded-lg border border-dashed border-gray-200 px-2.5 py-2 text-left hover:border-teal-300 hover:bg-teal-50/30"
+                        >
+                          <UserPlus className="h-4 w-4 text-teal-600 flex-shrink-0" />
+                          <span className="text-[12px] font-semibold text-gray-600">Not on PPA? Invite a new player</span>
+                        </button>
+                      ) : (
+                        <div className="mt-2 rounded-lg bg-gray-50 border border-gray-200 p-3 space-y-2">
+                          {isContactPickerSupported() && (
+                            <button
+                              type="button"
+                              onClick={chooseGuestFromContacts}
+                              className="w-full flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white py-2 text-[12px] font-semibold text-teal-700"
+                            >
+                              <UserRound className="h-3.5 w-3.5" /> Choose from contacts
+                            </button>
+                          )}
+                          <input
+                            type="text"
+                            value={guestName}
+                            onChange={(e) => setGuestName(e.target.value)}
+                            placeholder="New player's name"
+                            autoFocus
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-teal-400"
+                          />
+                          <input
+                            type="text"
+                            value={guestContact}
+                            onChange={(e) => setGuestContact(e.target.value)}
+                            placeholder="Phone or email (optional)"
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-teal-400"
+                          />
+                          <p className="text-[11px] text-gray-400 leading-snug">We'll create an invite link and open the share sheet — send it via WhatsApp or Messages. They join the match when they sign up.</p>
+                          {inviteGuestMutation.isError && (
+                            <p className="text-[12px] text-red-500">Couldn't create the invite. Try again.</p>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => inviteGuestMutation.mutate()}
+                            disabled={!guestName.trim() || inviteGuestMutation.isPending}
+                            className="w-full rounded-lg bg-[#009688] py-2 text-[12px] font-bold text-white disabled:opacity-40"
+                          >
+                            {inviteGuestMutation.isPending ? 'Creating invite…' : 'Invite & share link'}
+                          </button>
+                        </div>
+                      )}
                       <button
                         type="button"
-                        onClick={() => setReplacingIdx(null)}
+                        onClick={() => { setReplacingIdx(null); setInvitingNew(false) }}
                         className="mt-2 text-[11px] text-gray-400 w-full text-center"
                       >
                         Cancel

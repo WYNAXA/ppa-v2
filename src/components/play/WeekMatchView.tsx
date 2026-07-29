@@ -620,7 +620,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
         <div className="px-5 pt-3 pb-2">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
             <p className="text-[12px] font-bold text-amber-800 mb-2">
-              {t('play.results_to_confirm', { defaultValue: 'Results to confirm' })}
+              {t('play.results_to_confirm')}
             </p>
             <div className="space-y-1.5">
               {pendingCanConfirm.map((m) => {

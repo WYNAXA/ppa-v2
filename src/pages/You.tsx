@@ -419,7 +419,7 @@ function LinkPartnerSheet({
       setSearch('')
       setSelected(null)
       onClose()
-      toast.success(t('you.link_request_sent', { defaultValue: 'Request sent' }))
+      toast.success(t('you.link_request_sent'))
     },
   })
 
@@ -490,7 +490,7 @@ function LinkPartnerSheet({
                 disabled={!selected || linkMutation.isPending}
                 className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
-                {linkMutation.isPending ? t('you.linking', { defaultValue: 'Sending...' }) : t('you.link_request_btn', { defaultValue: 'Send request' })}
+                {linkMutation.isPending ? t('you.linking') : t('you.link_request_btn')}
               </button>
             </div>
           </motion.div>
@@ -1557,8 +1557,8 @@ export function YouPage() {
                 const email = authProfile?.email
                 if (!email) return
                 if (!await confirmDialog({
-                  title: t('you.send_reset_email_confirm', { email, defaultValue: 'Send a password reset email to {{email}}?' }),
-                  confirmLabel: t('common.send', 'Send'),
+                  title: t('you.send_reset_email_confirm', { email }),
+                  confirmLabel: t('common.send'),
                 })) return
                 setResettingPw(true)
                 try {

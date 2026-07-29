@@ -93,7 +93,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                   onClick={() => close(false)}
                   className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 active:bg-gray-50"
                 >
-                  {opts.cancelLabel ?? t('common.cancel', 'Cancel')}
+                  {opts.cancelLabel ?? t('common.cancel')}
                 </button>
                 <button
                   onClick={() => close(true)}
@@ -101,7 +101,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                     opts.destructive ? 'bg-red-500 active:bg-red-600' : 'bg-[#009688] active:bg-[#00796b]'
                   }`}
                 >
-                  {opts.confirmLabel ?? t('common.confirm', 'Confirm')}
+                  {opts.confirmLabel ?? t('common.confirm')}
                 </button>
               </div>
             </motion.div>

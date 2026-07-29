@@ -118,7 +118,7 @@ export function AllPlayersPage() {
           {isError ? (
             <p className="text-center text-[13px] text-gray-400 py-8">{t('community.players_load_failed')}</p>
           ) : isLoading ? (
-            <p className="text-center text-[13px] text-gray-400 py-8">{t('common.loading', 'Loading…')}</p>
+            <p className="text-center text-[13px] text-gray-400 py-8">{t('common.loading')}</p>
           ) : players.length === 0 ? (
             <p className="text-center text-[13px] text-gray-400 py-8">{t('community.no_players_found')}</p>
           ) : players.map(p => {

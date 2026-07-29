@@ -25,6 +25,7 @@ export default {
     see_all: 'See all',
     cannot_be_undone: 'This cannot be undone.',
     send: 'Send',
+    try_again_later: 'Please try again in a moment.',
   },
   nav: {
     home: 'Home',
@@ -631,6 +632,7 @@ export default {
     toast_connection_failed: 'Couldn\'t send request — please try again',
     players_load_failed: 'Couldn\'t load players',
     delete_event_confirm_title: 'Delete "{{title}}"?',
+    sending: 'Sending\u2026',
   },
   group_detail: {
     save_failed: 'Couldn\'t save changes — please try again',
@@ -852,6 +854,7 @@ export default {
     ve_pay_title: 'Pay for event',
     ve_processing: 'Processing…',
     ve_pay_now: 'Pay now',
+    results_to_confirm: 'Results to confirm',
   },
   you: {
     title: 'You',
@@ -905,7 +908,10 @@ export default {
     search_selected: 'Selected',
     link_failed: 'Failed to link. Try again.',
     link_partner_btn: 'Link Partner',
-    linking: 'Linking…',
+    linking: 'Linking\u2026',
+    link_request_sent: 'Request sent',
+    link_request_btn: 'Send request',
+    send_reset_email_confirm: 'Send a password reset email to {{email}}?',
     notif_household_request_title: 'Household link request',
     notif_household_request_msg: 'Someone linked you as their household partner',
     household_description: 'Link with a partner or family member to detect scheduling conflicts and coordinate travel.',

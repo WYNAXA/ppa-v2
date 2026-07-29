@@ -96,7 +96,7 @@ export function OpenMatchesPage() {
         {isError ? (
           <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center mt-4">
             <p className="text-[14px] font-semibold text-gray-500">{t('open_matches.load_failed', "Couldn't load open matches")}</p>
-            <p className="text-[12px] text-gray-400 mt-1">{t('common.try_again_later', 'Please try again in a moment.')}</p>
+            <p className="text-[12px] text-gray-400 mt-1">{t('common.try_again_later')}</p>
           </div>
         ) : isLoading ? (
           <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />)}</div>

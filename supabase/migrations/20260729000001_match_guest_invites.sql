@@ -61,11 +61,19 @@ BEGIN
     RAISE EXCEPTION 'Guest name is required';
   END IF;
 
-  -- Authorize: caller must be a participant or the creator of the match
+  -- Authorize: caller must be a participant, the creator, or a group admin of
+  -- the match's group (mirrors delete_match_cascade so anyone who can edit the
+  -- match can also invite to it).
   IF NOT EXISTS (
     SELECT 1 FROM public.matches m
+    LEFT JOIN public.groups g ON g.id = m.group_id
+    LEFT JOIN public.group_members gm ON gm.group_id = g.id
+      AND gm.user_id = auth.uid() AND gm.role = 'admin' AND gm.status = 'approved'
     WHERE m.id = p_match_id
-      AND (auth.uid() = ANY(m.player_ids) OR m.created_by = auth.uid())
+      AND (auth.uid() = ANY(m.player_ids)
+           OR m.created_by = auth.uid()
+           OR g.admin_id = auth.uid()
+           OR gm.user_id IS NOT NULL)
   ) THEN
     RAISE EXCEPTION 'Not authorized to invite to this match';
   END IF;

@@ -26,6 +26,7 @@ export function ForVenuesPage() {
       const { data } = await supabase
         .from('padel_venues')
         .select('venue_id, venue_name, city, full_address, number_of_courts')
+        .eq('status', 'active')
         .or(`venue_name.ilike.%${query}%,city.ilike.%${query}%`)
         .order('venue_name')
         .limit(10)

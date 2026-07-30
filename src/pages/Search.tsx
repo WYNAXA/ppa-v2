@@ -82,6 +82,7 @@ async function runSearch(query: string): Promise<SearchResult[]> {
     supabase
       .from('padel_venues')
       .select('venue_id, venue_name, city')
+      .eq('status', 'active')
       .ilike('venue_name', `%${q}%`)
       .limit(4),
     supabase

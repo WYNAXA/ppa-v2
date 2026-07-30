@@ -189,6 +189,7 @@ export function VenueDetailPage() {
         .from('padel_venues')
         .select('venue_id, venue_name, city, indoor_courts, outdoor_courts, rating, ppa_bookable, photos')
         .neq('venue_id', venueId!)
+        .eq('status', 'active')
         .limit(10)
       return (data ?? [])
         .sort((a: any, b: any) => {

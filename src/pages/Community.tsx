@@ -771,6 +771,7 @@ function NearbyVenuesSection({
         const { data } = await supabase
           .from('padel_venues')
           .select('venue_id, venue_name, city, country_code, indoor_courts, outdoor_courts, covered_courts, ppa_bookable, rating, photos')
+          .eq('status', 'active')
           .ilike('city', `%${profile.city}%`)
           .limit(8)
         return (data ?? []) as NearbyVenue[]

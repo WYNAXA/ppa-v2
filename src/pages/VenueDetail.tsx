@@ -8,7 +8,7 @@ import { format } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { isSuperAdmin, venueClaimUrl } from '@/lib/admin'
+import { venueClaimUrl } from '@/lib/admin'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { calculateDistance } from '@/lib/travelUtils'
@@ -124,7 +124,6 @@ export function VenueDetailPage() {
   const [userRating, setUserRating] = useState(0)
   const [userReview, setUserReview] = useState('')
   const [showClaimQr, setShowClaimQr] = useState(false)
-  const isAdmin = isSuperAdmin(user?.email)
 
   // ── Queries ──────────────────────────────────────────────────────────────
 
@@ -234,6 +233,9 @@ export function VenueDetailPage() {
 
   // ── Derived values ───────────────────────────────────────────────────────
 
+  // Claim QR: shown to any signed-in user while the venue is unclaimed; hidden once
+  // a claim exists (venues_id anchor set). Turns it into a self-serve growth loop.
+  const canClaim = !!user && !!venueId && !((venue as { venues_id?: string | null } | null)?.venues_id)
   const totalCourts = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
   const hoursConfirmed = !!venue?.opening_hours && !isSeedDefaultHours(venue.opening_hours as any)
   const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any) : null
@@ -376,14 +378,14 @@ export function VenueDetailPage() {
         </button>
       </div>
 
-      {/* Admin-only: QR to hand to the venue owner to claim this venue in the Hub */}
-      {isAdmin && venueId && (
+      {/* Claim CTA — shown to anyone while the venue is unclaimed; hides once claimed */}
+      {canClaim && (
         <div className="px-5 mt-3">
           <button
             onClick={() => setShowClaimQr(true)}
             className="w-full rounded-xl border border-dashed border-teal-300 bg-teal-50 text-teal-800 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <QrCode size={16} /> Show claim QR (admin)
+            <QrCode size={16} /> Own this venue? Claim it
           </button>
         </div>
       )}
@@ -411,8 +413,8 @@ export function VenueDetailPage() {
               <QRCodeSVG value={venueClaimUrl(venueId)} size={200} />
             </div>
             <p className="text-[12px] text-gray-500 mt-4 leading-relaxed">
-              Ask the owner to scan this with their phone camera. It opens the Hub where they can
-              claim, sign in, or add their venue.
+              Scan with a phone camera to open Wynaxa Hub and claim this venue — or pass it to
+              the owner. Manage courts, pricing, hours and bookings from there.
             </p>
             <p className="text-[10px] text-gray-300 mt-3 break-all">{venueClaimUrl(venueId)}</p>
           </div>

@@ -624,11 +624,31 @@ export function BookCourtPage() {
     }
   }
 
+  const waitlistVenueId = selectedVenue?.venues_id ?? selectedVenue?.venue_id ?? null
+
+  // Reflect the player's existing waitlist entries for this venue+day.
+  useEffect(() => {
+    if (!waitlistVenueId || !userId || !selectedDate) { setWaitlisted(new Set()); return }
+    let cancelled = false
+    supabase
+      .from('slot_waitlist')
+      .select('start_time')
+      .eq('venue_id', waitlistVenueId)
+      .eq('user_id', userId)
+      .eq('date', selectedDate)
+      .eq('status', 'waiting')
+      .then(({ data }) => {
+        if (cancelled) return
+        setWaitlisted(new Set((data ?? []).map((r: { start_time: string }) => r.start_time.slice(0, 5))))
+      })
+    return () => { cancelled = true }
+  }, [waitlistVenueId, userId, selectedDate])
+
   async function joinWaitlist(slot: TimeSlot) {
-    if (!selectedVenue || !userId || !selectedDate) return
+    if (!waitlistVenueId || !userId || !selectedDate) return
     const startTime = slot.start_time.length === 5 ? `${slot.start_time}:00` : slot.start_time
     const { error } = await supabase.from('slot_waitlist').insert({
-      venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
+      venue_id: waitlistVenueId,
       user_id: userId,
       date: selectedDate,
       start_time: startTime,
@@ -636,8 +656,22 @@ export function BookCourtPage() {
     })
     // 23505 = already on the waitlist for this slot — treat as success.
     if (error && error.code !== '23505') { toast.error('Could not join the waitlist. Please try again.'); return }
-    setWaitlisted(prev => new Set(prev).add(slot.start_time))
+    setWaitlisted(prev => new Set(prev).add(slot.start_time.slice(0, 5)))
     toast.success(`We'll notify you if a court opens at ${formatSlotTime(slot.start_time)}.`)
+  }
+
+  async function leaveWaitlist(slot: TimeSlot) {
+    if (!waitlistVenueId || !userId || !selectedDate) return
+    const startTime = slot.start_time.length === 5 ? `${slot.start_time}:00` : slot.start_time
+    await supabase.from('slot_waitlist')
+      .delete()
+      .eq('venue_id', waitlistVenueId)
+      .eq('user_id', userId)
+      .eq('date', selectedDate)
+      .eq('start_time', startTime)
+      .eq('status', 'waiting')
+    setWaitlisted(prev => { const next = new Set(prev); next.delete(slot.start_time.slice(0, 5)); return next })
+    toast.success('Removed from the waitlist.')
   }
 
   async function initPayment() {
@@ -1358,7 +1392,7 @@ export function BookCourtPage() {
                             : totalPence
                         const pricePerPlayer = perPlayerPence
                         const isSelected = selectedSlot?.start_time === slot.start_time
-                        const onWaitlist = waitlisted.has(slot.start_time)
+                        const onWaitlist = waitlisted.has(slot.start_time.slice(0, 5))
                         return (
                           <button
                             key={i}
@@ -1366,7 +1400,9 @@ export function BookCourtPage() {
                               if (slot.available) {
                                 setSelectedSlot(slot)
                                 setSelectedCourtId(slot.courts?.[0]?.id ?? slot.court_id ?? '')
-                              } else if (!onWaitlist) {
+                              } else if (onWaitlist) {
+                                leaveWaitlist(slot)
+                              } else {
                                 joinWaitlist(slot)
                               }
                             }}
@@ -1410,7 +1446,7 @@ export function BookCourtPage() {
                               </p>
                             ) : onWaitlist ? (
                               <p className="text-[10px] font-semibold text-[#009688] mt-1 flex items-center gap-1">
-                                <CheckCircle className="h-3 w-3" /> On the waitlist
+                                <CheckCircle className="h-3 w-3" /> On the waitlist · tap to leave
                               </p>
                             ) : (
                               <p className="text-[10px] font-semibold text-amber-600 mt-1">Full · tap to get notified</p>

@@ -570,6 +570,8 @@ export default {
     courts_filter_bookable: 'Book in-app',
     courts_filter_none_match: 'No courts match these filters',
     courts_filter_clear: 'Clear filters',
+    courts_view_list: 'List',
+    courts_view_map: 'Map',
     connections: 'Connections',
     my_connections: 'My Connections',
     connect: 'Connect',

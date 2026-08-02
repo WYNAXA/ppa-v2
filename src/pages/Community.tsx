@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -693,6 +693,9 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
 
 // ── Nearby Venues ────────────────────────────────────────────────────────────
 
+// Leaflet is heavy — keep it out of the main bundle until the map view is opened.
+const VenueMap = lazy(() => import('@/components/VenueMap'))
+
 interface NearbyVenue {
   venue_id: string
   venue_name: string
@@ -705,6 +708,8 @@ interface NearbyVenue {
   rating?: number | null
   photos?: unknown
   distance_miles?: number | null
+  latitude?: number | null
+  longitude?: number | null
 }
 
 type GeoState = 'idle' | 'locating' | 'denied' | 'unavailable'
@@ -725,6 +730,7 @@ function NearbyVenuesSection({
   const [geoState, setGeoState] = useState<GeoState>('idle')
   const [filters, setFilters] = useState({ indoor: false, outdoor: false, bookable: false })
   const toggleFilter = (k: keyof typeof filters) => setFilters(f => ({ ...f, [k]: !f[k] }))
+  const [view, setView] = useState<'list' | 'map'>('list')
 
   const requestLocation = (fromButton: boolean) => {
     if (!('geolocation' in navigator)) { setGeoState('unavailable'); return }
@@ -801,15 +807,32 @@ function NearbyVenuesSection({
     <section>
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-[16px] font-bold text-gray-900">{t('community.padel_courts_near')}</h2>
-        {canAskLocation && (
-          <button
-            onClick={() => requestLocation(true)}
-            className="flex items-center gap-1 text-[12px] font-semibold text-teal-700 active:scale-95 transition-transform"
-          >
-            <MapPin size={13} />
-            {geoState === 'locating' ? t('community.courts_near_locating') : t('community.courts_near_use_location')}
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {coords && venues.length > 0 && (
+            <div className="flex rounded-full bg-gray-100 p-0.5">
+              {(['list', 'map'] as const).map(v => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                    view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
+                  }`}
+                >
+                  {v === 'list' ? t('community.courts_view_list') : t('community.courts_view_map')}
+                </button>
+              ))}
+            </div>
+          )}
+          {canAskLocation && (
+            <button
+              onClick={() => requestLocation(true)}
+              className="flex items-center gap-1 text-[12px] font-semibold text-teal-700 active:scale-95 transition-transform"
+            >
+              <MapPin size={13} />
+              {geoState === 'locating' ? t('community.courts_near_locating') : t('community.courts_near_use_location')}
+            </button>
+          )}
+        </div>
       </div>
 
       {venues.length > 0 && (
@@ -866,6 +889,14 @@ function NearbyVenuesSection({
             </button>
           )}
         </div>
+      ) : view === 'map' && coords ? (
+        <Suspense fallback={<div className="h-[360px] w-full rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center"><div className="h-6 w-6 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" /></div>}>
+          <VenueMap
+            venues={visibleVenues}
+            center={coords}
+            onSelect={(id) => navigate(`/venues/${id}`)}
+          />
+        </Suspense>
       ) : (
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
         {visibleVenues.map((v) => {

@@ -685,33 +685,57 @@ export function BookCourtPage() {
         }
       })()
 
-      const { data: booking, error: bookingError } = await supabase
-        .from('bookings')
-        .insert({
-          venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
-          court_id: selectedCourtId || null,
-          match_id: matchId || null,
-          booked_by: userId,
-          start_at: startAt,
-          end_at: endAt,
-          duration_minutes: selectedDuration,
-          status: coveredIds.size >= PLAYERS_PER_COURT ? 'confirmed' : 'held',
-          player_ids: userPlayers,
-          guest_players: guestPlayers,
-          paid_player_ids: [...new Set([userId, ...coveredIds])],
-          purpose: 'game',
-          source: 'in_app',
-          total_price_pence: totalPence,
-          price_per_player_pence: perPlayerPence,
-          booker_stripe_pi_id: piId,
-          payment_deadline: paymentDeadline,
-        })
-        .select()
-        .single()
+      const bookingPayload = {
+        venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
+        match_id: matchId || null,
+        booked_by: userId,
+        start_at: startAt,
+        end_at: endAt,
+        duration_minutes: selectedDuration,
+        status: coveredIds.size >= PLAYERS_PER_COURT ? 'confirmed' : 'held',
+        player_ids: userPlayers,
+        guest_players: guestPlayers,
+        paid_player_ids: [...new Set([userId, ...coveredIds])],
+        purpose: 'game',
+        source: 'in_app',
+        total_price_pence: totalPence,
+        price_per_player_pence: perPlayerPence,
+        booker_stripe_pi_id: piId,
+        payment_deadline: paymentDeadline,
+      }
+
+      // Assign a concrete court so the DB overlap guard (bookings_no_court_overlap)
+      // can protect this booking. If another player grabbed our first-choice court
+      // during checkout, the DB rejects the insert (exclusion_violation, 23P01) and
+      // we transparently fall through to the next court that was free for this slot.
+      const candidateCourtIds: (string | null)[] =
+        selectedCourtId
+          ? [selectedCourtId]
+          : (selectedSlot.courts?.map((c: any) => c.id).filter(Boolean) ?? [])
+      const courtAttempts = candidateCourtIds.length ? candidateCourtIds : [null]
+
+      let booking: any = null
+      let bookingError: any = null
+      for (const courtId of courtAttempts) {
+        const res = await supabase
+          .from('bookings')
+          .insert({ ...bookingPayload, court_id: courtId })
+          .select()
+          .single()
+        if (!res.error && res.data) { booking = res.data; bookingError = null; break }
+        bookingError = res.error
+        // Only keep trying other courts on an overlap collision; any other error is fatal.
+        if (res.error?.code !== '23P01') break
+      }
 
       if (bookingError || !booking) {
+        const slotTaken = bookingError?.code === '23P01'
         console.error('[BookCourt] Booking insert failed:', bookingError)
-        toast.error('Payment succeeded but the booking could not be saved. Please contact support — your payment will be reviewed.')
+        toast.error(
+          slotTaken
+            ? 'Sorry — that slot was just booked by someone else. Your payment will be refunded and our team has been notified. Please choose another time.'
+            : 'Payment succeeded but the booking could not be saved. Please contact support — your payment will be reviewed.',
+        )
         setPaymentLoading(false)
         return
       }

@@ -723,6 +723,8 @@ function NearbyVenuesSection({
   const navigate = useNavigate()
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [geoState, setGeoState] = useState<GeoState>('idle')
+  const [filters, setFilters] = useState({ indoor: false, outdoor: false, bookable: false })
+  const toggleFilter = (k: keyof typeof filters) => setFilters(f => ({ ...f, [k]: !f[k] }))
 
   const requestLocation = (fromButton: boolean) => {
     if (!('geolocation' in navigator)) { setGeoState('unavailable'); return }
@@ -762,7 +764,7 @@ function NearbyVenuesSection({
     queryFn: async () => {
       if (coords) {
         const { data, error } = await supabase.rpc('venues_near', {
-          p_lat: coords.lat, p_lng: coords.lng, p_radius_miles: 100, p_limit: 10,
+          p_lat: coords.lat, p_lng: coords.lng, p_radius_miles: 100, p_limit: 30,
         })
         if (!error && data) return data as NearbyVenue[]
       }
@@ -782,6 +784,19 @@ function NearbyVenuesSection({
 
   const canAskLocation = geoState !== 'denied' && geoState !== 'unavailable'
 
+  // Client-side discovery filters. All fields used here are already returned by
+  // venues_near (indoor/outdoor/covered counts + ppa_bookable), so no RPC change.
+  const anyFilter = filters.indoor || filters.outdoor || filters.bookable
+  const visibleVenues = venues.filter((v) => {
+    if (filters.bookable && !v.ppa_bookable) return false
+    if (filters.indoor || filters.outdoor) {
+      const hasIndoor = (v.indoor_courts ?? 0) > 0 || (v.covered_courts ?? 0) > 0
+      const hasOutdoor = (v.outdoor_courts ?? 0) > 0
+      if (!((filters.indoor && hasIndoor) || (filters.outdoor && hasOutdoor))) return false
+    }
+    return true
+  })
+
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
@@ -796,6 +811,32 @@ function NearbyVenuesSection({
           </button>
         )}
       </div>
+
+      {venues.length > 0 && (
+        <div className="flex items-center gap-2 mb-3 overflow-x-auto no-scrollbar">
+          {([
+            { key: 'indoor', label: t('community.courts_filter_indoor') },
+            { key: 'outdoor', label: t('community.courts_filter_outdoor') },
+            { key: 'bookable', label: t('community.courts_filter_bookable') },
+          ] as const).map(({ key, label }) => {
+            const on = filters[key]
+            return (
+              <button
+                key={key}
+                onClick={() => toggleFilter(key)}
+                className={cn(
+                  'flex-shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold transition-colors active:scale-95',
+                  on
+                    ? 'border-teal-600 bg-teal-600 text-white'
+                    : 'border-gray-200 bg-white text-gray-600',
+                )}
+              >
+                {label}
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {venues.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
@@ -813,9 +854,21 @@ function NearbyVenuesSection({
             </button>
           )}
         </div>
+      ) : visibleVenues.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
+          <p className="text-[13px] font-semibold text-gray-700">{t('community.courts_filter_none_match')}</p>
+          {anyFilter && (
+            <button
+              onClick={() => setFilters({ indoor: false, outdoor: false, bookable: false })}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-teal-600 text-white text-[13px] font-semibold px-4 py-2 active:scale-95 transition-transform"
+            >
+              {t('community.courts_filter_clear')}
+            </button>
+          )}
+        </div>
       ) : (
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-        {venues.map((v) => {
+        {visibleVenues.map((v) => {
           const courts = (v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0) + (v.covered_courts ?? 0)
           const hero = firstPhoto(v.photos)
           const distance = typeof v.distance_miles === 'number' ? v.distance_miles : null

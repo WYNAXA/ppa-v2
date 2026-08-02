@@ -373,6 +373,7 @@ export function BookCourtPage() {
   const [perPlayerPence, setPerPlayerPence] = useState(0)
   const [pricingAvailable, setPricingAvailable] = useState(false)
   const [memberDiscountPct, setMemberDiscountPct] = useState(0)
+  const [waitlisted, setWaitlisted] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const venueId = selectedVenue?.venues_id ?? selectedVenue?.venue_id
@@ -621,6 +622,22 @@ export function BookCourtPage() {
     } finally {
       setLoadingSlots(false)
     }
+  }
+
+  async function joinWaitlist(slot: TimeSlot) {
+    if (!selectedVenue || !userId || !selectedDate) return
+    const startTime = slot.start_time.length === 5 ? `${slot.start_time}:00` : slot.start_time
+    const { error } = await supabase.from('slot_waitlist').insert({
+      venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
+      user_id: userId,
+      date: selectedDate,
+      start_time: startTime,
+      duration_minutes: selectedDuration,
+    })
+    // 23505 = already on the waitlist for this slot — treat as success.
+    if (error && error.code !== '23505') { toast.error('Could not join the waitlist. Please try again.'); return }
+    setWaitlisted(prev => new Set(prev).add(slot.start_time))
+    toast.success(`We'll notify you if a court opens at ${formatSlotTime(slot.start_time)}.`)
   }
 
   async function initPayment() {
@@ -1341,29 +1358,34 @@ export function BookCourtPage() {
                             : totalPence
                         const pricePerPlayer = perPlayerPence
                         const isSelected = selectedSlot?.start_time === slot.start_time
+                        const onWaitlist = waitlisted.has(slot.start_time)
                         return (
                           <button
                             key={i}
                             onClick={() => {
-                              if (!slot.available) return
-                              setSelectedSlot(slot)
-                              setSelectedCourtId(slot.courts?.[0]?.id ?? slot.court_id ?? '')
+                              if (slot.available) {
+                                setSelectedSlot(slot)
+                                setSelectedCourtId(slot.courts?.[0]?.id ?? slot.court_id ?? '')
+                              } else if (!onWaitlist) {
+                                joinWaitlist(slot)
+                              }
                             }}
-                            disabled={!slot.available}
                             className={cn(
                               'rounded-2xl border p-3 text-left transition-all active:scale-[0.98]',
-                              !slot.available
-                                ? 'border-gray-100 bg-gray-50 opacity-40 cursor-not-allowed'
-                                : isSelected
+                              slot.available
+                                ? isSelected
                                   ? 'border-[#009688] bg-teal-50 shadow-sm'
-                                  : 'border-gray-200 bg-white hover:border-teal-300',
+                                  : 'border-gray-200 bg-white hover:border-teal-300'
+                                : onWaitlist
+                                  ? 'border-teal-200 bg-teal-50/50'
+                                  : 'border-gray-200 bg-gray-50 hover:border-amber-300',
                             )}
                           >
                             <div className="flex items-start justify-between">
                               <p
                                 className={cn(
                                   'text-[17px] font-bold',
-                                  isSelected ? 'text-[#009688]' : 'text-gray-800',
+                                  isSelected ? 'text-[#009688]' : slot.available ? 'text-gray-800' : 'text-gray-400',
                                 )}
                               >
                                 {formatSlotTime(slot.start_time)}
@@ -1376,17 +1398,22 @@ export function BookCourtPage() {
                               <span className="text-[11px] text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">
                                 {selectedDuration} min
                               </span>
-                              {(slot.courts?.length ?? 0) > 0 && (
+                              {slot.available && (slot.courts?.length ?? 0) > 0 && (
                                 <span className="text-[11px] text-gray-400">
                                   {slot.courts!.length} {slot.courts!.length === 1 ? 'court' : 'courts'} free
                                 </span>
                               )}
                             </div>
-                            <p className="text-[12px] font-semibold text-[#009688] mt-1">
-                              {formatPence(priceP)} · {formatPence(pricePerPlayer)}/player
-                            </p>
-                            {!slot.available && (
-                              <p className="text-[10px] text-red-400 mt-0.5">Unavailable</p>
+                            {slot.available ? (
+                              <p className="text-[12px] font-semibold text-[#009688] mt-1">
+                                {formatPence(priceP)} · {formatPence(pricePerPlayer)}/player
+                              </p>
+                            ) : onWaitlist ? (
+                              <p className="text-[10px] font-semibold text-[#009688] mt-1 flex items-center gap-1">
+                                <CheckCircle className="h-3 w-3" /> On the waitlist
+                              </p>
+                            ) : (
+                              <p className="text-[10px] font-semibold text-amber-600 mt-1">Full · tap to get notified</p>
                             )}
                           </button>
                         )

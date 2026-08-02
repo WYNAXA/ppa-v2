@@ -372,6 +372,7 @@ export function BookCourtPage() {
   const [totalPence, setTotalPence] = useState(0)
   const [perPlayerPence, setPerPlayerPence] = useState(0)
   const [pricingAvailable, setPricingAvailable] = useState(false)
+  const [memberDiscountPct, setMemberDiscountPct] = useState(0)
 
   useEffect(() => {
     const venueId = selectedVenue?.venues_id ?? selectedVenue?.venue_id
@@ -386,17 +387,19 @@ export function BookCourtPage() {
       p_date: selectedDate,
       p_start_time: startTime ? (startTime.length === 5 ? `${startTime}:00` : startTime) : null,
       p_duration_minutes: selectedDuration,
+      p_user_id: userId || null,   // enables member pricing (discount applied server-side)
     }).then(({ data }) => {
-      const result = data as { status: string; price_pence: number | null } | null
+      const result = data as { status: string; price_pence: number | null; member_discount_pct?: number | null } | null
       if (result && result.status !== 'not_configured' && result.price_pence != null) {
         setTotalPence(result.price_pence)
         setPerPlayerPence(Math.round(result.price_pence / PLAYERS_PER_COURT))
         setPricingAvailable(true)
+        setMemberDiscountPct(result.member_discount_pct ?? 0)
       } else {
-        setTotalPence(0); setPerPlayerPence(0); setPricingAvailable(false)
+        setTotalPence(0); setPerPlayerPence(0); setPricingAvailable(false); setMemberDiscountPct(0)
       }
     })
-  }, [selectedVenue?.venue_id, selectedVenue?.venues_id, selectedDate, selectedDuration, selectedCourtId, selectedSlot?.start_time])
+  }, [selectedVenue?.venue_id, selectedVenue?.venues_id, selectedDate, selectedDuration, selectedCourtId, selectedSlot?.start_time, userId])
 
   const coveredCount = coveredIds.size
   const depositPence = coveredCount * perPlayerPence
@@ -1433,6 +1436,16 @@ export function BookCourtPage() {
                   </motion.div>
                 )}
               </AnimatePresence>
+
+              {/* Member price indicator */}
+              {selectedSlot && memberDiscountPct > 0 && (
+                <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-teal-50 border border-teal-100 py-2.5">
+                  <span className="text-[13px]">🎉</span>
+                  <p className="text-[12px] font-semibold text-teal-700">
+                    Member price — {memberDiscountPct}% off applied
+                  </p>
+                </div>
+              )}
 
               {/* Continue CTA */}
               <AnimatePresence>

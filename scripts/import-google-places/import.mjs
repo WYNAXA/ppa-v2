@@ -24,7 +24,7 @@
 // re-runs are safe.
 
 import { createClient } from '@supabase/supabase-js';
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 
 // ── CLI args ────────────────────────────────────────────────────────────────
 const argv = process.argv.slice(2);
@@ -37,9 +37,15 @@ function opt(name, fallback) {
 const DRY_RUN = flag('dry-run');
 const VERBOSE = flag('verbose');
 const WITH_PHOTOS = !flag('no-photos');
-const QUERY = opt('query', 'padel');
+// Comma-separated query variants run per city and merged (dedup by place id) to
+// improve recall — "padel Trento" alone can miss venues that "padel club Trento" finds.
+const QUERIES = opt('query', 'padel,padel club').split(',').map((s) => s.trim()).filter(Boolean);
 const RADIUS = Number(opt('radius', '25000'));
 const LIMIT = opt('limit', null) ? Number(opt('limit', null)) : Infinity;
+// --sql <file> emits idempotent INSERT statements instead of writing to the DB —
+// no Supabase key needed (the legacy service_role key is disabled on this project).
+const SQL_OUT = opt('sql', null);
+const NEEDS_DB = !DRY_RUN && !SQL_OUT;
 
 // ── Env ─────────────────────────────────────────────────────────────────────
 const GOOGLE_KEY = process.env.GOOGLE_PLACES_API_KEY;
@@ -47,13 +53,13 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!GOOGLE_KEY) fail('Missing GOOGLE_PLACES_API_KEY');
-if (!DRY_RUN && (!SUPABASE_URL || !SERVICE_KEY)) {
-  fail('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (needed unless --dry-run)');
+if (NEEDS_DB && (!SUPABASE_URL || !SERVICE_KEY)) {
+  fail('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (needed unless --dry-run / --sql)');
 }
 
-const supabase = DRY_RUN
-  ? null
-  : createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+const supabase = NEEDS_DB
+  ? createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } })
+  : null;
 
 // ── Reference data ──────────────────────────────────────────────────────────
 const DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -93,13 +99,13 @@ const FIELD_MASK = [
   'nextPageToken',
 ].join(',');
 
-async function searchCity(city) {
+async function searchTerm(term, city) {
   const results = [];
   let pageToken = null;
   let page = 0;
   do {
     const body = {
-      textQuery: `${QUERY} ${city.name}`,
+      textQuery: `${term} ${city.name}`,
       languageCode: 'en',
       pageSize: 20,
       locationBias: {
@@ -130,11 +136,17 @@ async function searchCity(city) {
     page += 1;
     if (pageToken) await sleep(2000); // page tokens need a moment to become valid
   } while (pageToken && page < 3); // Text Search caps at ~60 results (3 pages)
-
-  if (pageToken) {
-    console.warn(`   ⚠ ${city.name}: more than 60 results — only the first 60 were imported.`);
-  }
   return results;
+}
+
+async function searchCity(city) {
+  // Run each query variant, merge, and dedupe by place id.
+  const byId = new Map();
+  for (const term of QUERIES) {
+    const found = await searchTerm(term, city);
+    for (const p of found) if (p.id && !byId.has(p.id)) byId.set(p.id, p);
+  }
+  return [...byId.values()];
 }
 
 // ── Mapping ─────────────────────────────────────────────────────────────────
@@ -214,7 +226,7 @@ function mapPlace(place) {
 
 // ── Photo upload ────────────────────────────────────────────────────────────
 async function uploadHeroPhoto(row) {
-  if (!WITH_PHOTOS || !row._photoName || DRY_RUN) return;
+  if (!WITH_PHOTOS || !row._photoName || DRY_RUN || SQL_OUT) return;
   try {
     const url = `https://places.googleapis.com/v1/${row._photoName}/media?maxWidthPx=1200&key=${GOOGLE_KEY}`;
     const res = await fetch(url);
@@ -239,11 +251,12 @@ async function uploadHeroPhoto(row) {
 async function main() {
   const cities = loadCities();
   console.log(
-    `${DRY_RUN ? '[DRY RUN] ' : ''}Importing "${QUERY}" across ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} ` +
+    `${DRY_RUN ? '[DRY RUN] ' : ''}Importing [${QUERIES.join(', ')}] across ${cities.length} cit${cities.length === 1 ? 'y' : 'ies'} ` +
     `(radius ${RADIUS}m, photos ${WITH_PHOTOS ? 'on' : 'off'}, limit ${LIMIT === Infinity ? '∞' : LIMIT})\n`,
   );
 
   const totals = { found: 0, inserted: 0, skipped: 0, failed: 0 };
+  const sqlRows = [];
 
   for (const city of cities) {
     if (totals.inserted >= LIMIT) { console.log('Reached --limit; stopping.'); break; }
@@ -261,6 +274,15 @@ async function main() {
 
     const rows = places.map(mapPlace).filter((r) => r.latitude != null && r.longitude != null);
     const refs = rows.map((r) => r.external_ref);
+
+    // --sql mode: accumulate rows; idempotency is handled by ON CONFLICT DO NOTHING.
+    if (SQL_OUT) {
+      const clean = rows.map(({ _photoName, ...rest }) => rest);
+      sqlRows.push(...clean);
+      console.log(`${places.length} found, ${clean.length} collected`);
+      totals.inserted += clean.length;
+      continue;
+    }
 
     // Which already exist? (insert-only, so we skip them)
     let existing = new Set();
@@ -298,11 +320,56 @@ async function main() {
     }
   }
 
+  if (SQL_OUT) {
+    // Dedupe by external_ref (overlapping city radii can return the same place).
+    const seen = new Set();
+    const deduped = sqlRows.filter((r) => (seen.has(r.external_ref) ? false : seen.add(r.external_ref)));
+    writeFileSync(SQL_OUT, buildSql(deduped));
+    console.log(`\nWrote ${deduped.length} unique venue rows (from ${totals.found} found) to ${SQL_OUT}`);
+    console.log(`${totals.failed} cit${totals.failed === 1 ? 'y' : 'ies'} failed.`);
+    return;
+  }
+
   console.log(
     `\nDone. Found ${totals.found}, ${DRY_RUN ? 'would insert' : 'inserted'} ${totals.inserted}, ` +
     `skipped ${totals.skipped} already-listed, ${totals.failed} cit${totals.failed === 1 ? 'y' : 'ies'} failed.`,
   );
   if (DRY_RUN) console.log('No data was written (--dry-run).');
+}
+
+// ── SQL emit (idempotent, no DB key needed) ─────────────────────────────────
+const SQL_COLS = [
+  'external_ref', 'venue_name', 'country', 'country_code', 'city', 'postcode',
+  'full_address', 'latitude', 'longitude', 'website', 'booking_url', 'phone',
+  'opening_hours', 'number_of_courts', 'indoor_courts', 'outdoor_courts',
+  'covered_courts', 'rating', 'review_count', 'total_reviews', 'pricing_tier',
+  'currency', 'booking_advance_nonmember_days', 'booking_advance_member_days',
+  'status', 'verified', 'is_verified', 'ppa_bookable', 'photos',
+];
+const JSONB_COLS = new Set(['opening_hours', 'photos']);
+
+function sqlVal(col, v) {
+  if (v === null || v === undefined) return 'NULL';
+  if (JSONB_COLS.has(col)) return `'${JSON.stringify(v).replace(/'/g, "''")}'::jsonb`;
+  if (typeof v === 'number') return String(v);
+  if (typeof v === 'boolean') return v ? 'true' : 'false';
+  return `'${String(v).replace(/'/g, "''")}'`;
+}
+
+// Untargeted ON CONFLICT DO NOTHING skips rows violating EITHER unique constraint
+// (external_ref, or the padel_venues_name_city_unique (venue_name, city)). Batched
+// so the file loads in manageable chunks.
+function buildSql(rows) {
+  const header = '-- Google Places padel venues -> padel_venues. Idempotent (ON CONFLICT DO NOTHING).\n';
+  if (!rows.length) return header + '-- (no rows)\n';
+  const BATCH = 100;
+  let out = header;
+  for (let i = 0; i < rows.length; i += BATCH) {
+    const batch = rows.slice(i, i + BATCH);
+    const values = batch.map((r) => `  (${SQL_COLS.map((c) => sqlVal(c, r[c])).join(', ')})`).join(',\n');
+    out += `insert into public.padel_venues (${SQL_COLS.join(', ')})\nvalues\n${values}\non conflict do nothing;\n`;
+  }
+  return out;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

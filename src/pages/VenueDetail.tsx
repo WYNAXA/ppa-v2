@@ -414,10 +414,17 @@ export function VenueDetailPage() {
               <QRCodeSVG value={venueClaimUrl(venueId)} size={200} />
             </div>
             <p className="text-[12px] text-gray-500 mt-4 leading-relaxed">
-              Scan with a phone camera to open Wynaxa Hub and claim this venue — or pass it to
-              the owner. Manage courts, pricing, hours and bookings from there.
+              Scan with a phone to claim it — or claim it right now. Manage courts, pricing,
+              hours and bookings from Wynaxa Hub.
             </p>
-            <p className="text-[10px] text-gray-300 mt-3 break-all">{venueClaimUrl(venueId)}</p>
+            <a
+              href={venueClaimUrl(venueId)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#009688] px-6 py-3 text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
+            >
+              Claim it now →
+            </a>
           </div>
         </div>
       )}

@@ -8,7 +8,7 @@ interface Venue {
   venue_name: string
   city: string | null
   full_address: string | null
-  number_of_courts: number | null
+  postcode: string | null
 }
 
 const VM_URL = 'https://hub.wynaxa.com'
@@ -23,14 +23,11 @@ export function ForVenuesPage() {
     if (query.length < 2) { setResults([]); setSearched(false); return }
     const timer = setTimeout(async () => {
       setSearching(true)
-      const { data } = await supabase
-        .from('padel_venues')
-        .select('venue_id, venue_name, city, full_address, number_of_courts')
-        .eq('status', 'active')
-        .or(`venue_name.ilike.%${query}%,city.ilike.%${query}%`)
-        .order('venue_name')
-        .limit(10)
-      setResults(data ?? [])
+      // SECURITY DEFINER RPC: returns all active venues to claim. A direct table
+      // query would be limited by RLS to only verified venues (~5 of 475), so an
+      // owner would almost never find theirs.
+      const { data } = await supabase.rpc('search_claimable_venues', { p_query: query })
+      setResults(((data ?? []) as Venue[]).slice(0, 10))
       setSearching(false)
       setSearched(true)
     }, 400)
@@ -152,7 +149,7 @@ export function ForVenuesPage() {
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold text-gray-900 truncate">{v.venue_name}</p>
                       <p className="text-[12px] text-gray-400 truncate">
-                        {[v.city, v.number_of_courts ? `${v.number_of_courts} courts` : null].filter(Boolean).join(' · ')}
+                        {[v.full_address, v.city, v.postcode].filter(Boolean).join(', ') || 'Padel venue'}
                       </p>
                     </div>
                   </div>

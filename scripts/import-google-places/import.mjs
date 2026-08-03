@@ -73,6 +73,8 @@ const CURRENCY_BY_COUNTRY = {
   AR: 'ARS', CL: 'CLP', CO: 'COP', PE: 'PEN', AE: 'AED', SA: 'SAR', QA: 'QAR',
   IN: 'INR', JP: 'JPY', CN: 'CNY', TH: 'THB', MY: 'MYR', SG: 'SGD', ZA: 'ZAR',
   KE: 'KES', NG: 'NGN', IL: 'ILS', MA: 'MAD', TR: 'TRY',
+  UY: 'UYU', PY: 'PYG', KW: 'KWD', BH: 'BHD', OM: 'OMR', JO: 'JOD',
+  ID: 'IDR', HK: 'HKD', PH: 'PHP', EG: 'EGP',
 };
 
 const PRICE_LEVEL = {

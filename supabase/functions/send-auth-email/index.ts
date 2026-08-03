@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const HOOK_SECRET = Deno.env.get("SEND_EMAIL_HOOK_SECRET");
@@ -27,31 +28,16 @@ function safeLogContext(payload: Record<string, unknown>) {
   };
 }
 
-async function verifyHookSignature(req: Request, body: string): Promise<boolean> {
+function getWebhook(): Webhook {
   if (!HOOK_SECRET) {
-    console.error("SEND_EMAIL_HOOK_SECRET is not set — failing closed");
-    return false;
+    throw new Error("SEND_EMAIL_HOOK_SECRET is not set — failing closed");
   }
-
-  try {
-    const secret = HOOK_SECRET.startsWith("v1,whsec_")
-      ? HOOK_SECRET.slice("v1,whsec_".length)
-      : HOOK_SECRET;
-    const signature = req.headers.get("x-supabase-signature") ||
-                      req.headers.get("authorization")?.replace("Bearer ", "") || "";
-    if (!signature) return false;
-    const encoder = new TextEncoder();
-    const keyData = Uint8Array.from(atob(secret), c => c.charCodeAt(0));
-    const cryptoKey = await crypto.subtle.importKey(
-      "raw", keyData, { name: "HMAC", hash: "SHA-256" }, false, ["verify"]
-    );
-    const sigBytes = Uint8Array.from(atob(signature.replace("v1=", "")), c => c.charCodeAt(0));
-    const bodyBytes = encoder.encode(body);
-    return await crypto.subtle.verify("HMAC", cryptoKey, sigBytes, bodyBytes);
-  } catch (e) {
-    console.error("Signature verification error:", (e as Error).message);
-    return false;
-  }
+  // Supabase stores the secret as "v1,whsec_<base64>". The standardwebhooks
+  // library expects "whsec_<base64>" (it strips its own prefix internally).
+  const secret = HOOK_SECRET.startsWith("v1,")
+    ? HOOK_SECRET.slice("v1,".length)
+    : HOOK_SECRET;
+  return new Webhook(secret);
 }
 
 // ── Brand constants ────────────────────────────────────────────────────────
@@ -182,13 +168,19 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Defect 1 fix: verify webhook signature BEFORE any processing.
-  // Fail closed if secret is missing.
+  // Verify Standard Webhooks signature BEFORE any processing.
+  // Uses webhook-id, webhook-timestamp, webhook-signature headers per spec.
+  // Fails closed if secret is missing or signature is invalid.
   const bodyText = await req.text();
+  let payload: Record<string, unknown>;
 
-  const signatureValid = await verifyHookSignature(req, bodyText);
-  if (!signatureValid) {
-    console.error("Webhook signature verification failed — rejecting request");
+  try {
+    const wh = getWebhook();
+    const headers: Record<string, string> = {};
+    req.headers.forEach((v, k) => { headers[k] = v; });
+    payload = wh.verify(bodyText, headers) as Record<string, unknown>;
+  } catch (e) {
+    console.error("Webhook verification failed:", (e as Error).message);
     return new Response(JSON.stringify({ error: "Unauthorized" }), {
       status: 401,
       headers: corsHeaders,
@@ -196,7 +188,6 @@ serve(async (req) => {
   }
 
   try {
-    const payload = JSON.parse(bodyText);
 
     // Defect 2 fix: log only safe context — never tokens, token_hash, or full payload
     const logCtx = safeLogContext(payload);

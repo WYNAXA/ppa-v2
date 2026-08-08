@@ -11,6 +11,7 @@ import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { penceToPounds } from '@/lib/money'
+import { APP_STORE_URL, PLAY_STORE_URL } from '@/lib/appInstall'
 
 // ── Env vars ──────────────────────────────────────────────────────────────────
 
@@ -175,7 +176,7 @@ function SuccessScreen() {
         <p className="text-[12px] text-gray-500 mb-4">Download PPA to log your matches, track your ELO and find games near you.</p>
         <div className="flex flex-col gap-2">
           <a
-            href="https://apps.apple.com/app/ppa"
+            href={APP_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full rounded-xl bg-gray-900 py-3 text-[13px] font-bold text-white text-center"
@@ -183,7 +184,7 @@ function SuccessScreen() {
             Download on the App Store
           </a>
           <a
-            href="https://play.google.com/store/apps/ppa"
+            href={PLAY_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full rounded-xl border border-gray-200 py-3 text-[13px] font-bold text-gray-700 text-center"

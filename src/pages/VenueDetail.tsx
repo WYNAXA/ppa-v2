@@ -48,7 +48,13 @@ function getOpenStatus(openingHours: Record<string, { open: string; close: strin
   const [closeH, closeM] = hours.close.split(':').map(Number)
   const openMin = openH * 60 + openM
   const closeMin = closeH * 60 + closeM
-  const isOpen = nowMinutes >= openMin && nowMinutes < closeMin
+  // A close at or before the open means the venue shuts after midnight
+  // (e.g. 08:00–01:30). Then it's open if we're past opening OR before the
+  // next-day close — not the simple "between" check.
+  const crossesMidnight = closeMin <= openMin
+  const isOpen = crossesMidnight
+    ? (nowMinutes >= openMin || nowMinutes < closeMin)
+    : (nowMinutes >= openMin && nowMinutes < closeMin)
   return {
     isOpen,
     label: isOpen ? `Open \u00B7 Closes at ${hours.close}` : `Closed \u00B7 Opens at ${hours.open}`,

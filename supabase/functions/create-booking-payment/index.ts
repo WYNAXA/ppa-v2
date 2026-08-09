@@ -86,8 +86,15 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // 3.5% platform fee (Wynaxa keeps this; Wynaxa bears Stripe fees + disputes)
-    const application_fee_amount = Math.round(amount_pence * 0.035)
+    // Per-venue platform commission in basis points (default 350 = 3.5%). Wynaxa
+    // keeps this and bears Stripe fees + disputes; tier/founding venues pay less.
+    const { data: venueRate } = await supabase
+      .from('venues')
+      .select('commission_rate_bps')
+      .eq('id', venue_id)
+      .maybeSingle()
+    const rate_bps = venueRate?.commission_rate_bps ?? 350
+    const application_fee_amount = Math.round(amount_pence * rate_bps / 10000)
 
     const metadata: Record<string, string> = {
       booker_id: booker_id ?? '',

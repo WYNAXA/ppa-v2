@@ -137,7 +137,15 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Create Stripe PaymentIntent (destination charge) ────────────────────
-    const application_fee_amount = Math.round(amount_minor * 0.035) // 3.5% platform fee
+    // Per-venue platform commission in basis points (default 350 = 3.5%);
+    // tier/founding venues pay less. Set via set_venue_commission().
+    const { data: venueRate } = await supabase
+      .from('venues')
+      .select('commission_rate_bps')
+      .eq('id', venue_id)
+      .maybeSingle()
+    const rate_bps = venueRate?.commission_rate_bps ?? 350
+    const application_fee_amount = Math.round(amount_minor * rate_bps / 10000)
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount_minor,

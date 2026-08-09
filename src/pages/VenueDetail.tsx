@@ -211,6 +211,43 @@ export function VenueDetailPage() {
     },
   })
 
+  // Upcoming classes & coaching sessions at this venue (players can book a spot).
+  const { data: classes = [] } = useQuery({
+    queryKey: ['venue-classes', venue?.venues_id, userId],
+    enabled: !!venue?.venues_id,
+    queryFn: async () => {
+      const { data: sessions } = await supabase
+        .from('coaching_sessions')
+        .select('id, coach_user_id, title, session_type, start_at, capacity, price_pence, currency')
+        .eq('venue_id', (venue as { venues_id: string }).venues_id)
+        .eq('status', 'scheduled')
+        .gte('start_at', new Date().toISOString())
+        .order('start_at')
+        .limit(20)
+      const list = sessions ?? []
+      if (!list.length) return []
+      const ids = list.map((s: any) => s.id)
+      const coachIds = [...new Set(list.map((s: any) => s.coach_user_id))]
+      const [{ data: bks }, { data: coaches }] = await Promise.all([
+        supabase.from('coaching_bookings').select('session_id, player_id').in('session_id', ids).eq('status', 'booked'),
+        supabase.from('profiles').select('id, name').in('id', coachIds),
+      ])
+      const counts = new Map<string, number>(); const mine = new Set<string>()
+      for (const b of bks ?? []) { counts.set(b.session_id, (counts.get(b.session_id) ?? 0) + 1); if (b.player_id === userId) mine.add(b.session_id) }
+      const coachName = new Map((coaches ?? []).map((c: any) => [c.id, c.name]))
+      return list.map((s: any) => ({ ...s, booked: counts.get(s.id) ?? 0, mine: mine.has(s.id), coachName: coachName.get(s.coach_user_id) ?? 'Coach' }))
+    },
+  })
+
+  const bookClass = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const { data, error } = await supabase.rpc('book_class', { p_session_id: sessionId })
+      if (error) throw error
+      return data as { status: string }
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['venue-classes', venue?.venues_id, userId] }),
+  })
+
   // ── Mutations ────────────────────────────────────────────────────────────
 
   const submitRating = useMutation({
@@ -467,6 +504,45 @@ export function VenueDetailPage() {
           {venue.singles_courts > 0 && (
             <p className="text-sm text-teal-600 mt-1">Singles courts available</p>
           )}
+        </section>
+      )}
+
+      {/* Classes & coaching — bookable sessions run by the venue's coaches */}
+      {classes.length > 0 && (
+        <section className="px-5 mt-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-3">Classes &amp; coaching</h2>
+          <div className="space-y-2">
+            {classes.map((c: any) => {
+              const full = c.booked >= c.capacity
+              const spots = Math.max(0, c.capacity - c.booked)
+              return (
+                <div key={c.id} className="rounded-xl bg-gray-50 border border-gray-100 p-3 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0 text-lg">{'\u{1F3BE}'}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">{c.title}</p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {format(new Date(c.start_at), 'EEE d MMM · HH:mm', { locale })} · {c.coachName}
+                      {c.price_pence != null && ` · ${currencySymbol(venue.country_code)}${(c.price_pence / 100).toFixed(2)}`}
+                    </p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}
+                    </p>
+                  </div>
+                  {c.mine ? (
+                    <span className="text-[12px] font-semibold text-emerald-600 flex-shrink-0">Booked ✓</span>
+                  ) : (
+                    <button
+                      disabled={full || bookClass.isPending}
+                      onClick={() => bookClass.mutate(c.id)}
+                      className="h-8 px-3 rounded-lg bg-teal-600 text-white text-[12px] font-semibold disabled:opacity-40 flex-shrink-0 active:scale-95 transition-transform"
+                    >
+                      Book
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         </section>
       )}
 

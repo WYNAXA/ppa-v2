@@ -96,6 +96,16 @@ Deno.serve(async (req: Request) => {
     const rate_bps = venueRate?.commission_rate_bps ?? 350
     const application_fee_amount = Math.round(amount_pence * rate_bps / 10000)
 
+    // Charge in the venue's own currency — venues are worldwide, so a hardcoded
+    // 'gbp' would charge a EUR/INR/etc. venue in the wrong currency (and can fail
+    // against a non-GBP connected account). Falls back to GBP if unset.
+    const { data: venueRow } = await supabase
+      .from('padel_venues')
+      .select('currency')
+      .eq('venues_id', venue_id)
+      .maybeSingle()
+    const currency = (venueRow?.currency ?? 'GBP').toLowerCase()
+
     const metadata: Record<string, string> = {
       booker_id: booker_id ?? '',
       player_id: player_id ?? '',
@@ -112,7 +122,7 @@ Deno.serve(async (req: Request) => {
     // amount minus application_fee_amount, Wynaxa is merchant of record
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount_pence,
-      currency: 'gbp',
+      currency,
       application_fee_amount,
       transfer_data: {
         destination: acct.stripe_account_id,

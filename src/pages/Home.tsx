@@ -889,6 +889,15 @@ export function HomePage() {
 
       <div className="px-5 space-y-5">
 
+        {/* ── Search (prominent, so venues are easy to find) ── */}
+        <button
+          onClick={() => navigate('/search')}
+          className="w-full flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-4 h-11 text-left active:scale-[0.99] transition-transform"
+        >
+          <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <span className="text-[13px] text-gray-400">{t('home.search_placeholder')}</span>
+        </button>
+
         {/* ── Getting Started (self-dismissing) ── */}
         {!setupComplete && setupProgress && (
           <section>

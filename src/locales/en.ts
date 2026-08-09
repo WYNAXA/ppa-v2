@@ -38,6 +38,7 @@ export default {
     greeting_morning: 'Good morning',
     greeting_afternoon: 'Good afternoon',
     greeting_evening: 'Good evening',
+    search_placeholder: 'Search venues, players, groups…',
     next_match: 'Next match',
     all_matches: 'All matches',
     ranking: 'My ranking',

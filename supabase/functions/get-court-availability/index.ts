@@ -197,11 +197,18 @@ Deno.serve(async (req) => {
     const turnaroundMin = settings.turnaround_min;
 
     // Per-court-type windows: indoor/outdoor override, else venue-wide.
+    // A close time of 00:00 means end-of-day (24:00 = 1440), so venues can be
+    // bookable through midnight.
+    const openToMin  = (v: string | null | undefined) => (v ? timeToMinutes(v) : null);
+    const closeToMin = (v: string | null | undefined) => {
+      if (!v) return null;
+      const x = timeToMinutes(v);
+      return x === 0 ? 1440 : x;
+    };
     const venueOpen  = timeToMinutes(settings.open_time);
-    const venueClose = timeToMinutes(settings.close_time);
-    const toMin = (v: string | null | undefined) => (v ? timeToMinutes(v) : null);
-    const iOpen  = toMin(settings.indoor_open_time),  iClose  = toMin(settings.indoor_close_time);
-    const oOpen  = toMin(settings.outdoor_open_time), oClose  = toMin(settings.outdoor_close_time);
+    const venueClose = closeToMin(settings.close_time) ?? 1380;
+    const iOpen  = openToMin(settings.indoor_open_time),  iClose  = closeToMin(settings.indoor_close_time);
+    const oOpen  = openToMin(settings.outdoor_open_time), oClose  = closeToMin(settings.outdoor_close_time);
     const courtWindow = (court: Court) => ({
       open:  (court.is_indoor ? iOpen  : oOpen)  ?? venueOpen,
       close: (court.is_indoor ? iClose : oClose) ?? venueClose,

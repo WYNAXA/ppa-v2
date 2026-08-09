@@ -228,14 +228,16 @@ export function VenueDetailPage() {
       if (!list.length) return []
       const ids = list.map((s: any) => s.id)
       const coachIds = [...new Set(list.map((s: any) => s.coach_user_id))]
-      const [{ data: bks }, { data: coaches }] = await Promise.all([
+      const [{ data: bks }, { data: coaches }, { data: cprofiles }] = await Promise.all([
         supabase.from('coaching_bookings').select('session_id, player_id').in('session_id', ids).eq('status', 'booked'),
         supabase.from('profiles').select('id, name').in('id', coachIds),
+        supabase.from('coach_profiles').select('user_id, headline').in('user_id', coachIds),
       ])
       const counts = new Map<string, number>(); const mine = new Set<string>()
       for (const b of bks ?? []) { counts.set(b.session_id, (counts.get(b.session_id) ?? 0) + 1); if (b.player_id === userId) mine.add(b.session_id) }
       const coachName = new Map((coaches ?? []).map((c: any) => [c.id, c.name]))
-      return list.map((s: any) => ({ ...s, booked: counts.get(s.id) ?? 0, mine: mine.has(s.id), coachName: coachName.get(s.coach_user_id) ?? 'Coach' }))
+      const coachHeadline = new Map((cprofiles ?? []).map((c: any) => [c.user_id, c.headline]))
+      return list.map((s: any) => ({ ...s, booked: counts.get(s.id) ?? 0, mine: mine.has(s.id), coachName: coachName.get(s.coach_user_id) ?? 'Coach', coachHeadline: coachHeadline.get(s.coach_user_id) ?? null }))
     },
   })
 
@@ -524,6 +526,7 @@ export function VenueDetailPage() {
                       {format(new Date(c.start_at), 'EEE d MMM · HH:mm', { locale })} · {c.coachName}
                       {c.price_pence != null && ` · ${currencySymbol(venue.country_code)}${(c.price_pence / 100).toFixed(2)}`}
                     </p>
+                    {c.coachHeadline && <p className="text-[11px] text-teal-600 truncate">{c.coachHeadline}</p>}
                     <p className="text-[11px] text-gray-400 mt-0.5">
                       {c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}
                     </p>

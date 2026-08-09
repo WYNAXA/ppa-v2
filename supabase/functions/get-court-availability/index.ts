@@ -102,7 +102,7 @@ Deno.serve(async (req) => {
     // ── 1. Venue availability settings ────────────────────────────────────────
     const { data: settings, error: settingsError } = await supabase
       .from('court_availability_settings')
-      .select('slot_duration_min, slot_interval_min, turnaround_min, open_time, close_time')
+      .select('slot_duration_min, slot_interval_min, turnaround_min, open_time, close_time, indoor_open_time, indoor_close_time, outdoor_open_time, outdoor_close_time')
       .eq('venue_id', venue_id)
       .single();
 
@@ -193,16 +193,31 @@ Deno.serve(async (req) => {
     }
 
     // ── 7. Generate slots and check court availability ─────────────────────────
-    const openMinutes   = timeToMinutes(settings.open_time);
-    const closeMinutes  = timeToMinutes(settings.close_time);
     const intervalMin   = settings.slot_interval_min;
     const turnaroundMin = settings.turnaround_min;
+
+    // Per-court-type windows: indoor/outdoor override, else venue-wide.
+    const venueOpen  = timeToMinutes(settings.open_time);
+    const venueClose = timeToMinutes(settings.close_time);
+    const toMin = (v: string | null | undefined) => (v ? timeToMinutes(v) : null);
+    const iOpen  = toMin(settings.indoor_open_time),  iClose  = toMin(settings.indoor_close_time);
+    const oOpen  = toMin(settings.outdoor_open_time), oClose  = toMin(settings.outdoor_close_time);
+    const courtWindow = (court: Court) => ({
+      open:  (court.is_indoor ? iOpen  : oOpen)  ?? venueOpen,
+      close: (court.is_indoor ? iClose : oClose) ?? venueClose,
+    });
+
+    // The loop spans the UNION of all court windows, so no bookable slot is
+    // missed; each slot is then offered only for courts whose own window covers it.
+    const windows   = (courts as Court[]).map(courtWindow);
+    const loopOpen  = Math.min(...windows.map((w) => w.open));
+    const loopClose = Math.max(...windows.map((w) => w.close));
 
     const slots: Slot[] = [];
 
     for (
-      let slotStart = openMinutes;
-      slotStart + resolvedDuration <= closeMinutes;
+      let slotStart = loopOpen;
+      slotStart + resolvedDuration <= loopClose;
       slotStart += intervalMin
     ) {
       const slotEnd = slotStart + resolvedDuration;
@@ -214,6 +229,10 @@ Deno.serve(async (req) => {
       const conflictEnd   = slotEnd   + turnaroundMin;
 
       const availableCourts = (courts as Court[]).filter((court) => {
+        // Court must be open for this slot within its own indoor/outdoor window
+        const win = courtWindow(court);
+        if (slotStart < win.open || slotEnd > win.close) return false;
+
         // Check venue-wide block-outs (no turnaround applied — hard blocks)
         const venueBlocked = venueWideBlocks.some((b) =>
           overlaps(slotStart, slotEnd, tsToMinutes(b.start_at), tsToMinutes(b.end_at)),

@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, QrCode, X } from 'lucide-react'
 import QRCodeSVG from 'react-qr-code'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -249,7 +250,20 @@ export function VenueDetailPage() {
       if (error) throw error
       return data as { status: string }
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['venue-classes', venue?.venues_id, userId] }),
+    onSuccess: (res) => {
+      // Always refresh so the card reflects the new capacity/booked state…
+      queryClient.invalidateQueries({ queryKey: ['venue-classes', venue?.venues_id, userId] })
+      // …and tell the player what actually happened (a race can fill the last
+      // spot between render and tap, so "booked" isn't guaranteed).
+      switch (res?.status) {
+        case 'booked': toast.success('You’re booked in — see you on court!'); break
+        case 'already_booked': toast('You’re already booked in.'); break
+        case 'full': toast.error('Sorry — that class just filled up.'); break
+        case 'past': toast.error('That class has already started.'); break
+        default: toast.error('That class is no longer available.')
+      }
+    },
+    onError: () => toast.error('Couldn’t book that class — please try again.'),
   })
 
   // Tournaments this venue is hosting (leagues run through the existing engine).
@@ -553,7 +567,6 @@ export function VenueDetailPage() {
                     <p className="text-sm font-semibold text-gray-900 truncate">{c.title}</p>
                     <p className="text-xs text-gray-500 truncate">
                       {format(new Date(c.start_at), 'EEE d MMM · HH:mm', { locale })} · {c.coachName}
-                      {c.price_pence != null && ` · ${currencySymbol(venue.country_code)}${(c.price_pence / 100).toFixed(2)}`}
                     </p>
                     {c.coachHeadline && <p className="text-[11px] text-teal-600 truncate">{c.coachHeadline}</p>}
                     {Array.isArray(c.coachSpecialties) && c.coachSpecialties.length > 0 && (
@@ -565,8 +578,12 @@ export function VenueDetailPage() {
                         ))}
                       </div>
                     )}
-                    <p className="text-[11px] text-gray-400 mt-0.5">
-                      {c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}
+                    <p className="text-[11px] mt-0.5">
+                      {c.price_pence != null && (
+                        <span className="font-semibold text-gray-700">{currencySymbol(venue.country_code)}{(c.price_pence / 100).toFixed(2)}</span>
+                      )}
+                      {c.price_pence != null && <span className="text-gray-300"> · </span>}
+                      <span className="text-gray-400">{c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}</span>
                     </p>
                   </div>
                   {c.mine ? (

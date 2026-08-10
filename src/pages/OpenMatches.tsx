@@ -7,6 +7,7 @@ import { ChevronLeft, MapPin, Calendar, Users } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { attachGuestPlayers } from '@/lib/guestPlayers'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -57,11 +58,11 @@ export function OpenMatchesPage() {
         groupMap = new Map((groups ?? []).map((g: any) => [g.id, g.name]))
       }
 
-      return data.map((m: any) => ({
+      return attachGuestPlayers(data.map((m: any) => ({
         ...m,
         players: (m.player_ids ?? []).map((id: string) => profileMap.get(id)).filter(Boolean),
         groupName: m.group_id ? groupMap.get(m.group_id) ?? null : null,
-      }))
+      })))
     },
   })
 

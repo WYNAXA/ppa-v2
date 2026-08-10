@@ -12,6 +12,7 @@ import { NotificationBell } from '@/components/shared/NotificationBell'
 import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { guestPseudoProfilesForMatches } from '@/lib/guestPlayers'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserMatchesSubscription, useNotificationsSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -125,7 +126,10 @@ function useNextMatch(userId: string) {
         .select('id', { count: 'exact', head: true })
         .eq('match_id', match.id)
 
-      return { ...match, players, has_result: (resultCount ?? 0) > 0 }
+      // Guests are placeholder slots in player_ids — resolve their names so the
+      // card shows them instead of a blank avatar.
+      const guestsByMatch = await guestPseudoProfilesForMatches([match.id])
+      return { ...match, players: [...players, ...(guestsByMatch[match.id] ?? [])], has_result: (resultCount ?? 0) > 0 }
     },
   })
 }

@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { sendNotification, sendNotifications } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
+import { shareMatchInvite } from '@/lib/invites'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { useMatchSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -396,6 +397,40 @@ export function MatchDetailPage() {
       return m
     },
   })
+
+  // Full invite rows (token + status) so guest slots can offer a "Send invite"
+  // share action. Keyed by slot_player_id, same as guestNameMap.
+  const { data: guestInviteMap = {} } = useQuery<Record<string, { name: string; token: string; status: string }>>({
+    queryKey: ['match-guest-invites', id],
+    enabled: !!id,
+    queryFn: async () => {
+      const { data: rows } = await supabase
+        .from('match_guest_invites')
+        .select('slot_player_id, guest_name, invite_token, status')
+        .eq('match_id', id!)
+        .neq('status', 'cancelled')
+      const m: Record<string, { name: string; token: string; status: string }> = {}
+      for (const r of rows ?? []) {
+        m[r.slot_player_id as string] = { name: r.guest_name as string, token: r.invite_token as string, status: r.status as string }
+      }
+      return m
+    },
+  })
+
+  // Open the share sheet for a guest's join link (so the host can send it via
+  // WhatsApp / Messages — no phone number needed).
+  async function shareGuestInvite(slotId: string) {
+    const inv = guestInviteMap[slotId]
+    if (!inv?.token) { toast.error(t('invite.no_link', 'No invite link for this guest yet.')); return }
+    const res = await shareMatchInvite({
+      token: inv.token,
+      guestName: inv.name,
+      inviterName: profile?.name,
+      matchDate: match?.match_date,
+      venue: match?.booked_venue_name,
+    })
+    if (res === 'copied') toast.success(t('invite.link_copied', 'Invite link copied — paste it to them'))
+  }
 
   // Linked booking (for cross-link to booking status)
   const { data: linkedBooking } = useQuery<{ id: string; status: string; reservation_state: string | null; payment_state: string | null; source: string | null } | null>({
@@ -1439,7 +1474,17 @@ export function MatchDetailPage() {
                     <span className="text-[9px] font-bold text-[#009688] bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.you_badge')}</span>
                   )}
                   {'isGuest' in player && player.isGuest && (
-                    <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.guest_badge')}</span>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {(isParticipant || isGroupAdmin) && guestInviteMap[player.id]?.token && match.status !== 'completed' && match.status !== 'cancelled' && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); shareGuestInvite(player.id) }}
+                          className="flex items-center gap-1 text-[10px] font-bold text-[#009688] bg-teal-50 hover:bg-teal-100 px-1.5 py-0.5 rounded-full transition-colors active:scale-95"
+                        >
+                          <Share2 className="h-2.5 w-2.5" /> {t('match.send_invite', 'Invite')}
+                        </button>
+                      )}
+                      <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full">{t('match.guest_badge')}</span>
+                    </div>
                   )}
                 </>
               ) : (

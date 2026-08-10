@@ -745,16 +745,14 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
     setSubmitting(true)
     setError(null)
 
-    // Separate real players from guests (guests have fake IDs that fail FK checks)
-    const realPlayers  = safePlayers.filter((p) => !p.isGuest)
-    const playerIds    = realPlayers.map((p) => p.id)
-
-    const userNotes = form.notes.trim()
-    const guestNames = safePlayers
-      .filter((p) => p.isGuest)
-      .map((p) => p.name)
-      .join(', ')
-    const finalNotes = [userNotes, guestNames ? `Guests: ${guestNames}` : ''].filter(Boolean).join('\n') || null
+    // Real players go straight into player_ids. Guests become structured invite
+    // slots created via create_match_guest_invite once the match row exists — that
+    // gives each guest a real slot (so their name resolves everywhere) plus a
+    // shareable join link. We no longer stuff guest names into notes.
+    const realPlayers = safePlayers.filter((p) => !p.isGuest)
+    const playerIds   = realPlayers.map((p) => p.id)
+    const guestList   = safePlayers.filter((p) => p.isGuest)
+    const finalNotes  = form.notes.trim() || null
 
     // match_time must be HH:MM:SS format for Postgres time column
     const matchTime = form.time ? `${form.time.slice(0, 5)}:00` : null
@@ -797,6 +795,17 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
       if (insertError) {
         console.error('[CreateMatch] insert error:', insertError)
         throw insertError
+      }
+
+      // Turn each guest into a real slot + shareable invite link. Best-effort:
+      // the match already exists, so a failed guest invite shouldn't abort it.
+      for (const g of guestList) {
+        const { error: guestErr } = await supabase.rpc('create_match_guest_invite', {
+          p_match_id: data.id,
+          p_guest_name: g.name,
+          p_contact: null,
+        })
+        if (guestErr) console.warn('[CreateMatch] guest invite failed:', g.name, guestErr)
       }
 
       // Insert notification for match creator

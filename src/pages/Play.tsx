@@ -6,6 +6,7 @@ import { Bell, Plus, Search, BookOpen, ArrowRight, X, Trophy, Calendar, MapPin, 
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { attachGuestPlayers } from '@/lib/guestPlayers'
 import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
@@ -157,10 +158,10 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
       const { data: profiles } = allIds.length > 0
         ? await supabase.from('profiles').select('id, name, avatar_url').in('id', allIds)
         : { data: [] }
-      return filtered.map((m) => ({
+      return attachGuestPlayers(filtered.map((m) => ({
         ...m,
         players: (profiles ?? []).filter((p) => (m.player_ids as string[]).includes(p.id)),
-      }))
+      })))
     },
   })
 

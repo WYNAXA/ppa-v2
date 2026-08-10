@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { ChevronLeft, ChevronRight, Plus, Calendar, UserPlus, ClipboardCheck } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { attachGuestPlayers } from '@/lib/guestPlayers'
 import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { useUserMatchesSubscription } from '@/hooks/useRealtimeSubscription'
@@ -360,7 +361,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       ? await supabase.from('groups').select('id, name').in('id', groupIds)
       : { data: [] }
     const groupMap = Object.fromEntries((groups ?? []).map((g) => [g.id, g]))
-    return data.map((m) => ({
+    return attachGuestPlayers(data.map((m) => ({
       id: m.id, match_date: m.match_date, match_time: m.match_time,
       match_type: m.match_type, status: m.status,
       player_ids: (m.player_ids as string[]) ?? [],
@@ -368,7 +369,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       players: (profiles ?? []).filter((p) => ((m.player_ids as string[]) ?? []).includes(p.id)),
       group_id: m.group_id, group_name: m.group_id ? groupMap[m.group_id]?.name : null,
       created_manually: m.created_manually, poll_id: m.poll_id,
-    }))
+    })))
   }
 
   // ── Fetch my matches directly (without the shared function since query differs) ──

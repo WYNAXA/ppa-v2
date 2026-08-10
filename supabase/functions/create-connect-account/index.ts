@@ -13,7 +13,7 @@ const supabaseAdmin = createClient(
 )
 
 const MANAGER_URL =
-  Deno.env.get('MANAGER_URL') ?? 'https://venue-manager-bay.vercel.app'
+  Deno.env.get('MANAGER_URL') ?? 'https://hub.wynaxa.com'
 
 const COUNTRY_MAP: Record<string, string> = {
   'United Kingdom': 'GB',

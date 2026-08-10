@@ -10,6 +10,7 @@ import { ReportButton } from '@/components/shared/ReportButton'
 import { format, parseISO, startOfWeek, endOfWeek, addDays, endOfMonth } from 'date-fns'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
+import { attachGuestPlayers } from '@/lib/guestPlayers'
 import { sendNotification, sendNotifications } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
@@ -237,6 +238,37 @@ function useGroupInviteNotification(groupId: string, userId: string) {
   })
 }
 
+function useGroupRingerInviteNotification(groupId: string, userId: string) {
+  return useQuery({
+    queryKey: ['group-ringer-invite-notification', groupId, userId],
+    enabled: !!groupId && !!userId,
+    queryFn: async () => {
+      const { data: existing } = await supabase
+        .from('group_members')
+        .select('status')
+        .eq('group_id', groupId)
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      if (existing?.status === 'approved' || existing?.status === 'ringer') return null
+
+      const { data: notif } = await supabase
+        .from('notifications')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('type', 'group_ringer_invite')
+        .eq('related_id', groupId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (!notif) return null
+
+      return { notificationId: notif.id, alreadyRejected: existing?.status === 'rejected' }
+    },
+  })
+}
+
 function useGroupMatches(groupId: string) {
   const today = new Date().toISOString().split('T')[0]
   return useQuery({
@@ -268,7 +300,7 @@ function useGroupMatches(groupId: string) {
         .select('id, name, avatar_url')
         .in('id', allPlayerIds)
 
-      return matches.map((m) => ({
+      return attachGuestPlayers(matches.map((m) => ({
         id:                m.id,
         match_date:        m.match_date,
         match_time:        m.match_time,
@@ -277,7 +309,7 @@ function useGroupMatches(groupId: string) {
         match_type:        m.match_type,
         status:            m.status,
         players:           (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
-      }))
+      })))
     },
   })
 }
@@ -1680,25 +1712,33 @@ export function GroupDetailPage() {
   const memberCount = (members ?? []).filter(m => m.memberStatus !== 'ringer').length
   const queryClient = useQueryClient()
   const { data: inviteData } = useGroupInviteNotification(groupId, userId)
+  const { data: ringerInviteData } = useGroupRingerInviteNotification(groupId, userId)
+
+  // If both invite types exist, ringer takes priority
+  const effectiveInviteData = ringerInviteData ?? inviteData
+  const isRingerInvite = !!ringerInviteData
 
   const acceptInviteMutation = useMutation({
     mutationFn: async () => {
-      if (!inviteData) throw new Error('No invite')
-      if (inviteData.alreadyRejected) throw new Error('rejected')
+      if (!effectiveInviteData) throw new Error('No invite')
+      if (effectiveInviteData.alreadyRejected) throw new Error('rejected')
+      const memberStatus = isRingerInvite ? 'ringer' : 'approved'
       const { error } = await supabase.from('group_members').insert({
-        group_id: groupId, user_id: userId, role: 'member', status: 'approved',
+        group_id: groupId, user_id: userId, role: 'member', status: memberStatus,
       })
       if (error) {
         if (error.code === '23505') throw new Error('rejected')
         throw error
       }
-      await supabase.from('notifications').update({ read: true }).eq('id', inviteData.notificationId)
+      await supabase.from('notifications').update({ read: true }).eq('id', effectiveInviteData.notificationId)
     },
     onSuccess: () => {
-      toast.success(t('group_detail.welcome_to_group', { name: group?.name }))
+      toast.success(isRingerInvite ? t('group_detail.ringer_invite_accepted', { name: group?.name }) : t('group_detail.welcome_to_group', { name: group?.name }))
       queryClient.invalidateQueries({ queryKey: ['group-invite-notification', groupId, userId] })
+      queryClient.invalidateQueries({ queryKey: ['group-ringer-invite-notification', groupId, userId] })
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
       queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
+      queryClient.invalidateQueries({ queryKey: ['pending-ringer-offers', groupId] })
     },
     onError: (err: Error) => {
       if (err.message === 'rejected') {
@@ -1711,15 +1751,16 @@ export function GroupDetailPage() {
 
   const declineInviteMutation = useMutation({
     mutationFn: async () => {
-      if (!inviteData) throw new Error('No invite')
-      await supabase.from('notifications').update({ read: true }).eq('id', inviteData.notificationId)
+      if (!effectiveInviteData) throw new Error('No invite')
+      await supabase.from('notifications').update({ read: true }).eq('id', effectiveInviteData.notificationId)
     },
     onSuccess: () => {
       toast(t('group_detail.invite_declined'))
       queryClient.invalidateQueries({ queryKey: ['group-invite-notification', groupId, userId] })
+      queryClient.invalidateQueries({ queryKey: ['group-ringer-invite-notification', groupId, userId] })
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to decline invite')
+      toast.error(err.message || t('group_detail.decline_invite_failed'))
     },
   })
 
@@ -1889,10 +1930,10 @@ export function GroupDetailPage() {
       </div>
 
       {/* Invite banner */}
-      {inviteData && !acceptInviteMutation.isSuccess && !declineInviteMutation.isSuccess && (
-        <div className="mx-5 mb-3 rounded-xl border border-teal-200 bg-teal-50 px-4 py-3">
+      {effectiveInviteData && !acceptInviteMutation.isSuccess && !declineInviteMutation.isSuccess && (
+        <div className={`mx-5 mb-3 rounded-xl border px-4 py-3 ${isRingerInvite ? 'border-orange-200 bg-orange-50' : 'border-teal-200 bg-teal-50'}`}>
           <p className="text-[13px] font-semibold text-gray-800 mb-2">
-            {t('group_detail.invite_banner', { name: group.name })}
+            {isRingerInvite ? t('group_detail.ringer_invite_banner', { name: group.name }) : t('group_detail.invite_banner', { name: group.name })}
           </p>
           <div className="flex gap-2">
             <button

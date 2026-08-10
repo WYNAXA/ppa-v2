@@ -230,14 +230,16 @@ export function VenueDetailPage() {
       const coachIds = [...new Set(list.map((s: any) => s.coach_user_id))]
       const [{ data: bks }, { data: coaches }, { data: cprofiles }] = await Promise.all([
         supabase.from('coaching_bookings').select('session_id, player_id').in('session_id', ids).eq('status', 'booked'),
-        supabase.from('profiles').select('id, name').in('id', coachIds),
-        supabase.from('coach_profiles').select('user_id, headline').in('user_id', coachIds),
+        supabase.from('profiles').select('id, name, avatar_url').in('id', coachIds),
+        supabase.from('coach_profiles').select('user_id, headline, specialties').in('user_id', coachIds),
       ])
       const counts = new Map<string, number>(); const mine = new Set<string>()
       for (const b of bks ?? []) { counts.set(b.session_id, (counts.get(b.session_id) ?? 0) + 1); if (b.player_id === userId) mine.add(b.session_id) }
       const coachName = new Map((coaches ?? []).map((c: any) => [c.id, c.name]))
+      const coachAvatar = new Map((coaches ?? []).map((c: any) => [c.id, c.avatar_url]))
       const coachHeadline = new Map((cprofiles ?? []).map((c: any) => [c.user_id, c.headline]))
-      return list.map((s: any) => ({ ...s, booked: counts.get(s.id) ?? 0, mine: mine.has(s.id), coachName: coachName.get(s.coach_user_id) ?? 'Coach', coachHeadline: coachHeadline.get(s.coach_user_id) ?? null }))
+      const coachSpecialties = new Map((cprofiles ?? []).map((c: any) => [c.user_id, c.specialties]))
+      return list.map((s: any) => ({ ...s, booked: counts.get(s.id) ?? 0, mine: mine.has(s.id), coachName: coachName.get(s.coach_user_id) ?? 'Coach', coachAvatar: coachAvatar.get(s.coach_user_id) ?? null, coachHeadline: coachHeadline.get(s.coach_user_id) ?? null, coachSpecialties: coachSpecialties.get(s.coach_user_id) ?? null }))
     },
   })
 
@@ -542,7 +544,11 @@ export function VenueDetailPage() {
               const spots = Math.max(0, c.capacity - c.booked)
               return (
                 <div key={c.id} className="rounded-xl bg-gray-50 border border-gray-100 p-3 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0 text-lg">{'\u{1F3BE}'}</div>
+                  {c.coachAvatar ? (
+                    <img src={c.coachAvatar} alt={c.coachName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0 text-lg">{'\u{1F3BE}'}</div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{c.title}</p>
                     <p className="text-xs text-gray-500 truncate">
@@ -550,6 +556,15 @@ export function VenueDetailPage() {
                       {c.price_pence != null && ` · ${currencySymbol(venue.country_code)}${(c.price_pence / 100).toFixed(2)}`}
                     </p>
                     {c.coachHeadline && <p className="text-[11px] text-teal-600 truncate">{c.coachHeadline}</p>}
+                    {Array.isArray(c.coachSpecialties) && c.coachSpecialties.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {c.coachSpecialties.slice(0, 3).map((sp: string) => (
+                          <span key={sp} className="text-[10px] leading-none px-1.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-100">
+                            {sp}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     <p className="text-[11px] text-gray-400 mt-0.5">
                       {c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}
                     </p>

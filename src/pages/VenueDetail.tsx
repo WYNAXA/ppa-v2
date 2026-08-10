@@ -250,6 +250,29 @@ export function VenueDetailPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['venue-classes', venue?.venues_id, userId] }),
   })
 
+  // Tournaments this venue is hosting (leagues run through the existing engine).
+  const { data: tournaments = [] } = useQuery({
+    queryKey: ['venue-tournaments', venue?.venues_id],
+    enabled: !!venue?.venues_id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('leagues')
+        .select('id, name, format, tournament_start, max_participants, entry_fee_pence, status')
+        .eq('source_venue_id', (venue as { venues_id: string }).venues_id)
+        .eq('source_type', 'venue')
+        .in('status', ['active', 'draft'])
+        .order('tournament_start', { ascending: true, nullsFirst: false })
+        .limit(10)
+      const list = data ?? []
+      if (!list.length) return []
+      const ids = list.map((l: any) => l.id)
+      const { data: m } = await supabase.from('league_members').select('league_id').in('league_id', ids).eq('status', 'active')
+      const counts = new Map<string, number>()
+      for (const r of m ?? []) counts.set(r.league_id, (counts.get(r.league_id) ?? 0) + 1)
+      return list.map((l: any) => ({ ...l, participants: counts.get(l.id) ?? 0 }))
+    },
+  })
+
   // ── Mutations ────────────────────────────────────────────────────────────
 
   const submitRating = useMutation({
@@ -545,6 +568,30 @@ export function VenueDetailPage() {
                 </div>
               )
             })}
+          </div>
+        </section>
+      )}
+
+      {/* Tournaments hosted here — tap through to the league to join & play */}
+      {tournaments.length > 0 && (
+        <section className="px-5 mt-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-3">Tournaments</h2>
+          <div className="space-y-2">
+            {tournaments.map((tn: any) => (
+              <button key={tn.id} onClick={() => navigate(`/compete/leagues/${tn.id}`)}
+                className="w-full flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-3 text-left active:scale-[0.98] transition-transform">
+                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 text-lg">{'\u{1F3C6}'}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-900 truncate">{tn.name}</p>
+                  <p className="text-xs text-gray-500 truncate">
+                    {tn.tournament_start && format(new Date(tn.tournament_start), 'EEE d MMM · HH:mm', { locale })}
+                    {` · ${tn.participants}${tn.max_participants ? `/${tn.max_participants}` : ''} players`}
+                    {tn.entry_fee_pence > 0 && ` · ${currencySymbol(venue.country_code)}${(tn.entry_fee_pence / 100).toFixed(2)}`}
+                  </p>
+                </div>
+                <ChevronLeft size={16} className="text-gray-300 rotate-180 shrink-0" />
+              </button>
+            ))}
           </div>
         </section>
       )}

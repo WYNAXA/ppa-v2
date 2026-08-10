@@ -62,6 +62,7 @@ interface Venue {
   price_per_player_pence?: number | null
   website?: string | null
   phone?: string | null
+  _distanceMiles?: number | null   // attached for the "near you" list (from venues_near)
 }
 
 interface TimeSlot {
@@ -337,6 +338,10 @@ export function BookCourtPage() {
   const [nonPpaVenue, setNonPpaVenue] = useState<Venue | null>(null)
   const debouncedVenueQuery = useDebounce(venueQuery, 300)
 
+  // "Padel venues near you" (shown before the player types anything)
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
+  const [locating, setLocating] = useState(false)
+
   // ── Date & slot step ────────────────────────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState<string>('')
   const [selectedDuration, setSelectedDuration] = useState<number>(60)
@@ -453,6 +458,54 @@ export function BookCourtPage() {
         .eq('id', userId)
         .single()
       return data ?? null
+    },
+  })
+
+  // Seed the map/location from this session's last-known coords, else the
+  // player's stored profile location. (Same source as Community discovery.)
+  useEffect(() => {
+    const cached = sessionStorage.getItem('ppa_user_coords')
+    if (cached) { try { setCoords(JSON.parse(cached)); return } catch { /* ignore */ } }
+    if (userLocation?.latitude != null && userLocation?.longitude != null) {
+      setCoords({ lat: userLocation.latitude, lng: userLocation.longitude })
+    }
+  }, [userLocation?.latitude, userLocation?.longitude])
+
+  function requestLocation() {
+    if (!('geolocation' in navigator)) { toast.error('Location is not available on this device.'); return }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude }
+        setCoords(c)
+        sessionStorage.setItem('ppa_user_coords', JSON.stringify(c))
+        setLocating(false)
+      },
+      () => { setLocating(false); toast.error('Couldn’t get your location — search by name instead.') },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
+    )
+  }
+
+  // Nearest padel venues, so the player sees courts near them before typing.
+  // venues_near returns the closest set + distance; we hydrate the full booking
+  // fields (anchor id, booking_url, etc.) so a tap flows straight into booking.
+  const { data: nearbyVenues = [], isFetching: nearbyLoading } = useQuery<Venue[]>({
+    queryKey: ['bookcourt-nearby', coords?.lat, coords?.lng],
+    enabled: !!coords,
+    queryFn: async () => {
+      const { data: near } = await supabase.rpc('venues_near', {
+        p_lat: coords!.lat, p_lng: coords!.lng, p_radius_miles: 75, p_limit: 12,
+      })
+      const list = (near ?? []) as { venue_id: string; distance_miles: number }[]
+      if (!list.length) return []
+      const distById = new Map(list.map((v) => [v.venue_id, v.distance_miles]))
+      const { data: full } = await supabase
+        .from('padel_venues')
+        .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone')
+        .in('venue_id', list.map((v) => v.venue_id))
+      return ((full ?? []) as Venue[])
+        .map((v) => ({ ...v, _distanceMiles: distById.get(v.venue_id) ?? null }))
+        .sort((a, b) => (a._distanceMiles ?? Infinity) - (b._distanceMiles ?? Infinity))
     },
   })
 
@@ -902,10 +955,66 @@ export function BookCourtPage() {
   // ── Utility helpers ──────────────────────────────────────────────────────────
 
   function venueDistance(v: Venue): number | null {
-    const uLat = userLocation?.latitude
-    const uLng = userLocation?.longitude
+    const uLat = coords?.lat ?? userLocation?.latitude
+    const uLng = coords?.lng ?? userLocation?.longitude
     if (!uLat || !uLng || !v.latitude || !v.longitude) return null
     return calculateDistance(uLat, uLng, v.latitude, v.longitude)
+  }
+
+  // Shared venue card — used by both the search results and the "near you" list.
+  function selectVenue(v: Venue) {
+    if (v.ppa_bookable !== true) { setNonPpaVenue(v); return }
+    setSelectedVenue(v)
+    setVenueQuery(v.venue_name)
+    setVenueResults([])
+    setNonPpaVenue(null)
+    setStep('date-slot')
+  }
+
+  function renderVenueButton(v: Venue, dist: number | null) {
+    const isPpa = v.ppa_bookable === true
+    return (
+      <button
+        key={v.venue_id}
+        onClick={() => selectVenue(v)}
+        className="w-full text-left rounded-2xl border border-gray-100 bg-white p-4 hover:border-teal-200 hover:bg-teal-50/30 transition-colors shadow-sm active:scale-[0.99]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[14px] font-bold text-gray-900">{v.venue_name}</p>
+              {isPpa ? (
+                <span className="text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
+                  Book via PPA
+                </span>
+              ) : (
+                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 flex-shrink-0">
+                  {PLATFORM_LABELS[v.booking_platform ?? '']?.label ?? v.booking_platform ?? 'External'}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-1 flex-wrap">
+              {v.city && (
+                <span className="flex items-center gap-1 text-[12px] text-gray-500">
+                  <MapPin className="h-3 w-3" />
+                  {v.city}
+                </span>
+              )}
+              {dist != null && (
+                <span className="text-[12px] font-semibold text-teal-600">
+                  {formatDistance(dist)} · ~{driveMinutes(dist)} min
+                </span>
+              )}
+              {v.number_of_courts != null && (
+                <span className="text-[12px] text-gray-400">{v.number_of_courts} courts</span>
+              )}
+            </div>
+            {isPpa && <p className="text-[11px] text-teal-600 mt-0.5">3 weeks in advance</p>}
+          </div>
+          <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0 mt-1" />
+        </div>
+      </button>
+    )
   }
 
   function shareBooking() {
@@ -1114,68 +1223,7 @@ export function BookCourtPage() {
                     exit={{ opacity: 0 }}
                     className="space-y-2"
                   >
-                    {venueResults.map((v) => {
-                      const dist = venueDistance(v)
-                      const isPpa = v.ppa_bookable === true
-                      return (
-                        <button
-                          key={v.venue_id}
-                          onClick={() => {
-                            if (!isPpa) {
-                              setNonPpaVenue(v)
-                            } else {
-                              setSelectedVenue(v)
-                              setVenueQuery(v.venue_name)
-                              setVenueResults([])
-                              setNonPpaVenue(null)
-                              setStep('date-slot')
-                            }
-                          }}
-                          className="w-full text-left rounded-2xl border border-gray-100 bg-white p-4 hover:border-teal-200 hover:bg-teal-50/30 transition-colors shadow-sm active:scale-[0.99]"
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <p className="text-[14px] font-bold text-gray-900">{v.venue_name}</p>
-                                {isPpa ? (
-                                  <span className="text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
-                                    Book via PPA
-                                  </span>
-                                ) : (
-                                  <span className="text-[10px] font-bold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 flex-shrink-0">
-                                    {PLATFORM_LABELS[v.booking_platform ?? '']?.label ??
-                                      v.booking_platform ??
-                                      'External'}
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1 flex-wrap">
-                                {v.city && (
-                                  <span className="flex items-center gap-1 text-[12px] text-gray-500">
-                                    <MapPin className="h-3 w-3" />
-                                    {v.city}
-                                  </span>
-                                )}
-                                {dist != null && (
-                                  <span className="text-[12px] font-semibold text-teal-600">
-                                    {formatDistance(dist)} · ~{driveMinutes(dist)} min
-                                  </span>
-                                )}
-                                {v.number_of_courts != null && (
-                                  <span className="text-[12px] text-gray-400">
-                                    {v.number_of_courts} courts
-                                  </span>
-                                )}
-                              </div>
-                              {isPpa && (
-                                <p className="text-[11px] text-teal-600 mt-0.5">3 weeks in advance</p>
-                              )}
-                            </div>
-                            <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0 mt-1" />
-                          </div>
-                        </button>
-                      )
-                    })}
+                    {venueResults.map((v) => renderVenueButton(v, venueDistance(v)))}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1187,14 +1235,61 @@ export function BookCourtPage() {
               )}
 
               {venueQuery.length < 2 && !nonPpaVenue && (
-                <div className="flex flex-col items-center gap-3 py-10 text-center">
-                  <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center">
-                    <MapPin className="h-7 w-7 text-[#009688]" />
-                  </div>
-                  <p className="text-[14px] font-semibold text-gray-700">Find your court</p>
-                  <p className="text-[13px] text-gray-400 max-w-xs">
-                    Search by venue name or city. PPA-bookable venues can be reserved directly in the app — up to 3 weeks in advance.
-                  </p>
+                <div className="space-y-3">
+                  {coords ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Padel venues near you</p>
+                        {nearbyLoading && <span className="text-[11px] text-gray-300">Finding…</span>}
+                      </div>
+                      {nearbyLoading && nearbyVenues.length === 0 ? (
+                        <div className="flex items-center justify-center py-10">
+                          <svg className="h-5 w-5 animate-spin text-[#009688]" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                        </div>
+                      ) : nearbyVenues.length > 0 ? (
+                        <div className="space-y-2">
+                          {nearbyVenues.map((v) => renderVenueButton(v, v._distanceMiles ?? venueDistance(v)))}
+                        </div>
+                      ) : (
+                        <p className="text-center text-[13px] text-gray-400 py-6">
+                          No padel venues within 75 miles — try searching by name or city.
+                        </p>
+                      )}
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 py-10 text-center">
+                      <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center">
+                        <MapPin className="h-7 w-7 text-[#009688]" />
+                      </div>
+                      <p className="text-[14px] font-semibold text-gray-700">Find your court</p>
+                      <p className="text-[13px] text-gray-400 max-w-xs">
+                        See padel venues near you, or search by name or city. PPA-bookable venues can be reserved directly in the app — up to 3 weeks in advance.
+                      </p>
+                      <button
+                        onClick={requestLocation}
+                        disabled={locating}
+                        className="mt-1 inline-flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
+                      >
+                        {locating ? (
+                          <>
+                            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                            </svg>
+                            Locating…
+                          </>
+                        ) : (
+                          <>
+                            <MapPin className="h-4 w-4" />
+                            See venues near me
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
             </motion.div>

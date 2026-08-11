@@ -16,6 +16,8 @@ import { TermsOfServicePage } from '@/pages/TermsOfService'
 import { SupportPage } from '@/pages/Support'
 import { LandingPage } from '@/pages/Landing'
 import { EmbedVenueBookingPage } from '@/pages/EmbedVenueBooking'
+import { CoachesPage } from '@/pages/Coaches'
+import { CoachDetailPage } from '@/pages/CoachDetail'
 import { FAQPage } from '@/pages/FAQ'
 import { ContactPage } from '@/pages/Contact'
 import { ForVenuesPage } from '@/pages/ForVenues'
@@ -263,6 +265,10 @@ function AppShell() {
             <Route path="/compete/leagues/create" element={<Guard><CompetePage /></Guard>} />
             <Route path="/compete/leagues/:id"    element={<Guard><LeagueDetailPage /></Guard>} />
             <Route path="/compete/leagues/:id/tournament" element={<Guard><TournamentModePage /></Guard>} />
+
+            {/* Coaches directory + profile (book a session with a coach) */}
+            <Route path="/coaches"          element={<Guard><CoachesPage /></Guard>} />
+            <Route path="/coaches/:coachId" element={<Guard><CoachDetailPage /></Guard>} />
 
             {/* Player profiles */}
             <Route path="/players/:playerId" element={<Guard><PlayerProfilePage /></Guard>} />

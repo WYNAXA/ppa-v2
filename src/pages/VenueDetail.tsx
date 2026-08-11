@@ -558,11 +558,17 @@ export function VenueDetailPage() {
               const spots = Math.max(0, c.capacity - c.booked)
               return (
                 <div key={c.id} className="rounded-xl bg-gray-50 border border-gray-100 p-3 flex items-center gap-3">
-                  {c.coachAvatar ? (
-                    <img src={c.coachAvatar} alt={c.coachName} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0 text-lg">{'\u{1F3BE}'}</div>
-                  )}
+                  <button
+                    onClick={() => c.coach_user_id && navigate(`/coaches/${c.coach_user_id}`)}
+                    className="flex-shrink-0 active:scale-95 transition-transform"
+                    aria-label={`View ${c.coachName}`}
+                  >
+                    {c.coachAvatar ? (
+                      <img src={c.coachAvatar} alt={c.coachName} className="w-10 h-10 rounded-full object-cover" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center text-lg">{'\u{1F3BE}'}</div>
+                    )}
+                  </button>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900 truncate">{c.title}</p>
                     <p className="text-xs text-gray-500 truncate">

@@ -453,7 +453,9 @@ export function TournamentModePage() {
             matchesToCreate.push({ ...baseMatch, player_ids: [p1, p4, p2, p3] })
           }
           const seated = Math.floor(ranked.length / 4) * 4
-          if (ranked.length - seated > 0) console.log(`[Tournament] Mexicano round ${nextRound}: ${ranked.length - seated} player(s) sit out this round`)
+          if (ranked.length - seated > 0) {
+            console.log(`[Tournament] Mexicano round ${nextRound}: ${ranked.length - seated} player(s) sit out this round`)
+          }
         } else {
           // Americano (and legacy individual round-robin): fixed partner rotation via the
           // circle method — over the season everyone partners and opposes everyone once.

@@ -347,7 +347,7 @@ function useGroupPastMatches(groupId: string, userId: string) {
         .select('id, name, avatar_url')
         .in('id', allPlayerIds)
 
-      return matches.map((m) => {
+      return attachGuestPlayers(matches.map((m) => {
         const r = resultByMatch[m.id]
         let didWin: boolean | undefined = undefined
         if (r && r.result_type !== 'draw') {
@@ -369,7 +369,7 @@ function useGroupPastMatches(groupId: string, userId: string) {
           players:           (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
           didWin,
         }
-      })
+      }))
     },
   })
 }

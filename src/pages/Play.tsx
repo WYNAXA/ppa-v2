@@ -365,6 +365,12 @@ export function PlayPage() {
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.find_coach', 'Find a coach')}</span>
               </button>
             </div>
+            <button
+              onClick={() => navigate('/play/waitlist')}
+              className="mt-2.5 mx-auto flex items-center gap-1.5 text-[12px] font-semibold text-gray-400 hover:text-[#009688] transition-colors"
+            >
+              <Bell className="h-3.5 w-3.5" /> {t('play.my_waitlist', 'My waitlist')}
+            </button>
           </motion.div>
 
           {/* ── What's on — venue events ──────────────────────────────── */}

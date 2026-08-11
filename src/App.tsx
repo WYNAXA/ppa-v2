@@ -18,6 +18,7 @@ import { LandingPage } from '@/pages/Landing'
 import { EmbedVenueBookingPage } from '@/pages/EmbedVenueBooking'
 import { CoachesPage } from '@/pages/Coaches'
 import { CoachDetailPage } from '@/pages/CoachDetail'
+import { WaitlistPage } from '@/pages/Waitlist'
 import { FAQPage } from '@/pages/FAQ'
 import { ContactPage } from '@/pages/Contact'
 import { ForVenuesPage } from '@/pages/ForVenues'
@@ -258,6 +259,7 @@ function AppShell() {
             <Route path="/play/availability/create"  element={<Guard><CreatePollPage /></Guard>} />
             <Route path="/play/availability/:pollId" element={<Guard><AvailabilityPollPage /></Guard>} />
             <Route path="/play/book-court"           element={<Guard><BookCourtPage /></Guard>} />
+            <Route path="/play/waitlist"             element={<Guard><WaitlistPage /></Guard>} />
             <Route path="/play/events/:occurrenceId"  element={<Guard><VenueEventDetailPage /></Guard>} />
 
             {/* Compete sub-routes */}

@@ -11,7 +11,11 @@ export function AuthPage() {
   // Match-invite token carried through auth so email-confirm / cross-device
   // sign-up still lands the new player back on the invite to join.
   const invite = searchParams.get('invite')
-  const postAuthTarget = invite ? `/join/match/${invite}` : '/home'
+  // `next` lets deep-links (e.g. the embed booking widget) return after sign-in.
+  // Only allow internal absolute paths — never a protocol-relative open redirect.
+  const next = searchParams.get('next')
+  const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null
+  const postAuthTarget = safeNext ?? (invite ? `/join/match/${invite}` : '/home')
   const initialMode = searchParams.get('mode') === 'signup' ? 'signup' : 'signin'
   const [mode, setMode] = useState<'signin' | 'signup' | 'magic'>(initialMode)
   const [email, setEmail] = useState('')

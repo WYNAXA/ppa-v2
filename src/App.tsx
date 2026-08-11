@@ -15,6 +15,7 @@ import { PrivacyPolicyPage } from '@/pages/PrivacyPolicy'
 import { TermsOfServicePage } from '@/pages/TermsOfService'
 import { SupportPage } from '@/pages/Support'
 import { LandingPage } from '@/pages/Landing'
+import { EmbedVenueBookingPage } from '@/pages/EmbedVenueBooking'
 import { FAQPage } from '@/pages/FAQ'
 import { ContactPage } from '@/pages/Contact'
 import { ForVenuesPage } from '@/pages/ForVenues'
@@ -58,11 +59,16 @@ const queryClient = new QueryClient({
 })
 
 // Pages that don't show the bottom nav
-const NO_NAV_PREFIXES = ['/auth', '/onboarding', '/search', '/pay']
+const NO_NAV_PREFIXES = ['/auth', '/onboarding', '/search', '/pay', '/embed']
 
 function Guard({ children }: { children: React.ReactNode }) {
   const { session } = useAuth()
-  return session ? <>{children}</> : <Navigate to="/auth" replace />
+  const location = useLocation()
+  if (session) return <>{children}</>
+  // Preserve where the player was headed (e.g. a booking deep-link from the
+  // embed widget) so we can return them there after sign-in.
+  const next = encodeURIComponent(location.pathname + location.search)
+  return <Navigate to={`/auth?next=${next}`} replace />
 }
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
@@ -216,6 +222,9 @@ function AppShell() {
 
             {/* Guest match-invite deep link (public — new players land here) */}
             <Route path="/join/match/:token" element={<JoinMatchPage />} />
+
+            {/* Embeddable booking widget for venue websites (public, chrome-less) */}
+            <Route path="/embed/venue/:venueId" element={<EmbedVenueBookingPage />} />
 
             {/* Onboarding */}
             <Route path="/onboarding" element={<Guard><OnboardingPage /></Guard>} />

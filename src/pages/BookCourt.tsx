@@ -327,6 +327,9 @@ export function BookCourtPage() {
   const userId = session?.user?.id ?? ''
   const [params] = useSearchParams()
   const matchId = params.get('match_id') ?? ''
+  // Deep-link from the embeddable widget: pre-select a venue (+ optional date).
+  const venueParam = params.get('venue') ?? ''
+  const dateParam = params.get('date') ?? ''
 
   // ── Step ────────────────────────────────────────────────────────────────────
   const [step, setStep] = useState<BookingStep>('venue')
@@ -341,6 +344,7 @@ export function BookCourtPage() {
   // "Padel venues near you" (shown before the player types anything)
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
   const [locating, setLocating] = useState(false)
+  const [prefilled, setPrefilled] = useState(false)
 
   // ── Date & slot step ────────────────────────────────────────────────────────
   const [selectedDate, setSelectedDate] = useState<string>('')
@@ -608,6 +612,25 @@ export function BookCourtPage() {
         setVenueResults(venues)
       })
   }, [debouncedVenueQuery, userLocation])
+
+  // Pre-select a venue (+ date) from the embed widget deep-link → jump to slots.
+  useEffect(() => {
+    if (prefilled || !venueParam) return
+    setPrefilled(true)
+    supabase
+      .from('padel_venues')
+      .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone')
+      .eq('venues_id', venueParam)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!data) return
+        const v = data as Venue
+        setSelectedVenue(v)
+        setVenueQuery(v.venue_name)
+        if (dateParam) setSelectedDate(dateParam)
+        setStep('date-slot')
+      })
+  }, [venueParam, dateParam, prefilled])
 
   // PPA user search
   useEffect(() => {

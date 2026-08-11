@@ -430,28 +430,43 @@ export function TournamentModePage() {
         console.log(`[Tournament] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
       } else {
         if (standings.length < 4) { toast.error('Need at least 4 players to generate a round'); setGeneratingRound(false); return }
-        const playerIds = standings.map((s) => s.user_id)
-        const { pairings, bye } = generateRoundRobinRound(playerIds, nextRound)
-
-        for (let i = 0; i + 1 < pairings.length; i += 2) {
-          const [a1, a2] = pairings[i]
-          const [b1, b2] = pairings[i + 1]
-          matchesToCreate.push({
-            match_date: today,
-            match_time: '12:00:00',
-            match_type: 'competitive',
-            status: 'scheduled',
-            player_ids: [a1, a2, b1, b2],
-            group_id: league.linked_group_ids?.[0] ?? null,
-            league_id: id,
-            round_number: nextRound,
-            created_manually: false,
-            notes: 'Tournament round — auto-generated',
-            created_by: currentUserId,
-          })
+        const baseMatch = {
+          match_date: today,
+          match_time: '12:00:00',
+          match_type: 'competitive',
+          status: 'scheduled',
+          group_id: league.linked_group_ids?.[0] ?? null,
+          league_id: id,
+          round_number: nextRound,
+          created_manually: false,
+          notes: 'Tournament round — auto-generated',
+          created_by: currentUserId,
         }
-        const byeName = bye ? standings.find((s) => s.user_id === bye)?.profile?.name ?? bye : null
-        console.log(`[Tournament] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
+
+        if (league.format === 'mexicano') {
+          // Mexicano: group players into courts of 4 by CURRENT standing (leader-first),
+          // pairing top+bottom vs the middle two within each court (1&4 vs 2&3). Skill-
+          // matched each round; standings drive the next round's courts.
+          const ranked = standings.map((s) => s.user_id)
+          for (let c = 0; c + 3 < ranked.length; c += 4) {
+            const [p1, p2, p3, p4] = ranked.slice(c, c + 4)
+            matchesToCreate.push({ ...baseMatch, player_ids: [p1, p4, p2, p3] })
+          }
+          const seated = Math.floor(ranked.length / 4) * 4
+          if (ranked.length - seated > 0) console.log(`[Tournament] Mexicano round ${nextRound}: ${ranked.length - seated} player(s) sit out this round`)
+        } else {
+          // Americano (and legacy individual round-robin): fixed partner rotation via the
+          // circle method — over the season everyone partners and opposes everyone once.
+          const playerIds = standings.map((s) => s.user_id)
+          const { pairings, bye } = generateRoundRobinRound(playerIds, nextRound)
+          for (let i = 0; i + 1 < pairings.length; i += 2) {
+            const [a1, a2] = pairings[i]
+            const [b1, b2] = pairings[i + 1]
+            matchesToCreate.push({ ...baseMatch, player_ids: [a1, a2, b1, b2] })
+          }
+          const byeName = bye ? standings.find((s) => s.user_id === bye)?.profile?.name ?? bye : null
+          console.log(`[Tournament] Round ${nextRound}: ${matchesToCreate.length} matches, bye: ${byeName ?? 'none'}`)
+        }
       }
 
       await supabase.from('matches').insert(matchesToCreate)

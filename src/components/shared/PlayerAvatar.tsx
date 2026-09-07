@@ -1,3 +1,5 @@
+import { useState, useEffect } from 'react'
+
 interface PlayerAvatarProps {
   name?: string | null
   avatarUrl?: string | null
@@ -33,14 +35,18 @@ function initials(name?: string | null) {
 
 export function PlayerAvatar({ name, avatarUrl, size = 'md', badge }: PlayerAvatarProps) {
   const cls = sizes[size]
+  const [failed, setFailed] = useState(false)
+  useEffect(() => { setFailed(false) }, [avatarUrl])
+  const showImage = !!avatarUrl && !failed
 
   return (
     <div className="relative inline-flex flex-shrink-0">
-      {avatarUrl ? (
+      {showImage ? (
         <img
-          src={avatarUrl}
+          src={avatarUrl!}
           alt={name ?? 'Player'}
           className={`${cls} rounded-full object-cover`}
+          onError={() => setFailed(true)}
         />
       ) : (
         <div

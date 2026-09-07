@@ -297,17 +297,6 @@ export function VenueDetailPage() {
         { venue_id: venueId!, user_id: userId!, rating, review },
         { onConflict: 'venue_id,user_id' },
       )
-      const { data: agg } = await supabase
-        .from('venue_ratings')
-        .select('rating')
-        .eq('venue_id', venueId!)
-      if (agg) {
-        const avg = agg.reduce((s, r) => s + r.rating, 0) / agg.length
-        await supabase
-          .from('padel_venues')
-          .update({ rating: Math.round(avg * 100) / 100, review_count: agg.length })
-          .eq('venue_id', venueId!)
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['venue-detail', venueId] })

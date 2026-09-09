@@ -1,7 +1,11 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Montserrat:wght@600;700;800&display=swap');
 @import "tailwindcss";
 
 @theme {
+  /* ── Legacy palette ─────────────────────────────────────────────
+     Still in use across every existing screen. Do NOT delete until
+     the last consumer has migrated to the tokens below; removing
+     these early silently drops styling rather than erroring. */
   --color-teal: #009688;
   --color-teal-50: #e0f2f1;
   --color-teal-100: #b2dfdb;
@@ -19,6 +23,78 @@
 
   --font-family-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-family-display: 'Montserrat', system-ui, -apple-system, sans-serif;
+
+  /* ── App palette (2026-09) ──────────────────────────────────────
+     Replaces the legacy set screen by screen. See DESIGN.md.
+
+     The legacy #009688 is Material Design Teal 500 unmodified, and
+     #E65100 is Material Deep Orange 900 — a stock framework pairing.
+     'court' is a deeper, greener teal that holds as a large fill and
+     survives on dark; 'ball' is the optic yellow of a padel ball and
+     is the ownable half of the pairing. Use ball sparingly: live,
+     urgent and primary-action states only, never as a surface. */
+  --color-court-50:  #EAF5F3;
+  --color-court-100: #CDE7E2;
+  --color-court:     #0F5D54;
+  --color-court-700: #0A473F;
+  --color-line:      #12A594;
+  --color-ball:      #E4FF57;
+
+  --color-ink:       #0B1512;
+  --color-ink-2:     #46534F;
+  --color-ink-3:     #7C8B86;
+  --color-ink-4:     #B6C0BB;
+
+  --color-surface:   #FBFAF7;
+  --color-card:      #FFFFFF;
+  --color-hairline:  #E4E7E4;
+
+  --color-alert:     #D9480F;
+  --color-alert-50:  #FDF0E9;
+
+  /* Dark surfaces. Defined here so screens can adopt them as they
+     migrate; the dark variant itself is not wired up yet. */
+  --color-ink-surface: #0B1512;
+  --color-ink-card:    #141F1B;
+
+  /* ── Type scale ────────────────────────────────────────────────
+     Six steps, replacing ~8 ad-hoc pixel values scattered through
+     the screens. NOTHING below 11px: 10px labels fall under the iOS
+     HIG floor and are the single most common accessibility failure
+     in the current UI. Numbers use .num for tabular figures so
+     scores, ELO and times do not jitter as they change. */
+  --text-display: 2rem;          /* 32 */
+  --text-display--line-height: 2.125rem;
+  --text-display--font-weight: 800;
+  --text-display--letter-spacing: -0.02em;
+
+  --text-title: 1.5rem;          /* 24 */
+  --text-title--line-height: 1.625rem;
+  --text-title--font-weight: 800;
+
+  --text-heading: 1.1875rem;     /* 19 */
+  --text-heading--line-height: 1.4375rem;
+  --text-heading--font-weight: 700;
+
+  --text-body: 0.9375rem;        /* 15 */
+  --text-body--line-height: 1.25rem;
+
+  --text-label: 0.8125rem;       /* 13 */
+  --text-label--line-height: 1.125rem;
+
+  --text-caption: 0.6875rem;     /* 11 — floor */
+  --text-caption--line-height: 0.875rem;
+  --text-caption--font-weight: 700;
+  --text-caption--letter-spacing: 0.06em;
+
+  --font-family-app: 'Archivo', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  /* ── Radii ─────────────────────────────────────────────────────
+     Four steps. Anything else is a one-off and should be justified. */
+  --radius-control: 0.625rem;    /* 10 — buttons, chips, small tiles */
+  --radius-card:    0.75rem;     /* 12 */
+  --radius-panel:   1.125rem;    /* 18 — cards, sheets, hero blocks */
+  --radius-pill:    999px;
 }
 
 @layer base {
@@ -44,6 +120,12 @@
 
 @utility safe-bottom {
   padding-bottom: max(env(safe-area-inset-bottom), 12px);
+}
+
+/* Tabular figures. Apply to any element showing a number that changes
+   in place — ELO, scores, times, counts — so digits keep their column. */
+@utility num {
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Marketing-site utilities ────────────────────────────────── */

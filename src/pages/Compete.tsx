@@ -294,7 +294,7 @@ function FormDot({ result }: { result: 'win' | 'loss' | 'draw' }) {
     <div className={cn(
       'h-2.5 w-2.5 rounded-full',
       result === 'win'  ? 'bg-green-400' :
-      result === 'loss' ? 'bg-red-400'   : 'bg-gray-400'
+      result === 'loss' ? 'bg-red-400'   : 'bg-ink-4'
     )} />
   )
 }
@@ -328,14 +328,14 @@ function RankingCard({
           <div className="flex-1 min-w-0">
             <p className="text-white font-bold text-[16px] truncate">{profile?.name ?? '—'}</p>
             {!isLoading && stats && (
-              <p className="text-teal-200 text-[12px] mt-0.5">
+              <p className="text-court-100 text-[12px] mt-0.5">
                 {t('compete.ranked_of', { rank: stats.rank, total: stats.totalPlayers })}
               </p>
             )}
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-[28px] font-black text-white leading-none">{elo.toLocaleString()}</p>
-            <p className="text-teal-300 text-[10px] font-semibold mt-0.5">ELO</p>
+            <p className="text-court-100 text-[11px] font-semibold mt-0.5">ELO</p>
           </div>
         </div>
 
@@ -351,35 +351,35 @@ function RankingCard({
               {[
                 { label: t('compete.wins'),   value: stats.wins,   color: 'text-green-300' },
                 { label: t('compete.losses'), value: stats.losses, color: 'text-red-300'   },
-                { label: t('compete.draws'),  value: stats.draws,  color: 'text-gray-300'  },
+                { label: t('compete.draws'),  value: stats.draws,  color: 'text-ink-3'  },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-white/10 rounded-xl py-2.5 text-center">
                   <p className={cn('text-[18px] font-black', color)}>{value}</p>
-                  <p className="text-teal-200 text-[10px] mt-0.5">{label}</p>
+                  <p className="text-court-100 text-[11px] mt-0.5">{label}</p>
                 </div>
               ))}
               <button
                 onClick={() => navigate('/you', { state: { scrollTo: 'achievements' } })}
                 className="bg-white/10 rounded-xl py-2.5 text-center hover:bg-white/20 active:bg-white/25 transition-colors relative"
               >
-                <p className="text-[18px] font-black text-yellow-300">{achievementCount}</p>
-                <p className="text-teal-200 text-[10px] mt-0.5">{t('compete.my_badges')}</p>
-                <ChevronRight className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-teal-300/60" />
+                <p className="num text-[19px] font-extrabold text-ball">{achievementCount}</p>
+                <p className="text-court-100 text-[11px] mt-0.5">{t('compete.my_badges')}</p>
+                <ChevronRight className="absolute right-1.5 top-1/2 -translate-y-1/2 h-3 w-3 text-court-100/60" />
               </button>
             </div>
 
             {/* Win rate + trend + form */}
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1">{t('compete.win_rate')}</p>
+                <p className="text-court-100 text-[11px] font-semibold uppercase tracking-wide mb-1">{t('compete.win_rate')}</p>
                 <p className="text-white font-bold text-[16px]">{stats.winRate}%</p>
               </div>
 
               <div>
-                <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide mb-1">{t('compete.trend_30d')}</p>
+                <p className="text-court-100 text-[11px] font-semibold uppercase tracking-wide mb-1">{t('compete.trend_30d')}</p>
                 <div className="flex items-center gap-1">
                   {stats.trend === null ? (
-                    <span className="text-[13px] font-semibold text-gray-300">New</span>
+                    <span className="text-[13px] font-semibold text-ink-3">New</span>
                   ) : stats.trend > 0 ? (
                     <>
                       <TrendingUp className="h-4 w-4 text-green-300" />
@@ -392,8 +392,8 @@ function RankingCard({
                     </>
                   ) : (
                     <>
-                      <Minus className="h-4 w-4 text-gray-300" />
-                      <span className="text-[14px] font-bold text-gray-300">0</span>
+                      <Minus className="h-4 w-4 text-ink-3" />
+                      <span className="text-[14px] font-bold text-ink-3">0</span>
                     </>
                   )}
                 </div>
@@ -404,13 +404,13 @@ function RankingCard({
                 className="text-left hover:bg-white/10 active:bg-white/15 rounded-xl px-2 py-1.5 -mx-2 -my-1.5 transition-colors"
               >
                 <div className="flex items-center gap-1 mb-1.5">
-                  <p className="text-teal-200 text-[10px] font-semibold uppercase tracking-wide">{t('compete.recent_form')}</p>
-                  <ChevronRight className="h-3 w-3 text-teal-300/60" />
+                  <p className="text-court-100 text-[11px] font-semibold uppercase tracking-wide">{t('compete.recent_form')}</p>
+                  <ChevronRight className="h-3 w-3 text-court-100/60" />
                 </div>
                 <div className="flex gap-1.5">
                   {stats.recentForm.length > 0
                     ? stats.recentForm.map((r, i) => <FormDot key={i} result={r} />)
-                    : <span className="text-teal-300 text-[11px]">{t('compete.no_matches_yet')}</span>
+                    : <span className="text-court-100 text-[11px]">{t('compete.no_matches_yet')}</span>
                   }
                 </div>
               </button>
@@ -445,26 +445,26 @@ function LeaderboardRow({
       transition={{ delay: index * 0.03 }}
       className={cn(
         'flex items-center gap-3 px-3 py-2.5 rounded-xl',
-        isMe ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50/60 border border-gray-100'
+        isMe ? 'bg-court-50 border border-court-100' : 'bg-surface/60 border border-hairline'
       )}
     >
       <span className={cn(
         'w-6 text-center text-[12px] font-bold flex-shrink-0',
-        rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-gray-400' : rank === 3 ? 'text-orange-400' : isMe ? 'text-court' : 'text-gray-400'
+        rank === 1 ? 'text-warn' : rank === 2 ? 'text-ink-2' : rank === 3 ? 'text-warn' : isMe ? 'text-court' : 'text-ink-2'
       )}>
         {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
       </span>
       <PlayerAvatar name={profile.name} avatarUrl={profile.avatar_url} size="sm" />
       <div className="flex-1 min-w-0">
-        <p className={cn('text-[13px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
+        <p className={cn('text-[13px] font-semibold truncate', isMe ? 'text-court' : 'text-ink')}>
           {profile.name}{isMe ? ` ${t('compete.you_suffix')}` : ''}
         </p>
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className={cn('text-[13px] font-bold', isMe ? 'text-court' : 'text-gray-700')}>
+        <p className={cn('text-[13px] font-bold', isMe ? 'text-court' : 'text-ink-2')}>
           {(profile.internal_ranking ?? 0).toLocaleString()}
         </p>
-        <p className="text-[10px] text-gray-400">
+        <p className="text-[11px] text-ink-2">
           {profile.is_provisional ? t('compete.elo_provisional') : t('compete.elo')}
         </p>
       </div>
@@ -479,7 +479,7 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
   const STATUS_STYLE: Record<string, string> = {
     active:    'bg-green-50 text-green-600 border-green-100',
     upcoming:  'bg-blue-50 text-blue-600 border-blue-100',
-    completed: 'bg-gray-100 text-gray-500 border-gray-200',
+    completed: 'bg-hairline text-ink-2 border-hairline',
   }
 
   return (
@@ -489,46 +489,46 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       whileTap={{ scale: 0.985 }}
-      className="w-full text-left rounded-2xl border border-gray-100 bg-white px-4 py-3.5 hover:border-teal-200 transition-colors"
+      className="w-full text-left rounded-2xl border border-hairline bg-white px-4 py-3.5 hover:border-court-100 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[14px] font-bold text-gray-900 truncate">{league.name}</p>
+          <p className="text-[14px] font-bold text-ink truncate">{league.name}</p>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
             {league.match_type && (
-              <span className="text-[11px] text-gray-400 capitalize">{league.match_type.replace('_', ' ')}</span>
+              <span className="text-[11px] text-ink-2 capitalize">{league.match_type.replace('_', ' ')}</span>
             )}
             {league.city && (
               <>
-                <span className="text-gray-300">·</span>
-                <span className="text-[11px] text-gray-400">{league.city}</span>
+                <span className="text-ink-3">·</span>
+                <span className="text-[11px] text-ink-2">{league.city}</span>
               </>
             )}
           </div>
           {league.standing && (
             <div className="flex items-center gap-3 mt-2">
               {league.standing.rank != null && (
-                <span className="text-[11px] text-gray-500">
+                <span className="text-[11px] text-ink-2">
                   {t('compete.position')} <span className="font-bold text-court">#{league.standing.rank}</span>
                 </span>
               )}
-              <span className="text-[11px] text-gray-500">
+              <span className="text-[11px] text-ink-2">
                 {league.standing.played} {t('compete.played')}
               </span>
-              <span className="text-[11px] text-gray-500">
-                <span className="font-bold text-gray-700">{league.standing.points}</span> {t('compete.pts')}
+              <span className="text-[11px] text-ink-2">
+                <span className="font-bold text-ink-2">{league.standing.points}</span> {t('compete.pts')}
               </span>
             </div>
           )}
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className={cn(
-            'rounded-full border px-2 py-0.5 text-[10px] font-bold capitalize',
-            STATUS_STYLE[league.status] ?? 'bg-gray-100 text-gray-500 border-gray-200'
+            'rounded-full border px-2 py-0.5 text-[11px] font-bold capitalize',
+            STATUS_STYLE[league.status] ?? 'bg-hairline text-ink-2 border-hairline'
           )}>
             {league.status}
           </span>
-          <ChevronRight className="h-4 w-4 text-gray-300" />
+          <ChevronRight className="h-4 w-4 text-ink-3" />
         </div>
       </div>
     </motion.button>
@@ -587,10 +587,10 @@ export function CompetePage() {
   const myGlobalRank = rawLeaderboard.findIndex((p) => p.id === userId) + 1
 
   return (
-    <div className="min-h-full bg-white pb-32">
+    <div className="min-h-full bg-surface pb-32">
       {/* Header */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50 flex items-center justify-between">
-        <h1 className="text-[22px] font-bold text-gray-900">{t('compete.title')}</h1>
+      <div className="px-5 pt-14 pb-4 sticky top-0 bg-surface/95 backdrop-blur-sm z-10 border-b border-hairline flex items-center justify-between">
+        <h1 className="text-[22px] font-bold text-ink">{t('compete.title')}</h1>
         <button
           onClick={() => setShowCreateLeague(true)}
           className="flex items-center gap-1.5 rounded-xl bg-court px-3 py-2 text-[12px] font-bold text-white shadow-sm"
@@ -608,7 +608,7 @@ export function CompetePage() {
         {/* ── ELO History Chart ── */}
         {userId && (
           <section>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-2">{t('compete.your_elo_journey')}</h2>
+            <h2 className="text-[16px] font-bold text-ink mb-2">{t('compete.your_elo_journey')}</h2>
             <EloHistoryChart userId={userId} compact />
           </section>
         )}
@@ -617,8 +617,8 @@ export function CompetePage() {
         {myBadges.length > 0 && (
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-[16px] font-bold text-gray-900">{t('compete.my_badges')}</h2>
-              <span className="rounded-full bg-yellow-50 border border-yellow-100 px-2 py-0.5 text-[11px] font-bold text-yellow-600">
+              <h2 className="text-[16px] font-bold text-ink">{t('compete.my_badges')}</h2>
+              <span className="rounded-full bg-warn-50 border border-warn-100 px-2 py-0.5 text-[11px] font-bold text-warn">
                 {t('compete.earned', { count: achievementCount })}
               </span>
             </div>
@@ -632,10 +632,10 @@ export function CompetePage() {
                   <button
                     key={b.id}
                     onClick={() => setSelectedBadge(b.badge_key)}
-                    className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center active:scale-95 transition-transform"
+                    className="rounded-xl border border-hairline bg-surface p-3 text-center active:scale-95 transition-transform"
                   >
                     <p className="text-[22px] leading-none mb-1">{meta.emoji}</p>
-                    <p className="text-[11px] font-semibold text-gray-700 leading-tight">{meta.label}</p>
+                    <p className="text-[11px] font-semibold text-ink-2 leading-tight">{meta.label}</p>
                   </button>
                 )
               })}
@@ -647,17 +647,17 @@ export function CompetePage() {
 
         {/* ── Leaderboard ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('compete.leaderboard')}</h2>
+          <h2 className="text-[16px] font-bold text-ink mb-3">{t('compete.leaderboard')}</h2>
 
           {/* Tab switcher */}
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
+          <div className="flex bg-hairline rounded-xl p-1 gap-1 mb-3">
             {(['global', 'my_groups'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => { setLeaderboardTab(tab); setLeaderboardSearch(''); setLeaderboardLimit(50) }}
                 className={cn(
                   'flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors',
-                  leaderboardTab === tab ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                  leaderboardTab === tab ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
                 )}
               >
                 {tab === 'global' ? t('compete.global') : t('compete.my_groups')}
@@ -670,7 +670,7 @@ export function CompetePage() {
             <select
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 mb-3 focus:outline-none focus:border-teal-500 bg-white"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[13px] text-ink mb-3 focus:outline-none focus:border-court bg-white"
             >
               {userGroups.map((g) => (
                 <option key={g.group_id} value={g.group_id}>{g.name}</option>
@@ -680,13 +680,13 @@ export function CompetePage() {
 
           {/* Search bar */}
           <div className="relative mb-3">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-2" />
             <input
               type="text"
               value={leaderboardSearch}
               onChange={(e) => setLeaderboardSearch(e.target.value)}
               placeholder={t('compete.search_players')}
-              className="w-full rounded-xl border border-gray-200 pl-8 pr-3 py-2 text-[13px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline pl-8 pr-3 py-2 text-[13px] outline-none focus:border-court focus:ring-2 focus:ring-court/20"
             />
           </div>
 
@@ -712,12 +712,12 @@ export function CompetePage() {
           {loadingLeaderboard ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-12 rounded-xl bg-gray-100 animate-pulse" />
+                <div key={i} className="h-12 rounded-xl bg-hairline animate-pulse" />
               ))}
             </div>
           ) : leaderboard.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
-              <p className="text-[13px] font-semibold text-gray-500">
+            <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">
                 {leaderboardSearch ? t('compete.no_search_results') : leaderboardTab === 'global' ? t('compete.no_ranked') : t('compete.no_group_members')}
               </p>
             </div>
@@ -738,7 +738,7 @@ export function CompetePage() {
               {leaderboardTab === 'global' && leaderboard.length >= leaderboardLimit && !leaderboardSearch && (
                 <button
                   onClick={() => setLeaderboardLimit((l) => l + 50)}
-                  className="mt-3 w-full rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="mt-3 w-full rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2 hover:bg-surface transition-colors"
                 >
                   {t('compete.load_more')}
                 </button>
@@ -750,7 +750,7 @@ export function CompetePage() {
         {/* ── My Leagues ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-bold text-gray-900">{t('compete.my_leagues')}</h2>
+            <h2 className="text-[16px] font-bold text-ink">{t('compete.my_leagues')}</h2>
             <button
               onClick={() => setShowCreateLeague(true)}
               className="flex items-center gap-1 rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white"
@@ -763,16 +763,16 @@ export function CompetePage() {
           {loadingLeagues ? (
             <div className="space-y-2">
               {[0, 1].map((i) => (
-                <div key={i} className="h-16 rounded-2xl bg-gray-100 animate-pulse" />
+                <div key={i} className="h-16 rounded-2xl bg-hairline animate-pulse" />
               ))}
             </div>
           ) : myLeagues.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
-              <div className="h-10 w-10 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                <Trophy className="h-5 w-5 text-gray-400" />
+            <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
+              <div className="h-10 w-10 rounded-2xl bg-hairline flex items-center justify-center mx-auto mb-3">
+                <Trophy className="h-5 w-5 text-ink-2" />
               </div>
-              <p className="text-[13px] font-semibold text-gray-600 mb-1">{t('compete.no_leagues')}</p>
-              <p className="text-[12px] text-gray-400 mb-4">{t('compete.no_leagues_sub')}</p>
+              <p className="text-[13px] font-semibold text-ink-2 mb-1">{t('compete.no_leagues')}</p>
+              <p className="text-[12px] text-ink-2 mb-4">{t('compete.no_leagues_sub')}</p>
               <button
                 onClick={() => setShowCreateLeague(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
@@ -788,7 +788,7 @@ export function CompetePage() {
               ))}
               <button
                 onClick={() => navigate('/compete/leagues/create')}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 py-3 text-[13px] text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-hairline py-3 text-[13px] text-ink-2 hover:border-court-100 hover:text-court transition-colors"
               >
                 <Plus className="h-4 w-4" />
                 {t('compete.create_another_league')}
@@ -797,7 +797,7 @@ export function CompetePage() {
           )}
           <button
             onClick={() => navigate('/leagues')}
-            className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-50 border border-gray-100 py-2.5 text-[12px] font-semibold text-court"
+            className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-xl bg-surface border border-hairline py-2.5 text-[12px] font-semibold text-court"
           >
             <Search className="h-3.5 w-3.5" />
             {t('compete.find_open_leagues')}

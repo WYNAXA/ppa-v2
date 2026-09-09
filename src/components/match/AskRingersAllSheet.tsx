@@ -175,21 +175,21 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
               <div>
-                <h2 className="text-[15px] font-bold text-gray-900">Ask ringers for all matches</h2>
-                <p className="text-[11px] text-gray-400">{matches.length} match{matches.length !== 1 ? 'es' : ''} need players</p>
+                <h2 className="text-[15px] font-bold text-ink">Ask ringers for all matches</h2>
+                <p className="text-[11px] text-ink-2">{matches.length} match{matches.length !== 1 ? 'es' : ''} need players</p>
               </div>
-              <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-500" />
+              <button onClick={onClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
             </div>
 
             <div className="px-5 pb-6 overflow-y-auto flex-1" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
               {sortedRingers.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">No ringers available</p>
+                <p className="text-[13px] text-ink-2 text-center py-6">No ringers available</p>
               ) : (
                 <>
                   {selectableRingers.length > 1 && (
@@ -207,15 +207,15 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
                       return (
                         <div key={ringer.id} className={cn(
                           'flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors',
-                          allAsked ? 'border-gray-100 bg-gray-50 opacity-60' :
-                          isSelected ? 'border-court bg-teal-50' : 'border-gray-100 bg-white'
+                          allAsked ? 'border-hairline bg-surface opacity-60' :
+                          isSelected ? 'border-court bg-court-50' : 'border-hairline bg-white'
                         )}>
                           {!allAsked && (
                             <button
                               onClick={() => toggleSelect(ringer.id)}
                               className={cn(
                                 'h-5 w-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                                isSelected ? 'bg-court border-court' : 'border-gray-300'
+                                isSelected ? 'bg-court border-court' : 'border-hairline'
                               )}
                             >
                               {isSelected && <Check className="h-3 w-3 text-white" />}
@@ -223,13 +223,13 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
                           )}
                           <PlayerAvatar name={ringer.name} avatarUrl={ringer.avatar_url} size="sm" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-gray-800 truncate">{ringer.name}</p>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[13px] font-semibold text-ink truncate">{ringer.name}</p>
+                            <p className="text-[11px] text-ink-2">
                               {ringer.internal_ranking ?? '—'} ELO
                             </p>
                           </div>
                           {askedCount > 0 && (
-                            <span className="text-[10px] font-bold rounded-full px-2 py-0.5 flex-shrink-0 bg-amber-50 text-amber-700 border border-amber-100">
+                            <span className="text-[11px] font-bold rounded-full px-2 py-0.5 flex-shrink-0 bg-warn-50 text-warn border border-warn-100">
                               Asked {askedCount}/{matches.length}
                             </span>
                           )}

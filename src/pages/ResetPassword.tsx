@@ -64,19 +64,19 @@ export default function ResetPasswordPage() {
             alt="Padel Players"
             className="mx-auto mb-4 h-20 w-20 rounded-2xl shadow-sm"
           />
-          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Set new password</h1>
-          <p className="mt-1 text-sm text-gray-500">Choose a new password to sign in with.</p>
+          <h1 className="text-2xl font-extrabold text-ink tracking-tight">Set new password</h1>
+          <p className="mt-1 text-sm text-ink-2">Choose a new password to sign in with.</p>
         </div>
 
         {!validRecoverySession ? (
-          <div className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="rounded-lg bg-warn-50 px-4 py-3 text-sm text-warn">
             <p className="font-medium mb-1">Reset link expired or invalid</p>
             <p className="text-[13px]">
               This password reset link is no longer valid. Please request a new one from the sign-in page.
             </p>
             <button
               onClick={() => navigate('/auth', { replace: true })}
-              className="mt-3 text-[13px] font-medium text-teal-700 hover:underline"
+              className="mt-3 text-[13px] font-medium text-court-700 hover:underline"
             >
               Back to sign in
             </button>
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="new-password"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline px-4 py-3 text-sm outline-none transition focus:border-court focus:ring-2 focus:ring-court/20"
             />
             <input
               type="password"
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               autoComplete="new-password"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline px-4 py-3 text-sm outline-none transition focus:border-court focus:ring-2 focus:ring-court/20"
             />
             <button
               type="submit"
@@ -115,7 +115,7 @@ export default function ResetPasswordPage() {
           <p
             className={`mt-4 rounded-lg px-4 py-3 text-sm ${
               message.type === 'success'
-                ? 'bg-teal-50 text-teal-700'
+                ? 'bg-court-50 text-court-700'
                 : 'bg-red-50 text-red-700'
             }`}
           >

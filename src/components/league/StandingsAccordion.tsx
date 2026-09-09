@@ -36,10 +36,10 @@ export function StandingsAccordion<Row extends { id: string }>({
   const cols = headline2 ? 'grid-cols-[28px_1fr_44px_40px]' : 'grid-cols-[28px_1fr_56px]'
 
   return (
-    <div className="rounded-2xl border border-gray-100 overflow-hidden">
-      <div className={cn('grid gap-1 px-3 py-2 bg-gray-50 border-b border-gray-100', cols)}>
+    <div className="rounded-2xl border border-hairline overflow-hidden">
+      <div className={cn('grid gap-1 px-3 py-2 bg-surface border-b border-hairline', cols)}>
         {(headline2 ? ['#', 'Player', headlineLabel, headlineLabel2!] : ['#', 'Player', headlineLabel]).map((h) => (
-          <span key={h} className="text-[10px] font-bold text-gray-400 text-center first:text-left">{h}</span>
+          <span key={h} className="text-[11px] font-bold text-ink-2 text-center first:text-left">{h}</span>
         ))}
       </div>
       {rows.map((row, i) => {
@@ -49,15 +49,15 @@ export function StandingsAccordion<Row extends { id: string }>({
           <div
             key={row.id}
             className={cn(
-              i < rows.length - 1 && 'border-b border-gray-50',
-              me && 'bg-teal-50/60',
+              i < rows.length - 1 && 'border-b border-hairline',
+              me && 'bg-court-50/60',
             )}
           >
             <button
               onClick={() => toggle(row.id)}
               className={cn('w-full grid gap-1 items-center px-3 py-2 text-left', cols)}
             >
-              <span className={cn('text-[12px] font-bold', me ? 'text-court' : 'text-gray-400')}>
+              <span className={cn('text-[12px] font-bold', me ? 'text-court' : 'text-ink-2')}>
                 {i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
               </span>
               <div className="min-w-0 overflow-hidden flex items-center gap-2">
@@ -68,7 +68,7 @@ export function StandingsAccordion<Row extends { id: string }>({
             </button>
             {isExpanded && (
               <div className="px-3 pb-2 pt-0">
-                <div className="flex items-center gap-3 text-[11px] text-gray-500 pl-[36px]">
+                <div className="flex items-center gap-3 text-[11px] text-ink-2 pl-[36px]">
                   {detail(row)}
                 </div>
               </div>

@@ -69,12 +69,12 @@ export function WaitlistPage() {
   return (
     <div className="min-h-screen bg-white pb-24">
       <div className="px-5 pt-14 pb-3 flex items-center gap-3">
-        <button onClick={() => goBack(navigate, '/play')} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
+        <button onClick={() => goBack(navigate, '/play')} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0">
+          <ChevronLeft className="h-5 w-5 text-ink-2" />
         </button>
         <div>
-          <h1 className="text-[22px] font-bold text-gray-900 leading-tight">My waitlist</h1>
-          <p className="text-[13px] text-gray-400">Slots you're waiting on — we'll notify you if one frees up</p>
+          <h1 className="text-[22px] font-bold text-ink leading-tight">My waitlist</h1>
+          <p className="text-[13px] text-ink-2">Slots you're waiting on — we'll notify you if one frees up</p>
         </div>
       </div>
 
@@ -82,19 +82,19 @@ export function WaitlistPage() {
         <div className="flex items-center justify-center py-20"><div className="h-7 w-7 rounded-full border-2 border-court border-t-transparent animate-spin" /></div>
       ) : entries.length === 0 ? (
         <div className="px-5 py-16 text-center">
-          <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3"><Bell className="h-7 w-7 text-court" /></div>
-          <p className="text-[14px] font-semibold text-gray-700">You're not on any waitlists</p>
-          <p className="text-[13px] text-gray-400 mt-1 max-w-xs mx-auto">When a slot is full, join its waitlist while booking — we'll ping you the moment a court opens up.</p>
+          <div className="h-14 w-14 rounded-full bg-court-50 flex items-center justify-center mx-auto mb-3"><Bell className="h-7 w-7 text-court" /></div>
+          <p className="text-[14px] font-semibold text-ink-2">You're not on any waitlists</p>
+          <p className="text-[13px] text-ink-2 mt-1 max-w-xs mx-auto">When a slot is full, join its waitlist while booking — we'll ping you the moment a court opens up.</p>
           <button onClick={() => navigate('/play/book-court')} className="mt-4 h-10 px-5 rounded-xl bg-court text-white text-[13px] font-semibold">Book a court</button>
         </div>
       ) : (
         <div className="px-5 space-y-2">
           {entries.map((e) => (
-            <div key={e.id} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-3.5">
-              <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0"><Bell className="h-5 w-5 text-court" /></div>
+            <div key={e.id} className="flex items-center gap-3 rounded-2xl border border-hairline bg-white p-3.5">
+              <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0"><Bell className="h-5 w-5 text-court" /></div>
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-gray-900 truncate">{e.venue?.venue_name ?? 'Venue'}</p>
-                <div className="flex items-center gap-2 mt-0.5 text-[12px] text-gray-500 flex-wrap">
+                <p className="text-[14px] font-semibold text-ink truncate">{e.venue?.venue_name ?? 'Venue'}</p>
+                <div className="flex items-center gap-2 mt-0.5 text-[12px] text-ink-2 flex-wrap">
                   <span>{fmtDate(e.date)} · {fmtTime(e.start_time)}</span>
                   {e.duration_minutes && <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{e.duration_minutes} min</span>}
                   {e.venue?.city && <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{e.venue.city}</span>}
@@ -103,7 +103,7 @@ export function WaitlistPage() {
               <button
                 onClick={() => leave.mutate(e.id)}
                 disabled={leave.isPending}
-                className="h-8 px-3 rounded-lg border border-gray-200 text-gray-600 text-[12px] font-semibold flex items-center gap-1 hover:bg-gray-50 disabled:opacity-50 flex-shrink-0"
+                className="h-8 px-3 rounded-lg border border-hairline text-ink-2 text-[12px] font-semibold flex items-center gap-1 hover:bg-surface disabled:opacity-50 flex-shrink-0"
               >
                 <X className="h-3.5 w-3.5" /> Leave
               </button>

@@ -36,7 +36,7 @@ function StampDot({ filled }: { filled: boolean }) {
         'h-8 w-8 rounded-full flex items-center justify-center border-2 transition-colors',
         filled
           ? 'bg-court border-court'
-          : 'bg-gray-100 border-gray-200'
+          : 'bg-hairline border-hairline'
       )}
     >
       {filled && (
@@ -55,18 +55,18 @@ function RewardBanner({ reward }: { reward: VenueReward }) {
     : null
 
   return (
-    <div className="rounded-xl bg-teal-50 border border-teal-200 px-3 py-3 mt-3">
-      <p className="text-[12px] font-black text-teal-700 mb-1.5">{label}</p>
+    <div className="rounded-xl bg-court-50 border border-court-100 px-3 py-3 mt-3">
+      <p className="text-[12px] font-black text-court-700 mb-1.5">{label}</p>
       <div className="flex items-center justify-between gap-2 flex-wrap">
         <div>
-          <p className="text-[11px] text-teal-600 mb-0.5">Redemption code</p>
-          <p className="text-[16px] font-black text-teal-800 tracking-widest">{reward.redemption_code}</p>
+          <p className="text-[11px] text-court mb-0.5">Redemption code</p>
+          <p className="text-[16px] font-black text-court-700 tracking-widest">{reward.redemption_code}</p>
         </div>
         {expires && (
-          <p className="text-[10px] text-teal-500">Expires {expires}</p>
+          <p className="text-[11px] text-court">Expires {expires}</p>
         )}
       </div>
-      <p className="text-[11px] text-teal-600 mt-2">Show this code at the venue to claim your reward.</p>
+      <p className="text-[11px] text-court mt-2">Show this code at the venue to claim your reward.</p>
     </div>
   )
 }
@@ -113,13 +113,13 @@ export function RewardsCard({ venueId, venueName, userId, compact = false }: Rew
     return (
       <button
         onClick={() => navigate('/you')}
-        className="w-full flex items-center gap-3 rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3 text-left"
+        className="w-full flex items-center gap-3 rounded-2xl bg-court-50 border border-court-100 px-4 py-3 text-left"
       >
         <span className="text-[22px]">🥤</span>
-        <p className="flex-1 text-[13px] font-semibold text-teal-700">
+        <p className="flex-1 text-[13px] font-semibold text-court-700">
           You have a reward waiting at {venueName}!
         </p>
-        <span className="text-[12px] text-teal-500 font-semibold flex-shrink-0">View →</span>
+        <span className="text-[12px] text-court font-semibold flex-shrink-0">View →</span>
       </button>
     )
   }
@@ -135,12 +135,12 @@ export function RewardsCard({ venueId, venueName, userId, compact = false }: Rew
 
   // ── Full version ──
   return (
-    <div className="rounded-2xl bg-white border border-gray-100 p-4">
+    <div className="rounded-2xl bg-white border border-hairline p-4">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Loyalty Card</p>
-          <p className="text-[15px] font-bold text-gray-900 leading-tight">{venueName}</p>
+          <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-0.5">Loyalty Card</p>
+          <p className="text-[15px] font-bold text-ink leading-tight">{venueName}</p>
         </div>
         <span className="text-[22px]">🎾</span>
       </div>
@@ -152,24 +152,24 @@ export function RewardsCard({ venueId, venueName, userId, compact = false }: Rew
             <StampDot key={i} filled={i < firstGroupFilled} />
           ))}
         </div>
-        <p className="text-[12px] text-gray-500">
+        <p className="text-[12px] text-ink-2">
           {firstGroupFilled} of {STAMPS_PER_DRINK} stamps towards free drink
           {stampsToNextDrink > 0 && !drinkReward && (
-            <span className="text-gray-400"> · {stampsToNextDrink} more to go</span>
+            <span className="text-ink-2"> · {stampsToNextDrink} more to go</span>
           )}
         </p>
       </div>
 
       {/* Second stamp group — free game share */}
       {showSecondGroup && (
-        <div className="mt-3 pt-3 border-t border-gray-100">
-          <p className="text-[11px] font-semibold text-gray-400 mb-1.5">Towards free game share (12 stamps)</p>
+        <div className="mt-3 pt-3 border-t border-hairline">
+          <p className="text-[11px] font-semibold text-ink-2 mb-1.5">Towards free game share (12 stamps)</p>
           <div className="flex items-center gap-1.5 mb-1.5">
             {Array.from({ length: STAMPS_PER_DRINK }).map((_, i) => (
               <StampDot key={i} filled={i < secondGroupFilled} />
             ))}
           </div>
-          <p className="text-[12px] text-gray-500">
+          <p className="text-[12px] text-ink-2">
             {secondGroupFilled} of {STAMPS_PER_DRINK} extra stamps
           </p>
         </div>
@@ -181,7 +181,7 @@ export function RewardsCard({ venueId, venueName, userId, compact = false }: Rew
 
       {/* No stamps yet nudge */}
       {stampCount === 0 && !hasRewards && (
-        <p className="text-[12px] text-gray-400 mt-2">
+        <p className="text-[12px] text-ink-2 mt-2">
           Play your first game at {venueName} to start earning stamps!
         </p>
       )}

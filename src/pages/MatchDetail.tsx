@@ -29,7 +29,7 @@ import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
 import type { Match, MatchResult, Profile } from '@/lib/types'
 import { calculateMatchPrediction, PAIRINGS, pairingToTeams, findPairingIndex } from '@/lib/predictions'
-import { previewMatchOutcomes } from '@/lib/eloPreview'
+import { PointsAtStake } from '@/components/match/PointsAtStake'
 import {
   getMatchTravelInfo,
   calculateDistance,
@@ -42,18 +42,18 @@ import {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 
 const TYPE_STYLES: Record<string, { labelKey: string; className: string }> = {
-  competitive: { labelKey: 'match.competitive', className: 'bg-orange-50 text-orange-600 border-orange-100' },
+  competitive: { labelKey: 'match.competitive', className: 'bg-warn-50 text-warn border-warn-100' },
   friendly:    { labelKey: 'match.friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100'     },
-  casual:      { labelKey: 'match.casual',      className: 'bg-gray-50 text-gray-500 border-gray-100'     },
-  group:       { labelKey: 'match.group_type',  className: 'bg-teal-50 text-teal-600 border-teal-100'     },
+  casual:      { labelKey: 'match.casual',      className: 'bg-surface text-ink-2 border-hairline'     },
+  group:       { labelKey: 'match.group_type',  className: 'bg-court-50 text-court border-court-100'     },
 }
 
 const STATUS_STYLES: Record<string, { labelKey: string; className: string; dot: string }> = {
   confirmed:  { labelKey: 'match.confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
   scheduled:  { labelKey: 'match.confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
-  open:       { labelKey: 'match.open',       className: 'bg-orange-50 text-orange-600 border-orange-100', dot: 'bg-orange-400' },
-  pending:    { labelKey: 'match.pending',    className: 'bg-yellow-50 text-yellow-700 border-yellow-100', dot: 'bg-yellow-400' },
-  completed:  { labelKey: 'match.completed',  className: 'bg-gray-50 text-gray-500 border-gray-100',      dot: 'bg-gray-400'   },
+  open:       { labelKey: 'match.open',       className: 'bg-warn-50 text-warn border-warn-100', dot: 'bg-warn' },
+  pending:    { labelKey: 'match.pending',    className: 'bg-warn-50 text-warn border-warn-100', dot: 'bg-warn' },
+  completed:  { labelKey: 'match.completed',  className: 'bg-surface text-ink-2 border-hairline',      dot: 'bg-ink-4'   },
   cancelled:  { labelKey: 'match.cancelled',  className: 'bg-red-50 text-red-500 border-red-100',         dot: 'bg-red-400'    },
 }
 
@@ -225,23 +225,23 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
   const rightWon = viewerOnTeam1 ? result.result_type === 'team2_win' : result.result_type === 'team1_win'
 
   return (
-    <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-100 p-4">
+    <div className="mx-5 mb-4 rounded-2xl bg-surface border border-hairline p-4">
       <div className="flex items-center gap-2 mb-3">
         <Trophy className="h-4 w-4 text-court" />
-        <p className="text-[12px] font-bold text-gray-700 uppercase tracking-wide">{t('match.result_heading')}</p>
+        <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">{t('match.result_heading')}</p>
         <span className={cn(
-          'ml-auto text-[10px] font-semibold rounded-full px-2 py-0.5 border',
+          'ml-auto text-[11px] font-semibold rounded-full px-2 py-0.5 border',
           result.verification_status === 'verified'
             ? 'bg-green-50 text-green-700 border-green-100'
             : result.verification_status === 'disputed'
             ? 'bg-red-50 text-red-700 border-red-100'
             : result.verification_status === 'submitter_review' || result.verification_status === 'opponent_review'
-            ? 'bg-yellow-50 text-yellow-700 border-yellow-100'
+            ? 'bg-warn-50 text-warn border-warn-100'
             : result.verification_status === 'admin_review'
-            ? 'bg-orange-50 text-orange-700 border-orange-100'
+            ? 'bg-warn-50 text-warn border-warn-100'
             : result.verification_status === 'cancelled'
             ? 'bg-red-50 text-red-700 border-red-100'
-            : 'bg-yellow-50 text-yellow-700 border-yellow-100'
+            : 'bg-warn-50 text-warn border-warn-100'
         )}>
           {result.verification_status === 'verified' ? t('match.verified')
             : result.verification_status === 'disputed' ? t('match.disputed')
@@ -260,24 +260,24 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
               return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
             })}
           </div>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-[11px] text-ink-2">
             {leftPlayers.map((pid) => getPlayer(pid)?.name?.split(' ')[0] ?? '?').join(' & ')}
           </p>
         </div>
 
         <div className="text-center">
           <div className="flex items-center gap-1.5">
-            <span className={cn('text-[22px] font-black', leftWon ? 'text-teal-700' : 'text-gray-400')}>
+            <span className={cn('text-[22px] font-black', leftWon ? 'text-court-700' : 'text-ink-2')}>
               {leftScore}
             </span>
-            <span className="text-gray-300 text-sm">–</span>
-            <span className={cn('text-[22px] font-black', rightWon ? 'text-orange-600' : 'text-gray-400')}>
+            <span className="text-ink-3 text-sm">–</span>
+            <span className={cn('text-[22px] font-black', rightWon ? 'text-warn' : 'text-ink-2')}>
               {rightScore}
             </span>
           </div>
           {completedSets.length > 0 && (
             <div>
-              <p className="text-[10px] text-gray-400">
+              <p className="text-[11px] text-ink-2">
                 {completedSets.map((s) => {
                   const sLeft = viewerOnTeam1 ? s.team1 : s.team2
                   const sRight = viewerOnTeam1 ? s.team2 : s.team1
@@ -289,7 +289,7 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
                 }).join('  ')}
               </p>
               {completedSets.some(s => s.note) && (
-                <p className="text-[10px] text-gray-400 italic mt-0.5">
+                <p className="text-[11px] text-ink-2 italic mt-0.5">
                   {completedSets.filter(s => s.note).map(s => s.note).join(' · ')}
                 </p>
               )}
@@ -304,7 +304,7 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
               return <PlayerAvatar key={pid} name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
             })}
           </div>
-          <p className="text-[11px] text-gray-500">
+          <p className="text-[11px] text-ink-2">
             {rightPlayers.map((pid) => getPlayer(pid)?.name?.split(' ')[0] ?? '?').join(' & ')}
           </p>
         </div>
@@ -1024,7 +1024,7 @@ export function MatchDetailPage() {
   if (error || !data) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
-        <p className="text-[14px] text-gray-500">{t('match.not_found')}</p>
+        <p className="text-[14px] text-ink-2">{t('match.not_found')}</p>
         <button onClick={() => navigate(-1)} className="text-[13px] text-court font-semibold">{t('match.go_back')}</button>
       </div>
     )
@@ -1084,7 +1084,7 @@ export function MatchDetailPage() {
     && myInvitation?.status !== 'pending')
 
   const typeStyle   = TYPE_STYLES[match.match_type ?? 'group'] ?? TYPE_STYLES.group
-  const statusStyle = STATUS_STYLES[match.status] ?? { labelKey: match.status, className: 'bg-gray-50 text-gray-500 border-gray-100', dot: 'bg-gray-300' }
+  const statusStyle = STATUS_STYLES[match.status] ?? { labelKey: match.status, className: 'bg-surface text-ink-2 border-hairline', dot: 'bg-ink-4' }
 
   const formattedDate = (() => {
     try { return format(parseISO(match.match_date), 'EEEE, d MMMM yyyy', { locale }) } catch { return match.match_date }
@@ -1313,13 +1313,13 @@ export function MatchDetailPage() {
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
           onClick={() => navigate(-1)}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
+          <ChevronLeft className="h-5 w-5 text-ink-2" />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-[18px] font-bold text-gray-900 leading-tight">{t('match.title')}</h1>
-          <p className="text-[12px] text-gray-400 truncate">{formattedDate}</p>
+          <h1 className="text-[18px] font-bold text-ink leading-tight">{t('match.title')}</h1>
+          <p className="text-[12px] text-ink-2 truncate">{formattedDate}</p>
         </div>
       </div>
 
@@ -1327,7 +1327,7 @@ export function MatchDetailPage() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mx-5 mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4"
+        className="mx-5 mb-4 rounded-2xl border border-hairline bg-surface p-4"
       >
         <div className="flex flex-wrap gap-1.5 mb-3">
           <span className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-semibold', typeStyle.className)}>
@@ -1340,25 +1340,25 @@ export function MatchDetailPage() {
         </div>
 
         <div className="flex items-center gap-2 mb-2">
-          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <p className="text-[13px] text-gray-700 font-medium">{formattedDate}</p>
+          <Calendar className="h-4 w-4 text-ink-2 flex-shrink-0" />
+          <p className="text-[13px] text-ink-2 font-medium">{formattedDate}</p>
         </div>
         {match.match_time && (
           <div className="flex items-center gap-2 mb-2">
-            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700">{match.match_time.slice(0, 5)}</p>
+            <Clock className="h-4 w-4 text-ink-2 flex-shrink-0" />
+            <p className="text-[13px] text-ink-2">{match.match_time.slice(0, 5)}</p>
           </div>
         )}
         {match.booked_venue_name && (
           <div className="flex items-start gap-2 mb-2">
-            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+            <MapPin className="h-4 w-4 text-ink-2 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] text-gray-700 truncate">
+              <p className="text-[13px] text-ink-2 truncate">
                 {match.booked_venue_name}
                 {match.booked_court_number != null && ` · ${t('match.court_number', { number: match.booked_court_number })}`}
               </p>
               {venueDistance != null && (
-                <p className="text-[11px] text-gray-400 mt-0.5">
+                <p className="text-[11px] text-ink-2 mt-0.5">
                   {t('match.venue_distance', { distance: formatDistance(venueDistance), drive: driveMinutes(venueDistance), walk: walkMinutes(venueDistance) })}
                 </p>
               )}
@@ -1377,7 +1377,7 @@ export function MatchDetailPage() {
           </div>
         )}
         {displayNotes && (
-          <p className="mt-2 text-[12px] text-gray-500 italic">{displayNotes}</p>
+          <p className="mt-2 text-[12px] text-ink-2 italic">{displayNotes}</p>
         )}
       </motion.div>
 
@@ -1405,7 +1405,7 @@ export function MatchDetailPage() {
               </button>
               <button
                 onClick={() => setShowSelfReportSheet(true)}
-                className="w-full rounded-xl border border-gray-200 py-2 text-[12px] font-medium text-gray-600"
+                className="w-full rounded-xl border border-hairline py-2 text-[12px] font-medium text-ink-2"
               >
                 {t('match.booked_elsewhere')}
               </button>
@@ -1418,7 +1418,7 @@ export function MatchDetailPage() {
       {match.player_ids.length < 4 && match.status !== 'completed' && match.status !== 'cancelled' && (
         <div className="mx-5 mb-4">
           <div className="flex items-center justify-between mb-1.5">
-            <p className="text-[11px] font-semibold text-gray-500">{t('match.players_joined', { count: match.player_ids.length })}</p>
+            <p className="text-[11px] font-semibold text-ink-2">{t('match.players_joined', { count: match.player_ids.length })}</p>
             {(isParticipant || isGroupAdmin) && (
               <button
                 onClick={() => setShowInvite(true)}
@@ -1428,7 +1428,7 @@ export function MatchDetailPage() {
               </button>
             )}
           </div>
-          <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-1.5 rounded-full bg-hairline overflow-hidden">
             <div
               className="h-full rounded-full bg-court transition-all"
               style={{ width: `${(match.player_ids.length / 4) * 100}%` }}
@@ -1439,7 +1439,7 @@ export function MatchDetailPage() {
 
       {/* Players */}
       <div className="px-5 mb-4">
-        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('match.players')}</p>
+        <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2">{t('match.players')}</p>
         <div className="grid grid-cols-2 gap-2">
           {slots.map((player, i) => {
             const isClickable = player && player.id !== currentUserId && !('isGuest' in player && player.isGuest) && !player.id.startsWith('guest_')
@@ -1452,8 +1452,8 @@ export function MatchDetailPage() {
               onClick={isClickable ? () => navigate(`/players/${player.id}`) : undefined}
               className={cn(
                 'flex items-center gap-2.5 rounded-xl border px-3 py-2.5',
-                player ? 'border-gray-100 bg-white' : 'border-dashed border-gray-200 bg-gray-50',
-                isClickable ? 'cursor-pointer hover:border-teal-200 hover:bg-teal-50/20 active:scale-[0.98] transition-all' : ''
+                player ? 'border-hairline bg-white' : 'border-dashed border-hairline bg-surface',
+                isClickable ? 'cursor-pointer hover:border-court-100 hover:bg-court-50/20 active:scale-[0.98] transition-all' : ''
               )}
             >
               {player ? (
@@ -1465,42 +1465,42 @@ export function MatchDetailPage() {
                     badge={player.id === currentUserId ? '★' : undefined}
                   />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[12px] font-semibold text-gray-800 truncate">{player.name}</p>
+                    <p className="text-[12px] font-semibold text-ink truncate">{player.name}</p>
                     {'internal_ranking' in player && player.internal_ranking != null && (
-                      <p className="text-[10px] text-gray-400">{(player.internal_ranking as number).toLocaleString()} ELO</p>
+                      <p className="text-[11px] text-ink-2">{(player.internal_ranking as number).toLocaleString()} ELO</p>
                     )}
                   </div>
                   {player.id === currentUserId && (
-                    <span className="text-[9px] font-bold text-court bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.you_badge')}</span>
+                    <span className="text-[11px] font-bold text-court bg-court-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.you_badge')}</span>
                   )}
                   {'isGuest' in player && player.isGuest && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {(isParticipant || isGroupAdmin) && guestInviteMap[player.id]?.token && match.status !== 'completed' && match.status !== 'cancelled' && (
                         <button
                           onClick={(e) => { e.stopPropagation(); shareGuestInvite(player.id) }}
-                          className="flex items-center gap-1 text-[10px] font-bold text-court bg-teal-50 hover:bg-teal-100 px-1.5 py-0.5 rounded-full transition-colors active:scale-95"
+                          className="flex items-center gap-1 text-[11px] font-bold text-court bg-court-50 hover:bg-court-100 px-1.5 py-0.5 rounded-full transition-colors active:scale-95"
                         >
                           <Share2 className="h-2.5 w-2.5" /> {t('match.send_invite', 'Invite')}
                         </button>
                       )}
-                      <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-1.5 py-0.5 rounded-full">{t('match.guest_badge')}</span>
+                      <span className="text-[11px] font-bold text-warn bg-warn-50 px-1.5 py-0.5 rounded-full">{t('match.guest_badge')}</span>
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 bg-white flex items-center justify-center flex-shrink-0">
-                    <span className="text-[10px] text-gray-300">+</span>
+                  <div className="h-7 w-7 rounded-full border-2 border-dashed border-hairline bg-white flex items-center justify-center flex-shrink-0">
+                    <span className="text-[11px] text-ink-3">+</span>
                   </div>
                   {(isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' ? (
                     <button
                       onClick={() => setShowInvite(true)}
-                      className="text-[11px] text-teal-600 font-semibold"
+                      className="text-[11px] text-court font-semibold"
                     >
                       {t('match.invite_player')}
                     </button>
                   ) : (
-                    <p className="text-[11px] text-gray-400 italic">{t('match.waiting')}</p>
+                    <p className="text-[11px] text-ink-2 italic">{t('match.waiting')}</p>
                   )}
                 </>
               )}
@@ -1573,14 +1573,14 @@ export function MatchDetailPage() {
           const leftWon = viewerOnTeam1 ? rType === 'team1_win' : rType === 'team2_win'
           const rightWon = viewerOnTeam1 ? rType === 'team2_win' : rType === 'team1_win'
           return (
-            <div className="bg-gray-50 rounded-xl p-3 mb-2">
+            <div className="bg-surface rounded-xl p-3 mb-2">
               <div className="flex items-center justify-center gap-3 mb-1">
-                <span className={cn('text-[18px] font-black', leftWon ? 'text-teal-700' : 'text-gray-400')}>{leftScore}</span>
-                <span className="text-gray-300">{'\u2013'}</span>
-                <span className={cn('text-[18px] font-black', rightWon ? 'text-orange-600' : 'text-gray-400')}>{rightScore}</span>
+                <span className={cn('text-[18px] font-black', leftWon ? 'text-court-700' : 'text-ink-2')}>{leftScore}</span>
+                <span className="text-ink-3">{'\u2013'}</span>
+                <span className={cn('text-[18px] font-black', rightWon ? 'text-warn' : 'text-ink-2')}>{rightScore}</span>
               </div>
               {sets.length > 0 && (
-                <p className="text-[10px] text-gray-400 text-center">
+                <p className="text-[11px] text-ink-2 text-center">
                   {sets.map((s: SetScore) => {
                     const sLeft = viewerOnTeam1 ? s.team1 : s.team2
                     const sRight = viewerOnTeam1 ? s.team2 : s.team1
@@ -1600,11 +1600,11 @@ export function MatchDetailPage() {
         if (vStatus === 'disputed') {
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-                <p className="text-[13px] font-semibold text-gray-500 text-center">{t('match.legacy_dispute_pending')}</p>
+              <div className="rounded-2xl border border-hairline bg-surface p-3">
+                <p className="text-[13px] font-semibold text-ink-2 text-center">{t('match.legacy_dispute_pending')}</p>
                 {disputeInfo && (isParticipant || isGroupAdmin) && (
-                  <div className="mt-2 pt-2 border-t border-gray-200">
-                    <p className="text-[12px] text-gray-500">
+                  <div className="mt-2 pt-2 border-t border-hairline">
+                    <p className="text-[12px] text-ink-2">
                       <span className="font-semibold">{disputeInfo.voterName}</span>
                       {disputeInfo.reason ? `: "${disputeInfo.reason}"` : ` ${t('match.x_disputed_result')}`}
                     </p>
@@ -1619,9 +1619,9 @@ export function MatchDetailPage() {
         if (vStatus === 'admin_review') {
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-orange-200 bg-orange-50 p-3 text-center">
-                <p className="text-[13px] font-semibold text-orange-700">{t('match.escalated_to_group_admin')}</p>
-                <p className="text-[11px] text-gray-500 mt-1">{t('match.admin_will_resolve')}</p>
+              <div className="rounded-2xl border border-warn bg-warn-50 p-3 text-center">
+                <p className="text-[13px] font-semibold text-warn">{t('match.escalated_to_group_admin')}</p>
+                <p className="text-[11px] text-ink-2 mt-1">{t('match.admin_will_resolve')}</p>
               </div>
             </div>
           )
@@ -1631,15 +1631,15 @@ export function MatchDetailPage() {
         if (vStatus === 'submitter_review' && isOnSubmittingTeam) {
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-                <p className="text-[13px] font-bold text-gray-800 mb-2">{t('match.your_result_disputed')}</p>
+              <div className="rounded-2xl border border-warn bg-warn-50 p-4">
+                <p className="text-[13px] font-bold text-ink mb-2">{t('match.your_result_disputed')}</p>
 
-                <p className="text-[11px] font-semibold text-gray-500 mb-1">{t('match.your_original_score')}</p>
+                <p className="text-[11px] font-semibold text-ink-2 mb-1">{t('match.your_original_score')}</p>
                 {renderScoreSummary(result.sets_data, result.team1_score, result.team2_score, result.result_type)}
 
                 {disputeProposal && (
                   <>
-                    <p className="text-[11px] font-semibold text-gray-500 mb-1">
+                    <p className="text-[11px] font-semibold text-ink-2 mb-1">
                       {t('match.their_proposed_score', { name: disputeProposal.voterName })}
                     </p>
                     {disputeProposal.reason && (
@@ -1650,14 +1650,14 @@ export function MatchDetailPage() {
                 )}
 
                 {hoursUntilDeadline > 0 && (
-                  <p className="text-[11px] text-gray-400 mb-3 text-center">
+                  <p className="text-[11px] text-ink-2 mb-3 text-center">
                     {t('match.auto_accepts_opponent_proposal', { hours: hoursUntilDeadline })}
                   </p>
                 )}
 
                 {showCounterProposal ? (
                   <div>
-                    <p className="text-[12px] font-semibold text-gray-700 mb-2">{t('match.your_counter_proposal')}</p>
+                    <p className="text-[12px] font-semibold text-ink-2 mb-2">{t('match.your_counter_proposal')}</p>
                     <ScoreEntryPanel
                       team1Names={t1Names}
                       team2Names={t2Names}
@@ -1668,7 +1668,7 @@ export function MatchDetailPage() {
                     <div className="flex gap-2 mt-3">
                       <button
                         onClick={() => setShowCounterProposal(false)}
-                        className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
+                        className="flex-1 rounded-xl border border-hairline py-2 text-[13px] font-semibold text-ink-2"
                       >
                         {t('match.cancel')}
                       </button>
@@ -1750,7 +1750,7 @@ export function MatchDetailPage() {
                     </button>
                     <button
                       onClick={() => setShowCounterProposal(true)}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-orange-200 py-2.5 text-[13px] font-semibold text-orange-600"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-warn py-2.5 text-[13px] font-semibold text-warn"
                     >
                       {t('match.counter')}
                     </button>
@@ -1765,10 +1765,10 @@ export function MatchDetailPage() {
         if (vStatus === 'submitter_review' && !isOnSubmittingTeam) {
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-3 text-center">
-                <p className="text-[13px] font-semibold text-yellow-700">{t('match.waiting_submitter_respond')}</p>
+              <div className="rounded-2xl border border-warn-100 bg-warn-50 p-3 text-center">
+                <p className="text-[13px] font-semibold text-warn">{t('match.waiting_submitter_respond')}</p>
                 {hoursUntilDeadline > 0 && (
-                  <p className="text-[11px] text-gray-400 mt-1">{t('match.auto_accepts_your_proposal', { hours: hoursUntilDeadline })}</p>
+                  <p className="text-[11px] text-ink-2 mt-1">{t('match.auto_accepts_your_proposal', { hours: hoursUntilDeadline })}</p>
                 )}
               </div>
             </div>
@@ -1779,13 +1779,13 @@ export function MatchDetailPage() {
         if (vStatus === 'opponent_review' && !isOnSubmittingTeam) {
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-yellow-200 bg-yellow-50 p-4">
-                <p className="text-[13px] font-bold text-gray-800 mb-2">{t('match.counter_proposal_from', { name: submitterName })}</p>
+              <div className="rounded-2xl border border-warn bg-warn-50 p-4">
+                <p className="text-[13px] font-bold text-ink mb-2">{t('match.counter_proposal_from', { name: submitterName })}</p>
 
                 {counterProposal && renderScoreSummary(counterProposal.sets_data, counterProposal.team1_score, counterProposal.team2_score, counterProposal.result_type)}
 
                 {hoursUntilDeadline > 0 && (
-                  <p className="text-[11px] text-gray-400 mb-3 text-center">
+                  <p className="text-[11px] text-ink-2 mb-3 text-center">
                     {t('match.auto_accepts_in', { hours: hoursUntilDeadline })}
                   </p>
                 )}
@@ -1869,10 +1869,10 @@ export function MatchDetailPage() {
         if (vStatus === 'opponent_review' && isOnSubmittingTeam) {
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-3 text-center">
-                <p className="text-[13px] font-semibold text-yellow-700">{t('match.waiting_opponent_respond')}</p>
+              <div className="rounded-2xl border border-warn-100 bg-warn-50 p-3 text-center">
+                <p className="text-[13px] font-semibold text-warn">{t('match.waiting_opponent_respond')}</p>
                 {hoursUntilDeadline > 0 && (
-                  <p className="text-[11px] text-gray-400 mt-1">{t('match.auto_accepts_your_counter', { hours: hoursUntilDeadline })}</p>
+                  <p className="text-[11px] text-ink-2 mt-1">{t('match.auto_accepts_your_counter', { hours: hoursUntilDeadline })}</p>
                 )}
               </div>
             </div>
@@ -1885,7 +1885,7 @@ export function MatchDetailPage() {
             <div className="px-5 mb-4">
               {showEditScores ? (
                 <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
-                  <p className="text-[13px] font-bold text-gray-800 mb-2">{t('match.edit_scores')}</p>
+                  <p className="text-[13px] font-bold text-ink mb-2">{t('match.edit_scores')}</p>
                   <ScoreEntryPanel
                     team1Names={t1Names}
                     team2Names={t2Names}
@@ -1896,7 +1896,7 @@ export function MatchDetailPage() {
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => setShowEditScores(false)}
-                      className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
+                      className="flex-1 rounded-xl border border-hairline py-2 text-[13px] font-semibold text-ink-2"
                     >
                       {t('match.cancel')}
                     </button>
@@ -1942,9 +1942,9 @@ export function MatchDetailPage() {
               ) : (
                 <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
                   <p className="text-[13px] font-semibold text-green-700">{t('match.you_submitted_result')}</p>
-                  <p className="text-[11px] text-gray-400 mt-1">{t('match.awaiting_verification')}</p>
+                  <p className="text-[11px] text-ink-2 mt-1">{t('match.awaiting_verification')}</p>
                   {hoursUntilAutoVerify > 0 && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">{t('match.auto_verifies_in', { hours: hoursUntilAutoVerify })}</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">{t('match.auto_verifies_in', { hours: hoursUntilAutoVerify })}</p>
                   )}
                   <button
                     onClick={() => setShowEditScores(true)}
@@ -1977,12 +1977,12 @@ export function MatchDetailPage() {
 
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-yellow-100 bg-yellow-50 p-4">
-                <p className="text-[13px] font-bold text-gray-800 mb-1">{t('match.verify_result')}</p>
+              <div className="rounded-2xl border border-warn-100 bg-warn-50 p-4">
+                <p className="text-[13px] font-bold text-ink mb-1">{t('match.verify_result')}</p>
                 {hoursUntilAutoVerify > 0 && (
-                  <p className="text-[11px] text-gray-400 mb-2">{t('match.auto_verifies_if_no_response', { hours: hoursUntilAutoVerify })}</p>
+                  <p className="text-[11px] text-ink-2 mb-2">{t('match.auto_verifies_if_no_response', { hours: hoursUntilAutoVerify })}</p>
                 )}
-                <p className="text-[12px] text-gray-500 mb-3">
+                <p className="text-[12px] text-ink-2 mb-3">
                   {viewerOnTeam1 ? result.team1_score : result.team2_score}{'\u2013'}{viewerOnTeam1 ? result.team2_score : result.team1_score} {'\u00b7'}{' '}
                   {result.result_type === 'team1_win'
                     ? t('match.team_wins', { names: t1Names })
@@ -1996,10 +1996,10 @@ export function MatchDetailPage() {
                       value={disputeReason}
                       onChange={(e) => setDisputeReason(e.target.value)}
                       placeholder={t('match.describe_issue_placeholder')}
-                      className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-[13px] text-gray-800 placeholder:text-gray-400 focus:outline-none focus:ring-1 focus:ring-red-300 mb-2 resize-none"
+                      className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-[13px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-1 focus:ring-red-300 mb-2 resize-none"
                       rows={3}
                     />
-                    <p className="text-[12px] font-semibold text-gray-700 mb-2">{t('match.correct_score_q')}</p>
+                    <p className="text-[12px] font-semibold text-ink-2 mb-2">{t('match.correct_score_q')}</p>
                     <ScoreEntryPanel
                       team1Names={t1Names}
                       team2Names={t2Names}
@@ -2010,7 +2010,7 @@ export function MatchDetailPage() {
                     <div className="flex gap-2 mt-3">
                       <button
                         onClick={() => setShowDisputeInput(false)}
-                        className="flex-1 rounded-xl border border-gray-200 py-2 text-[13px] font-semibold text-gray-600"
+                        className="flex-1 rounded-xl border border-hairline py-2 text-[13px] font-semibold text-ink-2"
                       >
                         {t('match.cancel')}
                       </button>
@@ -2116,10 +2116,10 @@ export function MatchDetailPage() {
         <div className="px-5 mb-4">
           <button
             onClick={() => setShowPeerVoting(true)}
-            className="w-full rounded-2xl bg-teal-50 border border-teal-100 p-3 flex items-center justify-between"
+            className="w-full rounded-2xl bg-court-50 border border-court-100 p-3 flex items-center justify-between"
           >
-            <p className="text-[13px] font-semibold text-teal-700">{t('peer_voting.votes_cast')} ✓</p>
-            <span className="text-[12px] text-teal-500">{t('peer_voting.your_votes')}</span>
+            <p className="text-[13px] font-semibold text-court-700">{t('peer_voting.votes_cast')} ✓</p>
+            <span className="text-[12px] text-court">{t('peer_voting.your_votes')}</span>
           </button>
         </div>
       )}
@@ -2127,10 +2127,10 @@ export function MatchDetailPage() {
       {/* Step 6: Match votes tally */}
       {matchIsCompleted && allPeerVotes && allPeerVotes.length > 0 && (
         <div className="px-5 mb-4">
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">{t('peer_voting.match_votes')}</p>
+          <div className="rounded-2xl border border-hairline bg-surface p-4">
+            <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-3">{t('peer_voting.match_votes')}</p>
             {result?.verification_status !== 'verified' && (
-              <p className="text-[11px] text-amber-600 mb-3 italic">{t('peer_voting.provisional_note')}</p>
+              <p className="text-[11px] text-warn mb-3 italic">{t('peer_voting.provisional_note')}</p>
             )}
             <div className="space-y-4">
               {PEER_VOTE_CATEGORIES.map((cat) => {
@@ -2148,10 +2148,10 @@ export function MatchDetailPage() {
                   <div key={cat.id}>
                     <div className="flex items-center gap-2 mb-1.5">
                       <span className="text-[14px] flex-shrink-0">{cat.emoji}</span>
-                      <p className="text-[12px] font-semibold text-gray-700">{t(`peer_voting.${cat.id}_name`, { defaultValue: cat.name })}</p>
+                      <p className="text-[12px] font-semibold text-ink-2">{t(`peer_voting.${cat.id}_name`, { defaultValue: cat.name })}</p>
                     </div>
                     {sorted.length === 0 ? (
-                      <p className="text-[11px] text-gray-400 ml-6">{t('peer_voting.no_votes_yet')}</p>
+                      <p className="text-[11px] text-ink-2 ml-6">{t('peer_voting.no_votes_yet')}</p>
                     ) : (
                       <div className="ml-6 space-y-1">
                         {sorted.map(([pid, count]) => {
@@ -2161,14 +2161,14 @@ export function MatchDetailPage() {
                           return (
                             <div key={pid} className="flex items-center gap-2">
                               <PlayerAvatar name={player.name} avatarUrl={player.avatar_url} size="sm" />
-                              <span className={cn('text-[12px] flex-1 truncate', isLeader ? 'font-semibold text-gray-800' : 'text-gray-600')}>
+                              <span className={cn('text-[12px] flex-1 truncate', isLeader ? 'font-semibold text-ink' : 'text-ink-2')}>
                                 {player.name?.split(' ')[0]}
                               </span>
-                              <span className={cn('text-[11px] tabular-nums', isLeader ? 'font-bold text-teal-600' : 'text-gray-400')}>
+                              <span className={cn('text-[11px] tabular-nums', isLeader ? 'font-bold text-court' : 'text-ink-2')}>
                                 {count}
                               </span>
                               {isLeader && isTied && (
-                                <span className="text-[9px] font-bold text-amber-600 bg-amber-50 border border-amber-100 rounded-full px-1.5 py-0.5 uppercase">{t('match.tied')}</span>
+                                <span className="text-[11px] font-bold text-warn bg-warn-50 border border-warn-100 rounded-full px-1.5 py-0.5 uppercase">{t('match.tied')}</span>
                               )}
                             </div>
                           )
@@ -2235,10 +2235,10 @@ export function MatchDetailPage() {
 
         return (
           <div className="px-5 mb-4">
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="rounded-2xl border border-hairline bg-surface p-4">
               <div className="flex items-center gap-2 mb-3">
                 <Car className="h-4 w-4 text-court" />
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('match.getting_there')}</p>
+                <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">{t('match.getting_there')}</p>
               </div>
 
               {/* ── PART 1: Confirmed-lift banner ── */}
@@ -2255,7 +2255,7 @@ export function MatchDetailPage() {
                         )}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-[10px] font-bold text-green-700">{t('match.confirmed')}</span>
+                    <span className="shrink-0 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-[11px] font-bold text-green-700">{t('match.confirmed')}</span>
                   </div>
                 </div>
               )}
@@ -2278,14 +2278,14 @@ export function MatchDetailPage() {
                           onClick={() => setExpandedRiderId(expandedRiderId === rider.requester_id ? null : rider.requester_id)}
                           className="w-full flex items-center justify-between"
                         >
-                          <p className="text-[12px] font-semibold text-gray-800">{rider.requesterName.split(' ')[0]}</p>
-                          <span className="text-[10px] text-gray-400">{expandedRiderId === rider.requester_id ? t('match.hide') : t('match.details')}</span>
+                          <p className="text-[12px] font-semibold text-ink">{rider.requesterName.split(' ')[0]}</p>
+                          <span className="text-[11px] text-ink-2">{expandedRiderId === rider.requester_id ? t('match.hide') : t('match.details')}</span>
                         </button>
 
                         {/* Pickup time (Part 2) */}
                         {!matchCompleted && (
                           <div className="flex items-center gap-2 mt-1.5">
-                            <Clock className="h-3 w-3 text-gray-400 shrink-0" />
+                            <Clock className="h-3 w-3 text-ink-2 shrink-0" />
                             <input
                               type="time"
                               value={rider.pickup_time?.slice(0, 5) ?? ''}
@@ -2293,28 +2293,28 @@ export function MatchDetailPage() {
                                 riderId: rider.requester_id,
                                 time: e.target.value ? `${e.target.value}:00` : null,
                               })}
-                              className="text-[12px] text-gray-700 bg-transparent border-none p-0 focus:outline-none"
+                              className="text-[12px] text-ink-2 bg-transparent border-none p-0 focus:outline-none"
                               placeholder={t('match.set_pickup_time')}
                             />
                             {!rider.pickup_time && (
-                              <span className="text-[10px] text-gray-400 italic">{t('match.set_pickup_time')}</span>
+                              <span className="text-[11px] text-ink-2 italic">{t('match.set_pickup_time')}</span>
                             )}
                           </div>
                         )}
                         {matchCompleted && rider.pickup_time && (
-                          <p className="text-[11px] text-gray-500 mt-1">{t('match.pickup_at', { time: rider.pickup_time.slice(0, 5) })}</p>
+                          <p className="text-[11px] text-ink-2 mt-1">{t('match.pickup_at', { time: rider.pickup_time.slice(0, 5) })}</p>
                         )}
 
                         {/* Address (Part 3 — privacy-gated, expanded) */}
                         {expandedRiderId === rider.requester_id && (
                           <div className="mt-2 pt-2 border-t border-green-100">
                             {riderAddress?.postal_code || riderAddress?.city ? (
-                              <p className="text-[11px] text-gray-600">
-                                <MapPin className="h-3 w-3 inline mr-1 text-gray-400" />
+                              <p className="text-[11px] text-ink-2">
+                                <MapPin className="h-3 w-3 inline mr-1 text-ink-2" />
                                 {[riderAddress.postal_code, riderAddress.city].filter(Boolean).join(', ')}
                               </p>
                             ) : (
-                              <p className="text-[11px] text-gray-400 italic">{t('match.no_address_saved')}</p>
+                              <p className="text-[11px] text-ink-2 italic">{t('match.no_address_saved')}</p>
                             )}
                           </div>
                         )}
@@ -2347,11 +2347,11 @@ export function MatchDetailPage() {
                   {/* Incoming lift requests (driver sees) */}
                   {incomingRequests.length > 0 && (
                     <div className="mb-3">
-                      <p className="text-[11px] font-semibold text-gray-500 mb-2">{t('match.lift_requests')}</p>
+                      <p className="text-[11px] font-semibold text-ink-2 mb-2">{t('match.lift_requests')}</p>
                       <div className="space-y-2">
                         {incomingRequests.map((req) => (
-                          <div key={req.id} className="flex items-center justify-between rounded-xl border border-orange-100 bg-orange-50 px-3 py-2">
-                            <p className="text-[12px] font-semibold text-orange-800">{t('match.x_wants_a_lift', { name: req.requesterName })}</p>
+                          <div key={req.id} className="flex items-center justify-between rounded-xl border border-warn-100 bg-warn-50 px-3 py-2">
+                            <p className="text-[12px] font-semibold text-warn">{t('match.x_wants_a_lift', { name: req.requesterName })}</p>
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
@@ -2361,7 +2361,7 @@ export function MatchDetailPage() {
                               </button>
                               <button
                                 onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
-                                className="rounded-lg bg-white border border-gray-200 px-2.5 py-1 text-[11px] font-semibold text-gray-600"
+                                className="rounded-lg bg-white border border-hairline px-2.5 py-1 text-[11px] font-semibold text-ink-2"
                               >
                                 {t('match.decline')}
                               </button>
@@ -2376,23 +2376,23 @@ export function MatchDetailPage() {
                   {/* Your driving status — always visible for participants on active matches */}
                   {!matchCompleted && isParticipant && (
                     <div className="mb-3 space-y-2">
-                      <p className="text-[11px] font-semibold text-gray-500 mb-1">{t('match.your_travel')}</p>
+                      <p className="text-[11px] font-semibold text-ink-2 mb-1">{t('match.your_travel')}</p>
                       <button
                         onClick={() => toggleDrivingMutation.mutate()}
                         disabled={toggleDrivingMutation.isPending}
                         className={cn(
                           'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all active:scale-[0.98]',
-                          amDriving ? 'border-court bg-teal-50 text-court' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          amDriving ? 'border-court bg-court-50 text-court' : 'border-hairline text-ink-2 hover:border-hairline'
                         )}
                       >
                         <div className="flex items-center gap-2">
                           <Car className="h-4 w-4" />
                           <div className="text-left">
                             <span>{t('match.driving')}</span>
-                            <p className="text-[10px] font-normal opacity-70">{t('match.making_own_way')}</p>
+                            <p className="text-[11px] font-normal opacity-70">{t('match.making_own_way')}</p>
                           </div>
                         </div>
-                        <span className={cn('text-[11px] rounded-full px-2 py-0.5', amDriving ? 'bg-court text-white' : 'bg-gray-100 text-gray-400')}>
+                        <span className={cn('text-[11px] rounded-full px-2 py-0.5', amDriving ? 'bg-court text-white' : 'bg-hairline text-ink-2')}>
                           {amDriving ? t('match.yes') : t('match.no')}
                         </span>
                       </button>
@@ -2402,17 +2402,17 @@ export function MatchDetailPage() {
                           disabled={toggleOfferingMutation.isPending}
                           className={cn(
                             'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all active:scale-[0.98]',
-                            amOffering ? 'border-court bg-teal-50 text-court' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            amOffering ? 'border-court bg-court-50 text-court' : 'border-hairline text-ink-2 hover:border-hairline'
                           )}
                         >
                           <div className="flex items-center gap-2">
                             <Users className="h-4 w-4" />
                             <div className="text-left">
                               <span>{t('match.offering_a_lift')}</span>
-                              <p className="text-[10px] font-normal opacity-70">{t('match.happy_to_take_passengers')}</p>
+                              <p className="text-[11px] font-normal opacity-70">{t('match.happy_to_take_passengers')}</p>
                             </div>
                           </div>
-                          <span className={cn('text-[11px] rounded-full px-2 py-0.5', amOffering ? 'bg-court text-white' : 'bg-gray-100 text-gray-400')}>
+                          <span className={cn('text-[11px] rounded-full px-2 py-0.5', amOffering ? 'bg-court text-white' : 'bg-hairline text-ink-2')}>
                             {amOffering ? t('match.yes') : t('match.no')}
                           </span>
                         </button>
@@ -2423,20 +2423,20 @@ export function MatchDetailPage() {
                   {/* Drivers */}
                   {(travelInfo?.drivers.length ?? 0) > 0 && (
                     <div className="mb-3">
-                      <p className="text-[11px] font-semibold text-gray-500 mb-2">{t('match.drivers')}</p>
+                      <p className="text-[11px] font-semibold text-ink-2 mb-2">{t('match.drivers')}</p>
                       <div className="space-y-1.5">
                         {travelInfo!.drivers.map((driver) => (
                           <div key={driver.id} className="flex items-center gap-2.5">
                             <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
                             <div className="flex-1 min-w-0">
-                              <p className="text-[12px] font-semibold text-gray-800 truncate">{driver.name}</p>
-                              <p className="text-[11px] text-gray-400">
+                              <p className="text-[12px] font-semibold text-ink truncate">{driver.name}</p>
+                              <p className="text-[11px] text-ink-2">
                                 {driver.offering_lifts ? t('match.offering_lift_seats', { count: driver.max_passengers }) : t('match.driving')}
                               </p>
                             </div>
                             <span className={cn(
-                              'shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold',
-                              driver.offering_lifts ? 'bg-teal-50 border border-teal-100 text-teal-600' : 'bg-gray-100 text-gray-500'
+                              'shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold',
+                              driver.offering_lifts ? 'bg-court-50 border border-court-100 text-court' : 'bg-hairline text-ink-2'
                             )}>
                               {driver.offering_lifts ? t('match.offering_lift_badge') : t('match.driving')}
                             </span>
@@ -2449,7 +2449,7 @@ export function MatchDetailPage() {
                   {/* Needs a lift */}
                   {(travelInfo?.needsLift.length ?? 0) > 0 && (
                     <div className={(travelInfo?.drivers.length ?? 0) > 0 ? '' : 'mb-2'}>
-                      <p className="text-[11px] font-semibold text-gray-500 mb-2">{t('match.need_a_lift')}</p>
+                      <p className="text-[11px] font-semibold text-ink-2 mb-2">{t('match.need_a_lift')}</p>
                       <div className="space-y-1.5">
                         {travelInfo!.needsLift.map((passenger) => {
                           const isMe = passenger.id === profile?.id
@@ -2463,12 +2463,12 @@ export function MatchDetailPage() {
                             <div key={passenger.id} className="flex items-center gap-2.5">
                               <PlayerAvatar name={passenger.name} avatarUrl={passenger.avatar_url} size="sm" />
                               <div className="flex-1 min-w-0">
-                                <p className="text-[12px] font-semibold text-gray-800 truncate">{passenger.name}</p>
+                                <p className="text-[12px] font-semibold text-ink truncate">{passenger.name}</p>
                                 {isMe && acceptedDriverLocal && (
                                   <p className="text-[11px] text-green-600">{t('match.riding_with_x', { name: acceptedDriverLocal.name.split(' ')[0] })}</p>
                                 )}
                                 {isMe && !acceptedDriverLocal && pendingRequests.length > 0 && (
-                                  <p className="text-[11px] text-gray-400">{t('match.waiting_for_response')}</p>
+                                  <p className="text-[11px] text-ink-2">{t('match.waiting_for_response')}</p>
                                 )}
                               </div>
                               {isMe && !acceptedDriverLocal && (travelInfo!.drivers.length > 0) && (
@@ -2495,7 +2495,7 @@ export function MatchDetailPage() {
                   {/* No location data — prompt to enable */}
                   {!travelInfo?.hasLocationData && (travelInfo?.drivers.length ?? 0) === 0 && !hasConfirmedLift && (
                     <div className="text-center py-1">
-                      <p className="text-[12px] text-gray-500 mb-2">{t('match.enable_location_prompt')}</p>
+                      <p className="text-[12px] text-ink-2 mb-2">{t('match.enable_location_prompt')}</p>
                       <button
                         onClick={() => {
                           if (!navigator.geolocation || !profile?.id) return
@@ -2520,7 +2520,7 @@ export function MatchDetailPage() {
                    (travelInfo?.needsLift.length ?? 0) === 0 &&
                    !hasConfirmedLift &&
                    travelInfo?.hasLocationData && (
-                    <p className="text-[12px] text-gray-400 text-center py-1">{t('match.no_travel_info')}</p>
+                    <p className="text-[12px] text-ink-2 text-center py-1">{t('match.no_travel_info')}</p>
                   )}
                 </>
               )}
@@ -2531,9 +2531,9 @@ export function MatchDetailPage() {
 
       {/* Ringer response banner */}
       {myRingerRequest?.status === 'pending' && new Date(myRingerRequest.expires_at) > new Date() && (
-        <div className="mx-5 mb-4 rounded-2xl border border-teal-200 bg-teal-50 p-4">
-          <p className="text-[14px] font-bold text-teal-900 mb-1">{t('ringers.ringer_request_banner_title')}</p>
-          <p className="text-[12px] text-teal-700 mb-3">
+        <div className="mx-5 mb-4 rounded-2xl border border-court-100 bg-court-50 p-4">
+          <p className="text-[14px] font-bold text-court-700 mb-1">{t('ringers.ringer_request_banner_title')}</p>
+          <p className="text-[12px] text-court-700 mb-3">
             {t('ringers.ringer_request_banner_subtitle', {
               expiry: format(parseISO(myRingerRequest.expires_at), 'EEE d MMM, HH:mm', { locale })
             })}
@@ -2542,14 +2542,14 @@ export function MatchDetailPage() {
             <button
               onClick={() => respondRingerMutation.mutate(true)}
               disabled={respondRingerMutation.isPending}
-              className="flex-1 rounded-xl bg-teal-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+              className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
             >
               {t('ringers.ringer_request_yes')}
             </button>
             <button
               onClick={() => respondRingerMutation.mutate(false)}
               disabled={respondRingerMutation.isPending}
-              className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
+              className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2 disabled:opacity-50"
             >
               {t('ringers.ringer_request_no')}
             </button>
@@ -2557,13 +2557,13 @@ export function MatchDetailPage() {
         </div>
       )}
       {myRingerRequest?.status === 'accepted' && (
-        <div className="mx-5 mb-4 rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3">
-          <p className="text-[13px] font-semibold text-teal-800">{t('ringers.ringer_request_responded_yes', { name: '' })}</p>
+        <div className="mx-5 mb-4 rounded-2xl bg-court-50 border border-court-100 px-4 py-3">
+          <p className="text-[13px] font-semibold text-court-700">{t('ringers.ringer_request_responded_yes', { name: '' })}</p>
         </div>
       )}
       {myRingerRequest?.status === 'declined' && (
-        <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
-          <p className="text-[13px] font-semibold text-gray-700">{t('ringers.ringer_request_responded_no')}</p>
+        <div className="mx-5 mb-4 rounded-2xl bg-surface border border-hairline px-4 py-3">
+          <p className="text-[13px] font-semibold text-ink-2">{t('ringers.ringer_request_responded_no')}</p>
         </div>
       )}
 
@@ -2578,7 +2578,7 @@ export function MatchDetailPage() {
               {t('match.yes_i_can_play')}
             </button>
             <button onClick={() => respondInvitationMutation.mutate(false)} disabled={respondInvitationMutation.isPending}
-              className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700 disabled:opacity-50">
+              className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2 disabled:opacity-50">
               {t('match.cant_make_it')}
             </button>
           </div>
@@ -2610,8 +2610,8 @@ export function MatchDetailPage() {
         </div>
       )}
       {!canClaim && (match as any).is_open && !isParticipant && playerIds.length < 4 && userElo != null && (
-        <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3">
-          <p className="text-[13px] text-gray-600">
+        <div className="mx-5 mb-4 rounded-2xl bg-surface border border-hairline px-4 py-3">
+          <p className="text-[13px] text-ink-2">
             {t('open_matches.claim_elo_out_of_range', {
               your_elo: userElo,
               min: (match as any).open_elo_min ?? '?',
@@ -2624,9 +2624,9 @@ export function MatchDetailPage() {
       {/* Result entry closed banner */}
       {resultEntryClosed && (
         <div className="px-5 mb-4">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 text-center">
-            <p className="text-[13px] font-semibold text-gray-600">{t('match.result_entry_closed')}</p>
-            <p className="text-[11px] text-gray-400 mt-1">{t('match.result_window_passed')}</p>
+          <div className="rounded-2xl border border-hairline bg-surface p-4 text-center">
+            <p className="text-[13px] font-semibold text-ink-2">{t('match.result_entry_closed')}</p>
+            <p className="text-[11px] text-ink-2 mt-1">{t('match.result_window_passed')}</p>
           </div>
         </div>
       )}
@@ -2637,12 +2637,12 @@ export function MatchDetailPage() {
           <div>
             {isAdminOverride && (
               <div className="mb-2">
-                <p className="text-[11px] font-semibold text-amber-700 mb-1.5">{t('match.admin_late_entry_reason')}</p>
+                <p className="text-[11px] font-semibold text-warn mb-1.5">{t('match.admin_late_entry_reason')}</p>
                 <input
                   value={adminOverrideReason}
                   onChange={e => setAdminOverrideReason(e.target.value)}
                   placeholder={t('match.late_entry_placeholder')}
-                  className="w-full rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-[13px] text-gray-800 placeholder:text-amber-300 focus:outline-none focus:border-amber-400"
+                  className="w-full rounded-xl border border-warn bg-warn-50 px-3 py-2.5 text-[13px] text-ink placeholder:text-warn/60 focus:outline-none focus:border-warn"
                 />
               </div>
             )}
@@ -2662,18 +2662,18 @@ export function MatchDetailPage() {
             const matchActive = match.status !== 'cancelled' && match.status !== 'completed'
             if (matchActive && linkedBooking) {
               return (
-                <div className="col-span-2 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3">
+                <div className="col-span-2 rounded-2xl border border-court-100 bg-court-50 px-4 py-3">
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-[14px] font-bold text-teal-800">{match.booked_venue_name}</p>
+                      <p className="text-[14px] font-bold text-court-700">{match.booked_venue_name}</p>
                       {match.booked_court_number != null && (
-                        <p className="text-[12px] text-teal-600">{t('match.court_number', { number: match.booked_court_number })}</p>
+                        <p className="text-[12px] text-court">{t('match.court_number', { number: match.booked_court_number })}</p>
                       )}
                       {(match as any).booking_reference && (
-                        <p className="text-[11px] text-gray-400 mt-0.5">{t('match.booking_ref', { ref: (match as any).booking_reference })}</p>
+                        <p className="text-[11px] text-ink-2 mt-0.5">{t('match.booking_ref', { ref: (match as any).booking_reference })}</p>
                       )}
                     </div>
-                    <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-2 py-0.5">{t('match.booked')}</span>
+                    <span className="text-[11px] font-bold text-court bg-court-100 rounded-full px-2 py-0.5">{t('match.booked')}</span>
                   </div>
                   <div className="flex items-center gap-3 mt-2">
                     <button
@@ -2699,14 +2699,14 @@ export function MatchDetailPage() {
                 <>
                   <button
                     onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-teal-200 bg-teal-50 py-3 text-[13px] font-semibold text-teal-700"
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-court-100 bg-court-50 py-3 text-[13px] font-semibold text-court-700"
                   >
                     <BookOpen className="h-4 w-4" />
                     {t('match.book_court')}
                   </button>
                   <button
                     onClick={() => setShowSelfReportSheet(true)}
-                    className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-medium text-gray-600"
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-hairline py-3 text-[13px] font-medium text-ink-2"
                   >
                     {t('match.booked_elsewhere')}
                   </button>
@@ -2718,7 +2718,7 @@ export function MatchDetailPage() {
           {playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
               onClick={() => setShowAskRingers(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 py-3 text-[13px] font-semibold text-orange-700"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-warn bg-warn-50 py-3 text-[13px] font-semibold text-warn"
             >
               <Users className="h-4 w-4" />
               {t('match.ask_ringers')}
@@ -2760,7 +2760,7 @@ export function MatchDetailPage() {
                   toast.success(t('match.match_now_private'))
                   queryClient.invalidateQueries({ queryKey: ['match', id] })
                 }}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-600"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-hairline py-3 text-[13px] font-semibold text-ink-2"
               >
                 <XCircle className="h-4 w-4" />
                 {t('match.make_private')}
@@ -2770,7 +2770,7 @@ export function MatchDetailPage() {
           {canEdit && (
             <button
               onClick={() => setShowEdit(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-hairline py-3 text-[13px] font-semibold text-ink-2"
             >
               <Edit2 className="h-4 w-4" />
               {t('match.edit_match')}
@@ -2788,7 +2788,7 @@ export function MatchDetailPage() {
           {calendarEvent && (
             <button
               onClick={() => setShowCalendar(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-hairline py-3 text-[13px] font-semibold text-ink-2"
             >
               <CalendarPlus className="h-4 w-4" />
               {t('match.add_to_calendar')}
@@ -2796,7 +2796,7 @@ export function MatchDetailPage() {
           )}
           <button
             onClick={handleShare}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-hairline py-3 text-[13px] font-semibold text-ink-2"
           >
             <Share2 className="h-4 w-4" />
             {t('match.share')}
@@ -2804,7 +2804,7 @@ export function MatchDetailPage() {
           {canCancel && (
             <button
               onClick={() => setConfirmCancel(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 py-3 text-[13px] font-semibold text-amber-600"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-warn py-3 text-[13px] font-semibold text-warn"
             >
               <Ban className="h-4 w-4" />
               {t('match.cancel')}
@@ -2838,7 +2838,7 @@ export function MatchDetailPage() {
       {/* Pending broadcast invitees */}
       {pendingInvitees.length > 0 && (isParticipant || isGroupAdmin) && playerIds.length < 4 && (
         <div className="px-5 mt-4">
-          <h3 className="text-[13px] font-semibold text-gray-700 mb-2">
+          <h3 className="text-[13px] font-semibold text-ink-2 mb-2">
             {t('match.pending_invitees', { count: pendingInvitees.length })}
           </h3>
           <div className="space-y-2">
@@ -2846,8 +2846,8 @@ export function MatchDetailPage() {
               <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2.5">
                 <PlayerAvatar name={p.inviteeName} avatarUrl={p.inviteeAvatar} size="sm" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-900 truncate">{p.inviteeName ?? t('match.unknown_player')}</p>
-                  <p className="text-[11px] text-gray-500">{t('match.elo_accepted', { elo: p.inviteeElo ?? '—' })}</p>
+                  <p className="text-[13px] font-semibold text-ink truncate">{p.inviteeName ?? t('match.unknown_player')}</p>
+                  <p className="text-[11px] text-ink-2">{t('match.elo_accepted', { elo: p.inviteeElo ?? '—' })}</p>
                 </div>
                 <button
                   onClick={() => confirmInviteeMutation.mutate(p.invitee_id)}
@@ -2917,12 +2917,12 @@ export function MatchDetailPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             >
               <div className="flex justify-center pt-3 pb-1">
-                <div className="h-1 w-10 rounded-full bg-gray-200" />
+                <div className="h-1 w-10 rounded-full bg-hairline" />
               </div>
               <div className="flex items-center justify-between px-5 py-3">
-                <h2 className="text-[15px] font-bold text-gray-900">{t('match.choose_a_driver')}</h2>
-                <button onClick={() => setShowLiftChooser(false)} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                  <XCircle className="h-4 w-4 text-gray-500" />
+                <h2 className="text-[15px] font-bold text-ink">{t('match.choose_a_driver')}</h2>
+                <button onClick={() => setShowLiftChooser(false)} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+                  <XCircle className="h-4 w-4 text-ink-2" />
                 </button>
               </div>
               <div className="px-5 pb-6 space-y-2" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
@@ -2932,21 +2932,21 @@ export function MatchDetailPage() {
                   const hasActiveRequest = myReq && (myReq.status === 'pending' || myReq.status === 'accepted')
 
                   return (
-                    <div key={driver.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-3">
+                    <div key={driver.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-surface px-3 py-3">
                       <PlayerAvatar name={driver.name} avatarUrl={driver.avatar_url} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-800">{driver.name}</p>
+                        <p className="text-[13px] font-semibold text-ink">{driver.name}</p>
                         {suggestion && travelInfo.hasLocationData && (
-                          <p className="text-[11px] text-gray-400">{t('match.distance_away', { distance: formatDistance(suggestion.distanceMiles) })}</p>
+                          <p className="text-[11px] text-ink-2">{t('match.distance_away', { distance: formatDistance(suggestion.distanceMiles) })}</p>
                         )}
                         {driver.max_passengers > 0 && (
-                          <p className="text-[10px] text-gray-400">{t('match.seats_available', { count: driver.max_passengers })}</p>
+                          <p className="text-[11px] text-ink-2">{t('match.seats_available', { count: driver.max_passengers })}</p>
                         )}
                       </div>
                       {myReq?.status === 'accepted' ? (
                         <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">{t('match.accepted')}</span>
                       ) : myReq?.status === 'pending' ? (
-                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-gray-100 text-gray-400">{t('match.requested')}</span>
+                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-hairline text-ink-2">{t('match.requested')}</span>
                       ) : myReq?.status === 'declined' ? (
                         <button
                           onClick={() => {
@@ -2954,7 +2954,7 @@ export function MatchDetailPage() {
                             setShowLiftChooser(false)
                           }}
                           disabled={requestLiftMutation.isPending}
-                          className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-500"
+                          className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2"
                         >
                           {t('match.ask_again')}
                         </button>
@@ -3003,14 +3003,14 @@ export function MatchDetailPage() {
                   <LogOut className="h-5 w-5 text-red-500" />
                 </div>
               </div>
-              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('match.leave_confirm')}</p>
-              <p className="text-[13px] text-gray-500 text-center mb-6">
+              <p className="text-[16px] font-bold text-ink text-center mb-2">{t('match.leave_confirm')}</p>
+              <p className="text-[13px] text-ink-2 text-center mb-6">
                 {t('match.leave_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmLeave(false)}
-                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                  className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2"
                 >
                   {t('match.cancel')}
                 </button>
@@ -3046,21 +3046,21 @@ export function MatchDetailPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <h3 className="text-[16px] font-bold text-gray-900 mb-2">{t('match.cancel_match_confirm')}</h3>
-              <p className="text-[13px] text-gray-500 mb-5">
+              <h3 className="text-[16px] font-bold text-ink mb-2">{t('match.cancel_match_confirm')}</h3>
+              <p className="text-[13px] text-ink-2 mb-5">
                 {t('match.cancel_match_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmCancel(false)}
-                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                  className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2"
                 >
                   {t('match.go_back')}
                 </button>
                 <button
                   onClick={handleCancelMatch}
                   disabled={cancelling}
-                  className="flex-1 rounded-2xl bg-amber-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                  className="flex-1 rounded-2xl bg-warn py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
                   {cancelling ? t('match.cancelling') : t('match.cancel_match')}
                 </button>
@@ -3089,14 +3089,14 @@ export function MatchDetailPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <h3 className="text-[16px] font-bold text-gray-900 mb-2">{t('match.cancel_booking_confirm')}</h3>
-              <p className="text-[13px] text-gray-500 mb-5">
+              <h3 className="text-[16px] font-bold text-ink mb-2">{t('match.cancel_booking_confirm')}</h3>
+              <p className="text-[13px] text-ink-2 mb-5">
                 {t('match.cancel_booking_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmCancelBooking(false)}
-                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                  className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2"
                 >
                   {t('match.go_back')}
                 </button>
@@ -3190,13 +3190,13 @@ export function MatchDetailPage() {
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
               <h3 className="text-[16px] font-bold text-red-600 mb-2">{t('match.delete_match_confirm')}</h3>
-              <p className="text-[13px] text-gray-500 mb-5">
+              <p className="text-[13px] text-ink-2 mb-5">
                 {t('match.delete_match_sub')}
               </p>
               <div className="flex gap-3">
                 <button
                   onClick={() => setConfirmDelete(false)}
-                  className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                  className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2"
                 >
                   {t('match.go_back')}
                 </button>
@@ -3248,7 +3248,7 @@ export function MatchDetailPage() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
-            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[70] bg-gray-900 text-white text-[13px] font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none"
+            className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[70] bg-ink text-white text-[13px] font-medium px-4 py-2 rounded-full shadow-lg pointer-events-none"
           >
             {t('match.link_copied')}
           </motion.div>
@@ -3350,24 +3350,24 @@ function TeamsAndPrediction({
 
   return (
     <div className="px-5 mb-4">
-      <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+      <div className="rounded-2xl border border-hairline bg-surface p-4">
         <div className="flex items-center gap-2 mb-3">
           <BarChart2 className="h-4 w-4 text-court" />
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('teams_prediction_title')}</p>
+          <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">{t('teams_prediction_title')}</p>
           <AnimatePresence>
             {savedTick && (
               <motion.span
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
-                className="ml-auto inline-flex items-center gap-1 text-[10px] font-semibold text-green-600"
+                className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-green-600"
               >
                 <CheckCircle className="h-3 w-3" />
                 {t('teams_saved')}
               </motion.span>
             )}
             {saveError && !savedTick && (
-              <span className="ml-auto text-[10px] font-semibold text-red-500">{t('teams_save_failed')}</span>
+              <span className="ml-auto text-[11px] font-semibold text-red-500">{t('teams_save_failed')}</span>
             )}
           </AnimatePresence>
         </div>
@@ -3387,12 +3387,12 @@ function TeamsAndPrediction({
         />
 
         {!prediction.hasRankings && (
-          <p className="text-[10px] text-gray-400 mt-2 text-center italic">{t('predictions_unavailable')}</p>
+          <p className="text-[11px] text-ink-2 mt-2 text-center italic">{t('predictions_unavailable')}</p>
         )}
 
         {/* Points at stake */}
         {prediction.hasRankings && (
-          <PointsAtStakeSection
+          <PointsAtStake
             team1Players={team1Players}
             team2Players={team2Players}
             isFriendly={isFriendly}
@@ -3404,7 +3404,7 @@ function TeamsAndPrediction({
         {canSwitch && (
           <button
             onClick={handleSwitch}
-            className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2 text-[12px] font-semibold text-gray-700 active:scale-[0.98] transition-transform"
+            className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-hairline bg-white py-2 text-[12px] font-semibold text-ink-2 active:scale-[0.98] transition-transform"
           >
             <Shuffle className="h-3.5 w-3.5" />
             {t('switch_teams')}
@@ -3431,11 +3431,11 @@ function TeamRow({
     <div
       className={cn(
         'flex items-center gap-3 rounded-xl border px-3 py-2.5',
-        highlight ? 'border-teal-200 bg-teal-50/60' : 'border-gray-100 bg-white',
+        highlight ? 'border-court-100 bg-court-50/60' : 'border-hairline bg-white',
       )}
     >
       <div className="flex-shrink-0">
-        <p className={cn('text-[10px] font-bold uppercase tracking-wide', highlight ? 'text-court' : 'text-gray-400')}>
+        <p className={cn('text-[11px] font-bold uppercase tracking-wide', highlight ? 'text-court' : 'text-ink-2')}>
           {label}
         </p>
       </div>
@@ -3443,222 +3443,18 @@ function TeamRow({
         {players.map((p) => (
           <div key={p.id} className="flex items-center gap-1.5 min-w-0">
             <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-            <p className="text-[12px] font-semibold text-gray-800 truncate">{p.name.split(' ')[0]}</p>
+            <p className="text-[12px] font-semibold text-ink truncate">{p.name.split(' ')[0]}</p>
           </div>
         ))}
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className={cn('text-[16px] font-black leading-none', highlight ? 'text-court' : 'text-gray-500')}>
+        <p className={cn('text-[16px] font-black leading-none', highlight ? 'text-court' : 'text-ink-2')}>
           {winProb}%
         </p>
-        <p className="text-[9px] text-gray-400 mt-0.5">{t('to_win')}</p>
+        <p className="text-[11px] text-ink-2 mt-0.5">{t('to_win')}</p>
       </div>
     </div>
   )
 }
 
-function PointsAtStakeSection({
-  team1Players,
-  team2Players,
-  isFriendly,
-  isLeagueMatch,
-  currentUserId,
-}: {
-  team1Players: Profile[]
-  team2Players: Profile[]
-  isFriendly: boolean
-  isLeagueMatch: boolean
-  currentUserId: string
-}) {
-  const { t } = useTranslation('', { keyPrefix: 'match' })
-  if (isFriendly) {
-    return (
-      <p className="text-[10px] text-gray-400 mt-3 text-center italic">
-        {t('friendly_no_stakes')}
-      </p>
-    )
-  }
-
-  const preview = useMemo(
-    () => previewMatchOutcomes(
-      team1Players.map(p => ({ id: p.id, internal_ranking: (p as any).internal_ranking, matches_played: (p as any).matches_played })),
-      team2Players.map(p => ({ id: p.id, internal_ranking: (p as any).internal_ranking, matches_played: (p as any).matches_played })),
-      isLeagueMatch,
-    ),
-    [team1Players, team2Players, isLeagueMatch],
-  )
-
-  if (!preview) return null
-  const stakes = preview
-
-  const isInTeam1 = team1Players.some(p => p.id === currentUserId)
-  const isInTeam2 = team2Players.some(p => p.id === currentUserId)
-  const isParticipant = isInTeam1 || isInTeam2
-
-  function getDelta(outcome: typeof stakes.team1Wins, teamNum: 1 | 2): number {
-    const deltas = teamNum === 1 ? outcome.team1Deltas : outcome.team2Deltas
-    const teamPlayers = teamNum === 1 ? team1Players : team2Players
-    if (isParticipant) {
-      const idx = teamPlayers.findIndex(p => p.id === currentUserId)
-      if (idx >= 0) return deltas[idx]
-    }
-    return Math.round(deltas.reduce((s, d) => s + d, 0) / deltas.length)
-  }
-
-  function getLeaguePts(outcome: typeof stakes.team1Wins, teamNum: 1 | 2): number | null {
-    return teamNum === 1 ? outcome.team1LeaguePts : outcome.team2LeaguePts
-  }
-
-  const formatDelta = (d: number) => d > 0 ? `+${d}` : `${d}`
-  const deltaColor = (d: number) => d > 0 ? 'text-green-700' : d < 0 ? 'text-red-500' : 'text-gray-500'
-  const formatLp = (lp: number | null) => {
-    if (lp === null) return null
-    return t('league_points_gain', { count: lp })
-  }
-
-  if (isParticipant) {
-    const myTeam: 1 | 2 = isInTeam1 ? 1 : 2
-    const winOutcome = myTeam === 1 ? stakes.team1Wins : stakes.team2Wins
-    const loseOutcome = myTeam === 1 ? stakes.team2Wins : stakes.team1Wins
-    const winD = getDelta(winOutcome, myTeam)
-    const drawD = getDelta(stakes.draw, myTeam)
-    const loseD = getDelta(loseOutcome, myTeam)
-    const winLp = getLeaguePts(winOutcome, myTeam)
-    const drawLp = getLeaguePts(stakes.draw, myTeam)
-    const loseLp = getLeaguePts(loseOutcome, myTeam)
-
-    return (
-      <PointsAtStakeParticipant
-        winD={winD} drawD={drawD} loseD={loseD}
-        winLp={winLp} drawLp={drawLp} loseLp={loseLp}
-        isLeagueMatch={isLeagueMatch}
-        stakes={stakes}
-        team1Players={team1Players} team2Players={team2Players}
-        formatDelta={formatDelta} deltaColor={deltaColor}
-        formatLp={formatLp}
-      />
-    )
-  }
-
-  // Spectator view
-  const t1Win = Math.round(stakes.team1Wins.team1Deltas.reduce((s, d) => s + d, 0) / stakes.team1Wins.team1Deltas.length)
-  const t2Win = Math.round(stakes.team2Wins.team2Deltas.reduce((s, d) => s + d, 0) / stakes.team2Wins.team2Deltas.length)
-  const t1Lp = stakes.team1Wins.team1LeaguePts
-  const t2Lp = stakes.team2Wins.team2LeaguePts
-
-  return (
-    <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('points_at_stake')}</p>
-      <div className="flex justify-between text-[11px]">
-        <div>
-          <span className="text-gray-500">{t('team1_wins_label')} </span>
-          <span className={cn('font-bold', deltaColor(t1Win))}>{formatDelta(t1Win)} ELO</span>
-          {t1Lp !== null && <span className="text-court font-semibold ml-1">{t('league_points_gain', { count: t1Lp })}</span>}
-        </div>
-        <div>
-          <span className="text-gray-500">{t('team2_wins_label')} </span>
-          <span className={cn('font-bold', deltaColor(t2Win))}>{formatDelta(t2Win)} ELO</span>
-          {t2Lp !== null && <span className="text-court font-semibold ml-1">{t('league_points_gain', { count: t2Lp })}</span>}
-        </div>
-      </div>
-      {!isLeagueMatch && (
-        <p className="text-[10px] text-gray-400 mt-2 text-center italic">{t('not_yet_played')}</p>
-      )}
-    </div>
-  )
-}
-
-function PointsAtStakeParticipant({
-  winD, drawD, loseD, winLp, drawLp, loseLp,
-  isLeagueMatch, stakes, team1Players, team2Players,
-  formatDelta, deltaColor, formatLp,
-}: {
-  winD: number; drawD: number; loseD: number
-  winLp: number | null; drawLp: number | null; loseLp: number | null
-  isLeagueMatch: boolean
-  stakes: any
-  team1Players: Profile[]; team2Players: Profile[]
-  formatDelta: (d: number) => string; deltaColor: (d: number) => string
-  formatLp: (lp: number | null) => string | null
-}) {
-  const { t } = useTranslation('', { keyPrefix: 'match' })
-  const [showAll, setShowAll] = useState(false)
-
-  return (
-    <div className="mt-3 rounded-xl border border-gray-100 bg-white p-3">
-      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('points_at_stake')}</p>
-      <div className="space-y-1.5">
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] text-gray-600">{t('if_you_win')}</span>
-          <div className="flex items-center gap-3">
-            <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
-            {winLp !== null && <span className="text-[11px] font-semibold text-court">{formatLp(winLp)}</span>}
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] text-gray-600">{t('if_you_draw')}</span>
-          <div className="flex items-center gap-3">
-            <span className={cn('text-[13px] font-bold', deltaColor(drawD))}>{formatDelta(drawD)} ELO</span>
-            {drawLp !== null && <span className="text-[11px] font-semibold text-gray-500">{formatLp(drawLp)}</span>}
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-[12px] text-gray-600">{t('if_you_lose')}</span>
-          <div className="flex items-center gap-3">
-            <span className={cn('text-[13px] font-bold', deltaColor(loseD))}>{formatDelta(loseD)} ELO</span>
-            {loseLp !== null && <span className="text-[11px] font-semibold text-gray-400">{formatLp(loseLp)}</span>}
-          </div>
-        </div>
-      </div>
-
-      {/* View all players expansion */}
-      <button
-        onClick={() => setShowAll(v => !v)}
-        className="w-full text-center text-[11px] font-semibold text-court mt-2 py-1"
-      >
-        {showAll ? t('hide_all_players') : t('view_all_players')}
-      </button>
-
-      <AnimatePresence>
-        {showAll && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="border-t border-gray-100 mt-1 pt-2 space-y-2">
-              <div>
-                <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-1">{t('team1_if_they_win')}</p>
-                {team1Players.map((p, i) => (
-                  <div key={p.id} className="flex items-center justify-between py-0.5">
-                    <span className="text-[12px] text-gray-700">{p.name?.split(' ')[0]}</span>
-                    <span className={cn('text-[12px] font-bold', deltaColor(stakes.team1Wins.team1Deltas[i]))}>
-                      {formatDelta(stakes.team1Wins.team1Deltas[i])} ELO
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-1">{t('team2_if_they_win')}</p>
-                {team2Players.map((p, i) => (
-                  <div key={p.id} className="flex items-center justify-between py-0.5">
-                    <span className="text-[12px] text-gray-700">{p.name?.split(' ')[0]}</span>
-                    <span className={cn('text-[12px] font-bold', deltaColor(stakes.team2Wins.team2Deltas[i]))}>
-                      {formatDelta(stakes.team2Wins.team2Deltas[i])} ELO
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {!isLeagueMatch && (
-        <p className="text-[10px] text-gray-400 mt-2 text-center italic">{t('not_yet_played')}</p>
-      )}
-    </div>
-  )
-}
 

@@ -20,7 +20,7 @@ export function ReportButton({ context, contextId }: ReportButtonProps) {
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-1 text-[12px] text-gray-400 hover:text-gray-500 transition-colors"
+      className="inline-flex items-center gap-1 text-[12px] text-ink-2 hover:text-ink-2 transition-colors"
     >
       <Flag className="h-3 w-3" />
       {t('report.button_label')}

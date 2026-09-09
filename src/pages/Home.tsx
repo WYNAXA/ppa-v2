@@ -340,7 +340,7 @@ function useSetupProgress(userId: string) {
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 const TYPE_BADGE: Record<string, { key: string; className: string }> = {
-  competitive: { key: 'home.type_competitive', className: 'bg-orange-400/20 text-orange-100 border-orange-300/20' },
+  competitive: { key: 'home.type_competitive', className: 'bg-warn/25 text-warn-100 border-warn/30' },
   friendly:    { key: 'home.type_friendly',    className: 'bg-blue-400/20 text-blue-100 border-blue-300/20'     },
   casual:      { key: 'home.type_casual',      className: 'bg-white/20 text-white/80 border-white/20'           },
   group:       { key: 'home.type_group',       className: 'bg-white/20 text-white/80 border-white/20'           },
@@ -364,72 +364,85 @@ function NextMatchCard({
   const isPastMatchTime = now > matchStart
   const withinWindow = now < new Date(matchStart.getTime() + 24 * 60 * 60 * 1000)
   const canRecord  = isPastMatchTime && withinWindow && match.status === 'scheduled' && match.player_ids.length === 4 && !match.has_result
-  const typeStyle  = TYPE_BADGE[match.match_type ?? 'group'] ?? TYPE_BADGE.group
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, var(--color-court) 0%, #004d44 100%)' }}
+      className="relative overflow-hidden rounded-panel bg-ink-surface"
     >
-      <div className="p-5">
-        {/* Countdown badge */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">
+      {/* A padel court, drawn once, very quietly. It is where the palette gets
+          its name and it stops the hero being a plain dark rectangle. */}
+      <svg
+        className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.13]"
+        viewBox="0 0 390 210"
+        preserveAspectRatio="xMidYMid slice"
+        aria-hidden="true"
+      >
+        <g fill="none" stroke="var(--color-line)" strokeWidth="1.4">
+          <rect x="26" y="18" width="338" height="174" rx="3" />
+          <line x1="195" y1="18" x2="195" y2="192" />
+          <line x1="26" y1="105" x2="364" y2="105" strokeDasharray="5 6" />
+          <line x1="110" y1="18" x2="110" y2="192" />
+          <line x1="280" y1="18" x2="280" y2="192" />
+        </g>
+      </svg>
+
+      <div className="relative p-5">
+        <div className="mb-3.5 flex items-center justify-between gap-2">
+          {/* The single ball-yellow element on this screen. The hero is the only
+              dark surface and the countdown is the only thing on it that is
+              time-critical, so this is where the accent is spent. */}
+          <span className="inline-flex items-center gap-1.5 rounded-pill bg-ball px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-ink">
             <Clock className="h-3 w-3" />
             {countdown}
           </span>
           {match.match_type && (
-            <span className={cn(
-              'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize',
-              typeStyle.className
-            )}>
-              {t(typeStyle.key)}
+            <span className="inline-flex items-center rounded-pill border border-white/20 px-2.5 py-0.5 text-[11px] font-semibold capitalize text-ink-4">
+              {t((TYPE_BADGE[match.match_type ?? 'group'] ?? TYPE_BADGE.group).key)}
             </span>
           )}
         </div>
 
-        {/* Date */}
-        <p className="text-white font-bold text-[18px] leading-tight mb-1">
+        <p className="text-[22px] font-extrabold leading-[26px] tracking-[-0.01em] text-white">
           {(() => { try { return format(parseISO(match.match_date), 'EEEE, d MMMM', { locale }) } catch { return match.match_date } })()}
-          {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
         </p>
 
-        {/* Venue */}
-        {match.booked_venue_name && (
-          <div className="flex items-center gap-1.5 mb-3">
-            <MapPin className="h-3.5 w-3.5 text-teal-200 flex-shrink-0" />
-            <p className="text-teal-100 text-[13px] truncate">{match.booked_venue_name}</p>
+        {(match.match_time || match.booked_venue_name) && (
+          <div className="mt-1.5 flex min-w-0 items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-line" />
+            <p className="truncate text-[13px] text-line">
+              {match.match_time && <span className="num font-semibold">{match.match_time.slice(0, 5)}</span>}
+              {match.match_time && match.booked_venue_name ? ' · ' : ''}
+              {match.booked_venue_name}
+            </p>
           </div>
         )}
 
-        {/* Players */}
         {match.players.length > 0 && (
-          <div className="flex items-center gap-2 mb-4">
+          <div className="mt-3.5 flex items-center gap-2">
             <div className="flex -space-x-1.5">
               {match.players.map((p) => (
                 <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
               ))}
             </div>
-            <p className="text-teal-100 text-[13px]">
+            <p className="truncate text-[13px] text-ink-4">
               {match.players.map((p) => p.name.split(' ')[0]).join(' & ')}
             </p>
           </div>
         )}
 
-        {/* Action buttons */}
-        <div className={cn('grid gap-2', canRecord ? 'grid-cols-2' : 'grid-cols-1')}>
+        <div className={cn('mt-4 grid gap-2', canRecord ? 'grid-cols-2' : 'grid-cols-1')}>
           <button
             onClick={() => navigate(`/matches/${match.id}`)}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 text-[13px] font-bold text-court"
+            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-control bg-white text-[13px] font-bold text-ink"
           >
             {t('home.view_match')} <ChevronRight className="h-4 w-4" />
           </button>
           {canRecord && (
             <button
               onClick={onRecordResult}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-white/20 py-2.5 text-[13px] font-bold text-white border border-white/30"
+              className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-control border border-white/25 bg-white/10 text-[13px] font-bold text-white"
             >
               <Trophy className="h-3.5 w-3.5" />
               {t('home.record_result')}
@@ -451,19 +464,19 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-4"
+      className="rounded-2xl border border-court-100 bg-gradient-to-br from-court-50 to-white p-4"
     >
       <div className="flex items-center gap-2 mb-3">
         <span className="text-[16px]">🎾</span>
-        <p className="text-[14px] font-bold text-gray-800">Getting started</p>
-        <span className="ml-auto text-[11px] font-semibold text-gray-400">{stepsComplete} of 3</span>
+        <p className="text-[14px] font-bold text-ink">Getting started</p>
+        <span className="ml-auto text-[11px] font-semibold text-ink-2">{stepsComplete} of 3</span>
       </div>
 
       <div className="space-y-2.5">
         {/* Step 1: Profile — always done */}
         <div className="flex items-center gap-3">
           <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
-          <p className="text-[13px] text-gray-500 line-through">You're all set up</p>
+          <p className="text-[13px] text-ink-2 line-through">You're all set up</p>
         </div>
 
         {/* Step 2: Group */}
@@ -471,16 +484,16 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
           {groupDone ? (
             <>
               <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
-              <p className="text-[13px] text-gray-500 line-through">Create a group & invite friends</p>
+              <p className="text-[13px] text-ink-2 line-through">Create a group & invite friends</p>
             </>
           ) : (
             <>
-              <span className="h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-[12px] text-teal-700 font-bold shrink-0">2</span>
+              <span className="h-6 w-6 rounded-full bg-court-100 flex items-center justify-center text-[12px] text-court-700 font-bold shrink-0">2</span>
               <div className="flex-1 min-w-0">
                 {progress.groupState === 'none' ? (
                   <>
-                    <p className="text-[13px] font-semibold text-gray-800">Create a group & invite friends</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">Groups let you find times to play and schedule matches</p>
+                    <p className="text-[13px] font-semibold text-ink">Create a group & invite friends</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">Groups let you find times to play and schedule matches</p>
                     <div className="flex gap-2 mt-2">
                       <button
                         onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
@@ -490,7 +503,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                       </button>
                       <button
                         onClick={() => navigate('/community')}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-[12px] font-semibold text-gray-600"
+                        className="rounded-lg border border-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2"
                       >
                         Browse groups
                       </button>
@@ -499,11 +512,11 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                 ) : (
                   /* solo group — in progress */
                   <>
-                    <p className="text-[13px] font-semibold text-amber-700">Group created — invite a friend to get started</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">You need at least one other member to schedule matches</p>
+                    <p className="text-[13px] font-semibold text-warn">Group created — invite a friend to get started</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">You need at least one other member to schedule matches</p>
                     <button
                       onClick={() => navigate('/community')}
-                      className="mt-2 rounded-lg bg-amber-500 px-3 py-1.5 text-[12px] font-bold text-white"
+                      className="mt-2 rounded-lg bg-warn px-3 py-1.5 text-[12px] font-bold text-white"
                     >
                       Invite friends
                     </button>
@@ -519,16 +532,16 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
           {playDone ? (
             <>
               <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
-              <p className="text-[13px] text-gray-500 line-through">Find a time to play</p>
+              <p className="text-[13px] text-ink-2 line-through">Find a time to play</p>
             </>
           ) : (
             <>
-              <span className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[12px] text-gray-400 font-bold shrink-0">3</span>
+              <span className="h-6 w-6 rounded-full bg-hairline flex items-center justify-center text-[12px] text-ink-2 font-bold shrink-0">3</span>
               <div className="flex-1 min-w-0">
-                <p className={cn('text-[13px] font-semibold', groupDone ? 'text-gray-800' : 'text-gray-400')}>Find a time to play</p>
+                <p className={cn('text-[13px] font-semibold', groupDone ? 'text-ink' : 'text-ink-2')}>Find a time to play</p>
                 {groupDone && (
                   <>
-                    <p className="text-[11px] text-gray-400 mt-0.5">Share your availability so your group can find a time</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">Share your availability so your group can find a time</p>
                     <button
                       onClick={() => navigate('/play/availability')}
                       className="mt-2 rounded-lg border border-court px-3 py-1.5 text-[12px] font-bold text-court"
@@ -538,7 +551,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                   </>
                 )}
                 {!groupDone && (
-                  <p className="text-[11px] text-gray-400 mt-0.5">Complete step 2 first</p>
+                  <p className="text-[11px] text-ink-2 mt-0.5">Complete step 2 first</p>
                 )}
               </div>
             </>
@@ -556,13 +569,13 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-dashed border-gray-200 p-6 text-center"
+      className="rounded-2xl border border-dashed border-hairline p-6 text-center"
     >
-      <div className="h-12 w-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-        <Calendar className="h-6 w-6 text-gray-400" />
+      <div className="h-12 w-12 rounded-2xl bg-hairline flex items-center justify-center mx-auto mb-3">
+        <Calendar className="h-6 w-6 text-ink-2" />
       </div>
-      <p className="text-[14px] font-bold text-gray-700 mb-1">{t('home.no_matches')}</p>
-      <p className="text-[12px] text-gray-400 mb-4">
+      <p className="text-[14px] font-bold text-ink-2 mb-1">{t('home.no_matches')}</p>
+      <p className="text-[12px] text-ink-2 mb-4">
         {hasUsableGroup ? t('home.no_matches_sub') : 'Create or join a group to start scheduling matches'}
       </p>
       {hasUsableGroup ? (
@@ -592,7 +605,7 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
           </button>
           <button
             onClick={() => navigate('/community')}
-            className="rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+            className="rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
           >
             Browse groups
           </button>
@@ -622,27 +635,30 @@ function RankingCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.05 }}
       whileTap={{ scale: 0.97 }}
-      className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
+      className="flex-1 rounded-panel border border-hairline bg-card p-4 text-left"
     >
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.ranking')}</p>
-      <p className="text-[26px] font-black text-court leading-none">{elo != null ? elo.toLocaleString() : '—'}</p>
-      <p className="text-[11px] text-gray-500 mt-0.5 font-medium">ELO</p>
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.ranking')}</p>
+      <div className="flex items-baseline gap-1.5">
+        <p className="num text-[32px] font-extrabold leading-none tracking-[-0.02em] text-court">
+          {elo != null ? elo.toLocaleString() : '—'}
+        </p>
+        {!isLoading && ranking && ranking.trend !== 0 && (
+          ranking.trend > 0
+            ? <TrendingUp className="h-4 w-4 text-court" />
+            : <TrendingDown className="h-4 w-4 text-alert" />
+        )}
+      </div>
+      <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-3">ELO</p>
 
       {!isLoading && ranking && (
         <div className="mt-2.5 flex items-center gap-1.5">
-          <p className="text-[11px] text-gray-500">
+          <p className="text-[11px] text-ink-2">
             {t('home.ranked_globally', { rank: ranking.rank })}
           </p>
-          {ranking.trend > 0 ? (
-            <TrendingUp className="h-3 w-3 text-green-500" />
-          ) : ranking.trend < 0 ? (
-            <TrendingDown className="h-3 w-3 text-red-400" />
-          ) : (
-            <Minus className="h-3 w-3 text-gray-300" />
-          )}
+          {ranking.trend === 0 && <Minus className="h-3 w-3 text-ink-4" />}
         </div>
       )}
-      <ChevronRight className="h-3.5 w-3.5 text-gray-300 mt-2" />
+      <ChevronRight className="mt-2 h-3.5 w-3.5 text-ink-4" />
     </motion.button>
   )
 }
@@ -657,22 +673,22 @@ function PollCard({ poll }: { poll: ActivePoll | null }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.08 }}
       whileTap={{ scale: 0.97 }}
-      className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
+      className="flex-1 rounded-panel border border-hairline bg-card p-4 text-left"
     >
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.availability')}</p>
+      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.availability')}</p>
       {poll ? (
         <>
-          <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1.5">
+          <p className="mb-1.5 line-clamp-2 text-[13px] font-bold leading-tight text-ink">
             {poll.title}
           </p>
           <div className="flex items-center gap-1.5 mb-2">
-            <Users className="h-3 w-3 text-gray-400" />
-            <p className="text-[11px] text-gray-500">
+            <Users className="h-3 w-3 text-ink-3" />
+            <p className="text-[11px] text-ink-2">
               {t('home.responded', { count: poll.responseCount, total: poll.memberCount })}
             </p>
           </div>
           {poll.userHasResponded ? (
-            <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11px] font-bold text-court">
+            <span className="inline-flex items-center rounded-xl bg-court-50 border border-court-100 px-2.5 py-1 text-[11px] font-bold text-court">
               {t('home.you_responded')}
             </span>
           ) : (
@@ -683,7 +699,7 @@ function PollCard({ poll }: { poll: ActivePoll | null }) {
         </>
       ) : (
         <>
-          <p className="text-[12px] text-gray-500 mb-2">{t('home.no_polls')}</p>
+          <p className="mb-2 text-[13px] text-ink-2">{t('home.no_polls')}</p>
           <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-court">
             {t('home.check_availability')} <ChevronRight className="h-3.5 w-3.5" />
           </span>
@@ -724,19 +740,19 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-surface transition-colors text-left"
           >
             <div className={cn(
               'h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-              item.read ? 'bg-gray-100' : 'bg-teal-50'
+              item.read ? 'bg-hairline' : 'bg-court-50'
             )}>
-              <Icon className={cn('h-3.5 w-3.5', item.read ? 'text-gray-400' : 'text-court')} />
+              <Icon className={cn('h-3.5 w-3.5', item.read ? 'text-ink-2' : 'text-court')} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className={cn('text-[13px] leading-snug', item.read ? 'text-gray-600' : 'font-semibold text-gray-800')}>
+              <p className={cn('text-[13px] leading-snug', item.read ? 'text-ink-2' : 'font-semibold text-ink')}>
                 {item.message}
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo(item.created_at, t)}</p>
+              <p className="text-[11px] text-ink-2 mt-0.5">{timeAgo(item.created_at, t)}</p>
             </div>
             {!item.read && (
               <div className="h-2 w-2 rounded-full bg-court flex-shrink-0 mt-2" />
@@ -775,11 +791,11 @@ function QuickStatsRow({ stats }: { stats: QuickStats | undefined }) {
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 + i * 0.04 }}
-          className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5 text-center"
+          className="flex-1 rounded-card border border-hairline bg-card px-3 py-2.5 text-center"
         >
-          <p className="text-[15px] font-bold text-gray-800 leading-none">{value}</p>
-          <p className="text-[11px] font-semibold text-gray-600 mt-0.5">{label}</p>
-          <p className="text-[9px] text-gray-400 leading-tight">{subtitle}</p>
+          <p className="num text-[19px] font-extrabold leading-none text-ink">{value}</p>
+          <p className="mt-1 text-[11px] font-semibold text-ink-2">{label}</p>
+          <p className="text-[11px] leading-tight text-ink-3">{subtitle}</p>
         </motion.div>
       ))}
     </div>
@@ -865,11 +881,12 @@ export function HomePage() {
   })()
 
   return (
-    <div className="min-h-full bg-white pb-32">
+    <div className="min-h-full bg-surface pb-32">
       {/* Header */}
-      <div className="flex items-start justify-between px-5 pt-14 pb-5 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-        <div>
-          <h1 className="text-[22px] font-bold text-gray-900 leading-tight">
+      <div className="sticky top-0 z-10 flex items-start justify-between border-b border-hairline bg-surface/95 px-5 pb-5 pt-14 backdrop-blur-sm">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-3">{dateLabel}</p>
+          <h1 className="mt-1 text-[24px] font-extrabold leading-[26px] tracking-[-0.01em] text-ink">
             {profile?.name
               ? (() => {
                   const h = new Date().getHours()
@@ -878,15 +895,8 @@ export function HomePage() {
                 })()
               : t('home.greeting_morning')}
           </h1>
-          <p className="text-[13px] text-gray-400 mt-0.5">{dateLabel}</p>
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <button
-            onClick={() => navigate('/search')}
-            className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
-          >
-            <Search className="h-5 w-5 text-gray-600" />
-          </button>
+        <div className="mt-1 flex items-center gap-2">
           <NotificationBell />
         </div>
       </div>
@@ -896,10 +906,10 @@ export function HomePage() {
         {/* ── Search (prominent, so venues are easy to find) ── */}
         <button
           onClick={() => navigate('/search')}
-          className="w-full flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-4 h-11 text-left active:scale-[0.99] transition-transform"
+          className="flex h-12 w-full items-center gap-2.5 rounded-control border border-hairline bg-card px-4 text-left transition-transform active:scale-[0.99]"
         >
-          <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <span className="text-[13px] text-gray-400">{t('home.search_placeholder')}</span>
+          <Search className="h-4 w-4 flex-shrink-0 text-ink-3" />
+          <span className="text-[13px] text-ink-3">{t('home.search_placeholder')}</span>
         </button>
 
         {/* ── Getting Started (self-dismissing) ── */}
@@ -912,17 +922,17 @@ export function HomePage() {
         {/* ── Next Match ── */}
         <section>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.next_match')}</h2>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.next_match')}</h2>
             <button
               onClick={() => navigate('/matches')}
-              className="text-[12px] text-court font-semibold"
+              className="text-[13px] font-semibold text-court"
             >
               {t('home.all_matches')}
             </button>
           </div>
 
           {loadingMatch ? (
-            <div className="h-44 rounded-2xl bg-gray-100 animate-pulse" />
+            <div className="h-44 animate-pulse rounded-panel bg-hairline/60" />
           ) : nextMatch ? (
             <NextMatchCard
               match={nextMatch}
@@ -941,7 +951,7 @@ export function HomePage() {
             isLoading={loadingRanking}
           />
           {loadingPoll ? (
-            <div className="flex-1 h-32 rounded-2xl bg-gray-100 animate-pulse" />
+            <div className="h-32 flex-1 animate-pulse rounded-panel bg-hairline/60" />
           ) : (
             <PollCard poll={activePoll ?? null} />
           )}
@@ -953,28 +963,28 @@ export function HomePage() {
         {/* ── Group opportunities ── */}
         {groupOpps.length > 0 && (
           <section>
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.in_your_groups_week')}</h2>
+            <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.in_your_groups_week')}</h2>
             <div className="space-y-2">
               {groupOpps.map((m) => (
                 <button
                   key={m.id}
                   onClick={() => navigate(`/matches/${m.id}`)}
-                  className="w-full text-left rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3 active:scale-[0.98] transition-transform"
+                  className="w-full text-left rounded-2xl border border-warn-100 bg-warn-50/50 px-4 py-3 active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-gray-800">
+                      <p className="text-[13px] font-semibold text-ink">
                         {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
                         {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
                       </p>
                       {m.booked_venue_name && (
-                        <p className="text-[11px] text-gray-500 mt-0.5 truncate">{m.booked_venue_name}</p>
+                        <p className="text-[11px] text-ink-2 mt-0.5 truncate">{m.booked_venue_name}</p>
                       )}
                       <div className="flex items-center gap-1.5 mt-1">
                         {m.group_name && (
-                          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{m.group_name}</span>
+                          <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{m.group_name}</span>
                         )}
-                        <span className="text-[10px] font-bold text-orange-600">{m.spots === 1 ? t('home.spots_open_one', { count: 1 }) : t('home.spots_open', { count: m.spots })}</span>
+                        <span className="text-[11px] font-bold text-warn">{m.spots === 1 ? t('home.spots_open_one', { count: 1 }) : t('home.spots_open', { count: m.spots })}</span>
                       </div>
                     </div>
                     <span className="rounded-xl bg-court px-3 py-1.5 text-[11px] font-bold text-white flex-shrink-0">
@@ -990,19 +1000,19 @@ export function HomePage() {
         {/* ── Recent Activity ── */}
         <section>
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.recent_activity')}</h2>
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.recent_activity')}</h2>
             <button
               onClick={() => navigate('/notifications')}
-              className="text-[12px] text-court font-semibold"
+              className="text-[13px] font-semibold text-court"
             >
               {t('home.see_all')}
             </button>
           </div>
 
           {activity.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-400">{t('home.no_activity')}</p>
-              <p className="text-[12px] text-gray-300 mt-1">{t('home.no_activity_sub')}</p>
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">{t('home.no_activity')}</p>
+              <p className="text-[12px] text-ink-3 mt-1">{t('home.no_activity_sub')}</p>
             </div>
           ) : (
             <ActivityFeed items={activity} />

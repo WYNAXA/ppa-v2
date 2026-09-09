@@ -80,22 +80,22 @@ function NotifIcon({ type }: { type: string }) {
     case 'match_created':
     case 'match_scheduled':
     case 'match_suggested':
-      return <div className={`${base} bg-teal-50`}><Calendar className="w-4 h-4 text-court" /></div>
+      return <div className={`${base} bg-court-50`}><Calendar className="w-4 h-4 text-court" /></div>
     case 'match_result':
     case 'result_verify':
-      return <div className={`${base} bg-teal-50`}><Trophy className="w-4 h-4 text-court" /></div>
+      return <div className={`${base} bg-court-50`}><Trophy className="w-4 h-4 text-court" /></div>
     case 'poll_created':
-      return <div className={`${base} bg-teal-50`}><Activity className="w-4 h-4 text-court" /></div>
+      return <div className={`${base} bg-court-50`}><Activity className="w-4 h-4 text-court" /></div>
     case 'league_update':
     case 'league_invite':
-      return <div className={`${base} bg-amber-50`}><Trophy className="w-4 h-4 text-amber-500" /></div>
+      return <div className={`${base} bg-warn-50`}><Trophy className="w-4 h-4 text-warn" /></div>
     case 'group_invite':
     case 'group_update':
     case 'group_join_request':
       return <div className={`${base} bg-blue-50`}><Users className="w-4 h-4 text-blue-500" /></div>
     case 'connection_request':
     case 'connection_accepted':
-      return <div className={`${base} bg-teal-50`}><Users className="w-4 h-4 text-court" /></div>
+      return <div className={`${base} bg-court-50`}><Users className="w-4 h-4 text-court" /></div>
     case 'result_pending_verification':
     case 'result_verified':
       return <div className={`${base} bg-green-50`}><CheckCheck className="w-4 h-4 text-green-500" /></div>
@@ -106,7 +106,7 @@ function NotifIcon({ type }: { type: string }) {
     case 'court_booked':
       return <div className={`${base} bg-green-50`}><BookOpen className="w-4 h-4 text-green-500" /></div>
     default:
-      return <div className={`${base} bg-gray-100`}><Bell className="w-4 h-4 text-gray-500" /></div>
+      return <div className={`${base} bg-hairline`}><Bell className="w-4 h-4 text-ink-2" /></div>
   }
 }
 
@@ -206,17 +206,17 @@ export function NotificationsPage() {
   if (earlier.length)   groups.push({ label: t('notifications.earlier'),   items: earlier })
 
   return (
-    <div className="flex flex-col min-h-full bg-gray-50">
+    <div className="flex flex-col min-h-full bg-surface">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-4 pt-12 pb-4">
+      <div className="bg-white border-b border-hairline px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1"
+            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900 flex-1">{t('notifications.title')}</h1>
+          <h1 className="text-xl font-bold text-ink flex-1">{t('notifications.title')}</h1>
           {unreadCount > 0 && (
             <button
               onClick={handleMarkAll}
@@ -229,7 +229,7 @@ export function NotificationsPage() {
           )}
         </div>
         {unreadCount > 0 && (
-          <p className="text-xs text-gray-400 mt-1 ml-10">{t('notifications.unread', { count: unreadCount })}</p>
+          <p className="text-xs text-ink-2 mt-1 ml-10">{t('notifications.unread', { count: unreadCount })}</p>
         )}
       </div>
 
@@ -249,7 +249,7 @@ export function NotificationsPage() {
           <div className="space-y-4">
             {groups.map((group) => (
               <div key={group.label}>
-                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2 px-1">
+                <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2 px-1">
                   {group.label}
                 </p>
                 <div className="space-y-1">
@@ -258,18 +258,18 @@ export function NotificationsPage() {
                       key={n.id}
                       onClick={() => handleTap(n)}
                       className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors ${
-                        n.read ? 'bg-white' : 'bg-teal-50/60'
+                        n.read ? 'bg-white' : 'bg-court-50/60'
                       }`}
                     >
                       <NotifIcon type={n.type} />
                       <div className="flex-1 min-w-0">
                         {n.title && (
-                          <p className="text-[12px] font-bold text-gray-500 mb-0.5">{n.title}</p>
+                          <p className="text-[12px] font-bold text-ink-2 mb-0.5">{n.title}</p>
                         )}
-                        <p className={`text-sm leading-snug ${n.read ? 'text-gray-700' : 'text-gray-900 font-medium'}`}>
+                        <p className={`text-sm leading-snug ${n.read ? 'text-ink-2' : 'text-ink font-medium'}`}>
                           {n.message}
                         </p>
-                        <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
+                        <p className="text-xs text-ink-2 mt-0.5">{timeAgo(n.created_at)}</p>
                       </div>
                       {!n.read && (
                         <div className="w-2 h-2 rounded-full bg-court flex-shrink-0 mt-1.5" />

@@ -12,24 +12,24 @@ export function ConnectionCard({ player, children }: ConnectionCardProps) {
   const playerId = player.user_id ?? player.id
 
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white border border-gray-100 px-3 py-3">
+    <div className="flex items-center gap-3 rounded-xl bg-white border border-hairline px-3 py-3">
       <button
         onClick={() => playerId && navigate(`/players/${playerId}`)}
         className="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70 transition-opacity"
       >
         <PlayerAvatar name={player.name} avatarUrl={player.avatar_url} size="sm" />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-gray-800 truncate">{player.name}</p>
+          <p className="text-[13px] font-semibold text-ink truncate">{player.name}</p>
           {player.city && (
             <div className="flex items-center gap-1 mt-0.5">
-              <MapPin className="h-2.5 w-2.5 text-gray-400" />
-              <p className="text-[11px] text-gray-400">{player.city}</p>
+              <MapPin className="h-2.5 w-2.5 text-ink-2" />
+              <p className="text-[11px] text-ink-2">{player.city}</p>
             </div>
           )}
         </div>
       </button>
       {player.internal_ranking != null && (
-        <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
+        <span className="text-[11px] font-bold text-court-700 bg-court-50 border border-court-100 rounded-full px-2 py-0.5 flex-shrink-0">
           {player.internal_ranking}
         </span>
       )}

@@ -64,19 +64,19 @@ export function MyConnectionsPage() {
 
   return (
     <div className="min-h-full bg-white pb-32">
-      <div className="px-4 pt-12 pb-4 bg-white border-b border-gray-100">
+      <div className="px-4 pt-12 pb-4 bg-white border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+            <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">{t('community.my_connections')}</h1>
-          {accepted.length > 0 && <span className="text-[12px] text-gray-400 ml-auto">{accepted.length}</span>}
+          <h1 className="text-xl font-bold text-ink">{t('community.my_connections')}</h1>
+          {accepted.length > 0 && <span className="text-[12px] text-ink-2 ml-auto">{accepted.length}</span>}
         </div>
       </div>
       <div className="px-5 pt-4 space-y-5">
         {incoming.length > 0 && (
           <div>
-            <p className="text-[12px] font-bold text-gray-500 mb-2">{t('community.requests_count', { count: incoming.length })}</p>
+            <p className="text-[12px] font-bold text-ink-2 mb-2">{t('community.requests_count', { count: incoming.length })}</p>
             <div className="space-y-2">
               {incoming.map(r => <ConnectionRequestCard key={r.user_id} request={r} />)}
             </div>
@@ -84,28 +84,28 @@ export function MyConnectionsPage() {
         )}
 
         {isError ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-            <p className="text-[13px] font-semibold text-gray-500">{t('community.players_load_failed')}</p>
+          <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+            <p className="text-[13px] font-semibold text-ink-2">{t('community.players_load_failed')}</p>
           </div>
         ) : accepted.length > 0 ? (
           <div className="space-y-2">
             {accepted.map(conn => (
               <ConnectionCard key={conn.user_id} player={conn}>
                 <button onClick={() => setInviteMatch({ id: conn.user_id, name: conn.name })}
-                  className="rounded-lg bg-teal-50 border border-teal-200 px-2 py-1 text-[10px] font-bold text-teal-700">
+                  className="rounded-lg bg-court-50 border border-court-100 px-2 py-1 text-[11px] font-bold text-court-700">
                   <Calendar className="h-3 w-3 inline mr-0.5" /> Match
                 </button>
                 <button onClick={() => setInviteGroup({ id: conn.user_id, name: conn.name })}
-                  className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-1 text-[10px] font-bold text-blue-700">
+                  className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-1 text-[11px] font-bold text-blue-700">
                   <Users className="h-3 w-3 inline mr-0.5" /> Group
                 </button>
               </ConnectionCard>
             ))}
           </div>
         ) : incoming.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-            <p className="text-[13px] font-semibold text-gray-500">{t('community.no_connections_yet')}</p>
-            <p className="text-[12px] text-gray-400 mt-1">{t('community.find_players_to_connect')}</p>
+          <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+            <p className="text-[13px] font-semibold text-ink-2">{t('community.no_connections_yet')}</p>
+            <p className="text-[12px] text-ink-2 mt-1">{t('community.find_players_to_connect')}</p>
           </div>
         ) : null}
       </div>

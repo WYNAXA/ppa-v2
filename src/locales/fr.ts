@@ -25,6 +25,8 @@ export default {
     "see_all": "Tout voir"
   },
   "nav": {
+    "today": "Aujourd'hui",
+    "courts": "Terrains",
     "home": "Accueil",
     "play": "Jouer",
     "compete": "Compétition",
@@ -760,6 +762,10 @@ export default {
     "ringer_offer_multiple": "{{count}} offres de remplaçant en attente"
   },
   "play": {
+    "find_coach": "Trouver un coach",
+    "my_waitlist": "Ma liste d'attente",
+    "sheet_all": "Voir tout dans Jouer",
+    "record_result": "Saisir un résultat",
     "title": "Jouer",
     "find_my_game": "Trouver mon match",
     "find_sub": "Partagez votre disponibilité et trouvez un match",

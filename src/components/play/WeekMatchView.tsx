@@ -42,9 +42,9 @@ type EnrichedMatch = MatchCardData & {
 /** Border colour class based on match relationship to user */
 function getLeftBorder(match: EnrichedMatch, userId: string): string {
   const isPlayer = match.player_ids.includes(userId)
-  if (isPlayer) return match.status === 'pending' ? 'border-l-amber-400' : 'border-l-court'
-  if (match.player_ids.length >= 4) return 'border-l-gray-300'
-  return 'border-l-orange-500'
+  if (isPlayer) return match.status === 'pending' ? 'border-l-warn' : 'border-l-court'
+  if (match.player_ids.length >= 4) return 'border-l-hairline'
+  return 'border-l-warn'
 }
 
 // ── MatchCardEnhanced ────────────────────────────────────────────────────────
@@ -69,27 +69,27 @@ function MatchCardEnhanced({
       {/* Badges row */}
       <div className="flex items-center gap-1.5 mb-1">
         {match.group_name && (
-          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5">
+          <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5">
             {match.group_name}
           </span>
         )}
         {match.poll_id && !isCompleted && (
-          <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 rounded-full px-2 py-0.5">
+          <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 rounded-full px-2 py-0.5">
             {t('play.auto_scheduled')}
           </span>
         )}
         {!isCompleted && !isPlayer && viewTab === 'group' && match.player_ids.length >= 4 && (
-          <span className="text-[10px] font-medium text-gray-400 bg-gray-50 rounded-full px-2 py-0.5">
+          <span className="text-[11px] font-medium text-ink-2 bg-surface rounded-full px-2 py-0.5">
             {t('play.players_full')}
           </span>
         )}
         {!isCompleted && !isPlayer && openSlots > 0 && openSlots <= 2 && (
-          <span className="text-[10px] font-bold text-orange-700 bg-orange-50 rounded-full px-2 py-0.5 animate-pulse">
+          <span className="text-[11px] font-bold text-warn bg-warn-50 rounded-full px-2 py-0.5 animate-pulse">
             {openSlots === 1 ? t('play.ringer_needed') : t('play.spots_open', { count: openSlots })}
           </span>
         )}
         {isCompleted && !hasResult && (
-          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 rounded-full px-2 py-0.5">
+          <span className="text-[11px] font-bold text-warn bg-warn-50 rounded-full px-2 py-0.5">
             Needs result
           </span>
         )}
@@ -98,7 +98,7 @@ function MatchCardEnhanced({
       {/* Card with coloured left border */}
       <div className={cn(
         'rounded-2xl border-l-4 overflow-hidden',
-        isCompleted && !hasResult ? 'border-l-amber-400' : getLeftBorder(match, userId),
+        isCompleted && !hasResult ? 'border-l-warn' : getLeftBorder(match, userId),
       )}>
         <MatchCard
           match={match}
@@ -113,7 +113,7 @@ function MatchCardEnhanced({
       {isCompleted && !hasResult && isPlayer && (
         <button
           onClick={() => navigate(`/matches/${match.id}`)}
-          className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-[11px] font-semibold text-amber-700 active:scale-[0.97] transition-transform"
+          className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-warn bg-warn-50 px-3 py-1.5 text-[11px] font-semibold text-warn active:scale-[0.97] transition-transform"
         >
           <ClipboardCheck className="h-3 w-3" />
           Enter result
@@ -124,7 +124,7 @@ function MatchCardEnhanced({
       {!isCompleted && !isPlayer && openSlots > 0 && viewTab !== 'mine' && (
         <button
           onClick={() => onOfferRinger(match)}
-          className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-orange-200 bg-orange-50 px-3 py-1.5 text-[11px] font-semibold text-orange-700 active:scale-[0.97] transition-transform"
+          className="mt-1.5 flex items-center gap-1.5 rounded-xl border border-warn bg-warn-50 px-3 py-1.5 text-[11px] font-semibold text-warn active:scale-[0.97] transition-transform"
         >
           <UserPlus className="h-3 w-3" />
           {t('play.i_can_ringer')}
@@ -184,25 +184,25 @@ function RingerOfferSheet({ match, userId, onClose }: {
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
       >
-        <p className="text-[16px] font-bold text-gray-900 text-center mb-1">{t('play.offer_to_ringer')}</p>
-        <p className="text-[13px] text-gray-500 text-center mb-4">
+        <p className="text-[16px] font-bold text-ink text-center mb-1">{t('play.offer_to_ringer')}</p>
+        <p className="text-[13px] text-ink-2 text-center mb-4">
           {t('play.ringer_offer_sub')}
         </p>
 
-        <div className="rounded-2xl bg-gray-50 border border-gray-100 p-4 mb-4 space-y-2">
-          <p className="text-[13px] font-semibold text-gray-800">
+        <div className="rounded-2xl bg-surface border border-hairline p-4 mb-4 space-y-2">
+          <p className="text-[13px] font-semibold text-ink">
             {format(parseISO(match.match_date), 'EEEE d MMM', { locale })}
             {match.match_time && ` · ${match.match_time.slice(0, 5)}`}
           </p>
           {match.booked_venue_name && (
-            <p className="text-[12px] text-gray-500">{match.booked_venue_name}</p>
+            <p className="text-[12px] text-ink-2">{match.booked_venue_name}</p>
           )}
           <div className="flex -space-x-1.5 mt-1">
             {match.players?.slice(0, 4).map((p) => (
               <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
             ))}
           </div>
-          <p className="text-[11px] text-gray-400">
+          <p className="text-[11px] text-ink-2">
             {(4 - match.player_ids.length) === 1
               ? t('play.players_spots', { current: match.player_ids.length, spots: 1 })
               : t('play.players_spots_plural', { current: match.player_ids.length, spots: 4 - match.player_ids.length })}
@@ -212,7 +212,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+            className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2"
           >
             {t('play.cancel')}
           </button>
@@ -619,8 +619,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       {/* ── Results to confirm (you can act) ── */}
       {pendingCanConfirm.length > 0 && (
         <div className="px-5 pt-3 pb-2">
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3">
-            <p className="text-[12px] font-bold text-amber-800 mb-2">
+          <div className="rounded-2xl border border-warn bg-warn-50 p-3">
+            <p className="text-[12px] font-bold text-warn mb-2">
               {t('play.results_to_confirm')}
             </p>
             <div className="space-y-1.5">
@@ -632,25 +632,25 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                   <button
                     key={m.id}
                     onClick={() => navigate(`/matches/${m.id}`)}
-                    className="w-full flex items-center justify-between rounded-xl bg-white border border-amber-100 px-3 py-2 text-left hover:border-amber-300 transition-colors"
+                    className="w-full flex items-center justify-between rounded-xl bg-white border border-warn-100 px-3 py-2 text-left hover:border-warn transition-colors"
                   >
                     <div>
-                      <p className="text-[12px] font-semibold text-gray-800">
+                      <p className="text-[12px] font-semibold text-ink">
                         {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
                         {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
                       </p>
                       {m.booked_venue_name && (
-                        <p className="text-[10px] text-gray-500 truncate">{m.booked_venue_name}</p>
+                        <p className="text-[11px] text-ink-2 truncate">{m.booked_venue_name}</p>
                       )}
                       {hoursLeft > 0 && (
-                        <p className="text-[10px] text-gray-400">Auto-confirms in {hoursLeft}h</p>
+                        <p className="text-[11px] text-ink-2">Auto-confirms in {hoursLeft}h</p>
                       )}
                     </div>
                     <span className={cn(
-                      'text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
+                      'text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
                       m.verification_status === 'disputed'
                         ? 'bg-red-50 text-red-600 border border-red-100'
-                        : 'bg-amber-100 text-amber-700 border border-amber-200'
+                        : 'bg-warn-100 text-warn border border-warn'
                     )}>
                       {m.verification_status === 'disputed' ? 'Disputed' : 'Confirm'}
                     </span>
@@ -665,8 +665,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       {/* ── Results waiting on others ── */}
       {pendingWaitingOn.length > 0 && (
         <div className="px-5 pt-3 pb-2">
-          <div className="rounded-2xl border border-gray-200 bg-gray-50 p-3">
-            <p className="text-[12px] font-bold text-gray-500 mb-2">Awaiting the other team</p>
+          <div className="rounded-2xl border border-hairline bg-surface p-3">
+            <p className="text-[12px] font-bold text-ink-2 mb-2">Awaiting the other team</p>
             <div className="space-y-1.5">
               {pendingWaitingOn.map((m) => {
                 const autoVerifyTime = m.created_at ? new Date(m.created_at).getTime() + 24 * 60 * 60 * 1000 : 0
@@ -676,25 +676,25 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                   <button
                     key={m.id}
                     onClick={() => navigate(`/matches/${m.id}`)}
-                    className="w-full flex items-center justify-between rounded-xl bg-white border border-gray-100 px-3 py-2 text-left hover:border-gray-300 transition-colors"
+                    className="w-full flex items-center justify-between rounded-xl bg-white border border-hairline px-3 py-2 text-left hover:border-hairline transition-colors"
                   >
                     <div>
-                      <p className="text-[12px] font-semibold text-gray-800">
+                      <p className="text-[12px] font-semibold text-ink">
                         {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
                         {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
                       </p>
-                      <p className="text-[10px] text-gray-400">
+                      <p className="text-[11px] text-ink-2">
                         Waiting on {m.waitingOnNames.length > 0 ? m.waitingOnNames.join(' & ') : 'opponent'} to confirm
                       </p>
                       {hoursLeft > 0 && (
-                        <p className="text-[10px] text-gray-400">Auto-confirms in {hoursLeft}h</p>
+                        <p className="text-[11px] text-ink-2">Auto-confirms in {hoursLeft}h</p>
                       )}
                     </div>
                     <span className={cn(
-                      'text-[10px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
+                      'text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
                       m.verification_status === 'disputed'
                         ? 'bg-red-50 text-red-600 border border-red-100'
-                        : 'bg-gray-100 text-gray-500 border border-gray-200'
+                        : 'bg-hairline text-ink-2 border border-hairline'
                     )}>
                       {m.verification_status === 'disputed' ? 'Disputed' : 'Pending'}
                     </span>
@@ -708,7 +708,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
 
       {/* ── View toggle ── */}
       <div className="px-5 pt-3 pb-1">
-        <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+        <div className="flex bg-hairline rounded-xl p-1 gap-1">
           {([
             { id: 'mine' as ViewTab, label: t('play.tab_my_matches') },
             { id: 'group' as ViewTab, label: t('play.tab_group') },
@@ -719,7 +719,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               onClick={() => { setViewTab(tab.id); setSelectedFilter('all') }}
               className={cn(
                 'flex-1 rounded-lg py-2 text-[12px] font-semibold transition-colors',
-                viewTab === tab.id ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500',
+                viewTab === tab.id ? 'bg-white text-ink shadow-sm' : 'text-ink-2',
               )}
             >
               {tab.label}
@@ -729,13 +729,13 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       </div>
 
       {/* ── Sticky week nav ── */}
-      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50 px-5 pt-2 pb-2">
+      <div className="sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-hairline px-5 pt-2 pb-2">
         <div className="flex items-center justify-between mb-2">
-          <button onClick={goPrevWeek} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-            <ChevronLeft className="h-4 w-4 text-gray-600" />
+          <button onClick={goPrevWeek} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+            <ChevronLeft className="h-4 w-4 text-ink-2" />
           </button>
           <div className="text-center">
-            <p className="text-[14px] font-bold text-gray-900">
+            <p className="text-[14px] font-bold text-ink">
               {selectedDay
                 ? format(selectedDay, 'EEEE d MMM', { locale })
                 : `${format(weekStart, 'd MMM', { locale })} — ${format(weekEnd, 'd MMM', { locale })}`}
@@ -746,8 +746,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               <button onClick={goToday} className="text-[11px] font-semibold text-court mt-0.5">{t('play.today')}</button>
             ) : null}
           </div>
-          <button onClick={goNextWeek} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-            <ChevronRight className="h-4 w-4 text-gray-600" />
+          <button onClick={goNextWeek} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+            <ChevronRight className="h-4 w-4 text-ink-2" />
           </button>
         </div>
 
@@ -763,11 +763,11 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 onClick={() => setSelectedDay(isSelected ? null : day)}
                 className={cn(
                   'flex-1 flex flex-col items-center py-2 rounded-xl transition-all min-w-0',
-                  isSelected ? 'bg-court text-white' : 'bg-white text-gray-700',
+                  isSelected ? 'bg-court text-white' : 'bg-white text-ink-2',
                   isDayToday && !isSelected && 'ring-2 ring-court',
                 )}
               >
-                <span className={cn('text-[10px] font-medium', isSelected ? 'text-white/80' : 'text-gray-400')}>
+                <span className={cn('text-[11px] font-medium', isSelected ? 'text-white/80' : 'text-ink-2')}>
                   {format(day, 'EEE', { locale })}
                 </span>
                 <span className={cn('text-[16px] font-bold leading-tight', isDayToday && !isSelected && 'text-court')}>
@@ -779,8 +779,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                       <div key={i} className={cn('h-1 w-1 rounded-full', {
                         'bg-white': isSelected,
                         'bg-court': !isSelected && color === 'teal',
-                        'bg-gray-300': !isSelected && color === 'gray',
-                        'bg-orange-400': !isSelected && color === 'orange',
+                        'bg-ink-4': !isSelected && color === 'gray',
+                        'bg-warn': !isSelected && color === 'orange',
                       })} />
                     ))}
                   </div>
@@ -799,8 +799,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
             className={cn(
               'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
               needsRingersOnly
-                ? 'bg-orange-500 border-orange-500 text-white'
-                : 'border-gray-200 text-gray-600 bg-white',
+                ? 'bg-warn border-warn text-white'
+                : 'border-hairline text-ink-2 bg-white',
             )}
           >
             {t('play.needs_ringers')}
@@ -813,7 +813,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
                 selectedFilter === f.id
                   ? 'bg-court border-court text-white'
-                  : 'border-gray-200 text-gray-600 bg-white',
+                  : 'border-hairline text-ink-2 bg-white',
               )}
             >
               {f.label}
@@ -824,8 +824,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
 
       {/* ── Week summary ── */}
       {!selectedDay && weekMatches.length > 0 && (
-        <div className="mx-5 mt-2 mb-1 flex items-center gap-3 text-[12px] text-gray-500">
-          <Calendar className="h-3.5 w-3.5 text-gray-400" />
+        <div className="mx-5 mt-2 mb-1 flex items-center gap-3 text-[12px] text-ink-2">
+          <Calendar className="h-3.5 w-3.5 text-ink-2" />
           <span className="font-semibold">{weekMatches.length === 1 ? t('play.week_matches', { count: 1 }) : t('play.week_matches_plural', { count: weekMatches.length })}</span>
           <span>·</span>
           <span>{t('play.players_active', { count: uniquePlayers.size })}</span>
@@ -844,16 +844,16 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
         >
           {isLoading ? (
             <div className="space-y-2">
-              {[0, 1, 2].map((i) => <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />)}
+              {[0, 1, 2].map((i) => <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />)}
             </div>
           ) : filteredMatches.length === 0 ? (
-            <div className="rounded-2xl bg-gray-50 border border-dashed border-gray-200 px-6 py-10 text-center">
-              <p className="text-[14px] font-semibold text-gray-500 mb-1">
+            <div className="rounded-2xl bg-surface border border-dashed border-hairline px-6 py-10 text-center">
+              <p className="text-[14px] font-semibold text-ink-2 mb-1">
                 {viewTab === 'mine' && (selectedDay ? t('play.no_matches_on_date', { date: format(selectedDay, 'EEEE d MMM', { locale }) }) : t('play.no_matches_this_week'))}
                 {viewTab === 'group' && t('play.no_group_matches_this_week')}
                 {viewTab === 'open' && t('play.no_open_matches_available')}
               </p>
-              <p className="text-[12px] text-gray-400 mb-4">
+              <p className="text-[12px] text-ink-2 mb-4">
                 {viewTab === 'mine' ? t('play.empty_mine_subtitle') : t('play.empty_group_subtitle')}
               </p>
               <button
@@ -872,7 +872,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                     if (dayMatches.length === 0) return null
                     return (
                       <div key={day.toISOString()}>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5 mt-3 first:mt-0">
+                        <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-1.5 mt-3 first:mt-0">
                           {format(day, 'EEEE d MMM', { locale })}
                           {isSameDay(day, today) && <span className="text-court ml-1">{t('play.today_dot')}</span>}
                         </p>
@@ -904,7 +904,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
           {!selectedDay && futureWeekCount > 0 && (
             <button
               onClick={goNextWeek}
-              className="mt-4 w-full rounded-2xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-center transition-colors active:bg-teal-100"
+              className="mt-4 w-full rounded-2xl border border-dashed border-court-100 bg-court-50/50 px-4 py-3 text-center transition-colors active:bg-court-100"
             >
               <span className="text-[13px] font-semibold text-court">
                 {futureWeekCount === 1

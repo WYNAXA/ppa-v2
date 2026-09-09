@@ -19,10 +19,10 @@ export function GetTheAppCard({ title, subtitle, className }: GetTheAppCardProps
   const showGoogle = platform === 'android' || platform === 'other'
 
   return (
-    <div className={`rounded-2xl border border-gray-100 bg-gray-50 p-5 text-center ${className ?? ''}`}>
+    <div className={`rounded-2xl border border-hairline bg-surface p-5 text-center ${className ?? ''}`}>
       <div className="text-3xl mb-1">📲</div>
-      <p className="text-[15px] font-bold text-gray-900">{title ?? 'Get the Padel Players app'}</p>
-      <p className="mt-1 text-[13px] text-gray-500">
+      <p className="text-[15px] font-bold text-ink">{title ?? 'Get the Padel Players app'}</p>
+      <p className="mt-1 text-[13px] text-ink-2">
         {subtitle ?? 'Install the app for match reminders, push notifications and a home-screen icon.'}
       </p>
       <div className="mt-4 flex flex-col gap-2">

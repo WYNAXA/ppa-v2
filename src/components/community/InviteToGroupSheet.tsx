@@ -89,13 +89,13 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Invite to group</h2>
+              <h2 className="text-[15px] font-bold text-ink">Invite to group</h2>
               <div className="w-9" />
             </div>
             <div className="px-5 pb-6 overflow-y-auto" style={{ maxHeight: '60vh', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
@@ -105,24 +105,24 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
                 </div>
               ) : adminGroups.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[13px] text-gray-500">You don't admin any groups yet</p>
+                  <p className="text-[13px] text-ink-2">You don't admin any groups yet</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-gray-400 mb-2">Invite {playerName.split(' ')[0]} to one of your groups:</p>
+                  <p className="text-[11px] text-ink-2 mb-2">Invite {playerName.split(' ')[0]} to one of your groups:</p>
                   {adminGroups.map((g) => (
                     <button
                       key={g.id}
                       onClick={() => inviteMutation.mutate(g)}
                       disabled={inviteMutation.isPending}
-                      className="w-full flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
+                      className="w-full flex items-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
                     >
                       <div className="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
                         <Users className="h-4 w-4 text-blue-500" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-800 truncate">{g.name}</p>
-                        {g.city && <p className="text-[11px] text-gray-400">{g.city}</p>}
+                        <p className="text-[13px] font-semibold text-ink truncate">{g.name}</p>
+                        {g.city && <p className="text-[11px] text-ink-2">{g.city}</p>}
                       </div>
                     </button>
                   ))}

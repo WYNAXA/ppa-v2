@@ -89,5 +89,5 @@ export default function VenueMap({ venues, center, onSelect }: VenueMapProps) {
     }
   }, [venues, center.lat, center.lng])
 
-  return <div ref={containerRef} className="h-[360px] w-full rounded-2xl overflow-hidden border border-gray-100 z-0" />
+  return <div ref={containerRef} className="h-[360px] w-full rounded-2xl overflow-hidden border border-hairline z-0" />
 }

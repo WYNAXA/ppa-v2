@@ -427,7 +427,7 @@ export function AvailabilityPollPage() {
   if (!poll) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
-        <p className="text-[14px] text-gray-500">Poll not found.</p>
+        <p className="text-[14px] text-ink-2">Poll not found.</p>
         <button onClick={() => goBack(navigate, '/play')} className="text-[13px] text-court font-semibold">Go back</button>
       </div>
     )
@@ -448,13 +448,13 @@ export function AvailabilityPollPage() {
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
           onClick={() => goBack(navigate, '/play')}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
+          <ChevronLeft className="h-5 w-5 text-ink-2" />
         </button>
         <div className="min-w-0 flex-1">
-          <h1 className="text-[18px] font-bold text-gray-900 leading-tight truncate">{poll.title}</h1>
-          <p className="text-[12px] text-gray-400 flex items-center gap-1.5 mt-0.5">
+          <h1 className="text-[18px] font-bold text-ink leading-tight truncate">{poll.title}</h1>
+          <p className="text-[12px] text-ink-2 flex items-center gap-1.5 mt-0.5">
             {poll.groups?.name}
             <span>·</span>
             <Clock className="h-3 w-3" />
@@ -464,7 +464,7 @@ export function AvailabilityPollPage() {
         {(isCreator || isAdmin) && (
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
             <Trash2 className="h-4 w-4 text-red-400" />
           </button>
@@ -481,12 +481,12 @@ export function AvailabilityPollPage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-4 flex items-center gap-3"
+              className="rounded-2xl bg-court-50 border border-court-100 px-4 py-4 flex items-center gap-3"
             >
               <div className="h-5 w-5 rounded-full border-2 border-court border-t-transparent animate-spin flex-shrink-0" />
               <div>
-                <p className="text-[13px] font-bold text-teal-800">Finding your game…</p>
-                <p className="text-[11px] text-teal-600">Checking who else is available</p>
+                <p className="text-[13px] font-bold text-court-700">Finding your game…</p>
+                <p className="text-[11px] text-court">Checking who else is available</p>
               </div>
             </motion.div>
           )}
@@ -497,13 +497,13 @@ export function AvailabilityPollPage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="rounded-2xl bg-gray-50 border border-gray-200 px-4 py-3 space-y-1"
+              className="rounded-2xl bg-surface border border-hairline px-4 py-3 space-y-1"
             >
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-gray-500 flex-shrink-0" />
-                <p className="text-[13px] font-semibold text-gray-700">You're marked as unavailable this week</p>
+                <CheckCircle className="h-4 w-4 text-ink-2 flex-shrink-0" />
+                <p className="text-[13px] font-semibold text-ink-2">You're marked as unavailable this week</p>
               </div>
-              <p className="text-[12px] text-gray-500 pl-6">
+              <p className="text-[12px] text-ink-2 pl-6">
                 No problem! We'll let you know when next week's poll opens. See you next week! 👋
               </p>
             </motion.div>
@@ -515,13 +515,13 @@ export function AvailabilityPollPage() {
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
-              className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3 space-y-1"
+              className="rounded-2xl bg-court-50 border border-court-100 px-4 py-3 space-y-1"
             >
               <div className="flex items-center gap-2">
                 <CheckCircle className="h-4 w-4 text-court flex-shrink-0" />
-                <p className="text-[13px] font-semibold text-teal-800">Availability saved!</p>
+                <p className="text-[13px] font-semibold text-court-700">Availability saved!</p>
               </div>
-              <p className="text-[12px] text-teal-600 pl-6">
+              <p className="text-[12px] text-court pl-6">
                 We'll notify you when enough players are available for your slots.
               </p>
             </motion.div>
@@ -543,30 +543,30 @@ export function AvailabilityPollPage() {
 
         {/* ── Ringer read-only view ── */}
         {isRinger && (
-          <div className="rounded-2xl bg-teal-50 border border-teal-200 px-5 py-4">
-            <p className="text-[14px] font-bold text-teal-800 mb-1">{t('polls.ringer_view_title')}</p>
-            <p className="text-[13px] text-teal-700 leading-relaxed">{t('polls.ringer_view_message')}</p>
+          <div className="rounded-2xl bg-court-50 border border-court-100 px-5 py-4">
+            <p className="text-[14px] font-bold text-court-700 mb-1">{t('polls.ringer_view_title')}</p>
+            <p className="text-[13px] text-court-700 leading-relaxed">{t('polls.ringer_view_message')}</p>
           </div>
         )}
 
         {/* ── Existing response summary (not in edit mode) ── */}
         {myResponse && !isEditMode && !isRinger && (
-          <div className="rounded-2xl bg-teal-50 border border-teal-100 px-5 py-4 space-y-3">
+          <div className="rounded-2xl bg-court-50 border border-court-100 px-5 py-4 space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-[14px] font-semibold text-teal-800">Your Availability</p>
+              <p className="text-[14px] font-semibold text-court-700">Your Availability</p>
               {!isClosed && (
                 <button
                   onClick={() => setIsEditMode(true)}
-                  className="text-[12px] font-semibold text-teal-600 hover:text-teal-700"
+                  className="text-[12px] font-semibold text-court hover:text-court-700"
                 >
                   Edit
                 </button>
               )}
             </div>
             {cantDoWeek || myResponse.selected_slots?.length === 0 ? (
-              <p className="text-[13px] text-gray-500">Can't make it this week</p>
+              <p className="text-[13px] text-ink-2">Can't make it this week</p>
             ) : (
-              <div className="space-y-0.5 text-[13px] text-gray-600">
+              <div className="space-y-0.5 text-[13px] text-ink-2">
                 {(myResponse.selected_slots ?? []).map((slotId) => {
                   const slot = timeSlots.find((s) => s.id === slotId)
                   if (!slot) return null
@@ -583,7 +583,7 @@ export function AvailabilityPollPage() {
               </div>
             )}
             {Object.entries(myResponse.additional_responses ?? {}).some(([, v]) => v) && (
-              <div className="text-[12px] text-teal-600">
+              <div className="text-[12px] text-court">
                 {Object.entries(myResponse.additional_responses ?? {})
                   .filter(([, v]) => v)
                   .map(([opt]) => <div key={opt}>• {opt}</div>)
@@ -595,9 +595,9 @@ export function AvailabilityPollPage() {
 
         {/* ── Existing matches from this poll ── */}
         {existingMatchCount > 0 && (
-          <div className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3">
-            <p className="text-[13px] font-bold text-teal-800">✓ {existingMatchCount} match{existingMatchCount !== 1 ? 'es' : ''} scheduled from this poll</p>
-            <p className="text-[11px] text-teal-600 mt-0.5">View them in the Matches tab</p>
+          <div className="rounded-2xl bg-court-50 border border-court-100 px-4 py-3">
+            <p className="text-[13px] font-bold text-court-700">✓ {existingMatchCount} match{existingMatchCount !== 1 ? 'es' : ''} scheduled from this poll</p>
+            <p className="text-[11px] text-court mt-0.5">View them in the Matches tab</p>
           </div>
         )}
 
@@ -609,7 +609,7 @@ export function AvailabilityPollPage() {
           <>
             {/* ── Section A: Can't do this week ── */}
             <section>
-              <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">
+              <h2 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-3">
                 Set Your Availability
               </h2>
               <label className="flex items-center gap-3 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3.5 cursor-pointer">
@@ -626,8 +626,8 @@ export function AvailabilityPollPage() {
             {/* ── Section B+C: Availability input ── */}
             {!cantDoWeek && isRangePoll && (
               <section className="space-y-3">
-                <p className="text-[13px] font-semibold text-gray-700">When can you play?</p>
-                <p className="text-[11px] text-gray-400">Add your available times for each day. Use presets or set custom ranges.</p>
+                <p className="text-[13px] font-semibold text-ink-2">When can you play?</p>
+                <p className="text-[11px] text-ink-2">Add your available times for each day. Use presets or set custom ranges.</p>
                 <RangeAvailabilityInput
                   dates={(poll?.poll_dates as string[]) ?? []}
                   value={availabilityRanges}
@@ -642,7 +642,7 @@ export function AvailabilityPollPage() {
             {!cantDoWeek && !isRangePoll && (
               <section className="space-y-3">
                 {timeSlots.length === 0 && (
-                  <p className="text-[13px] text-gray-400 text-center py-4">No time slots in this poll.</p>
+                  <p className="text-[13px] text-ink-2 text-center py-4">No time slots in this poll.</p>
                 )}
 
                 {orderedDays.map((day) => {
@@ -651,10 +651,10 @@ export function AvailabilityPollPage() {
                   const dateLabel = getDayLabel(poll.week_start_date, day)
 
                   return (
-                    <div key={day} className="rounded-2xl border border-gray-100 overflow-hidden">
+                    <div key={day} className="rounded-2xl border border-hairline overflow-hidden">
                       {/* Day header */}
-                      <div className="flex items-center justify-between px-4 py-3 bg-gray-50 border-b border-gray-100">
-                        <p className="text-[14px] font-semibold text-gray-900">{dateLabel}</p>
+                      <div className="flex items-center justify-between px-4 py-3 bg-surface border-b border-hairline">
+                        <p className="text-[14px] font-semibold text-ink">{dateLabel}</p>
                         {anySelected && (
                           <button
                             onClick={() => daySlots.forEach((s) => {
@@ -666,7 +666,7 @@ export function AvailabilityPollPage() {
                           </button>
                         )}
                         {!anySelected && (
-                          <span className="text-[12px] text-gray-400">Tap a slot to select</span>
+                          <span className="text-[12px] text-ink-2">Tap a slot to select</span>
                         )}
                       </div>
 
@@ -683,11 +683,11 @@ export function AvailabilityPollPage() {
                                 'flex flex-col items-center px-4 py-2.5 rounded-xl border-2 transition-all active:scale-[0.97]',
                                 isSelected
                                   ? 'bg-court border-court text-white'
-                                  : 'bg-white border-gray-200 text-gray-700 hover:border-teal-300'
+                                  : 'bg-white border-hairline text-ink-2 hover:border-court-100'
                               )}
                             >
                               <span className="text-[13px] font-semibold">{period}</span>
-                              <span className={cn('text-[11px] mt-0.5', isSelected ? 'text-teal-100' : 'text-gray-400')}>
+                              <span className={cn('text-[11px] mt-0.5', isSelected ? 'text-court-100' : 'text-ink-2')}>
                                 {slot.start_time}–{slot.end_time}
                               </span>
                             </button>
@@ -704,36 +704,36 @@ export function AvailabilityPollPage() {
                         const endOptions = generateHalfHourSlots(currentStart, slot.end_time)
 
                         return (
-                          <div key={`custom-${slot.id}`} className="mx-4 mb-3 rounded-xl bg-teal-50 border border-teal-100 px-4 py-3 space-y-2">
-                            <p className="text-[11px] font-semibold text-teal-700 uppercase tracking-wide">
+                          <div key={`custom-${slot.id}`} className="mx-4 mb-3 rounded-xl bg-court-50 border border-court-100 px-4 py-3 space-y-2">
+                            <p className="text-[11px] font-semibold text-court-700 uppercase tracking-wide">
                               Customise your time for {slot.day} (optional)
                             </p>
                             <div className="flex items-center gap-2">
                               <div className="flex-1">
-                                <p className="text-[11px] text-gray-500 mb-1">From</p>
+                                <p className="text-[11px] text-ink-2 mb-1">From</p>
                                 <select
                                   value={currentStart}
                                   onChange={(e) => setCustomTimeRanges((prev) => ({
                                     ...prev,
                                     [slot.id]: { start: e.target.value, end: currentEnd },
                                   }))}
-                                  className="w-full rounded-xl border border-gray-200 px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
+                                  className="w-full rounded-xl border border-hairline px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
                                 >
                                   {startOptions.map((t) => (
                                     <option key={t} value={t}>{t}</option>
                                   ))}
                                 </select>
                               </div>
-                              <span className="text-gray-400 text-[13px] pt-5">to</span>
+                              <span className="text-ink-2 text-[13px] pt-5">to</span>
                               <div className="flex-1">
-                                <p className="text-[11px] text-gray-500 mb-1">To</p>
+                                <p className="text-[11px] text-ink-2 mb-1">To</p>
                                 <select
                                   value={currentEnd}
                                   onChange={(e) => setCustomTimeRanges((prev) => ({
                                     ...prev,
                                     [slot.id]: { start: currentStart, end: e.target.value },
                                   }))}
-                                  className="w-full rounded-xl border border-gray-200 px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
+                                  className="w-full rounded-xl border border-hairline px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
                                 >
                                   {endOptions.map((t) => (
                                     <option key={t} value={t}>{t}</option>
@@ -754,11 +754,11 @@ export function AvailabilityPollPage() {
             {!cantDoWeek && hasAvailability && (
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+                  <Users className="h-4 w-4 text-ink-2 flex-shrink-0" />
+                  <h2 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">
                     {isRangePoll ? 'How many matches?' : 'Games This Week'}
                   </h2>
-                  <span className="text-[10px] text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">Optional</span>
+                  <span className="text-[11px] text-ink-2 bg-hairline rounded-full px-2 py-0.5">Optional</span>
                 </div>
                 {isRangePoll ? (
                   <div className="space-y-2">
@@ -772,18 +772,18 @@ export function AvailabilityPollPage() {
                         onClick={() => setMaxMatches(opt.value)}
                         className={cn(
                           'w-full flex items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98]',
-                          maxMatches === opt.value ? 'border-court bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
+                          maxMatches === opt.value ? 'border-court bg-court-50/40' : 'border-hairline hover:border-hairline'
                         )}
                       >
                         <div className={cn(
                           'mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                          maxMatches === opt.value ? 'border-court' : 'border-gray-300'
+                          maxMatches === opt.value ? 'border-court' : 'border-hairline'
                         )}>
                           {maxMatches === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-court" />}
                         </div>
                         <div>
-                          <p className="text-[14px] font-semibold text-gray-900">{opt.title}</p>
-                          <p className="text-[12px] text-gray-400 mt-0.5">{opt.desc}</p>
+                          <p className="text-[14px] font-semibold text-ink">{opt.title}</p>
+                          <p className="text-[12px] text-ink-2 mt-0.5">{opt.desc}</p>
                         </div>
                       </button>
                     ))}
@@ -800,18 +800,18 @@ export function AvailabilityPollPage() {
                         onClick={() => setGamesPerWeek(opt.value)}
                         className={cn(
                           'w-full flex items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98]',
-                          gamesPerWeek === opt.value ? 'border-court bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
+                          gamesPerWeek === opt.value ? 'border-court bg-court-50/40' : 'border-hairline hover:border-hairline'
                         )}
                       >
                         <div className={cn(
                           'mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                          gamesPerWeek === opt.value ? 'border-court' : 'border-gray-300'
+                          gamesPerWeek === opt.value ? 'border-court' : 'border-hairline'
                         )}>
                           {gamesPerWeek === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-court" />}
                         </div>
                         <div>
-                          <p className="text-[14px] font-semibold text-gray-900">{opt.title}</p>
-                          <p className="text-[12px] text-gray-400 mt-0.5">{opt.desc}</p>
+                          <p className="text-[14px] font-semibold text-ink">{opt.title}</p>
+                          <p className="text-[12px] text-ink-2 mt-0.5">{opt.desc}</p>
                         </div>
                       </button>
                     ))}
@@ -824,14 +824,14 @@ export function AvailabilityPollPage() {
             {!cantDoWeek && hasAvailability && (
               <section>
                 <div className="flex items-center gap-2 mb-3">
-                  <Star className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Preferred Day</h2>
-                  <span className="text-[10px] text-gray-400 bg-gray-100 rounded-full px-2 py-0.5">Optional</span>
+                  <Star className="h-4 w-4 text-ink-2 flex-shrink-0" />
+                  <h2 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">Preferred Day</h2>
+                  <span className="text-[11px] text-ink-2 bg-hairline rounded-full px-2 py-0.5">Optional</span>
                 </div>
                 <select
                   value={preferredDate}
                   onChange={(e) => setPreferredDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-3 text-[14px] text-gray-900 bg-white outline-none focus:border-court"
+                  className="w-full rounded-xl border border-hairline px-3 py-3 text-[14px] text-ink bg-white outline-none focus:border-court"
                   style={{ fontSize: '16px' }}
                 >
                   <option value="">No preference</option>
@@ -861,7 +861,7 @@ export function AvailabilityPollPage() {
             {/* ── Section F: Additional options ── */}
             {additionalOptions.length > 0 && !cantDoWeek && hasAvailability && (
               <section>
-                <h2 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-3">Additional Options</h2>
+                <h2 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-3">Additional Options</h2>
                 <div className="space-y-2">
                   {additionalOptions.map((opt) => {
                     if (opt === 'I can drive') {
@@ -870,7 +870,7 @@ export function AvailabilityPollPage() {
                       const isOffering = additionalResponses['I can offer a lift'] ?? false
                       return (
                         <div key={opt} className="space-y-2">
-                          <label className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3.5 hover:bg-gray-50 cursor-pointer">
+                          <label className="flex items-center gap-3 border border-hairline rounded-xl px-4 py-3.5 hover:bg-surface cursor-pointer">
                             <input
                               type="checkbox"
                               checked={isDriving}
@@ -878,24 +878,24 @@ export function AvailabilityPollPage() {
                                 toggleAdditional('I can drive')
                                 if (isDriving && isOffering) toggleAdditional('I can offer a lift')
                               }}
-                              className="h-5 w-5 rounded border-gray-300 text-court focus:ring-court"
+                              className="h-5 w-5 rounded border-hairline text-court focus:ring-court"
                             />
                             <div>
-                              <span className="text-[14px] font-medium text-gray-900">I can drive</span>
-                              <p className="text-[11px] text-gray-400">Making my own way there</p>
+                              <span className="text-[14px] font-medium text-ink">I can drive</span>
+                              <p className="text-[11px] text-ink-2">Making my own way there</p>
                             </div>
                           </label>
                           {isDriving && (
-                            <label className="flex items-center gap-3 border border-teal-100 rounded-xl px-4 py-3.5 ml-4 hover:bg-teal-50/30 cursor-pointer">
+                            <label className="flex items-center gap-3 border border-court-100 rounded-xl px-4 py-3.5 ml-4 hover:bg-court-50/30 cursor-pointer">
                               <input
                                 type="checkbox"
                                 checked={isOffering}
                                 onChange={() => toggleAdditional('I can offer a lift')}
-                                className="h-5 w-5 rounded border-gray-300 text-court focus:ring-court"
+                                className="h-5 w-5 rounded border-hairline text-court focus:ring-court"
                               />
                               <div>
-                                <span className="text-[14px] font-medium text-gray-900">I can offer a lift</span>
-                                <p className="text-[11px] text-gray-400">Happy to take passengers</p>
+                                <span className="text-[14px] font-medium text-ink">I can offer a lift</span>
+                                <p className="text-[11px] text-ink-2">Happy to take passengers</p>
                               </div>
                             </label>
                           )}
@@ -905,15 +905,15 @@ export function AvailabilityPollPage() {
                     return (
                       <label
                         key={opt}
-                        className="flex items-center gap-3 border border-gray-100 rounded-xl px-4 py-3.5 hover:bg-gray-50 cursor-pointer"
+                        className="flex items-center gap-3 border border-hairline rounded-xl px-4 py-3.5 hover:bg-surface cursor-pointer"
                       >
                         <input
                           type="checkbox"
                           checked={additionalResponses[opt] ?? false}
                           onChange={() => toggleAdditional(opt)}
-                          className="h-5 w-5 rounded border-gray-300 text-court focus:ring-court"
+                          className="h-5 w-5 rounded border-hairline text-court focus:ring-court"
                         />
-                        <span className="text-[14px] font-medium text-gray-900">{opt}</span>
+                        <span className="text-[14px] font-medium text-ink">{opt}</span>
                       </label>
                     )
                   })}
@@ -928,7 +928,7 @@ export function AvailabilityPollPage() {
       {/* ── Fixed submit footer ── */}
       {isFormActive && (
         <div
-          className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 pt-4"
+          className="fixed bottom-0 left-0 right-0 bg-white border-t border-hairline px-5 pt-4"
           style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
         >
           {submitMutation.isError && (
@@ -939,7 +939,7 @@ export function AvailabilityPollPage() {
             {myResponse && isEditMode && (
               <button
                 onClick={() => setIsEditMode(false)}
-                className="flex-1 rounded-2xl border border-gray-200 py-3.5 text-[14px] font-semibold text-gray-700"
+                className="flex-1 rounded-2xl border border-hairline py-3.5 text-[14px] font-semibold text-ink-2"
               >
                 Cancel
               </button>
@@ -957,7 +957,7 @@ export function AvailabilityPollPage() {
             </button>
           </div>
           {!cantDoWeek && !hasAvailability && !submitMutation.isPending && (
-            <p className="text-[11px] text-gray-400 text-center mt-1">
+            <p className="text-[11px] text-ink-2 text-center mt-1">
               Add your available times for at least one day to submit
             </p>
           )}
@@ -973,14 +973,14 @@ export function AvailabilityPollPage() {
             className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4"
           >
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500 flex-shrink-0" />
-              <h3 className="text-[15px] font-bold text-gray-900">Household Conflict</h3>
+              <AlertTriangle className="h-5 w-5 text-warn flex-shrink-0" />
+              <h3 className="text-[15px] font-bold text-ink">Household Conflict</h3>
             </div>
-            <p className="text-[13px] text-gray-600">
+            <p className="text-[13px] text-ink-2">
               Your household partner may also be playing at one of your selected times. Continue anyway?
             </p>
             {conflictDetails.length > 0 && (
-              <div className="rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5 text-[12px] text-amber-700">
+              <div className="rounded-xl bg-warn-50 border border-warn-100 px-3 py-2.5 text-[12px] text-warn">
                 {conflictDetails.slice(0, 2).map((c: any, i: number) => (
                   <div key={i}>• {c.description ?? JSON.stringify(c)}</div>
                 ))}
@@ -991,13 +991,13 @@ export function AvailabilityPollPage() {
                 onClick={() => {
                   setShowConflictDialog(false)
                 }}
-                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700"
+                className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
               >
                 Remove Conflicts
               </button>
               <button
                 onClick={proceedDespiteConflicts}
-                className="flex-1 rounded-xl bg-amber-500 py-2.5 text-[13px] font-bold text-white"
+                className="flex-1 rounded-xl bg-warn py-2.5 text-[13px] font-bold text-white"
               >
                 Continue Anyway
               </button>
@@ -1016,15 +1016,15 @@ export function AvailabilityPollPage() {
           >
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-red-500" />
-              <h3 className="text-[15px] font-bold text-gray-900">Delete Poll</h3>
+              <h3 className="text-[15px] font-bold text-ink">Delete Poll</h3>
             </div>
-            <p className="text-[13px] text-gray-600">
+            <p className="text-[13px] text-ink-2">
               Delete this poll? All responses and match options will be lost.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-700"
+                className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
               >
                 Cancel
               </button>

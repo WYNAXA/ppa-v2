@@ -25,6 +25,8 @@ export default {
     "see_all": "Vedi tutto"
   },
   "nav": {
+    "today": "Oggi",
+    "courts": "Campi",
     "home": "Home",
     "play": "Gioca",
     "compete": "Competi",
@@ -760,6 +762,10 @@ export default {
     "ringer_offer_multiple": "{{count}} offerte come ringer in attesa"
   },
   "play": {
+    "find_coach": "Trova un coach",
+    "my_waitlist": "La mia lista d’attesa",
+    "sheet_all": "Vedi tutto in Gioca",
+    "record_result": "Registra un risultato",
     "title": "Gioca",
     "find_my_game": "Trova la mia partita",
     "find_sub": "Condividi la tua disponibilità e trova una partita",

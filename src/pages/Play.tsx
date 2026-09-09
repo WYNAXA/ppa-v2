@@ -32,7 +32,7 @@ function WhatsOnSection() {
   if (isLoading) {
     return (
       <div>
-        <h2 className="text-[15px] font-bold text-gray-900 mb-3">{t('play.whats_on')}</h2>
+        <h2 className="text-[15px] font-bold text-ink mb-3">{t('play.whats_on')}</h2>
         <div className="flex justify-center py-6">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
         </div>
@@ -58,7 +58,7 @@ function WhatsOnSection() {
 
   return (
     <div>
-      <h2 className="text-[15px] font-bold text-gray-900 mb-3">{t('play.whats_on')}</h2>
+      <h2 className="text-[15px] font-bold text-ink mb-3">{t('play.whats_on')}</h2>
       <div className="space-y-2.5">
         {events.slice(0, 6).map((ev) => {
           const spotsLeft = ev.capacity != null ? ev.capacity - ev.spots_taken : null
@@ -69,21 +69,21 @@ function WhatsOnSection() {
             <button
               key={ev.occurrence_id}
               onClick={() => navigate(`/play/events/${ev.occurrence_id}`)}
-              className="w-full text-left rounded-2xl border border-gray-100 bg-white p-4 transition-all hover:border-gray-200 active:scale-[0.99]"
+              className="w-full text-left rounded-2xl border border-hairline bg-white p-4 transition-all hover:border-hairline active:scale-[0.99]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-bold text-gray-900 leading-tight truncate">{ev.event_name}</p>
+                  <p className="text-[14px] font-bold text-ink leading-tight truncate">{ev.event_name}</p>
                   <div className="flex items-center gap-1.5 mt-1.5">
-                    <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="text-[12px] text-gray-500 truncate">
+                    <MapPin className="h-3.5 w-3.5 text-ink-2 flex-shrink-0" />
+                    <span className="text-[12px] text-ink-2 truncate">
                       {ev.venue_name}
                       {ev.distance_miles != null && ` · ${formatDistance(ev.distance_miles)}`}
                     </span>
                   </div>
                   <div className="flex items-center gap-1.5 mt-1">
-                    <Calendar className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                    <span className="text-[12px] text-gray-500">{fmt(ev.starts_at)}</span>
+                    <Calendar className="h-3.5 w-3.5 text-ink-2 flex-shrink-0" />
+                    <span className="text-[12px] text-ink-2">{fmt(ev.starts_at)}</span>
                   </div>
                   <div className="flex items-center gap-3 mt-2">
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-court">
@@ -93,16 +93,16 @@ function WhatsOnSection() {
                         : `${ev.spots_taken} going`}
                     </span>
                     {level && (
-                      <span className="text-[11px] text-gray-400">{level}</span>
+                      <span className="text-[11px] text-ink-2">{level}</span>
                     )}
                     {priceLabel ? (
-                      <span className="text-[11px] font-semibold text-gray-600">{priceLabel}</span>
+                      <span className="text-[11px] font-semibold text-ink-2">{priceLabel}</span>
                     ) : (
                       <span className="text-[11px] font-semibold text-court">{t('play.ve_free')}</span>
                     )}
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-gray-300 mt-1 flex-shrink-0" />
+                <ChevronRight className="h-4 w-4 text-ink-3 mt-1 flex-shrink-0" />
               </div>
             </button>
           )
@@ -203,12 +203,12 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-              <h2 className="text-[15px] font-bold text-gray-900">{t('play.open_matches_near_you')}</h2>
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <h2 className="text-[15px] font-bold text-ink">{t('play.open_matches_near_you')}</h2>
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
             </div>
             <div className="overflow-y-auto flex-1 px-5 pb-8">
@@ -218,8 +218,8 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
                 </div>
               ) : openMatches.length === 0 ? (
                 <div className="text-center py-12 px-4">
-                  <p className="text-[15px] font-bold text-gray-700 mb-1">{t('play.no_open_matches')}</p>
-                  <p className="text-[13px] text-gray-400 mb-4">{t('play.create_one_invite')}</p>
+                  <p className="text-[15px] font-bold text-ink-2 mb-1">{t('play.no_open_matches')}</p>
+                  <p className="text-[13px] text-ink-2 mb-4">{t('play.create_one_invite')}</p>
                   {onCreateMatch && (
                     <button onClick={() => { onClose(); onCreateMatch() }} className="rounded-2xl bg-court px-5 py-2.5 text-[13px] font-semibold text-white">
                       {t('play.create_match')}
@@ -259,15 +259,15 @@ export function PlayPage() {
 
   return (
     <>
-      <div className="min-h-full bg-white">
+      <div className="min-h-full bg-surface">
         {/* ── Header ──────────────────────────────────────────────────────── */}
-        <div className="flex items-center justify-between px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-          <h1 className="text-2xl font-black text-gray-900 tracking-tight">{t('play.title')}</h1>
+        <div className="flex items-center justify-between px-5 pt-14 pb-4 sticky top-0 bg-surface/95 backdrop-blur-sm z-10 border-b border-hairline">
+          <h1 className="text-2xl font-black text-ink tracking-tight">{t('play.title')}</h1>
           <button
             onClick={() => navigate('/notifications')}
-            className="relative h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center hover:bg-gray-100 transition-colors"
+            className="relative h-10 w-10 rounded-full bg-surface flex items-center justify-center hover:bg-hairline transition-colors"
           >
-            <Bell className="h-5 w-5 text-gray-600" />
+            <Bell className="h-5 w-5 text-ink-2" />
           </button>
         </div>
 
@@ -282,7 +282,7 @@ export function PlayPage() {
             <button
               onClick={() => navigate('/play/availability')}
               className="w-full rounded-2xl overflow-hidden relative"
-              style={{ background: 'linear-gradient(135deg, #007d74 0%, var(--color-court) 55%, #00a896 100%)' }}
+              style={{ background: 'linear-gradient(135deg, var(--color-court-700) 0%, var(--color-court) 55%, #12786B 100%)' }}
             >
               {/* Court SVG overlay */}
               <div className="absolute inset-0 opacity-[0.08] pointer-events-none">
@@ -313,61 +313,61 @@ export function PlayPage() {
               {/* Create Match */}
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
-                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <Plus className="h-4 w-4 text-court" />
                 </div>
-                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.create_match')}</span>
+                <span className="text-[11px] font-semibold text-ink-2 text-center leading-tight">{t('play.create_match')}</span>
               </button>
 
               {/* Join Match */}
               <button
                 onClick={() => setJoinSheetOpen(true)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
-                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <Search className="h-4 w-4 text-court" />
                 </div>
-                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.join_match')}</span>
+                <span className="text-[11px] font-semibold text-ink-2 text-center leading-tight">{t('play.join_match')}</span>
               </button>
 
               {/* Book Court */}
               <button
                 onClick={() => navigate('/play/book-court')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
-                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <BookOpen className="h-4 w-4 text-court" />
                 </div>
-                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.book_court')}</span>
+                <span className="text-[11px] font-semibold text-ink-2 text-center leading-tight">{t('play.book_court')}</span>
               </button>
 
               {/* Leagues */}
               <button
                 onClick={() => navigate('/leagues')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
-                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <Trophy className="h-4 w-4 text-court" />
                 </div>
-                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.leagues')}</span>
+                <span className="text-[11px] font-semibold text-ink-2 text-center leading-tight">{t('play.leagues')}</span>
               </button>
 
               {/* Find a coach */}
               <button
                 onClick={() => navigate('/coaches')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
-                <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
+                <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <GraduationCap className="h-4 w-4 text-court" />
                 </div>
-                <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.find_coach', 'Find a coach')}</span>
+                <span className="text-[11px] font-semibold text-ink-2 text-center leading-tight">{t('play.find_coach', 'Find a coach')}</span>
               </button>
             </div>
             <button
               onClick={() => navigate('/play/waitlist')}
-              className="mt-2.5 mx-auto flex items-center gap-1.5 text-[12px] font-semibold text-gray-400 hover:text-court transition-colors"
+              className="mt-2.5 mx-auto flex items-center gap-1.5 text-[12px] font-semibold text-ink-2 hover:text-court transition-colors"
             >
               <Bell className="h-3.5 w-3.5" /> {t('play.my_waitlist', 'My waitlist')}
             </button>

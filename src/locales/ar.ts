@@ -25,6 +25,8 @@ export default {
     "see_all": "عرض الكل"
   },
   "nav": {
+    "today": "اليوم",
+    "courts": "الملاعب",
     "home": "الرئيسية",
     "play": "العب",
     "compete": "تنافس",
@@ -760,6 +762,10 @@ export default {
     "ringer_offer_multiple": "{{count}} عروض لاعبين احتياطيين قيد الانتظار"
   },
   "play": {
+    "find_coach": "ابحث عن مدرب",
+    "my_waitlist": "قائمة انتظاري",
+    "sheet_all": "عرض كل شيء في اللعب",
+    "record_result": "تسجيل نتيجة",
     "title": "العب",
     "find_my_game": "ابحث عن مباراتي",
     "find_sub": "شارك توفرك وسنجد لك مباراة",

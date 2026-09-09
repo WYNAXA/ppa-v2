@@ -48,11 +48,11 @@ export function NotificationBell() {
   return (
     <button
       onClick={() => navigate('/notifications')}
-      className="relative h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+      className="relative h-10 w-10 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
     >
-      <Bell className="h-5 w-5 text-gray-600" />
+      <Bell className="h-5 w-5 text-ink-2" />
       {count > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-court text-[9px] font-bold text-white flex items-center justify-center">
+        <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-court text-[11px] font-bold text-white flex items-center justify-center">
           {count > 9 ? '9+' : count}
         </span>
       )}

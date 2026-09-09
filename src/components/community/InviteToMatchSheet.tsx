@@ -83,13 +83,13 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Invite {playerName.split(' ')[0]}</h2>
+              <h2 className="text-[15px] font-bold text-ink">Invite {playerName.split(' ')[0]}</h2>
               <div className="w-9" />
             </div>
             <div className="px-5 pb-6 overflow-y-auto" style={{ maxHeight: '60vh', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
@@ -99,11 +99,11 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                 </div>
               ) : matches.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-[13px] text-gray-500">No upcoming matches with open slots</p>
+                  <p className="text-[13px] text-ink-2">No upcoming matches with open slots</p>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-gray-400 mb-2">Select a match to invite {playerName.split(' ')[0]} to:</p>
+                  <p className="text-[11px] text-ink-2 mb-2">Select a match to invite {playerName.split(' ')[0]} to:</p>
                   {matches.map((m: any) => {
                     const dateStr = (() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()
                     const timeStr = m.match_time?.slice(0, 5) ?? ''
@@ -121,14 +121,14 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                           inviteMutation.mutate(m)
                         }}
                         disabled={inviteMutation.isPending}
-                        className="w-full flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
+                        className="w-full flex items-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
                       >
-                        <div className="h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0">
+                        <div className="h-9 w-9 rounded-full bg-court-50 flex items-center justify-center flex-shrink-0">
                           <Calendar className="h-4 w-4 text-court" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold text-gray-800">{dateStr}{timeStr && ` · ${timeStr}`}</p>
-                          <p className="text-[11px] text-gray-400">
+                          <p className="text-[13px] font-semibold text-ink">{dateStr}{timeStr && ` · ${timeStr}`}</p>
+                          <p className="text-[11px] text-ink-2">
                             {m.booked_venue_name ?? 'Venue TBC'} · {slots} slot{slots !== 1 ? 's' : ''} open
                           </p>
                         </div>
@@ -137,23 +137,23 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                   })}
                   {/* Conflict warning dialog */}
                   {conflictWarn && (
-                    <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3">
+                    <div className="mt-3 rounded-xl bg-warn-50 border border-warn p-3">
                       <div className="flex items-start gap-2 mb-2">
-                        <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-[13px] font-semibold text-amber-800">
+                        <AlertTriangle className="h-4 w-4 text-warn flex-shrink-0 mt-0.5" />
+                        <p className="text-[13px] font-semibold text-warn">
                           {playerName.split(' ')[0]} already has a match{conflictWarn.time ? ` at ${conflictWarn.time.slice(0, 5)}` : ' that day'}
                         </p>
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setConflictWarn(null)}
-                          className="flex-1 rounded-xl border border-gray-200 py-2 text-[12px] font-semibold text-gray-600"
+                          className="flex-1 rounded-xl border border-hairline py-2 text-[12px] font-semibold text-ink-2"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={() => { inviteMutation.mutate(conflictWarn.match); setConflictWarn(null) }}
-                          className="flex-1 rounded-xl bg-amber-500 py-2 text-[12px] font-bold text-white"
+                          className="flex-1 rounded-xl bg-warn py-2 text-[12px] font-bold text-white"
                         >
                           Invite anyway
                         </button>

@@ -102,8 +102,8 @@ export function AddToCalendarSheet({ open, onClose, event }: AddToCalendarSheetP
     {
       label:       'Apple Calendar',
       description: 'Downloads .ics file',
-      icon:        <Download className="h-4 w-4 text-gray-600" />,
-      bg:          'bg-gray-100',
+      icon:        <Download className="h-4 w-4 text-ink-2" />,
+      bg:          'bg-hairline',
       action:      () => { downloadIcs(event); onClose() },
     },
     {
@@ -135,26 +135,26 @@ export function AddToCalendarSheet({ open, onClose, event }: AddToCalendarSheetP
             style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Add to Calendar</h2>
+              <h2 className="text-[15px] font-bold text-ink">Add to Calendar</h2>
               <div className="w-9" />
             </div>
 
             <div className="px-5 pb-4">
-              <div className="mb-4 rounded-2xl bg-gray-50 border border-gray-100 p-3">
-                <p className="text-[12px] font-semibold text-gray-700 truncate">{event.title}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">
+              <div className="mb-4 rounded-2xl bg-surface border border-hairline p-3">
+                <p className="text-[12px] font-semibold text-ink-2 truncate">{event.title}</p>
+                <p className="text-[11px] text-ink-2 mt-0.5">
                   {event.start.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' })}
                   {' · '}
                   {event.start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </p>
                 {event.location && (
-                  <p className="text-[11px] text-gray-400 mt-0.5 truncate">{event.location}</p>
+                  <p className="text-[11px] text-ink-2 mt-0.5 truncate">{event.location}</p>
                 )}
               </div>
 
@@ -163,14 +163,14 @@ export function AddToCalendarSheet({ open, onClose, event }: AddToCalendarSheetP
                   <button
                     key={label}
                     onClick={action}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-hairline hover:bg-surface transition-colors"
                   >
                     <div className={`h-9 w-9 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
                       {icon}
                     </div>
                     <div className="text-left">
-                      <p className="text-[13px] font-semibold text-gray-800">{label}</p>
-                      <p className="text-[11px] text-gray-400">{description}</p>
+                      <p className="text-[13px] font-semibold text-ink">{label}</p>
+                      <p className="text-[11px] text-ink-2">{description}</p>
                     </div>
                   </button>
                 ))}

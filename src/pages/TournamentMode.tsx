@@ -490,50 +490,50 @@ export function TournamentModePage() {
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col">
       {/* Header */}
-      <div className="bg-white px-5 pt-14 pb-4 border-b border-gray-100">
+      <div className="bg-white px-5 pt-14 pb-4 border-b border-hairline">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/compete/leagues/${id}`)}
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-ink-2" />
           </button>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-[17px] font-bold text-gray-900">Tournament Mode</h1>
+              <h1 className="text-[17px] font-bold text-ink">Tournament Mode</h1>
               <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[10px] font-bold text-red-600">LIVE</span>
+                <span className="text-[11px] font-bold text-red-600">LIVE</span>
               </span>
             </div>
             {league && (
-              <p className="text-[12px] text-gray-400 truncate mt-0.5">
+              <p className="text-[12px] text-ink-2 truncate mt-0.5">
                 {league.name}
                 {league.max_rounds && currentRound > 0 && (
-                  <span className="ml-1 font-semibold text-gray-500">
+                  <span className="ml-1 font-semibold text-ink-2">
                     · {isSeasonComplete ? 'Season complete' : `Round ${currentRound} of ${league.max_rounds}`}
                   </span>
                 )}
               </p>
             )}
           </div>
-          <Trophy className="h-5 w-5 text-amber-500 flex-shrink-0" />
+          <Trophy className="h-5 w-5 text-warn flex-shrink-0" />
         </div>
       </div>
 
       {/* Standings mini-view */}
       {(isPairs ? teamStandings.length > 0 : standings.length > 0) && (
-        <div className="bg-white border-b border-gray-100">
+        <div className="bg-white border-b border-hairline">
           <button
             onClick={() => setStandingsOpen((v) => !v)}
             className="w-full flex items-center justify-between px-5 py-2"
           >
-            <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+            <span className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">
               Top Standings
             </span>
-            <span className="text-[11px] text-gray-400">
+            <span className="text-[11px] text-ink-2">
               {standingsOpen ? 'Hide' : 'Show'}
             </span>
           </button>
@@ -544,16 +544,16 @@ export function TournamentModePage() {
                   {teamStandings.slice(0, 5).map((ts, i) => (
                     <div
                       key={ts.team_id}
-                      className="flex items-center gap-2 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 min-w-[140px]"
+                      className="flex items-center gap-2 rounded-xl bg-surface border border-hairline px-3 py-2 min-w-[140px]"
                     >
-                      <span className="text-[12px] font-bold text-gray-400">
+                      <span className="text-[12px] font-bold text-ink-2">
                         {i < 3 ? ['🥇', '🥈', '🥉'][i] : `#${i + 1}`}
                       </span>
                       <div className="min-w-0">
-                        <p className="text-[11px] font-semibold text-gray-800 truncate">
+                        <p className="text-[11px] font-semibold text-ink truncate">
                           {ts.team_name ?? 'Team'}
                         </p>
-                        <p className="text-[10px] text-gray-400">{ts.points} pts</p>
+                        <p className="text-[11px] text-ink-2">{ts.points} pts</p>
                       </div>
                     </div>
                   ))}
@@ -563,9 +563,9 @@ export function TournamentModePage() {
                 {standings.slice(0, 5).map((s, i) => (
                   <div
                     key={s.user_id}
-                    className="flex items-center gap-2 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 min-w-[120px]"
+                    className="flex items-center gap-2 rounded-xl bg-surface border border-hairline px-3 py-2 min-w-[120px]"
                   >
-                    <span className="text-[12px] font-bold text-gray-400">
+                    <span className="text-[12px] font-bold text-ink-2">
                       {i < 3 ? ['🥇', '🥈', '🥉'][i] : `#${i + 1}`}
                     </span>
                     <PlayerAvatar
@@ -574,10 +574,10 @@ export function TournamentModePage() {
                       size="sm"
                     />
                     <div className="min-w-0">
-                      <p className="text-[11px] font-semibold text-gray-800 truncate">
+                      <p className="text-[11px] font-semibold text-ink truncate">
                         {s.profile?.name?.split(' ')[0] ?? 'Unknown'}
                       </p>
-                      <p className="text-[10px] text-gray-400">{s.points} pts</p>
+                      <p className="text-[11px] text-ink-2">{s.points} pts</p>
                     </div>
                   </div>
                 ))}
@@ -590,19 +590,19 @@ export function TournamentModePage() {
 
       {/* About this tournament */}
       {league?.format && (
-        <div className="bg-white border-b border-gray-100 px-5 py-3">
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5">{t('about_this_league')}</p>
-          <p className="text-[13px] text-gray-600 mb-2">{t(`format_${league.format}_desc`)}</p>
+        <div className="bg-white border-b border-hairline px-5 py-3">
+          <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-1.5">{t('about_this_league')}</p>
+          <p className="text-[13px] text-ink-2 mb-2">{t(`format_${league.format}_desc`)}</p>
           <div className="flex flex-wrap gap-x-6 gap-y-1">
-            <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_format')}</span> {t(`format_${league.format}_title`)}</span>
+            <span className="text-[11px] text-ink-2"><span className="font-bold text-court-700">{t('about_format')}</span> {t(`format_${league.format}_title`)}</span>
             {league.scoring_format && (
-              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_scoring')}</span> {t(({ standard: 'scoring_standard_label', short_sets: 'scoring_short_sets_label', one_set: 'scoring_one_set_label', custom: 'scoring_custom_label' } as Record<string, string>)[league.scoring_format] ?? league.scoring_format)}</span>
+              <span className="text-[11px] text-ink-2"><span className="font-bold text-court-700">{t('about_scoring')}</span> {t(({ standard: 'scoring_standard_label', short_sets: 'scoring_short_sets_label', one_set: 'scoring_one_set_label', custom: 'scoring_custom_label' } as Record<string, string>)[league.scoring_format] ?? league.scoring_format)}</span>
             )}
             {league.max_participants && (
-              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_max_players')}</span> {league.max_participants}</span>
+              <span className="text-[11px] text-ink-2"><span className="font-bold text-court-700">{t('about_max_players')}</span> {league.max_participants}</span>
             )}
             {(league.min_elo != null || league.max_elo != null) && (
-              <span className="text-[11px] text-gray-500"><span className="font-bold text-teal-700">{t('about_elo_range')}</span> {league.min_elo ?? 0} – {league.max_elo ?? 3000}</span>
+              <span className="text-[11px] text-ink-2"><span className="font-bold text-court-700">{t('about_elo_range')}</span> {league.min_elo ?? 0} – {league.max_elo ?? 3000}</span>
             )}
           </div>
         </div>
@@ -610,16 +610,16 @@ export function TournamentModePage() {
 
       {/* Progress bar — top position */}
       {totalCount > 0 && (
-        <div className="bg-white border-b border-gray-100 px-5 py-3">
+        <div className="bg-white border-b border-hairline px-5 py-3">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[12px] font-semibold text-gray-600">
+            <span className="text-[12px] font-semibold text-ink-2">
               This round: {completedCount} of {totalCount} results
             </span>
             {allCompleted && (
               <span className="text-[11px] font-bold text-green-600">Round complete!</span>
             )}
           </div>
-          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+          <div className="h-2 rounded-full bg-hairline overflow-hidden">
             <motion.div
               className="h-full rounded-full bg-court"
               initial={{ width: 0 }}
@@ -632,7 +632,7 @@ export function TournamentModePage() {
 
       {/* Admin: Generate Round button at top (hidden when season complete) */}
       {isAdmin && !isSeasonComplete && (
-        <div className="bg-white border-b border-gray-100 px-5 py-3">
+        <div className="bg-white border-b border-hairline px-5 py-3">
           <button
             onClick={() => {
               if (isPairs && leagueTeams.length === 0) {
@@ -652,19 +652,19 @@ export function TournamentModePage() {
       {/* Match list */}
       <div className="flex-1 px-4 pt-4 pb-32 overflow-y-auto">
         {entries.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
+          <div className="rounded-2xl border border-dashed border-hairline p-8 text-center">
             {standings.length > 0 ? (
               <>
-                <p className="text-[15px] font-bold text-gray-700 mb-1">Round complete!</p>
-                <p className="text-[12px] text-gray-400">
+                <p className="text-[15px] font-bold text-ink-2 mb-1">Round complete!</p>
+                <p className="text-[12px] text-ink-2">
                   {isAdmin ? 'Generate the next round to continue' : 'Waiting for the next round to be scheduled'}
                 </p>
               </>
             ) : (
               <>
-                <Zap className="h-8 w-8 text-gray-300 mx-auto mb-3" />
-                <p className="text-[15px] font-bold text-gray-700 mb-1">Ready to start!</p>
-                <p className="text-[12px] text-gray-400">
+                <Zap className="h-8 w-8 text-ink-3 mx-auto mb-3" />
+                <p className="text-[15px] font-bold text-ink-2 mb-1">Ready to start!</p>
+                <p className="text-[12px] text-ink-2">
                   {isAdmin ? 'Generate Round 1 to create your first fixtures' : 'Waiting for the season to start'}
                 </p>
               </>
@@ -689,9 +689,9 @@ export function TournamentModePage() {
                   {/* Divider between pending and completed */}
                   {hasBothSections && sortPos === firstCompletedPos && (
                     <div className="flex items-center gap-2 my-3">
-                      <div className="flex-1 h-px bg-gray-200" />
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Completed</span>
-                      <div className="flex-1 h-px bg-gray-200" />
+                      <div className="flex-1 h-px bg-hairline" />
+                      <span className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">Completed</span>
+                      <div className="flex-1 h-px bg-hairline" />
                     </div>
                   )}
                   <motion.div
@@ -702,19 +702,19 @@ export function TournamentModePage() {
                       'rounded-2xl border p-4 mb-3',
                       entry.completed
                         ? 'bg-green-50 border-green-200'
-                        : 'bg-white border-gray-100',
+                        : 'bg-white border-hairline',
                     )}
                   >
                     {/* Team names */}
                     <div className="flex items-center justify-between gap-2 mb-2">
                       <div className="flex-1 text-right">
-                        <p className="text-[12px] font-semibold text-gray-800 truncate">
+                        <p className="text-[12px] font-semibold text-ink truncate">
                           {entry.team1Names.join(' & ')}
                         </p>
                       </div>
-                      <span className="text-[10px] text-gray-400 font-bold px-2">vs</span>
+                      <span className="text-[11px] text-ink-2 font-bold px-2">vs</span>
                       <div className="flex-1">
-                        <p className="text-[12px] font-semibold text-gray-800 truncate">
+                        <p className="text-[12px] font-semibold text-ink truncate">
                           {entry.team2Names.join(' & ')}
                         </p>
                       </div>
@@ -735,9 +735,9 @@ export function TournamentModePage() {
                             updateSet(idx, i, 'team1', e.target.value)
                             if (e.target.value !== '') setTimeout(() => tmInputRefs.current[`${idx}-${i}-team2`]?.focus(), 0)
                           }}
-                          className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
+                          className="w-12 rounded-lg border border-hairline text-center py-1.5 text-[16px] font-bold text-ink focus:outline-none focus:border-court disabled:opacity-50"
                         />
-                        <span className="text-gray-300">—</span>
+                        <span className="text-ink-3">—</span>
                         <input
                           ref={(el) => { tmInputRefs.current[`${idx}-${i}-team2`] = el }}
                           type="number"
@@ -750,7 +750,7 @@ export function TournamentModePage() {
                             updateSet(idx, i, 'team2', e.target.value)
                             if (e.target.value !== '') setTimeout(() => tmInputRefs.current[`${idx}-${i + 1}-team1`]?.focus(), 0)
                           }}
-                          className="w-12 rounded-lg border border-gray-200 text-center py-1.5 text-[16px] font-bold text-gray-800 focus:outline-none focus:border-teal-400 disabled:opacity-50"
+                          className="w-12 rounded-lg border border-hairline text-center py-1.5 text-[16px] font-bold text-ink focus:outline-none focus:border-court disabled:opacity-50"
                         />
                       </div>
                     ))}
@@ -759,7 +759,7 @@ export function TournamentModePage() {
                     {!entry.completed && entry.sets.length < 3 && (
                       <button
                         onClick={() => addSet(idx)}
-                        className="text-[11px] text-teal-600 font-semibold mt-1"
+                        className="text-[11px] text-court font-semibold mt-1"
                       >
                         + Add set
                       </button>

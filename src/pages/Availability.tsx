@@ -102,16 +102,16 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         'rounded-2xl border p-4',
-        ready ? 'border-green-200 bg-green-50/40' : 'border-teal-100 bg-teal-50/30'
+        ready ? 'border-green-200 bg-green-50/40' : 'border-court-100 bg-court-50/30'
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] font-bold text-gray-900 leading-tight">{poll.title}</p>
-          <p className="text-[12px] text-gray-500 mt-0.5">{poll.groups?.name ?? '—'}</p>
+          <p className="text-[15px] font-bold text-ink leading-tight">{poll.title}</p>
+          <p className="text-[12px] text-ink-2 mt-0.5">{poll.groups?.name ?? '—'}</p>
         </div>
         {hasResponded && (
-          <span className="flex-shrink-0 text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5">
+          <span className="flex-shrink-0 text-[11px] font-bold text-court-700 bg-court-100 rounded-full px-2 py-0.5">
             Responded ✓
           </span>
         )}
@@ -119,13 +119,13 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
 
       <div className="mb-3">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[12px] text-gray-600 flex items-center gap-1.5">
+          <span className="text-[12px] text-ink-2 flex items-center gap-1.5">
             <Users className="h-3.5 w-3.5" />
             {responseCount} {responseCount === 1 ? 'player' : 'players'} responded
           </span>
-          <span className="text-[11px] text-gray-400">{closesText(poll.closes_at)}</span>
+          <span className="text-[11px] text-ink-2">{closesText(poll.closes_at)}</span>
         </div>
-        <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-hairline rounded-full overflow-hidden">
           <motion.div
             className={cn('h-full rounded-full', ready ? 'bg-green-500' : 'bg-court')}
             initial={{ width: 0 }}
@@ -155,9 +155,9 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
 
 function EmptyPollState({ onStart }: { onStart: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-200 px-5 py-8 text-center">
-      <p className="text-[14px] font-semibold text-gray-500 mb-1">No active availability check</p>
-      <p className="text-[12px] text-gray-400 mb-4">Start one for your group to find a game</p>
+    <div className="rounded-2xl border border-dashed border-hairline px-5 py-8 text-center">
+      <p className="text-[14px] font-semibold text-ink-2 mb-1">No active availability check</p>
+      <p className="text-[12px] text-ink-2 mb-4">Start one for your group to find a game</p>
       <button
         onClick={onStart}
         className="inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
@@ -201,8 +201,8 @@ export function AvailabilityPage() {
       <div className="px-5 pt-14 pb-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-[22px] font-bold text-gray-900">Find My Game</h1>
-            <p className="text-[13px] text-gray-500 mt-0.5">Tell us when you can play</p>
+            <h1 className="text-[22px] font-bold text-ink">Find My Game</h1>
+            <p className="text-[13px] text-ink-2 mt-0.5">Tell us when you can play</p>
           </div>
           <button
             onClick={() => navigate('/play/availability/create')}
@@ -222,7 +222,7 @@ export function AvailabilityPage() {
         <div className="px-5 space-y-6">
           {/* Active poll */}
           <section>
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+            <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2">
               Active Availability Check
             </p>
             {activePoll ? (
@@ -240,7 +240,7 @@ export function AvailabilityPage() {
           {/* Other open polls */}
           {polls.length > 1 && (
             <section>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2">
                 Other Open Polls
               </p>
               <div className="flex flex-col gap-2">
@@ -248,15 +248,15 @@ export function AvailabilityPage() {
                   <button
                     key={poll.id}
                     onClick={() => navigate(`/play/availability/${poll.id}`)}
-                    className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3 text-left hover:border-teal-200 transition-colors"
+                    className="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-left hover:border-court-100 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-gray-900 truncate">{poll.title}</p>
-                      <p className="text-[11px] text-gray-400 mt-0.5">
+                      <p className="text-[13px] font-semibold text-ink truncate">{poll.title}</p>
+                      <p className="text-[11px] text-ink-2 mt-0.5">
                         {poll.groups?.name ?? '—'} · {responseCounts[poll.id] ?? 0} responses
                       </p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0 ml-2" />
+                    <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0 ml-2" />
                   </button>
                 ))}
               </div>
@@ -266,7 +266,7 @@ export function AvailabilityPage() {
           {/* My upcoming availability */}
           {myAvailableSlots.length > 0 && (
             <section>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+              <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2">
                 My Upcoming Availability
               </p>
               <div className="flex flex-col gap-2">
@@ -274,16 +274,16 @@ export function AvailabilityPage() {
                   <button
                     key={`${poll.id}-${slot.id}`}
                     onClick={() => navigate(`/play/availability/${poll.id}`)}
-                    className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-left hover:border-teal-200 transition-colors"
+                    className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 text-left hover:border-court-100 transition-colors"
                   >
-                    <div className="h-8 w-8 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0">
+                    <div className="h-8 w-8 rounded-full bg-court-50 flex items-center justify-center flex-shrink-0">
                       <Clock className="h-4 w-4 text-court" />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-gray-900">{formatSlotLabel(poll, slot)}</p>
-                      <p className="text-[11px] text-gray-400">{poll.title}</p>
+                      <p className="text-[13px] font-semibold text-ink">{formatSlotLabel(poll, slot)}</p>
+                      <p className="text-[11px] text-ink-2">{poll.title}</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
                   </button>
                 ))}
               </div>
@@ -292,8 +292,8 @@ export function AvailabilityPage() {
 
           {polls.length === 0 && (
             <div className="py-10 text-center">
-              <p className="text-[14px] text-gray-500 font-semibold mb-1">No open polls</p>
-              <p className="text-[12px] text-gray-400">Join a group or tap + to create one</p>
+              <p className="text-[14px] text-ink-2 font-semibold mb-1">No open polls</p>
+              <p className="text-[12px] text-ink-2">Join a group or tap + to create one</p>
             </div>
           )}
         </div>

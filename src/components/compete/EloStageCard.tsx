@@ -79,9 +79,9 @@ export function EloStageCard({ userId, matchesPlayed, careerElo }: EloStageCardP
     .replace(/{matches_s}/g, matchesPlayed === 1 ? '' : 'es')
 
   return (
-    <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 mb-3">
-      <p className="text-[13px] font-bold text-gray-900">{copy.headline}</p>
-      <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">{interpolated}</p>
+    <div className="rounded-2xl border border-hairline bg-surface p-4 mb-3">
+      <p className="text-[13px] font-bold text-ink">{copy.headline}</p>
+      <p className="text-[12px] text-ink-2 mt-1 leading-relaxed">{interpolated}</p>
       <button
         onClick={() => navigate(copy.route)}
         className="mt-3 rounded-xl bg-court px-4 py-2 text-[12px] font-bold text-white active:scale-95 transition-transform"

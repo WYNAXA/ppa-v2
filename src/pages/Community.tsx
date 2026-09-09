@@ -310,7 +310,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       whileTap={{ scale: 0.985 }}
-      className="w-full text-left bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-teal-200 transition-colors relative"
+      className="w-full text-left bg-white rounded-2xl border border-hairline overflow-hidden hover:border-court-100 transition-colors relative"
     >
       <div className="flex">
         <div className="w-1 bg-court flex-shrink-0" />
@@ -318,16 +318,16 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-[15px] font-bold text-gray-900 truncate">{group.name}</h3>
+                <h3 className="text-[15px] font-bold text-ink truncate">{group.name}</h3>
                 {group.hasActiveLeague && (
-                  <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-semibold text-teal-600">
+                  <span className="inline-flex items-center rounded-full bg-court-50 border border-court-100 px-2 py-0.5 text-[11px] font-semibold text-court">
                     {t('community.active_league')}
                   </span>
                 )}
                 {badge && (
                   <span className={cn(
-                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-[10px] font-bold',
-                    badge === t('community.badge_ringer') ? 'bg-orange-500 text-white' : 'bg-amber-500 text-white'
+                    'inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-bold',
+                    badge === t('community.badge_ringer') ? 'bg-warn text-white' : 'bg-warn text-white'
                   )}>
                     {badge}
                   </span>
@@ -335,12 +335,12 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
               </div>
               {group.city && (
                 <div className="flex items-center gap-1 mt-0.5">
-                  <MapPin className="h-3 w-3 text-gray-400" />
-                  <p className="text-[12px] text-gray-400">{group.city}</p>
+                  <MapPin className="h-3 w-3 text-ink-2" />
+                  <p className="text-[12px] text-ink-2">{group.city}</p>
                 </div>
               )}
             </div>
-            <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0 mt-1" />
+            <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0 mt-1" />
           </div>
 
           <div className="flex items-center gap-2 mt-3">
@@ -349,7 +349,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
                 <PlayerAvatar key={m.id} name={m.name} avatarUrl={m.avatar_url} size="sm" />
               ))}
             </div>
-            <span className="text-[12px] text-gray-500">
+            <span className="text-[12px] text-ink-2">
               {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
           </div>
@@ -397,13 +397,13 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOff
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
 
             {/* Close button */}
             <div className="flex justify-end px-5 pb-1">
-              <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-500" />
+              <button onClick={onClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
             </div>
 
@@ -416,13 +416,13 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOff
               )}
 
               {/* Name */}
-              <h2 className="text-[18px] font-bold text-gray-900">{group.name}</h2>
+              <h2 className="text-[18px] font-bold text-ink">{group.name}</h2>
 
               {/* City */}
               {group.city && (
                 <div className="flex items-center gap-1 mt-1">
-                  <MapPin className="h-3.5 w-3.5 text-gray-400" />
-                  <p className="text-[13px] text-gray-500">{group.city}</p>
+                  <MapPin className="h-3.5 w-3.5 text-ink-2" />
+                  <p className="text-[13px] text-ink-2">{group.city}</p>
                 </div>
               )}
 
@@ -430,23 +430,23 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOff
               <div className="flex items-center gap-2 mt-3 flex-wrap">
                 {/* Visibility */}
                 {group.visibility === 'private' ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-2.5 py-1">
                     <Lock className="h-3 w-3" /> {t('community.group_private')}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-teal-700 bg-teal-50 rounded-full px-2.5 py-1">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-court-700 bg-court-50 rounded-full px-2.5 py-1">
                     <Globe className="h-3 w-3" /> {group.visibility === 'public' ? 'Public' : t('community.group_open')}
                   </span>
                 )}
 
                 {/* Member count */}
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-gray-600 bg-gray-100 rounded-full px-2.5 py-1">
+                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-2.5 py-1">
                   <Users className="h-3 w-3" /> {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
                 </span>
 
                 {/* Ringers */}
                 {group.allow_ringers && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-orange-700 bg-orange-50 rounded-full px-2.5 py-1">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-warn bg-warn-50 rounded-full px-2.5 py-1">
                     <UserCheck className="h-3 w-3" /> {t('community.welcomes_ringers')}
                   </span>
                 )}
@@ -454,21 +454,21 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOff
 
               {/* Description */}
               {group.description && (
-                <p className="text-[13px] text-gray-500 mt-4 leading-relaxed">{group.description}</p>
+                <p className="text-[13px] text-ink-2 mt-4 leading-relaxed">{group.description}</p>
               )}
 
               {/* Action buttons */}
               <div className="mt-6 mb-4 space-y-3">
                 {isPending ? (
-                  <div className="w-full rounded-2xl bg-gray-100 py-3.5 text-center text-[14px] font-semibold text-gray-500">
+                  <div className="w-full rounded-2xl bg-hairline py-3.5 text-center text-[14px] font-semibold text-ink-2">
                     {t('community.group_requested')}
                   </div>
                 ) : isPendingRinger ? (
-                  <div className="w-full rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-center text-[14px] font-semibold text-orange-600">
+                  <div className="w-full rounded-2xl bg-warn-50 border border-warn py-3.5 text-center text-[14px] font-semibold text-warn">
                     {t('community.ringer_offer_pending')}
                   </div>
                 ) : isRinger ? (
-                  <div className="w-full rounded-2xl bg-orange-50 border border-orange-200 py-3.5 text-center text-[14px] font-semibold text-orange-600">
+                  <div className="w-full rounded-2xl bg-warn-50 border border-warn py-3.5 text-center text-[14px] font-semibold text-warn">
                     {t('community.already_ringer')}
                   </div>
                 ) : (
@@ -484,17 +484,17 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOff
                       <button
                         onClick={() => onOfferRinger(group.id)}
                         disabled={ringerOfferPending}
-                        className="w-full rounded-2xl border border-orange-200 bg-orange-50 py-3 text-[13px] font-semibold text-orange-700 active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="w-full rounded-2xl border border-warn bg-warn-50 py-3 text-[13px] font-semibold text-warn active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                       >
                         <UserCheck className="h-4 w-4" />
                         {ringerOfferPending ? t('community.offering') : t('community.offer_ringer')}
                         <button type="button" onClick={(e) => { e.stopPropagation(); setShowRingerInfo(!showRingerInfo) }} className="ml-1">
-                          <Info className="h-3.5 w-3.5 text-orange-400" />
+                          <Info className="h-3.5 w-3.5 text-warn" />
                         </button>
                       </button>
                     )}
                     {showRingerInfo && (
-                      <p className="text-[11px] text-gray-500 leading-relaxed px-1">
+                      <p className="text-[11px] text-ink-2 leading-relaxed px-1">
                         {t('community.ringer_info')}
                       </p>
                     )}
@@ -519,43 +519,43 @@ function DiscoverCard({ group, index, onJoin, joiningGroupId, onPreview }: { gro
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       onClick={() => onPreview(group)}
-      className="bg-white rounded-2xl border border-gray-100 px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform"
+      className="bg-white rounded-2xl border border-hairline px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
-          <h3 className="text-[14px] font-bold text-gray-900 truncate">{group.name}</h3>
+          <h3 className="text-[14px] font-bold text-ink truncate">{group.name}</h3>
           {group.city && (
             <div className="flex items-center gap-1 mt-0.5">
-              <MapPin className="h-3 w-3 text-gray-400" />
-              <p className="text-[12px] text-gray-400">{group.city}</p>
+              <MapPin className="h-3 w-3 text-ink-2" />
+              <p className="text-[12px] text-ink-2">{group.city}</p>
             </div>
           )}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[12px] text-gray-500">
-              <Users className="h-3 w-3 text-gray-400" />
+            <span className="inline-flex items-center gap-1 text-[12px] text-ink-2">
+              <Users className="h-3 w-3 text-ink-2" />
               {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
             </span>
             {group.visibility === 'private' ? (
-              <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-gray-600 bg-gray-100 rounded-full px-1.5 py-0.5">
+              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-1.5 py-0.5">
                 <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
               </span>
             ) : group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true ? (
-              <span className="text-[10px] font-semibold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">{t('community.group_open')}</span>
+              <span className="text-[11px] font-semibold text-court-700 bg-court-50 rounded-full px-1.5 py-0.5">{t('community.group_open')}</span>
             ) : (
-              <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 rounded-full px-1.5 py-0.5">{t('community.group_request')}</span>
+              <span className="text-[11px] font-semibold text-warn bg-warn-50 rounded-full px-1.5 py-0.5">{t('community.group_request')}</span>
             )}
           </div>
           {group.description && (
-            <p className="text-[12px] text-gray-400 mt-1 line-clamp-2">{group.description}</p>
+            <p className="text-[12px] text-ink-2 mt-1 line-clamp-2">{group.description}</p>
           )}
         </div>
 
         {group.membershipStatus === 'pending' ? (
-          <span className="inline-flex items-center rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-500 flex-shrink-0 self-start mt-0.5">
+          <span className="inline-flex items-center rounded-xl bg-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2 flex-shrink-0 self-start mt-0.5">
             {t('community.group_requested')}
           </span>
         ) : group.membershipStatus === 'approved' ? (
-          <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-3 py-1.5 text-[12px] font-bold text-teal-700 flex-shrink-0 self-start mt-0.5">
+          <span className="inline-flex items-center rounded-xl bg-court-50 border border-court-100 px-3 py-1.5 text-[12px] font-bold text-court-700 flex-shrink-0 self-start mt-0.5">
             {t('community.member_btn')}
           </span>
         ) : (() => {
@@ -604,11 +604,11 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[16px] font-bold text-gray-900">{t('community.upcoming_events')}</h2>
+        <h2 className="text-[16px] font-bold text-ink">{t('community.upcoming_events')}</h2>
       </div>
       {events.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-          <p className="text-[13px] text-gray-400">{t('community.no_upcoming_events')}</p>
+        <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+          <p className="text-[13px] text-ink-2">{t('community.no_upcoming_events')}</p>
         </div>
       ) : (
       <div className="space-y-2">
@@ -618,21 +618,21 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
             onClick={() => navigate(`/community/events/${e.id}`)}
             className={cn(
               'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
-              e.is_official ? 'border-purple-100 bg-purple-50/30' : 'border-gray-100 bg-white',
+              e.is_official ? 'border-purple-100 bg-purple-50/30' : 'border-hairline bg-white',
             )}
           >
             <div className="flex items-center gap-2 mb-1">
               {e.is_official && (
-                <span className="text-[10px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">{t('community.badge_official')}</span>
+                <span className="text-[11px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">{t('community.badge_official')}</span>
               )}
               {(e.entry_fee_pence ?? 0) > 0 ? (
-                <span className="text-[10px] font-semibold text-gray-500">{'\u00A3'}{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
+                <span className="text-[11px] font-semibold text-ink-2">{'\u00A3'}{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
               ) : (
-                <span className="text-[10px] font-semibold text-green-600">{t('community.badge_free')}</span>
+                <span className="text-[11px] font-semibold text-green-600">{t('community.badge_free')}</span>
               )}
             </div>
-            <p className="text-[14px] font-bold text-gray-900">{e.title}</p>
-            <p className="text-[12px] text-gray-500 mt-0.5">
+            <p className="text-[14px] font-bold text-ink">{e.title}</p>
+            <p className="text-[12px] text-ink-2 mt-0.5">
               {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM \u00B7 HH:mm', { locale }) } catch { return e.start_time } })()}
               {e.location && ` \u00B7 ${e.location}`}
             </p>
@@ -666,10 +666,10 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
 
   return (
     <section>
-      <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.find_a_coach')}</h2>
+      <h2 className="text-[16px] font-bold text-ink mb-3">{t('community.find_a_coach')}</h2>
       {coaches.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-          <p className="text-[13px] text-gray-400">{t('community.no_coaches_coming')}</p>
+        <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+          <p className="text-[13px] text-ink-2">{t('community.no_coaches_coming')}</p>
         </div>
       ) : (
       <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
@@ -677,12 +677,12 @@ function CoachesSection({ userCity }: { userCity?: string | null }) {
           <button
             key={c.id}
             onClick={() => navigate(`/players/${c.id}`)}
-            className="flex-shrink-0 w-32 flex flex-col items-center rounded-2xl border border-gray-100 bg-white p-3 text-center active:scale-[0.97] transition-transform"
+            className="flex-shrink-0 w-32 flex flex-col items-center rounded-2xl border border-hairline bg-white p-3 text-center active:scale-[0.97] transition-transform"
           >
             <PlayerAvatar name={c.name} avatarUrl={c.avatar_url} size="lg" />
-            <p className="text-[12px] font-bold text-gray-900 mt-2 truncate w-full">{c.name}</p>
-            <span className="text-[10px] font-semibold text-teal-600 bg-teal-50 rounded-full px-2 py-0.5 mt-1">{t('community.badge_coach')}</span>
-            {c.city && <p className="text-[10px] text-gray-400 mt-0.5">{c.city}</p>}
+            <p className="text-[12px] font-bold text-ink mt-2 truncate w-full">{c.name}</p>
+            <span className="text-[11px] font-semibold text-court bg-court-50 rounded-full px-2 py-0.5 mt-1">{t('community.badge_coach')}</span>
+            {c.city && <p className="text-[11px] text-ink-2 mt-0.5">{c.city}</p>}
           </button>
         ))}
       </div>
@@ -806,16 +806,16 @@ function NearbyVenuesSection({
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[16px] font-bold text-gray-900">{t('community.padel_courts_near')}</h2>
+        <h2 className="text-[16px] font-bold text-ink">{t('community.padel_courts_near')}</h2>
         <div className="flex items-center gap-3">
           {coords && venues.length > 0 && (
-            <div className="flex rounded-full bg-gray-100 p-0.5">
+            <div className="flex rounded-full bg-hairline p-0.5">
               {(['list', 'map'] as const).map(v => (
                 <button
                   key={v}
                   onClick={() => setView(v)}
                   className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
-                    view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400'
+                    view === v ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
                   }`}
                 >
                   {v === 'list' ? t('community.courts_view_list') : t('community.courts_view_map')}
@@ -826,7 +826,7 @@ function NearbyVenuesSection({
           {canAskLocation && (
             <button
               onClick={() => requestLocation(true)}
-              className="flex items-center gap-1 text-[12px] font-semibold text-teal-700 active:scale-95 transition-transform"
+              className="flex items-center gap-1 text-[12px] font-semibold text-court-700 active:scale-95 transition-transform"
             >
               <MapPin size={13} />
               {geoState === 'locating' ? t('community.courts_near_locating') : t('community.courts_near_use_location')}
@@ -850,8 +850,8 @@ function NearbyVenuesSection({
                 className={cn(
                   'flex-shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold transition-colors active:scale-95',
                   on
-                    ? 'border-teal-600 bg-teal-600 text-white'
-                    : 'border-gray-200 bg-white text-gray-600',
+                    ? 'border-court bg-court text-white'
+                    : 'border-hairline bg-white text-ink-2',
                 )}
               >
                 {label}
@@ -862,15 +862,15 @@ function NearbyVenuesSection({
       )}
 
       {venues.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
-          <p className="text-[13px] font-semibold text-gray-700">{t('community.courts_near_empty_title')}</p>
-          <p className="text-[12px] text-gray-400 mt-1 max-w-[280px] mx-auto">
+        <div className="rounded-2xl border border-dashed border-hairline bg-surface px-4 py-6 text-center">
+          <p className="text-[13px] font-semibold text-ink-2">{t('community.courts_near_empty_title')}</p>
+          <p className="text-[12px] text-ink-2 mt-1 max-w-[280px] mx-auto">
             {geoState === 'denied' ? t('community.courts_near_denied_sub') : t('community.courts_near_empty_sub')}
           </p>
           {canAskLocation && (
             <button
               onClick={() => requestLocation(true)}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-teal-600 text-white text-[13px] font-semibold px-4 py-2 active:scale-95 transition-transform"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-court text-white text-[13px] font-semibold px-4 py-2 active:scale-95 transition-transform"
             >
               <MapPin size={14} />
               {geoState === 'locating' ? t('community.courts_near_locating') : t('community.courts_near_use_location')}
@@ -878,19 +878,19 @@ function NearbyVenuesSection({
           )}
         </div>
       ) : visibleVenues.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center">
-          <p className="text-[13px] font-semibold text-gray-700">{t('community.courts_filter_none_match')}</p>
+        <div className="rounded-2xl border border-dashed border-hairline bg-surface px-4 py-6 text-center">
+          <p className="text-[13px] font-semibold text-ink-2">{t('community.courts_filter_none_match')}</p>
           {anyFilter && (
             <button
               onClick={() => setFilters({ indoor: false, outdoor: false, bookable: false })}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-teal-600 text-white text-[13px] font-semibold px-4 py-2 active:scale-95 transition-transform"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-court text-white text-[13px] font-semibold px-4 py-2 active:scale-95 transition-transform"
             >
               {t('community.courts_filter_clear')}
             </button>
           )}
         </div>
       ) : view === 'map' && coords ? (
-        <Suspense fallback={<div className="h-[360px] w-full rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center"><div className="h-6 w-6 rounded-full border-2 border-teal-500 border-t-transparent animate-spin" /></div>}>
+        <Suspense fallback={<div className="h-[360px] w-full rounded-2xl bg-surface border border-hairline flex items-center justify-center"><div className="h-6 w-6 rounded-full border-2 border-court border-t-transparent animate-spin" /></div>}>
           <VenueMap
             venues={visibleVenues}
             center={coords}
@@ -907,31 +907,31 @@ function NearbyVenuesSection({
             <button
               key={v.venue_id}
               onClick={() => navigate(`/venues/${v.venue_id}`)}
-              className="flex-shrink-0 w-48 rounded-2xl border border-gray-100 bg-white overflow-hidden text-left active:scale-[0.97] transition-transform"
+              className="flex-shrink-0 w-48 rounded-2xl border border-hairline bg-white overflow-hidden text-left active:scale-[0.97] transition-transform"
             >
               <div className="h-20 relative">
                 {hero ? (
                   <img src={hero} alt={v.venue_name} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="h-full bg-gradient-to-br from-teal-600 to-teal-400 flex items-center justify-center">
+                  <div className="h-full bg-gradient-to-br from-court to-court flex items-center justify-center">
                     <span className="text-3xl">🎾</span>
                   </div>
                 )}
                 {distance != null && (
-                  <span className="absolute top-1.5 right-1.5 text-[10px] font-semibold text-white bg-black/45 backdrop-blur rounded-full px-1.5 py-0.5">
+                  <span className="absolute top-1.5 right-1.5 text-[11px] font-semibold text-white bg-black/45 backdrop-blur rounded-full px-1.5 py-0.5">
                     {t('community.courts_near_away', { distance: formatDistance(distance) })}
                   </span>
                 )}
               </div>
               <div className="px-3 py-2.5">
-                <p className="text-[13px] font-bold text-gray-900 truncate">{v.venue_name}</p>
-                <p className="text-[11px] text-gray-400 mt-0.5">{v.city}{courts > 0 ? ` \u00B7 ${courts} courts` : ''}</p>
+                <p className="text-[13px] font-bold text-ink truncate">{v.venue_name}</p>
+                <p className="text-[11px] text-ink-2 mt-0.5">{v.city}{courts > 0 ? ` \u00B7 ${courts} courts` : ''}</p>
                 <div className="flex items-center gap-1.5 mt-1.5">
                   {v.ppa_bookable && (
-                    <span className="text-[9px] font-bold text-teal-700 bg-teal-50 rounded-full px-1.5 py-0.5">PPA</span>
+                    <span className="text-[11px] font-bold text-court-700 bg-court-50 rounded-full px-1.5 py-0.5">PPA</span>
                   )}
                   {(v.rating as number) > 0 && (
-                    <span className="text-[10px] text-gray-500">{'\u2B50'} {Number(v.rating).toFixed(1)}</span>
+                    <span className="text-[11px] text-ink-2">{'\u2B50'} {Number(v.rating).toFixed(1)}</span>
                   )}
                 </div>
               </div>
@@ -1143,10 +1143,10 @@ export function CommunityPage() {
   const inlinePlayers = foundPlayers.slice(0, 8)
 
   return (
-    <div className="min-h-full bg-white pb-32">
+    <div className="min-h-full bg-surface pb-32">
       {/* Header */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-        <h1 className="text-[22px] font-bold text-gray-900">{t('community.title')}</h1>
+      <div className="px-5 pt-14 pb-4 sticky top-0 bg-surface/95 backdrop-blur-sm z-10 border-b border-hairline">
+        <h1 className="text-[22px] font-bold text-ink">{t('community.title')}</h1>
       </div>
 
       <div className="px-5 space-y-6">
@@ -1160,7 +1160,7 @@ export function CommunityPage() {
               </div>
               <div className="bg-white/15 rounded-xl px-3 py-2 text-center">
                 <p className="text-[22px] font-black leading-none">{allMyGroups.length}</p>
-                <p className="text-[10px] text-white/80 mt-0.5">{t('community.groups_count')}</p>
+                <p className="text-[11px] text-white/80 mt-0.5">{t('community.groups_count')}</p>
               </div>
             </div>
             <div className="flex gap-2">
@@ -1180,44 +1180,44 @@ export function CommunityPage() {
         {/* Open Matches link */}
         <button
           onClick={() => navigate('/open-matches')}
-          className="w-full flex items-center gap-3 rounded-2xl border border-orange-100 bg-orange-50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
+          className="w-full flex items-center gap-3 rounded-2xl border border-warn-100 bg-warn-50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
         >
-          <div className="h-9 w-9 rounded-xl bg-orange-100 flex items-center justify-center flex-shrink-0">
+          <div className="h-9 w-9 rounded-xl bg-warn-100 flex items-center justify-center flex-shrink-0">
             <span className="text-lg">🎾</span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-bold text-gray-800">{t('community.open_matches')}</p>
-            <p className="text-[11px] text-gray-500">{t('community.open_matches_subtitle')}</p>
+            <p className="text-[13px] font-bold text-ink">{t('community.open_matches')}</p>
+            <p className="text-[11px] text-ink-2">{t('community.open_matches_subtitle')}</p>
           </div>
-          <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+          <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
         </button>
 
         {/* My Connections link */}
         <button
           onClick={() => navigate('/community/connections')}
-          className="w-full flex items-center gap-3 rounded-2xl border border-teal-100 bg-teal-50/50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
+          className="w-full flex items-center gap-3 rounded-2xl border border-court-100 bg-court-50/50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
         >
-          <div className="h-9 w-9 rounded-xl bg-teal-100 flex items-center justify-center flex-shrink-0">
-            <Users className="h-4.5 w-4.5 text-teal-600" />
+          <div className="h-9 w-9 rounded-xl bg-court-100 flex items-center justify-center flex-shrink-0">
+            <Users className="h-4.5 w-4.5 text-court" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-bold text-gray-800">{t('community.my_connections')}</p>
-            <p className="text-[11px] text-gray-500">{t('community.my_connections_subtitle')}</p>
+            <p className="text-[13px] font-bold text-ink">{t('community.my_connections')}</p>
+            <p className="text-[11px] text-ink-2">{t('community.my_connections_subtitle')}</p>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             {connections.accepted.size > 0 && (
-              <span className="text-[12px] font-semibold text-teal-600">{connections.accepted.size}</span>
+              <span className="text-[12px] font-semibold text-court">{connections.accepted.size}</span>
             )}
-            <ChevronRight className="h-4 w-4 text-gray-300" />
+            <ChevronRight className="h-4 w-4 text-ink-3" />
           </div>
         </button>
 
         {/* ── My Groups (merged: approved + ringer + pending) ── */}
         <section ref={groupsRef} id="groups" style={{ scrollMarginTop: '120px' }}>
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-bold text-gray-900">{t('community.my_groups')}</h2>
+            <h2 className="text-[16px] font-bold text-ink">{t('community.my_groups')}</h2>
             {mergedGroups.length > 0 && (
-              <span className="text-[12px] text-gray-400">
+              <span className="text-[12px] text-ink-2">
                 {mergedGroups.length} group{mergedGroups.length !== 1 ? 's' : ''}
               </span>
             )}
@@ -1226,16 +1226,16 @@ export function CommunityPage() {
           {loadingMine ? (
             <div className="space-y-3">
               {[0, 1].map((i) => (
-                <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />
+                <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />
               ))}
             </div>
           ) : mergedGroups.length === 0 && pendingRequests.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
-              <div className="h-10 w-10 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                <Users className="h-5 w-5 text-gray-400" />
+            <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
+              <div className="h-10 w-10 rounded-2xl bg-hairline flex items-center justify-center mx-auto mb-3">
+                <Users className="h-5 w-5 text-ink-2" />
               </div>
-              <p className="text-[14px] font-semibold text-gray-600 mb-1">{t('community.no_groups')}</p>
-              <p className="text-[12px] text-gray-400 mb-4">{t('community.no_groups_sub')}</p>
+              <p className="text-[14px] font-semibold text-ink-2 mb-1">{t('community.no_groups')}</p>
+              <p className="text-[12px] text-ink-2 mb-4">{t('community.no_groups_sub')}</p>
               <button
                 onClick={() => setShowCreateSheet(true)}
                 className="inline-flex items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
@@ -1251,11 +1251,11 @@ export function CommunityPage() {
               ))}
               {/* Pending group requests inline */}
               {pendingRequests.map((req) => (
-                <div key={req.id} className="flex items-center justify-between gap-3 rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3">
+                <div key={req.id} className="flex items-center justify-between gap-3 rounded-2xl border border-warn-100 bg-warn-50 px-4 py-3">
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-gray-800 truncate">{req.groupName}</p>
-                    {req.groupCity && <p className="text-[11px] text-gray-500">{req.groupCity}</p>}
-                    <span className="inline-flex items-center mt-1 rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold text-amber-700">
+                    <p className="text-[13px] font-bold text-ink truncate">{req.groupName}</p>
+                    {req.groupCity && <p className="text-[11px] text-ink-2">{req.groupCity}</p>}
+                    <span className="inline-flex items-center mt-1 rounded-full bg-warn-100 px-2 py-0.5 text-[11px] font-semibold text-warn">
                       {t('community.pending_approval')}
                     </span>
                   </div>
@@ -1274,17 +1274,17 @@ export function CommunityPage() {
 
         {/* ── Find Groups (was "Discover") ── */}
         <section>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.find_groups')}</h2>
+          <h2 className="text-[16px] font-bold text-ink mb-3">{t('community.find_groups')}</h2>
 
           <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder={t('community.search_placeholder')}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
             />
           </div>
 
@@ -1300,13 +1300,13 @@ export function CommunityPage() {
                 className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
                   activeFilter === key
                     ? 'bg-court text-white border-court'
-                    : 'bg-white text-gray-600 border-gray-200'
+                    : 'bg-white text-ink-2 border-hairline'
                 }`}
               >
                 {label}
               </button>
             ))}
-            <span className="text-gray-300 self-center">|</span>
+            <span className="text-ink-3 self-center">|</span>
             {[
               { key: 'newest',       label: t('community.filter_newest')        },
               { key: 'most_members', label: t('community.filter_most_members')  },
@@ -1316,8 +1316,8 @@ export function CommunityPage() {
                 onClick={() => setSortBy(key)}
                 className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium border transition-colors ${
                   sortBy === key
-                    ? 'bg-gray-800 text-white border-gray-800'
-                    : 'bg-gray-50 text-gray-500 border-gray-200'
+                    ? 'bg-court text-white border-court'
+                    : 'bg-surface text-ink-2 border-hairline'
                 }`}
               >
                 {label}
@@ -1328,15 +1328,15 @@ export function CommunityPage() {
           {loadingDiscover ? (
             <div className="space-y-3">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-20 rounded-2xl bg-gray-100 animate-pulse" />
+                <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />
               ))}
             </div>
           ) : discoverGroups.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-500">
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">
                 {search.trim() ? t('community.no_groups_found') : t('community.no_public_groups_yet')}
               </p>
-              <p className="text-[12px] text-gray-400 mt-1">{t('community.be_first_create_above')}</p>
+              <p className="text-[12px] text-ink-2 mt-1">{t('community.be_first_create_above')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1358,9 +1358,9 @@ export function CommunityPage() {
         {/* ── Connections ── */}
         <section ref={connectionsRef} id="connections">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-bold text-gray-900">{t('community.connections')}</h2>
+            <h2 className="text-[16px] font-bold text-ink">{t('community.connections')}</h2>
             {connections.accepted.size > 0 && (
-              <span className="text-[12px] text-gray-400">
+              <span className="text-[12px] text-ink-2">
                 {connections.accepted.size} connection{connections.accepted.size !== 1 ? 's' : ''}
               </span>
             )}
@@ -1369,7 +1369,7 @@ export function CommunityPage() {
           {/* Incoming requests */}
           {connections.incomingRequests.length > 0 && (
             <div className="mb-4">
-              <p className="text-[12px] font-bold text-gray-500 mb-2">
+              <p className="text-[12px] font-bold text-ink-2 mb-2">
                 {t('community.connection_requests', { count: connections.incomingRequests.length })}
               </p>
               <div className="space-y-2">
@@ -1387,14 +1387,14 @@ export function CommunityPage() {
                 <ConnectionCard key={conn.user_id} player={conn}>
                   <button
                     onClick={() => setInviteMatchTarget({ id: conn.user_id, name: conn.name })}
-                    className="rounded-lg bg-teal-50 border border-teal-200 px-2 py-1 text-[10px] font-bold text-teal-700"
+                    className="rounded-lg bg-court-50 border border-court-100 px-2 py-1 text-[11px] font-bold text-court-700"
                   >
                     <Calendar className="h-3 w-3 inline mr-0.5" />
                     Match
                   </button>
                   <button
                     onClick={() => setInviteGroupTarget({ id: conn.user_id, name: conn.name })}
-                    className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-1 text-[10px] font-bold text-blue-700"
+                    className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-1 text-[11px] font-bold text-blue-700"
                   >
                     <Users className="h-3 w-3 inline mr-0.5" />
                     Group
@@ -1411,25 +1411,25 @@ export function CommunityPage() {
               )}
             </div>
           ) : connections.incomingRequests.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-500">{t('community.no_connections_yet')}</p>
-              <p className="text-[12px] text-gray-400 mt-1">{t('community.connect_with_players_invite')}</p>
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">{t('community.no_connections_yet')}</p>
+              <p className="text-[12px] text-ink-2 mt-1">{t('community.connect_with_players_invite')}</p>
             </div>
           ) : null}
         </section>
 
         {/* ── Find Players ── */}
         <section ref={playersRef} id="players" style={{ scrollMarginTop: '120px' }}>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('community.find_players')}</h2>
+          <h2 className="text-[16px] font-bold text-ink mb-3">{t('community.find_players')}</h2>
           <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
             <input
               type="text"
               value={playerSearch}
               onChange={(e) => setPlayerSearch(e.target.value)}
               placeholder={t('community.search_players')}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
             />
           </div>
           {profile?.city && (
@@ -1438,15 +1438,15 @@ export function CommunityPage() {
               className={`mb-3 rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${
                 playerCityFilter
                   ? 'bg-court text-white border-court'
-                  : 'bg-white text-gray-600 border-gray-200'
+                  : 'bg-white text-ink-2 border-hairline'
               }`}
             >
               {t('community.near_me_city', { city: profile.city })}
             </button>
           )}
           {foundPlayers.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-500">
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">
                 {playerSearch.trim() ? t('community.no_players_found') : t('community.no_players_yet')}
               </p>
             </div>
@@ -1455,19 +1455,19 @@ export function CommunityPage() {
               {inlinePlayers.map((p) => {
                 const state = getConnectState(p.id)
                 return (
-                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50 border border-transparent">
+                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface border border-transparent">
                     <button
                       onClick={() => navigate(`/players/${p.id}`)}
                       className="flex items-center gap-3 flex-1 min-w-0 text-left"
                     >
                       <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
-                        {p.city && <p className="text-[11px] text-gray-400">{p.city}</p>}
+                        <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
+                        {p.city && <p className="text-[11px] text-ink-2">{p.city}</p>}
                       </div>
                     </button>
                     {p.internal_ranking != null && (
-                      <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
+                      <span className="text-[11px] font-bold text-court-700 bg-court-50 border border-court-100 rounded-full px-2 py-0.5 flex-shrink-0">
                         {p.internal_ranking} ELO
                       </span>
                     )}
@@ -1477,13 +1477,13 @@ export function CommunityPage() {
                           <button
                             onClick={() => connectMutation.mutate(p.id)}
                             disabled={connectMutation.isPending}
-                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white hover:bg-teal-700 transition-colors"
+                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white hover:bg-court-700 transition-colors"
                           >
                             <UserPlus className="h-3 w-3" /> {t('community.connect')}
                           </button>
                         )}
                         {state === 'pending_out' && (
-                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
+                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
                             <Clock className="h-3 w-3" /> {t('community.pending')}
                           </span>
                         )}
@@ -1497,7 +1497,7 @@ export function CommunityPage() {
                           </button>
                         )}
                         {state === 'accepted' && (
-                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
+                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
                             <Check className="h-3 w-3" /> {t('community.connected')}
                           </span>
                         )}

@@ -37,14 +37,14 @@ export function ForVenuesPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
+      <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-hairline">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-5 py-4">
-          <Link to="/" className="text-[18px] font-bold text-gray-900">
+          <Link to="/" className="text-[18px] font-bold text-ink">
             PPA <span className="text-court">Venues</span>
           </Link>
           <div className="flex items-center gap-6 text-[14px]">
-            <Link to="/" className="text-gray-500 hover:text-gray-900 hidden sm:block">For Players</Link>
-            <Link to="/faq" className="text-gray-500 hover:text-gray-900 hidden sm:block">FAQ</Link>
+            <Link to="/" className="text-ink-2 hover:text-ink hidden sm:block">For Players</Link>
+            <Link to="/faq" className="text-ink-2 hover:text-ink hidden sm:block">FAQ</Link>
             <a
               href={VM_URL}
               className="rounded-xl bg-court px-4 py-2 text-[13px] font-bold text-white hover:bg-[#00796B] transition-colors"
@@ -57,11 +57,11 @@ export function ForVenuesPage() {
 
       {/* Hero */}
       <section className="max-w-5xl mx-auto px-5 pt-16 pb-12 text-center">
-        <h1 className="text-[32px] sm:text-[42px] font-bold text-gray-900 leading-tight">
+        <h1 className="text-[32px] sm:text-[42px] font-bold text-ink leading-tight">
           Manage your padel venue.<br />
           <span className="text-court">Take bookings online.</span>
         </h1>
-        <p className="mt-4 text-[16px] sm:text-[18px] text-gray-500 max-w-2xl mx-auto leading-relaxed">
+        <p className="mt-4 text-[16px] sm:text-[18px] text-ink-2 max-w-2xl mx-auto leading-relaxed">
           Free to start — no monthly fee, no lock-in. List your courts, set your availability
           and pricing, and let players discover and book you directly. You only pay a small
           fee on bookings taken and paid in-app.
@@ -78,7 +78,7 @@ export function ForVenuesPage() {
           </a>
           <a
             href="#search"
-            className="rounded-2xl border-2 border-gray-200 px-8 py-3.5 text-[15px] font-bold text-gray-700 hover:border-court transition-all"
+            className="rounded-2xl border-2 border-hairline px-8 py-3.5 text-[15px] font-bold text-ink-2 hover:border-court transition-all"
           >
             Find your venue
           </a>
@@ -86,9 +86,9 @@ export function ForVenuesPage() {
       </section>
 
       {/* What it does */}
-      <section className="bg-gray-50 py-16">
+      <section className="bg-surface py-16">
         <div className="max-w-5xl mx-auto px-5">
-          <h2 className="text-[24px] font-bold text-gray-900 text-center mb-10">Everything you need to run your courts</h2>
+          <h2 className="text-[24px] font-bold text-ink text-center mb-10">Everything you need to run your courts</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {[
               { icon: Building2, title: 'Court management', desc: 'Set up your courts, surfaces, and capacity. Indoor, outdoor, covered — all supported.' },
@@ -96,12 +96,12 @@ export function ForVenuesPage() {
               { icon: CreditCard, title: 'Online bookings & payments', desc: 'Accept bookings and payments directly via Stripe. A small fee only on what you take in-app.' },
               { icon: Users, title: 'Player discovery', desc: 'Padel venues listed worldwide. Players in your area find and book your courts through the PPA app.' },
             ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-2xl bg-white border border-gray-100 p-5">
-                <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center mb-4">
+              <div key={title} className="rounded-2xl bg-white border border-hairline p-5">
+                <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center mb-4">
                   <Icon className="h-5 w-5 text-court" />
                 </div>
-                <h3 className="text-[15px] font-bold text-gray-900 mb-2">{title}</h3>
-                <p className="text-[13px] text-gray-500 leading-relaxed">{desc}</p>
+                <h3 className="text-[15px] font-bold text-ink mb-2">{title}</h3>
+                <p className="text-[13px] text-ink-2 leading-relaxed">{desc}</p>
               </div>
             ))}
           </div>
@@ -111,19 +111,19 @@ export function ForVenuesPage() {
       {/* Search your venue */}
       <section id="search" className="py-16">
         <div className="max-w-2xl mx-auto px-5">
-          <h2 className="text-[24px] font-bold text-gray-900 text-center mb-3">Your venue is probably already listed</h2>
-          <p className="text-[14px] text-gray-500 text-center mb-8">
+          <h2 className="text-[24px] font-bold text-ink text-center mb-3">Your venue is probably already listed</h2>
+          <p className="text-[14px] text-ink-2 text-center mb-8">
             We list padel venues worldwide. Search below — if yours is here, claim it to control your listing.
           </p>
 
           <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-ink-2" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by venue name or city..."
-              className="w-full rounded-2xl border-2 border-gray-200 pl-12 pr-4 py-4 text-[15px] text-gray-900 outline-none focus:border-court transition-colors"
+              className="w-full rounded-2xl border-2 border-hairline pl-12 pr-4 py-4 text-[15px] text-ink outline-none focus:border-court transition-colors"
               style={{ fontSize: '16px' }}
             />
           </div>
@@ -140,15 +140,15 @@ export function ForVenuesPage() {
                 <a
                   key={v.venue_id}
                   href={`${VM_URL}/claim?venue=${v.venue_id}`}
-                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 hover:border-court hover:bg-teal-50/30 transition-all group"
+                  className="flex items-center justify-between rounded-xl border border-hairline bg-white px-4 py-3 hover:border-court hover:bg-court-50/30 transition-all group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                    <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
                       <MapPin className="h-5 w-5 text-court" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-[14px] font-semibold text-gray-900 truncate">{v.venue_name}</p>
-                      <p className="text-[12px] text-gray-400 truncate">
+                      <p className="text-[14px] font-semibold text-ink truncate">{v.venue_name}</p>
+                      <p className="text-[12px] text-ink-2 truncate">
                         {[v.full_address, v.city, v.postcode].filter(Boolean).join(', ') || 'Padel venue'}
                       </p>
                     </div>
@@ -162,11 +162,11 @@ export function ForVenuesPage() {
           )}
 
           {!searching && searched && results.length === 0 && query.length >= 2 && (
-            <div className="mt-6 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-6 text-center">
-              <p className="text-[14px] text-gray-600 mb-3">Can't find your venue?</p>
+            <div className="mt-6 rounded-2xl border border-hairline bg-surface px-5 py-6 text-center">
+              <p className="text-[14px] text-ink-2 mb-3">Can't find your venue?</p>
               <a
                 href={`${VM_URL}/onboarding`}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#E65100] px-6 py-2.5 text-[13px] font-bold text-white hover:bg-[#BF360C] transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl bg-court px-6 py-2.5 text-[13px] font-bold text-white hover:bg-court-700 transition-colors"
               >
                 Add your venue <ArrowRight className="h-4 w-4" />
               </a>
@@ -176,24 +176,24 @@ export function ForVenuesPage() {
       </section>
 
       {/* Why claim */}
-      <section className="bg-gray-50 py-16">
+      <section className="bg-surface py-16">
         <div className="max-w-3xl mx-auto px-5 text-center">
-          <h2 className="text-[24px] font-bold text-gray-900 mb-8">Why claim your venue?</h2>
+          <h2 className="text-[24px] font-bold text-ink mb-8">Why claim your venue?</h2>
           <div className="grid sm:grid-cols-3 gap-6 text-left">
-            <div className="rounded-2xl bg-white border border-gray-100 p-5">
+            <div className="rounded-2xl bg-white border border-hairline p-5">
               <p className="text-[28px] mb-2">🎯</p>
-              <h3 className="text-[14px] font-bold text-gray-900 mb-1">Control your listing</h3>
-              <p className="text-[12px] text-gray-500">Update your hours, pricing, photos, and court details. Your venue, your way.</p>
+              <h3 className="text-[14px] font-bold text-ink mb-1">Control your listing</h3>
+              <p className="text-[12px] text-ink-2">Update your hours, pricing, photos, and court details. Your venue, your way.</p>
             </div>
-            <div className="rounded-2xl bg-white border border-gray-100 p-5">
+            <div className="rounded-2xl bg-white border border-hairline p-5">
               <p className="text-[28px] mb-2">📱</p>
-              <h3 className="text-[14px] font-bold text-gray-900 mb-1">Reach new players</h3>
-              <p className="text-[12px] text-gray-500">PPA players in your area discover your courts when looking for games. Free exposure.</p>
+              <h3 className="text-[14px] font-bold text-ink mb-1">Reach new players</h3>
+              <p className="text-[12px] text-ink-2">PPA players in your area discover your courts when looking for games. Free exposure.</p>
             </div>
-            <div className="rounded-2xl bg-white border border-gray-100 p-5">
+            <div className="rounded-2xl bg-white border border-hairline p-5">
               <p className="text-[28px] mb-2">💳</p>
-              <h3 className="text-[14px] font-bold text-gray-900 mb-1">Take bookings directly</h3>
-              <p className="text-[12px] text-gray-500">Players book and pay through the app — a small fee only on in-app bookings. Send them to your own link and we take nothing.</p>
+              <h3 className="text-[14px] font-bold text-ink mb-1">Take bookings directly</h3>
+              <p className="text-[12px] text-ink-2">Players book and pay through the app — a small fee only on in-app bookings. Send them to your own link and we take nothing.</p>
             </div>
           </div>
         </div>
@@ -202,8 +202,8 @@ export function ForVenuesPage() {
       {/* CTA */}
       <section className="py-16">
         <div className="max-w-2xl mx-auto px-5 text-center">
-          <h2 className="text-[24px] font-bold text-gray-900 mb-4">Ready to get started?</h2>
-          <p className="text-[14px] text-gray-500 mb-8">
+          <h2 className="text-[24px] font-bold text-ink mb-4">Ready to get started?</h2>
+          <p className="text-[14px] text-ink-2 mb-8">
             Set up in under 5 minutes. Free to start, no lock-in — cancel anytime.
           </p>
           <a
@@ -216,14 +216,14 @@ export function ForVenuesPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-100 py-8">
-        <div className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-gray-400">
+      <footer className="border-t border-hairline py-8">
+        <div className="max-w-5xl mx-auto px-5 flex flex-col sm:flex-row items-center justify-between gap-4 text-[12px] text-ink-2">
           <span>© {new Date().getFullYear()} Padel Players App</span>
           <div className="flex items-center gap-4">
-            <Link to="/" className="hover:text-gray-600">For Players</Link>
-            <Link to="/faq" className="hover:text-gray-600">FAQ</Link>
-            <Link to="/contact" className="hover:text-gray-600">Contact</Link>
-            <Link to="/privacy" className="hover:text-gray-600">Privacy</Link>
+            <Link to="/" className="hover:text-ink-2">For Players</Link>
+            <Link to="/faq" className="hover:text-ink-2">FAQ</Link>
+            <Link to="/contact" className="hover:text-ink-2">Contact</Link>
+            <Link to="/privacy" className="hover:text-ink-2">Privacy</Link>
           </div>
         </div>
       </footer>

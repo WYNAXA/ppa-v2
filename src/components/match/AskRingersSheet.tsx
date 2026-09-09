@@ -205,22 +205,22 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-              <h2 className="text-[15px] font-bold text-gray-900">{t('ringers.ask_ringers_title')}</h2>
-              <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-500" />
+              <h2 className="text-[15px] font-bold text-ink">{t('ringers.ask_ringers_title')}</h2>
+              <button onClick={onClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
             </div>
 
             <div className="px-5 pb-6 overflow-y-auto flex-1" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
               {expiryLabel && (
-                <p className="text-[12px] text-gray-400 mb-3">{t('ringers.ask_ringers_subtitle', { expiry: expiryLabel })}</p>
+                <p className="text-[12px] text-ink-2 mb-3">{t('ringers.ask_ringers_subtitle', { expiry: expiryLabel })}</p>
               )}
 
               {sortedRingers.length === 0 ? (
-                <p className="text-[13px] text-gray-500 text-center py-6">{groupId ? t('ringers.ask_ringers_no_ringers') : t('ringers.ask_ringers_no_ringers_network')}</p>
+                <p className="text-[13px] text-ink-2 text-center py-6">{groupId ? t('ringers.ask_ringers_no_ringers') : t('ringers.ask_ringers_no_ringers_network')}</p>
               ) : (
                 <>
                   {selectableCount > 1 && (
@@ -239,14 +239,14 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                       return (
                         <div key={ringer.id} className={cn(
                           'flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors',
-                          isSelected ? 'border-court bg-teal-50' : 'border-gray-100 bg-white'
+                          isSelected ? 'border-court bg-court-50' : 'border-hairline bg-white'
                         )}>
                           {isSelectable && (
                             <button
                               onClick={() => toggleSelect(ringer.id)}
                               className={cn(
                                 'h-5 w-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                                isSelected ? 'bg-court border-court' : 'border-gray-300'
+                                isSelected ? 'bg-court border-court' : 'border-hairline'
                               )}
                             >
                               {isSelected && <Check className="h-3 w-3 text-white" />}
@@ -254,26 +254,26 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                           )}
                           <PlayerAvatar name={ringer.name} avatarUrl={ringer.avatar_url} size="sm" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-gray-800 truncate">
+                            <p className="text-[13px] font-semibold text-ink truncate">
                               {ringer.name}
                               {suggestedId === ringer.id && !status && (
-                                <span className="ml-1.5 text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded-full px-1.5 py-0.5">
+                                <span className="ml-1.5 text-[11px] font-bold text-court bg-court-50 border border-court-100 rounded-full px-1.5 py-0.5">
                                   {t('ringers.ringer_responses_suggested')}
                                 </span>
                               )}
                             </p>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[11px] text-ink-2">
                               {ringer.internal_ranking ?? '—'} ELO
                               {eloDelta !== 0 && ` (${eloDelta > 0 ? '+' : ''}${eloDelta} from avg)`}
                             </p>
                           </div>
                           {status && (
                             <span className={cn(
-                              'text-[10px] font-bold rounded-full px-2 py-0.5 flex-shrink-0',
+                              'text-[11px] font-bold rounded-full px-2 py-0.5 flex-shrink-0',
                               status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-100' :
-                              status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                              status === 'pending' ? 'bg-warn-50 text-warn border border-warn-100' :
                               status === 'declined' ? 'bg-red-50 text-red-500 border border-red-100' :
-                              'bg-gray-100 text-gray-400'
+                              'bg-hairline text-ink-2'
                             )}>
                               {status === 'accepted' ? t('ringers.ringer_status_accepted') :
                                status === 'pending' ? t('ringers.ringer_status_pending') :

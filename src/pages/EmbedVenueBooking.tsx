@@ -84,23 +84,23 @@ export function EmbedVenueBookingPage() {
     )
   }
   if (!venue) {
-    return <div className="min-h-screen flex items-center justify-center bg-white text-[14px] text-gray-400">Venue not found.</div>
+    return <div className="min-h-screen flex items-center justify-center bg-white text-[14px] text-ink-2">Venue not found.</div>
   }
 
   const external = !venue.ppa_bookable
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 flex flex-col">
+    <div className="min-h-screen bg-white text-ink flex flex-col">
       {/* Header */}
-      <div className="px-4 pt-4 pb-3 border-b border-gray-100">
+      <div className="px-4 pt-4 pb-3 border-b border-hairline">
         <p className="text-[11px] font-bold uppercase tracking-wide text-court">Book a court</p>
         <h1 className="text-[18px] font-bold leading-tight truncate">{venue.venue_name}</h1>
-        {venue.city && <p className="text-[12px] text-gray-400">{venue.city}</p>}
+        {venue.city && <p className="text-[12px] text-ink-2">{venue.city}</p>}
       </div>
 
       {external ? (
         <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="text-[14px] text-gray-600 max-w-xs">Reserve a court at {venue.venue_name}.</p>
+          <p className="text-[14px] text-ink-2 max-w-xs">Reserve a court at {venue.venue_name}.</p>
           <a
             href={venue.booking_url ?? bookUrl()}
             target="_blank"
@@ -121,11 +121,11 @@ export function EmbedVenueBookingPage() {
                 <button
                   key={ds}
                   onClick={() => setDate(ds)}
-                  className={`flex-shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[52px] transition-colors ${active ? 'border-court bg-court text-white' : 'border-gray-200 bg-white text-gray-700'}`}
+                  className={`flex-shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[52px] transition-colors ${active ? 'border-court bg-court text-white' : 'border-hairline bg-white text-ink-2'}`}
                 >
-                  <span className="text-[10px] font-semibold uppercase opacity-80">{format(d, 'EEE')}</span>
+                  <span className="text-[11px] font-semibold uppercase opacity-80">{format(d, 'EEE')}</span>
                   <span className="text-[16px] font-bold leading-tight">{format(d, 'd')}</span>
-                  <span className="text-[9px] opacity-70">{format(d, 'MMM')}</span>
+                  <span className="text-[11px] opacity-70">{format(d, 'MMM')}</span>
                 </button>
               )
             })}
@@ -137,7 +137,7 @@ export function EmbedVenueBookingPage() {
               <button
                 key={dur}
                 onClick={() => setDuration(dur)}
-                className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${duration === dur ? 'bg-court text-white border-court' : 'bg-white text-gray-600 border-gray-200'}`}
+                className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${duration === dur ? 'bg-court text-white border-court' : 'bg-white text-ink-2 border-hairline'}`}
               >
                 {dur} min
               </button>
@@ -153,7 +153,7 @@ export function EmbedVenueBookingPage() {
             ) : slotsError ? (
               <p className="text-center text-[13px] text-red-500 py-8">{slotsError}</p>
             ) : slots.length === 0 ? (
-              <p className="text-center text-[13px] text-gray-400 py-8">No availability for this day — try another date.</p>
+              <p className="text-center text-[13px] text-ink-2 py-8">No availability for this day — try another date.</p>
             ) : (
               <div className="grid grid-cols-3 gap-2">
                 {slots.map((s, i) => (
@@ -162,7 +162,7 @@ export function EmbedVenueBookingPage() {
                     href={bookUrl(s.start_time)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-xl border border-gray-200 bg-white py-2.5 text-center text-[14px] font-semibold text-gray-800 hover:border-court hover:bg-court/[0.06] active:scale-95 transition-all"
+                    className="rounded-xl border border-hairline bg-white py-2.5 text-center text-[14px] font-semibold text-ink hover:border-court hover:bg-court/[0.06] active:scale-95 transition-all"
                   >
                     {fmtSlot(s.start_time)}
                   </a>
@@ -178,7 +178,7 @@ export function EmbedVenueBookingPage() {
         href={appOrigin}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center gap-1.5 py-2.5 border-t border-gray-100 text-[11px] font-medium text-gray-400 hover:text-gray-600"
+        className="flex items-center justify-center gap-1.5 py-2.5 border-t border-hairline text-[11px] font-medium text-ink-2 hover:text-ink-2"
       >
         Powered by <span className="font-bold text-court">Padel Players</span> 🎾
       </a>

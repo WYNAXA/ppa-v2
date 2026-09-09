@@ -114,15 +114,15 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1 flex-shrink-0">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
 
             {/* Header */}
             <div className="px-5 pt-2 pb-4 text-center flex-shrink-0">
-              <h2 className="text-[16px] font-bold text-gray-900">
+              <h2 className="text-[16px] font-bold text-ink">
                 {hasVoted ? t('peer_voting.your_votes') : t('peer_voting.rate_teammates')}
               </h2>
-              <p className="text-[13px] text-gray-500 mt-1">
+              <p className="text-[13px] text-ink-2 mt-1">
                 {hasVoted ? t('peer_voting.already_voted') : t('peer_voting.who_stood_out')}
               </p>
             </div>
@@ -130,7 +130,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
             {/* Loading */}
             {loadingVotes ? (
               <div className="flex items-center justify-center py-12">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
               </div>
             ) : (
               /* Categories */
@@ -140,8 +140,8 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-lg">{cat.emoji}</span>
                       <div>
-                        <p className="text-[13px] font-bold text-gray-800">{t(`peer_voting.${cat.id}_name`, { defaultValue: cat.name })}</p>
-                        <p className="text-[11px] text-gray-400">{t(`peer_voting.${cat.id}_desc`, { defaultValue: cat.desc })}</p>
+                        <p className="text-[13px] font-bold text-ink">{t(`peer_voting.${cat.id}_name`, { defaultValue: cat.name })}</p>
+                        <p className="text-[11px] text-ink-2">{t(`peer_voting.${cat.id}_desc`, { defaultValue: cat.desc })}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -153,9 +153,9 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                           className={cn(
                             'flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-all border-2',
                             displayVotes[cat.id] === player.id
-                              ? 'border-court bg-teal-50'
-                              : 'border-transparent bg-gray-50',
-                            !hasVoted && displayVotes[cat.id] !== player.id && 'hover:bg-gray-100',
+                              ? 'border-court bg-court-50'
+                              : 'border-transparent bg-surface',
+                            !hasVoted && displayVotes[cat.id] !== player.id && 'hover:bg-hairline',
                             hasVoted && 'cursor-default',
                           )}
                         >
@@ -165,7 +165,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                           )}>
                             <PlayerAvatar name={player.name} avatarUrl={player.avatar_url} size="sm" />
                           </div>
-                          <span className="text-[11px] font-medium text-gray-700 truncate max-w-[64px]">
+                          <span className="text-[11px] font-medium text-ink-2 truncate max-w-[64px]">
                             {player.name?.split(' ')[0] ?? 'Player'}
                           </span>
                         </button>
@@ -194,7 +194,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                 {/* Close / Skip */}
                 <button
                   onClick={handleClose}
-                  className="w-full py-3 text-[13px] text-gray-400 hover:text-gray-600 transition-colors mt-1"
+                  className="w-full py-3 text-[13px] text-ink-2 hover:text-ink-2 transition-colors mt-1"
                 >
                   {hasVoted ? t('peer_voting.close') : t('peer_voting.skip_voting')}
                 </button>

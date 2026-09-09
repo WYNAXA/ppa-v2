@@ -52,6 +52,12 @@ export default {
           DEFAULT: '#D9480F',
           50: '#FDF0E9',
         },
+        // Needs attention, not failure. See DESIGN.md.
+        warn: {
+          DEFAULT: '#A85F00',
+          50:  '#FDF3E6',
+          100: '#F2DEBE',
+        },
       },
       fontFamily: {
         sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],

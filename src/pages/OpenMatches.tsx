@@ -68,14 +68,14 @@ export function OpenMatchesPage() {
 
   return (
     <div className="min-h-full bg-white pb-32">
-      <div className="px-4 pt-12 pb-4 bg-white border-b border-gray-100">
+      <div className="px-4 pt-12 pb-4 bg-white border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => goBack(navigate, '/play')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          <button onClick={() => goBack(navigate, '/play')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+            <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{t('open_matches.page_title')}</h1>
-            <p className="text-[12px] text-gray-400">{t('open_matches.page_subtitle')}</p>
+            <h1 className="text-xl font-bold text-ink">{t('open_matches.page_title')}</h1>
+            <p className="text-[12px] text-ink-2">{t('open_matches.page_subtitle')}</p>
           </div>
         </div>
       </div>
@@ -87,7 +87,7 @@ export function OpenMatchesPage() {
             onClick={() => setFilterMyElo(v => !v)}
             className={cn(
               'rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors mb-4',
-              filterMyElo ? 'bg-court text-white border-court' : 'bg-white text-gray-600 border-gray-200'
+              filterMyElo ? 'bg-court text-white border-court' : 'bg-white text-ink-2 border-hairline'
             )}
           >
             {t('open_matches.filter_match_my_elo')} ({userElo})
@@ -95,16 +95,16 @@ export function OpenMatchesPage() {
         )}
 
         {isError ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center mt-4">
-            <p className="text-[14px] font-semibold text-gray-500">{t('open_matches.load_failed', "Couldn't load open matches")}</p>
-            <p className="text-[12px] text-gray-400 mt-1">{t('common.try_again_later')}</p>
+          <div className="rounded-2xl border border-dashed border-hairline p-6 text-center mt-4">
+            <p className="text-[14px] font-semibold text-ink-2">{t('open_matches.load_failed', "Couldn't load open matches")}</p>
+            <p className="text-[12px] text-ink-2 mt-1">{t('common.try_again_later')}</p>
           </div>
         ) : isLoading ? (
-          <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-24 rounded-2xl bg-gray-100 animate-pulse" />)}</div>
+          <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-24 rounded-2xl bg-hairline animate-pulse" />)}</div>
         ) : matches.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center mt-4">
-            <p className="text-[14px] font-semibold text-gray-500">{t('open_matches.empty_title')}</p>
-            <p className="text-[12px] text-gray-400 mt-1">{t('open_matches.empty_subtitle')}</p>
+          <div className="rounded-2xl border border-dashed border-hairline p-6 text-center mt-4">
+            <p className="text-[14px] font-semibold text-ink-2">{t('open_matches.empty_title')}</p>
+            <p className="text-[12px] text-ink-2 mt-1">{t('open_matches.empty_subtitle')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -120,24 +120,24 @@ export function OpenMatchesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   onClick={() => navigate(`/matches/${m.id}`)}
-                  className="w-full text-left rounded-2xl border border-gray-100 bg-white px-4 py-3.5 active:scale-[0.98] transition-transform"
+                  className="w-full text-left rounded-2xl border border-hairline bg-white px-4 py-3.5 active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                        <p className="text-[13px] font-semibold text-gray-800">{dateStr}{timeStr && ` \u00B7 ${timeStr}`}</p>
+                        <Calendar className="h-3.5 w-3.5 text-ink-2" />
+                        <p className="text-[13px] font-semibold text-ink">{dateStr}{timeStr && ` \u00B7 ${timeStr}`}</p>
                       </div>
                       {m.booked_venue_name && (
                         <div className="flex items-center gap-1 mb-1">
-                          <MapPin className="h-3 w-3 text-gray-400" />
-                          <p className="text-[12px] text-gray-500 truncate">{m.booked_venue_name}</p>
+                          <MapPin className="h-3 w-3 text-ink-2" />
+                          <p className="text-[12px] text-ink-2 truncate">{m.booked_venue_name}</p>
                         </div>
                       )}
                       {m.groupName && (
                         <div className="flex items-center gap-1 mb-1">
-                          <Users className="h-3 w-3 text-gray-400" />
-                          <p className="text-[12px] text-gray-400">{m.groupName}</p>
+                          <Users className="h-3 w-3 text-ink-2" />
+                          <p className="text-[12px] text-ink-2">{m.groupName}</p>
                         </div>
                       )}
                       <div className="flex items-center gap-1.5 mt-2">
@@ -146,14 +146,14 @@ export function OpenMatchesPage() {
                             <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
                           ))}
                         </div>
-                        <span className="text-[11px] text-gray-400">{t('open_matches.match_players_count', { count: m.player_ids?.length ?? 0 })}</span>
+                        <span className="text-[11px] text-ink-2">{t('open_matches.match_players_count', { count: m.player_ids?.length ?? 0 })}</span>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">
+                      <span className="text-[11px] font-bold text-court-700 bg-court-50 border border-court-100 rounded-full px-2 py-0.5">
                         {slots} open
                       </span>
-                      <p className="text-[10px] text-gray-400 mt-1">
+                      <p className="text-[11px] text-ink-2 mt-1">
                         {t('open_matches.match_elo_range', { min: m.open_elo_min, max: m.open_elo_max })}
                       </p>
                     </div>

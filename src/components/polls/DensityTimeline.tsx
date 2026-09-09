@@ -93,11 +93,11 @@ export function DensityTimeline({ otherRanges, voterRanges, totalOtherVoters }: 
     <div className="space-y-1">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">
+        <span className="text-[11px] font-semibold text-ink-2 uppercase tracking-wide">
           Group availability
         </span>
         {hasAnyDensity && (
-          <span className="text-[10px] text-gray-400">
+          <span className="text-[11px] text-ink-2">
             {totalOtherVoters} vote{totalOtherVoters !== 1 ? 's' : ''}
           </span>
         )}
@@ -105,13 +105,13 @@ export function DensityTimeline({ otherRanges, voterRanges, totalOtherVoters }: 
 
       {/* Timeline strip */}
       {!hasAnyDensity ? (
-        <div className="h-7 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center">
-          <span className="text-[10px] text-gray-300">No availability yet</span>
+        <div className="h-7 rounded-lg bg-surface border border-hairline flex items-center justify-center">
+          <span className="text-[11px] text-ink-3">No availability yet</span>
         </div>
       ) : (
         <div className="relative">
           {/* Density blocks */}
-          <div className="flex h-7 rounded-lg overflow-hidden border border-gray-100">
+          <div className="flex h-7 rounded-lg overflow-hidden border border-hairline">
             {BLOCKS.map((blockStart, i) => {
               const count = density[i]
               const intensity = count / maxDensity
@@ -147,7 +147,7 @@ export function DensityTimeline({ otherRanges, voterRanges, totalOtherVoters }: 
                   {/* Hover tooltip — count badge */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     {count > 0 && (
-                      <span className="text-[8px] font-bold text-court bg-white/80 rounded px-0.5">
+                      <span className="text-[11px] font-bold text-court bg-white/80 rounded px-0.5">
                         {count}
                       </span>
                     )}
@@ -162,7 +162,7 @@ export function DensityTimeline({ otherRanges, voterRanges, totalOtherVoters }: 
             {BLOCKS.map((blockStart, i) => {
               if (i % 4 !== 0) return <div key={blockStart} className="flex-1" />
               return (
-                <div key={blockStart} className="flex-1 text-[8px] text-gray-300 leading-none">
+                <div key={blockStart} className="flex-1 text-[11px] text-ink-3 leading-none">
                   {Math.floor(blockStart / 60)}
                 </div>
               )

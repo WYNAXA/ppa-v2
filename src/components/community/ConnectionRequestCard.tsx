@@ -68,7 +68,7 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
       <button
         onClick={() => declineMutation.mutate()}
         disabled={busy}
-        className="rounded-lg border border-gray-200 px-3 py-1.5 text-[11px] font-bold text-gray-500 disabled:opacity-50"
+        className="rounded-lg border border-hairline px-3 py-1.5 text-[11px] font-bold text-ink-2 disabled:opacity-50"
       >
         {t('community.decline')}
       </button>

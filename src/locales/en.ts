@@ -28,6 +28,8 @@ export default {
     try_again_later: 'Please try again in a moment.',
   },
   nav: {
+    today: 'Today',
+    courts: 'Courts',
     home: 'Home',
     play: 'Play',
     compete: 'Compete',
@@ -793,6 +795,10 @@ export default {
     past: 'Past',
   },
   play: {
+    find_coach: 'Find a Coach',
+    my_waitlist: 'My waitlist',
+    sheet_all: 'See everything in Play',
+    record_result: 'Record Result',
     title: 'Play',
     find_my_game: 'Find My Game',
     find_sub: 'Share your availability and get matched',

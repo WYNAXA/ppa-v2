@@ -84,14 +84,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               role="alertdialog"
               aria-modal="true"
             >
-              <h2 className="text-[16px] font-bold text-gray-900">{opts.title}</h2>
+              <h2 className="text-[16px] font-bold text-ink">{opts.title}</h2>
               {opts.message && (
-                <p className="mt-2 text-[13px] leading-relaxed text-gray-500">{opts.message}</p>
+                <p className="mt-2 text-[13px] leading-relaxed text-ink-2">{opts.message}</p>
               )}
               <div className="mt-5 flex gap-2">
                 <button
                   onClick={() => close(false)}
-                  className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 active:bg-gray-50"
+                  className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2 active:bg-surface"
                 >
                   {opts.cancelLabel ?? t('common.cancel')}
                 </button>

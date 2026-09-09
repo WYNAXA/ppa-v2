@@ -100,7 +100,7 @@ function isSeedDefaultHours(oh: Record<string, { open: string; close: string }> 
 
 function WaitingOnInfo({ text }: { text?: string }) {
   return (
-    <p className="text-sm text-gray-400 italic">
+    <p className="text-sm text-ink-2 italic">
       {text ?? 'Waiting on updated information from the venue.'}
     </p>
   )
@@ -112,7 +112,7 @@ function renderStars(rating: number) {
       key={i}
       size={14}
       className={cn(
-        i < Math.round(rating) ? 'fill-amber-400 text-amber-400' : 'text-gray-300',
+        i < Math.round(rating) ? 'fill-warn text-warn' : 'text-ink-3',
       )}
     />
   ))
@@ -321,7 +321,7 @@ export function VenueDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-teal-500 border-t-transparent" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -329,8 +329,8 @@ export function VenueDetailPage() {
   if (!venue) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-3 px-6 text-center">
-        <p className="text-gray-500">Venue not found</p>
-        <button onClick={() => goBack(navigate, '/play')} className="text-teal-600 font-medium">
+        <p className="text-ink-2">Venue not found</p>
+        <button onClick={() => goBack(navigate, '/play')} className="text-court font-medium">
           Go back
         </button>
       </div>
@@ -352,14 +352,14 @@ export function VenueDetailPage() {
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="w-full h-full bg-gradient-to-br from-teal-700 to-teal-500" />
+          <div className="w-full h-full bg-gradient-to-br from-court-700 to-court" />
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
         <button
           onClick={() => goBack(navigate, '/play')}
           className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/90 flex items-center justify-center shadow"
         >
-          <ChevronLeft size={20} className="text-gray-800" />
+          <ChevronLeft size={20} className="text-ink" />
         </button>
         <div className="absolute bottom-4 left-5 right-5">
           <h1 className="text-xl font-bold text-white leading-tight">{venue.venue_name}</h1>
@@ -385,13 +385,13 @@ export function VenueDetailPage() {
       {/* 2. Quick info chips */}
       <div className="flex gap-2 px-5 mt-3 overflow-x-auto scrollbar-hide">
         {totalCourts > 0 && (
-          <div className="shrink-0 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-sm">
+          <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
             {'\u{1F3BE}'} {totalCourts} courts
           </div>
         )}
         {openStatus && (
           <div className={cn(
-            'shrink-0 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-sm',
+            'shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm',
             !openStatus.isOpen && 'text-red-600',
           )}>
             {'\u{1F550}'} {openStatus.todayHours
@@ -400,12 +400,12 @@ export function VenueDetailPage() {
           </div>
         )}
         {pricingLabel && (
-          <div className="shrink-0 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-sm">
+          <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
             {'\u{1F4B7}'} {pricingLabel}
           </div>
         )}
         {venue.rating && venue.rating > 0 && (
-          <div className="shrink-0 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 text-sm">
+          <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
             {'\u2B50'} {venue.rating}
           </div>
         )}
@@ -416,14 +416,14 @@ export function VenueDetailPage() {
         {venue.ppa_bookable ? (
           <button
             onClick={() => navigate(`/play/book-court?venue_id=${venueId}`)}
-            className="flex-1 rounded-xl bg-teal-600 text-white font-semibold py-3 text-sm active:scale-[0.98] transition-transform"
+            className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm active:scale-[0.98] transition-transform"
           >
             Book via PPA
           </button>
         ) : venue.booking_url?.trim() ? (
           <button
             onClick={() => window.open(venue.booking_url!, '_blank')}
-            className="flex-1 rounded-xl bg-teal-600 text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+            className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
             Book via {venue.booking_platform ?? 'website'}
             <ExternalLink size={14} />
@@ -431,7 +431,7 @@ export function VenueDetailPage() {
         ) : venue.website?.trim() ? (
           <button
             onClick={() => window.open(venue.website!, '_blank')}
-            className="flex-1 rounded-xl bg-teal-600 text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+            className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
             Visit venue website
             <ExternalLink size={14} />
@@ -439,14 +439,14 @@ export function VenueDetailPage() {
         ) : venue.phone?.trim() ? (
           <a
             href={`tel:${venue.phone}`}
-            className="flex-1 rounded-xl bg-gray-200 text-gray-800 font-semibold py-3 text-sm text-center active:scale-[0.98] transition-transform"
+            className="flex-1 rounded-xl bg-hairline text-ink font-semibold py-3 text-sm text-center active:scale-[0.98] transition-transform"
           >
             Call venue
           </a>
         ) : null}
         <button
           onClick={() => window.open(googleMapsUrl(venue.latitude, venue.longitude, venue.full_address), '_blank')}
-          className="flex-1 rounded-xl bg-gray-100 text-gray-800 font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+          className="flex-1 rounded-xl bg-hairline text-ink font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
         >
           <MapPin size={16} /> Directions
         </button>
@@ -457,7 +457,7 @@ export function VenueDetailPage() {
         <div className="px-5 mt-3">
           <button
             onClick={() => setShowClaimQr(true)}
-            className="w-full rounded-xl border border-dashed border-teal-300 bg-teal-50 text-teal-800 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
+            className="w-full rounded-xl border border-dashed border-court-100 bg-court-50 text-court-700 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
             <QrCode size={16} /> Own this venue? Claim it
           </button>
@@ -476,17 +476,17 @@ export function VenueDetailPage() {
           >
             <button
               onClick={() => setShowClaimQr(false)}
-              className="absolute top-4 right-4 text-gray-400 active:scale-90 transition-transform"
+              className="absolute top-4 right-4 text-ink-2 active:scale-90 transition-transform"
               aria-label="Close"
             >
               <X size={20} />
             </button>
-            <p className="text-[13px] font-semibold text-teal-700">Claim this venue on Wynaxa Hub</p>
-            <h3 className="text-lg font-bold text-gray-900 mt-0.5 mb-4">{venue.venue_name}</h3>
-            <div className="bg-white p-4 rounded-2xl border border-gray-100 inline-block">
+            <p className="text-[13px] font-semibold text-court-700">Claim this venue on Wynaxa Hub</p>
+            <h3 className="text-lg font-bold text-ink mt-0.5 mb-4">{venue.venue_name}</h3>
+            <div className="bg-white p-4 rounded-2xl border border-hairline inline-block">
               <QRCodeSVG value={venueClaimUrl(venueId)} size={200} />
             </div>
-            <p className="text-[12px] text-gray-500 mt-4 leading-relaxed">
+            <p className="text-[12px] text-ink-2 mt-4 leading-relaxed">
               Scan with a phone to claim it — or claim it right now. Manage courts, pricing,
               hours and bookings from Wynaxa Hub.
             </p>
@@ -505,34 +505,34 @@ export function VenueDetailPage() {
       {/* 4. Courts */}
       {totalCourts > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Courts</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">Courts</h2>
           <div className="grid grid-cols-3 gap-2">
             {venue.indoor_courts > 0 && (
-              <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-center">
+              <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                 <div className="text-xl">{'\u{1F3E0}'}</div>
                 <div className="text-sm font-medium mt-1">{venue.indoor_courts} Indoor</div>
               </div>
             )}
             {venue.outdoor_courts > 0 && (
-              <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-center">
+              <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                 <div className="text-xl">{'\u2600\uFE0F'}</div>
                 <div className="text-sm font-medium mt-1">{venue.outdoor_courts} Outdoor</div>
               </div>
             )}
             {venue.covered_courts > 0 && (
-              <div className="rounded-xl bg-gray-50 border border-gray-100 p-3 text-center">
+              <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                 <div className="text-xl">{'\u26FA'}</div>
                 <div className="text-sm font-medium mt-1">{venue.covered_courts} Covered</div>
               </div>
             )}
           </div>
           {venue.surface_type && (
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-ink-2 mt-2">
               Surface: <span className="capitalize">{venue.surface_type.replace(/_/g, ' ')}</span>
             </p>
           )}
           {venue.singles_courts > 0 && (
-            <p className="text-sm text-teal-600 mt-1">Singles courts available</p>
+            <p className="text-sm text-court mt-1">Singles courts available</p>
           )}
         </section>
       )}
@@ -540,13 +540,13 @@ export function VenueDetailPage() {
       {/* Classes & coaching — bookable sessions run by the venue's coaches */}
       {classes.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Classes &amp; coaching</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">Classes &amp; coaching</h2>
           <div className="space-y-2">
             {classes.map((c: any) => {
               const full = c.booked >= c.capacity
               const spots = Math.max(0, c.capacity - c.booked)
               return (
-                <div key={c.id} className="rounded-xl bg-gray-50 border border-gray-100 p-3 flex items-center gap-3">
+                <div key={c.id} className="rounded-xl bg-surface border border-hairline p-3 flex items-center gap-3">
                   <button
                     onClick={() => c.coach_user_id && navigate(`/coaches/${c.coach_user_id}`)}
                     className="flex-shrink-0 active:scale-95 transition-transform"
@@ -555,19 +555,19 @@ export function VenueDetailPage() {
                     {c.coachAvatar ? (
                       <img src={c.coachAvatar} alt={c.coachName} className="w-10 h-10 rounded-full object-cover" />
                     ) : (
-                      <div className="w-10 h-10 rounded-lg bg-teal-100 flex items-center justify-center text-lg">{'\u{1F3BE}'}</div>
+                      <div className="w-10 h-10 rounded-lg bg-court-100 flex items-center justify-center text-lg">{'\u{1F3BE}'}</div>
                     )}
                   </button>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{c.title}</p>
-                    <p className="text-xs text-gray-500 truncate">
+                    <p className="text-sm font-semibold text-ink truncate">{c.title}</p>
+                    <p className="text-xs text-ink-2 truncate">
                       {format(new Date(c.start_at), 'EEE d MMM · HH:mm', { locale })} · {c.coachName}
                     </p>
-                    {c.coachHeadline && <p className="text-[11px] text-teal-600 truncate">{c.coachHeadline}</p>}
+                    {c.coachHeadline && <p className="text-[11px] text-court truncate">{c.coachHeadline}</p>}
                     {Array.isArray(c.coachSpecialties) && c.coachSpecialties.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-1">
                         {c.coachSpecialties.slice(0, 3).map((sp: string) => (
-                          <span key={sp} className="text-[10px] leading-none px-1.5 py-1 rounded-full bg-teal-50 text-teal-700 border border-teal-100">
+                          <span key={sp} className="text-[11px] leading-none px-1.5 py-1 rounded-full bg-court-50 text-court-700 border border-court-100">
                             {sp}
                           </span>
                         ))}
@@ -575,10 +575,10 @@ export function VenueDetailPage() {
                     )}
                     <p className="text-[11px] mt-0.5">
                       {c.price_pence != null && (
-                        <span className="font-semibold text-gray-700">{currencySymbol(venue.country_code)}{(c.price_pence / 100).toFixed(2)}</span>
+                        <span className="font-semibold text-ink-2">{currencySymbol(venue.country_code)}{(c.price_pence / 100).toFixed(2)}</span>
                       )}
-                      {c.price_pence != null && <span className="text-gray-300"> · </span>}
-                      <span className="text-gray-400">{c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}</span>
+                      {c.price_pence != null && <span className="text-ink-3"> · </span>}
+                      <span className="text-ink-2">{c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}</span>
                     </p>
                   </div>
                   {c.mine ? (
@@ -587,7 +587,7 @@ export function VenueDetailPage() {
                     <button
                       disabled={full || bookClass.isPending}
                       onClick={() => bookClass.mutate(c.id)}
-                      className="h-8 px-3 rounded-lg bg-teal-600 text-white text-[12px] font-semibold disabled:opacity-40 flex-shrink-0 active:scale-95 transition-transform"
+                      className="h-8 px-3 rounded-lg bg-court text-white text-[12px] font-semibold disabled:opacity-40 flex-shrink-0 active:scale-95 transition-transform"
                     >
                       Book
                     </button>
@@ -602,21 +602,21 @@ export function VenueDetailPage() {
       {/* Tournaments hosted here — tap through to the league to join & play */}
       {tournaments.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Tournaments</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">Tournaments</h2>
           <div className="space-y-2">
             {tournaments.map((tn: any) => (
               <button key={tn.id} onClick={() => navigate(`/compete/leagues/${tn.id}`)}
-                className="w-full flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-3 text-left active:scale-[0.98] transition-transform">
-                <div className="w-10 h-10 rounded-lg bg-amber-100 flex items-center justify-center flex-shrink-0 text-lg">{'\u{1F3C6}'}</div>
+                className="w-full flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-left active:scale-[0.98] transition-transform">
+                <div className="w-10 h-10 rounded-lg bg-warn-100 flex items-center justify-center flex-shrink-0 text-lg">{'\u{1F3C6}'}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 truncate">{tn.name}</p>
-                  <p className="text-xs text-gray-500 truncate">
+                  <p className="text-sm font-semibold text-ink truncate">{tn.name}</p>
+                  <p className="text-xs text-ink-2 truncate">
                     {tn.tournament_start && format(new Date(tn.tournament_start), 'EEE d MMM · HH:mm', { locale })}
                     {` · ${tn.participants}${tn.max_participants ? `/${tn.max_participants}` : ''} players`}
                     {tn.entry_fee_pence > 0 && ` · ${currencySymbol(venue.country_code)}${(tn.entry_fee_pence / 100).toFixed(2)}`}
                   </p>
                 </div>
-                <ChevronLeft size={16} className="text-gray-300 rotate-180 shrink-0" />
+                <ChevronLeft size={16} className="text-ink-3 rotate-180 shrink-0" />
               </button>
             ))}
           </div>
@@ -625,7 +625,7 @@ export function VenueDetailPage() {
 
       {/* 5. Opening Hours */}
       <section className="px-5 mt-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-3">Opening Hours</h2>
+        <h2 className="text-base font-semibold text-ink mb-3">Opening Hours</h2>
         {!hoursConfirmed ? (
           <WaitingOnInfo text="Opening hours not confirmed yet — waiting on the venue." />
         ) : (
@@ -639,10 +639,10 @@ export function VenueDetailPage() {
                   key={dayKey}
                   className={cn(
                     'flex items-center justify-between rounded-lg px-3 py-2 text-sm',
-                    isToday ? 'bg-teal-50 font-medium' : '',
+                    isToday ? 'bg-court-50 font-medium' : '',
                   )}
                 >
-                  <span className={cn(isToday ? 'text-teal-700' : 'text-gray-700')}>
+                  <span className={cn(isToday ? 'text-court-700' : 'text-ink-2')}>
                     {dayLabel}
                     {isToday && openStatus && (
                       <span className={cn(
@@ -655,7 +655,7 @@ export function VenueDetailPage() {
                       </span>
                     )}
                   </span>
-                  <span className={cn(isToday ? 'text-teal-700' : 'text-gray-500')}>
+                  <span className={cn(isToday ? 'text-court-700' : 'text-ink-2')}>
                     {hours ? `${hours.open} - ${hours.close}` : 'Closed'}
                   </span>
                 </div>
@@ -668,7 +668,7 @@ export function VenueDetailPage() {
       {/* 6. Facilities */}
       {venueFacilities.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Facilities</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">Facilities</h2>
           <div className="grid grid-cols-3 gap-2">
             {ALL_FACILITY_KEYS.map((key) => {
               const f = FACILITY_MAP[key]
@@ -679,8 +679,8 @@ export function VenueDetailPage() {
                   className={cn(
                     'rounded-xl border p-3 text-center text-sm',
                     available
-                      ? 'bg-gray-50 border-gray-100'
-                      : 'bg-gray-50/50 border-gray-50 opacity-40',
+                      ? 'bg-surface border-hairline'
+                      : 'bg-surface/50 border-hairline opacity-40',
                   )}
                 >
                   <div className="text-lg">{f.icon}</div>
@@ -694,12 +694,12 @@ export function VenueDetailPage() {
 
       {/* 7. About */}
       <section className="px-5 mt-6">
-        <h2 className="text-base font-semibold text-gray-900 mb-2">About</h2>
+        <h2 className="text-base font-semibold text-ink mb-2">About</h2>
         {venue.description
-          ? <p className="text-sm text-gray-600 leading-relaxed">{venue.description}</p>
+          ? <p className="text-sm text-ink-2 leading-relaxed">{venue.description}</p>
           : <WaitingOnInfo />}
         {venue.is_members_only && (
-          <div className="mt-3 rounded-xl bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+          <div className="mt-3 rounded-xl bg-warn-50 border border-warn p-3 text-sm text-warn">
             Members only {venue.membership_required ? `\u2014 ${venue.membership_required}` : ''}
           </div>
         )}
@@ -708,7 +708,7 @@ export function VenueDetailPage() {
       {/* 8. Rate this venue */}
       {hasPlayed && userId && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Rate this venue</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">Rate this venue</h2>
           <div className="flex gap-1 mb-3">
             {Array.from({ length: 5 }, (_, i) => (
               <button
@@ -721,8 +721,8 @@ export function VenueDetailPage() {
                   className={cn(
                     'transition-colors',
                     i < userRating
-                      ? 'fill-teal-500 text-teal-500'
-                      : 'text-gray-300',
+                      ? 'fill-court text-court'
+                      : 'text-ink-3',
                   )}
                 />
               </button>
@@ -733,7 +733,7 @@ export function VenueDetailPage() {
             onChange={(e) => setUserReview(e.target.value)}
             placeholder="Write a review (optional)"
             rows={3}
-            className="w-full rounded-xl border border-gray-200 p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-teal-500/30 focus:border-teal-500"
+            className="w-full rounded-xl border border-hairline p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-court/30 focus:border-court"
           />
           <button
             disabled={userRating === 0 || submitRating.isPending}
@@ -741,8 +741,8 @@ export function VenueDetailPage() {
             className={cn(
               'mt-2 w-full rounded-xl py-3 text-sm font-semibold transition-colors',
               userRating > 0
-                ? 'bg-teal-600 text-white active:scale-[0.98]'
-                : 'bg-gray-100 text-gray-400 cursor-not-allowed',
+                ? 'bg-court text-white active:scale-[0.98]'
+                : 'bg-hairline text-ink-2 cursor-not-allowed',
             )}
           >
             {submitRating.isPending
@@ -757,10 +757,10 @@ export function VenueDetailPage() {
       {/* 9. Reviews */}
       {ratings.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">What players say</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">What players say</h2>
           <div className="space-y-3">
             {ratings.map((r: any) => (
-              <div key={r.id} className="rounded-xl bg-gray-50 border border-gray-100 p-4">
+              <div key={r.id} className="rounded-xl bg-surface border border-hairline p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <PlayerAvatar
                     name={r.profiles?.name ?? 'Player'}
@@ -768,16 +768,16 @@ export function VenueDetailPage() {
                     size="sm"
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-ink truncate">
                       {r.profiles?.name ?? 'Player'}
                     </p>
                     <div className="flex items-center gap-0.5">{renderStars(r.rating)}</div>
                   </div>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-ink-2">
                     {format(new Date(r.created_at), 'd MMM yyyy', { locale })}
                   </span>
                 </div>
-                {r.review && <p className="text-sm text-gray-600">{r.review}</p>}
+                {r.review && <p className="text-sm text-ink-2">{r.review}</p>}
               </div>
             ))}
           </div>
@@ -787,15 +787,15 @@ export function VenueDetailPage() {
       {/* 10. Nearby Venues */}
       {nearbyVenues.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Nearby Venues</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">Nearby Venues</h2>
           <div className="space-y-2">
             {nearbyVenues.map((v: any) => (
               <button
                 key={v.venue_id}
                 onClick={() => navigate(`/venues/${v.venue_id}`)}
-                className="w-full flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-3 text-left active:scale-[0.98] transition-transform"
+                className="w-full flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-left active:scale-[0.98] transition-transform"
               >
-                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-teal-100">
+                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-court-100">
                   {v.photos?.[0] ? (
                     <img
                       src={(v.photos as string[])[0]}
@@ -803,31 +803,31 @@ export function VenueDetailPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-teal-200 to-teal-400 flex items-center justify-center text-white text-lg">
+                    <div className="w-full h-full bg-gradient-to-br from-court-100 to-court flex items-center justify-center text-white text-lg">
                       {'\u{1F3BE}'}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{v.venue_name}</p>
-                  <p className="text-xs text-gray-500">{v.city}</p>
+                  <p className="text-sm font-medium text-ink truncate">{v.venue_name}</p>
+                  <p className="text-xs text-ink-2">{v.city}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-ink-2">
                       {(v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0)} courts
                     </span>
                     {v.ppa_bookable && (
-                      <span className="text-[10px] font-medium bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[11px] font-medium bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
                         PPA
                       </span>
                     )}
                     {v.rating > 0 && (
-                      <span className="text-xs text-gray-500 flex items-center gap-0.5">
-                        <Star size={10} className="fill-amber-400 text-amber-400" /> {v.rating}
+                      <span className="text-xs text-ink-2 flex items-center gap-0.5">
+                        <Star size={10} className="fill-warn text-warn" /> {v.rating}
                       </span>
                     )}
                   </div>
                 </div>
-                <ChevronLeft size={16} className="text-gray-300 rotate-180 shrink-0" />
+                <ChevronLeft size={16} className="text-ink-3 rotate-180 shrink-0" />
               </button>
             ))}
           </div>
@@ -837,23 +837,23 @@ export function VenueDetailPage() {
       {/* 11. Contact */}
       {(venue.phone || venue.email || venue.instagram || venue.website) && (
         <section className="px-5 mt-6 mb-6">
-          <h2 className="text-base font-semibold text-gray-900 mb-3">Contact</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">Contact</h2>
           <div className="space-y-2">
             {venue.phone && (
               <a
                 href={`tel:${venue.phone}`}
-                className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-3 text-sm text-gray-700"
+                className="flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-sm text-ink-2"
               >
-                <Phone size={16} className="text-teal-600 shrink-0" />
+                <Phone size={16} className="text-court shrink-0" />
                 {venue.phone}
               </a>
             )}
             {venue.email && (
               <a
                 href={`mailto:${venue.email}`}
-                className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-3 text-sm text-gray-700"
+                className="flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-sm text-ink-2"
               >
-                <Mail size={16} className="text-teal-600 shrink-0" />
+                <Mail size={16} className="text-court shrink-0" />
                 {venue.email}
               </a>
             )}
@@ -862,9 +862,9 @@ export function VenueDetailPage() {
                 href={`https://instagram.com/${venue.instagram.replace(/^@/, '')}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-3 text-sm text-gray-700"
+                className="flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-sm text-ink-2"
               >
-                <Globe size={16} className="text-teal-600 shrink-0" />
+                <Globe size={16} className="text-court shrink-0" />
                 @{venue.instagram.replace(/^@/, '')}
               </a>
             )}
@@ -873,9 +873,9 @@ export function VenueDetailPage() {
                 href={venue.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 rounded-xl bg-gray-50 border border-gray-100 p-3 text-sm text-gray-700"
+                className="flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-sm text-ink-2"
               >
-                <ExternalLink size={16} className="text-teal-600 shrink-0" />
+                <ExternalLink size={16} className="text-court shrink-0" />
                 {venue.website.replace(/^https?:\/\//, '').replace(/\/$/, '')}
               </a>
             )}

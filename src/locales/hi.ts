@@ -25,6 +25,8 @@ export default {
     "see_all": "सभी देखें"
   },
   "nav": {
+    "today": "आज",
+    "courts": "कोर्ट",
     "home": "होम",
     "play": "खेलें",
     "compete": "प्रतिस्पर्धा",
@@ -760,6 +762,10 @@ export default {
     "ringer_offer_multiple": "{{count}} लंबित रिंगर पेशकशें"
   },
   "play": {
+    "find_coach": "कोच खोजें",
+    "my_waitlist": "मेरी प्रतीक्षा सूची",
+    "sheet_all": "प्ले में सब कुछ देखें",
+    "record_result": "परिणाम दर्ज करें",
     "title": "खेलें",
     "find_my_game": "मेरा मैच खोजें",
     "find_sub": "अपनी उपलब्धता शेयर करें और मैच पाएं",

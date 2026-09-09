@@ -87,16 +87,16 @@ function PollCountdown({ closesAt }: { closesAt: string }) {
         : 'critical'
 
   const colours = {
-    expired: 'bg-gray-50 border-gray-200 text-gray-500',
-    normal: 'bg-teal-50 border-teal-200 text-teal-700',
-    warning: 'bg-amber-50 border-amber-200 text-amber-700',
+    expired: 'bg-surface border-hairline text-ink-2',
+    normal: 'bg-court-50 border-court-100 text-court-700',
+    warning: 'bg-warn-50 border-warn text-warn',
     critical: 'bg-red-50 border-red-200 text-red-700',
   }
 
   const unitBox = (value: number, label: string) => (
     <div className="flex flex-col items-center">
       <span className="text-[20px] font-bold tabular-nums leading-none">{String(value).padStart(2, '0')}</span>
-      <span className="text-[10px] mt-1 uppercase tracking-wide opacity-70">{label}</span>
+      <span className="text-[11px] mt-1 uppercase tracking-wide opacity-70">{label}</span>
     </div>
   )
 
@@ -684,7 +684,7 @@ export function PollAdminView({
                 type="datetime-local"
                 value={newDeadline}
                 onChange={(e) => setNewDeadline(e.target.value)}
-                className="rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-800"
+                className="rounded-lg border border-hairline px-2 py-1.5 text-[12px] text-ink"
                 style={{ fontSize: '16px' }}
               />
               <button
@@ -696,7 +696,7 @@ export function PollAdminView({
               </button>
               <button
                 onClick={() => setEditingDeadline(false)}
-                className="rounded-lg border border-gray-200 px-3 py-1.5 text-[11px] font-semibold text-gray-500"
+                className="rounded-lg border border-hairline px-3 py-1.5 text-[11px] font-semibold text-ink-2"
               >
                 {t('match.cancel')}
               </button>
@@ -722,13 +722,13 @@ export function PollAdminView({
           className={cn(
             'rounded-2xl border px-3 py-3 text-center transition-all',
             expandedSection === 'available'
-              ? 'border-teal-300 bg-teal-50'
-              : 'border-gray-100 bg-white hover:border-teal-200',
+              ? 'border-court-100 bg-court-50'
+              : 'border-hairline bg-white hover:border-court-100',
           )}
         >
           <CheckCircle className="h-5 w-5 text-court mx-auto mb-1" />
-          <p className="text-[18px] font-bold text-gray-900">{availableResponses.length}</p>
-          <p className="text-[10px] text-gray-500 font-medium">{t('polls.available')}</p>
+          <p className="text-[18px] font-bold text-ink">{availableResponses.length}</p>
+          <p className="text-[11px] text-ink-2 font-medium">{t('polls.available')}</p>
         </button>
 
         <button
@@ -737,12 +737,12 @@ export function PollAdminView({
             'rounded-2xl border px-3 py-3 text-center transition-all',
             expandedSection === 'unavailable'
               ? 'border-red-300 bg-red-50'
-              : 'border-gray-100 bg-white hover:border-red-200',
+              : 'border-hairline bg-white hover:border-red-200',
           )}
         >
           <XCircle className="h-5 w-5 text-red-400 mx-auto mb-1" />
-          <p className="text-[18px] font-bold text-gray-900">{unavailableResponses.length}</p>
-          <p className="text-[10px] text-gray-500 font-medium">{t('polls.unavailable')}</p>
+          <p className="text-[18px] font-bold text-ink">{unavailableResponses.length}</p>
+          <p className="text-[11px] text-ink-2 font-medium">{t('polls.unavailable')}</p>
         </button>
 
         <button
@@ -750,13 +750,13 @@ export function PollAdminView({
           className={cn(
             'rounded-2xl border px-3 py-3 text-center transition-all',
             expandedSection === 'notVoted'
-              ? 'border-amber-300 bg-amber-50'
-              : 'border-gray-100 bg-white hover:border-amber-200',
+              ? 'border-warn bg-warn-50'
+              : 'border-hairline bg-white hover:border-warn',
           )}
         >
-          <Clock className="h-5 w-5 text-amber-400 mx-auto mb-1" />
-          <p className="text-[18px] font-bold text-gray-900">{notVotedMembers.length}</p>
-          <p className="text-[10px] text-gray-500 font-medium">{t('polls.not_voted')}</p>
+          <Clock className="h-5 w-5 text-warn mx-auto mb-1" />
+          <p className="text-[18px] font-bold text-ink">{notVotedMembers.length}</p>
+          <p className="text-[11px] text-ink-2 font-medium">{t('polls.not_voted')}</p>
         </button>
       </div>
 
@@ -768,14 +768,14 @@ export function PollAdminView({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden rounded-2xl border border-teal-100 bg-teal-50"
+            className="overflow-hidden rounded-2xl border border-court-100 bg-court-50"
           >
             <div className="px-4 py-3 space-y-2">
-              <p className="text-[12px] font-semibold text-teal-700 uppercase tracking-wide">{t('polls.available_players')}</p>
+              <p className="text-[12px] font-semibold text-court-700 uppercase tracking-wide">{t('polls.available_players')}</p>
               {availableResponses.map((r) => (
                 <div key={r.user_id} className="flex items-center gap-2">
                   <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
-                  <span className="text-[13px] text-gray-700">{r.profile?.name ?? t('league.unknown')}</span>
+                  <span className="text-[13px] text-ink-2">{r.profile?.name ?? t('league.unknown')}</span>
                 </div>
               ))}
             </div>
@@ -795,7 +795,7 @@ export function PollAdminView({
               {unavailableResponses.map((r) => (
                 <div key={r.user_id} className="flex items-center gap-2">
                   <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
-                  <span className="text-[13px] text-gray-500">{r.profile?.name ?? t('league.unknown')}</span>
+                  <span className="text-[13px] text-ink-2">{r.profile?.name ?? t('league.unknown')}</span>
                 </div>
               ))}
             </div>
@@ -808,15 +808,15 @@ export function PollAdminView({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden rounded-2xl border border-amber-100 bg-amber-50"
+            className="overflow-hidden rounded-2xl border border-warn-100 bg-warn-50"
           >
             <div className="px-4 py-3 space-y-2">
               <div className="flex items-center justify-between">
-                <p className="text-[12px] font-semibold text-amber-700 uppercase tracking-wide">{t('polls.not_voted')}</p>
+                <p className="text-[12px] font-semibold text-warn uppercase tracking-wide">{t('polls.not_voted')}</p>
                 {isAdmin && notVotedMembers.some((m) => !remindedUsers.has(m.id)) && (
                   <button
                     onClick={handleRemindAll}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-amber-600 hover:text-amber-700"
+                    className="flex items-center gap-1 text-[11px] font-semibold text-warn hover:text-warn"
                   >
                     <Bell className="h-3.5 w-3.5" />
                     {t('polls.remind_all')}
@@ -827,7 +827,7 @@ export function PollAdminView({
                 <div key={m.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="sm" />
-                    <span className="text-[13px] text-gray-700">{m.name}</span>
+                    <span className="text-[13px] text-ink-2">{m.name}</span>
                   </div>
                   {isAdmin && (
                     <button
@@ -837,7 +837,7 @@ export function PollAdminView({
                         'flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all',
                         remindedUsers.has(m.id)
                           ? 'bg-green-100 text-green-600'
-                          : 'bg-amber-100 text-amber-700 hover:bg-amber-200 active:scale-95',
+                          : 'bg-warn-100 text-warn hover:bg-warn-100 active:scale-95',
                       )}
                     >
                       {remindedUsers.has(m.id) ? (
@@ -867,7 +867,7 @@ export function PollAdminView({
           >
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-court" />
-              <h3 className="text-[13px] font-bold text-gray-900">{t('polls.daily_availability')}</h3>
+              <h3 className="text-[13px] font-bold text-ink">{t('polls.daily_availability')}</h3>
               {breakdownClusters.length > 0 && (
                 <span className="text-[11px] font-semibold text-court">
                   {t('polls.match_count', { count: breakdownClusters.filter(c => !c.short).length })}
@@ -876,15 +876,15 @@ export function PollAdminView({
               )}
             </div>
             {breakdownExpanded
-              ? <ChevronUp className="h-4 w-4 text-gray-400" />
-              : <ChevronDown className="h-4 w-4 text-gray-400" />
+              ? <ChevronUp className="h-4 w-4 text-ink-2" />
+              : <ChevronDown className="h-4 w-4 text-ink-2" />
             }
           </button>
 
           {breakdownExpanded && (
             <div className="space-y-3">
               {breakdownClusters.length === 0 ? (
-                <p className="text-[13px] text-gray-400 py-3 text-center">{t('polls.no_overlap')}</p>
+                <p className="text-[13px] text-ink-2 py-3 text-center">{t('polls.no_overlap')}</p>
               ) : (
                 (() => {
                   const byDate = new Map<string, typeof breakdownClusters>()
@@ -898,25 +898,25 @@ export function PollAdminView({
                     const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
                     const dayLabel = `${dayNames[d.getDay()]} ${d.getDate()} ${d.toLocaleString('default', { month: 'short' })}`
                     return (
-                      <div key={date} className="rounded-2xl border border-gray-100 px-4 py-3 space-y-2">
-                        <p className="text-[13px] font-semibold text-gray-900">{dayLabel}</p>
+                      <div key={date} className="rounded-2xl border border-hairline px-4 py-3 space-y-2">
+                        <p className="text-[13px] font-semibold text-ink">{dayLabel}</p>
                         {clusters.map((c: any, idx: number) => {
                           const isFull = !c.short && c.count >= 4
                           const isShort3 = c.short && c.count === 3
                           return (
                             <div key={idx} className={cn(
                               'rounded-xl px-3 py-2.5 border',
-                              isFull ? 'border-teal-200 bg-teal-50/40' :
-                              isShort3 ? 'border-amber-200 bg-amber-50/40' :
-                              'border-gray-100 bg-gray-50/40'
+                              isFull ? 'border-court-100 bg-court-50/40' :
+                              isShort3 ? 'border-warn bg-warn-50/40' :
+                              'border-hairline bg-surface/40'
                             )}>
                               <div className="flex items-center justify-between mb-2">
-                                <span className="text-[13px] font-semibold text-gray-800">{c.window_start}–{c.window_end}</span>
+                                <span className="text-[13px] font-semibold text-ink">{c.window_start}–{c.window_end}</span>
                                 <span className={cn(
                                   'text-[11px] font-bold rounded-full px-2.5 py-0.5',
                                   isFull ? 'bg-court text-white' :
-                                  isShort3 ? 'bg-[#E65100] text-white' :
-                                  'bg-gray-200 text-gray-600'
+                                  isShort3 ? 'bg-warn text-white' :
+                                  'bg-hairline text-ink-2'
                                 )}>
                                   {isFull ? t('polls.player_count', { count: c.count }) :
                                    isShort3 ? t('polls.needs_n_ringers', { count: 1 }) :
@@ -927,7 +927,7 @@ export function PollAdminView({
                                 {(c.player_ids ?? []).map((pid: string) => {
                                   const profile = breakdownProfiles[pid]
                                   return (
-                                    <span key={pid} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-gray-100 px-2.5 py-1 text-[12px] font-medium text-gray-800">
+                                    <span key={pid} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-hairline px-2.5 py-1 text-[12px] font-medium text-ink">
                                       <PlayerAvatar name={profile?.name} avatarUrl={profile?.avatar_url} size="sm" />
                                       {profile?.name?.split(' ')[0] ?? pid.slice(0, 8)}
                                     </span>
@@ -950,30 +950,30 @@ export function PollAdminView({
       {/* Legacy slot polls: keep old daily availability + slot breakdown */}
       {!isRangePoll && dayData.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('polls.daily_availability')}</h3>
+          <h3 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">{t('polls.daily_availability')}</h3>
           {dayData.map(({ day, dateLabel, availablePlayers }) => {
             const count = availablePlayers.length
             const total = groupMembers.length || 1
             const pct = Math.round((count / total) * 100)
-            const barColour = count >= 4 ? 'bg-court' : count >= 2 ? 'bg-amber-400' : 'bg-gray-300'
+            const barColour = count >= 4 ? 'bg-court' : count >= 2 ? 'bg-warn' : 'bg-ink-4'
             return (
-              <div key={day} className="rounded-2xl border border-gray-100 px-4 py-3 space-y-2">
+              <div key={day} className="rounded-2xl border border-hairline px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-400" />
-                    <span className="text-[13px] font-semibold text-gray-900">{dateLabel}</span>
+                    <Calendar className="h-4 w-4 text-ink-2" />
+                    <span className="text-[13px] font-semibold text-ink">{dateLabel}</span>
                   </div>
-                  <span className={cn('text-[12px] font-semibold', count >= 4 ? 'text-court' : 'text-gray-400')}>
+                  <span className={cn('text-[12px] font-semibold', count >= 4 ? 'text-court' : 'text-ink-2')}>
                     {t('polls.available_of_total', { count, total })}
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                <div className="h-1.5 rounded-full bg-hairline overflow-hidden">
                   <div className={cn('h-full rounded-full transition-all', barColour)} style={{ width: `${pct}%` }} />
                 </div>
                 {availablePlayers.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {availablePlayers.map((r) => (
-                      <span key={r.user_id} className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700">
+                      <span key={r.user_id} className="inline-flex items-center gap-1.5 rounded-full bg-court-50 px-2.5 py-1 text-[11px] font-medium text-court-700">
                         <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
                         {firstName(r.profile?.name)}
                       </span>
@@ -989,7 +989,7 @@ export function PollAdminView({
       {/* Legacy slot breakdown (non-range polls only) */}
       {!isRangePoll && slotData.length > 0 && (
         <div className="space-y-2">
-          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('polls.slot_breakdown')}</h3>
+          <h3 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">{t('polls.slot_breakdown')}</h3>
           {slotData.map(({ slot, voters }) => {
             const isExpanded = expandedSlots.has(slot.id)
             const viable = voters.length >= 4
@@ -998,25 +998,25 @@ export function PollAdminView({
               catch { return slot.day }
             })()
             return (
-              <div key={slot.id} className="rounded-2xl border border-gray-100 overflow-hidden">
-                <button onClick={() => toggleSlotExpand(slot.id)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors">
+              <div key={slot.id} className="rounded-2xl border border-hairline overflow-hidden">
+                <button onClick={() => toggleSlotExpand(slot.id)} className="w-full flex items-center justify-between px-4 py-3 hover:bg-surface transition-colors">
                   <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-semibold text-gray-900">{dateLabel} {slot.start_time}–{slot.end_time}</span>
-                    {viable && <span className="flex items-center gap-0.5 rounded-full bg-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-700"><Zap className="h-3 w-3" /> {t('polls.match_ready')}</span>}
+                    <span className="text-[13px] font-semibold text-ink">{dateLabel} {slot.start_time}–{slot.end_time}</span>
+                    {viable && <span className="flex items-center gap-0.5 rounded-full bg-court-100 px-2 py-0.5 text-[11px] font-bold text-court-700"><Zap className="h-3 w-3" /> {t('polls.match_ready')}</span>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold', viable ? 'bg-court text-white' : 'bg-gray-100 text-gray-500')}>{voters.length}</span>
-                    {isExpanded ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+                    <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-bold', viable ? 'bg-court text-white' : 'bg-hairline text-ink-2')}>{voters.length}</span>
+                    {isExpanded ? <ChevronUp className="h-4 w-4 text-ink-2" /> : <ChevronDown className="h-4 w-4 text-ink-2" />}
                   </div>
                 </button>
                 <AnimatePresence>
                   {isExpanded && (
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                      <div className="px-4 pb-3 space-y-2 border-t border-gray-50">
+                      <div className="px-4 pb-3 space-y-2 border-t border-hairline">
                         {voters.map((r) => (
                           <div key={r.user_id} className="flex items-center gap-2 py-1.5">
                             <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
-                            <span className="text-[13px] text-gray-700">{r.profile?.name ?? t('league.unknown')}</span>
+                            <span className="text-[13px] text-ink-2">{r.profile?.name ?? t('league.unknown')}</span>
                           </div>
                         ))}
                       </div>
@@ -1032,22 +1032,22 @@ export function PollAdminView({
       {/* 6. Additional Options Summary */}
       {additionalSummary.length > 0 && additionalSummary.some((a) => a.players.length > 0) && (
         <div className="space-y-2">
-          <h3 className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('polls.additional_options')}</h3>
+          <h3 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">{t('polls.additional_options')}</h3>
           {additionalSummary.map(({ option, players }) => (
-            <div key={option} className="rounded-2xl border border-gray-100 px-4 py-3">
+            <div key={option} className="rounded-2xl border border-hairline px-4 py-3">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-[13px] font-semibold text-gray-900">
+                <span className="text-[13px] font-semibold text-ink">
                   {additionalIcon(option) ? `${additionalIcon(option)} ` : ''}
                   {option}
                 </span>
-                <span className="text-[12px] font-semibold text-gray-400">{players.length}</span>
+                <span className="text-[12px] font-semibold text-ink-2">{players.length}</span>
               </div>
               {players.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {players.map((r) => (
                     <span
                       key={r.user_id}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-teal-50 px-2.5 py-1 text-[11px] font-medium text-teal-700"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-court-50 px-2.5 py-1 text-[11px] font-medium text-court-700"
                     >
                       {firstName(r.profile?.name)}
                     </span>
@@ -1061,12 +1061,12 @@ export function PollAdminView({
 
       {/* 7. Match Generation (Admin Only) */}
       {isAdmin && (hasViableSlot || matchSchedules.length > 0 || confirmResult) && (
-        <div className="rounded-2xl border border-teal-100 bg-teal-50/30 px-4 py-4 space-y-3">
+        <div className="rounded-2xl border border-court-100 bg-court-50/30 px-4 py-4 space-y-3">
 
           {/* Success state after confirm */}
           {confirmResult && (
-            <div className="rounded-xl bg-teal-50 border border-teal-200 px-4 py-3 space-y-2">
-              <p className="text-[13px] font-bold text-teal-800">
+            <div className="rounded-xl bg-court-50 border border-court-100 px-4 py-3 space-y-2">
+              <p className="text-[13px] font-bold text-court-700">
                 {t('polls.matches_scheduled', { count: confirmResult.matchesCreated })}
               </p>
               <a
@@ -1083,10 +1083,10 @@ export function PollAdminView({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Zap className="h-4 w-4 text-court" />
-              <span className="text-[13px] font-bold text-gray-900">{t('polls.match_generation')}</span>
+              <span className="text-[13px] font-bold text-ink">{t('polls.match_generation')}</span>
             </div>
             {poll.status === 'processed' ? (
-              <span className="text-[11px] text-gray-400">{t('polls.already_processed')}</span>
+              <span className="text-[11px] text-ink-2">{t('polls.already_processed')}</span>
             ) : (
             <button
               onClick={handleGenerateMatches}
@@ -1112,7 +1112,7 @@ export function PollAdminView({
           {!confirmResult && generating && (
             <div className="flex flex-col items-center py-6 gap-2">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
-              <p className="text-[12px] text-gray-400">{t('polls.finding_optimal')}</p>
+              <p className="text-[12px] text-ink-2">{t('polls.finding_optimal')}</p>
             </div>
           )}
 
@@ -1124,30 +1124,30 @@ export function PollAdminView({
           )}
 
           {!confirmResult && !generating && matchSchedules.length === 0 && poll.status !== 'processed' && (
-            <p className="text-[11px] text-gray-400">
+            <p className="text-[11px] text-ink-2">
               {t('polls.generate_help')}
             </p>
           )}
 
           {!confirmResult && !generating && matchSchedules.length > 0 && (
             <div className="space-y-3">
-              <p className="text-[12px] text-gray-500">
+              <p className="text-[12px] text-ink-2">
                 {t('polls.options_found', { count: matchSchedules.length })}
               </p>
               {matchSchedules.map((schedule, idx) => (
-                <div key={idx} className="rounded-xl border border-gray-200 bg-white px-4 py-3 space-y-2">
+                <div key={idx} className="rounded-xl border border-hairline bg-white px-4 py-3 space-y-2">
                   <div className="flex items-center gap-2">
-                    <p className="text-[13px] font-semibold text-gray-900">
+                    <p className="text-[13px] font-semibold text-ink">
                       {schedule.strategyName ?? t('polls.option_number', { number: idx + 1 })}
                     </p>
                     {schedule.isRecommended && (
-                      <span className="text-[10px] font-bold text-teal-700 bg-teal-50 rounded-full px-2 py-0.5">{t('polls.recommended')}</span>
+                      <span className="text-[11px] font-bold text-court-700 bg-court-50 rounded-full px-2 py-0.5">{t('polls.recommended')}</span>
                     )}
                   </div>
                   {schedule.strategyDescription && (
-                    <p className="text-[11px] text-gray-400">{schedule.strategyDescription}</p>
+                    <p className="text-[11px] text-ink-2">{schedule.strategyDescription}</p>
                   )}
-                  <p className="text-[11px] text-gray-500">
+                  <p className="text-[11px] text-ink-2">
                     {t('polls.option_matches', { count: schedule.totalMatches ?? schedule.matches?.length ?? 0 })} · {t('polls.option_players', { count: schedule.totalPlayers ?? 0 })}
                     {(schedule.ringersNeeded ?? 0) > 0 && ` · ${t('polls.ringers_needed', { count: schedule.ringersNeeded })}`}
                   </p>
@@ -1159,28 +1159,28 @@ export function PollAdminView({
                     return (
                       <div key={mIdx} className={cn(
                         'rounded-lg px-3 py-2 text-[12px] space-y-1',
-                        isRingerMatch ? 'bg-amber-50 border border-amber-200' : 'bg-gray-50'
+                        isRingerMatch ? 'bg-warn-50 border border-warn' : 'bg-surface'
                       )}>
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="font-medium text-gray-800">{match.dayOfWeek ?? match.date ?? match.day}</span>
+                            <span className="font-medium text-ink">{match.dayOfWeek ?? match.date ?? match.day}</span>
                             {match.window_start && match.window_end && (
-                              <span className="ml-2 text-[10px] font-semibold text-teal-600">
+                              <span className="ml-2 text-[11px] font-semibold text-court">
                                 {match.window_start}–{match.window_end}
                               </span>
                             )}
                             {isRingerMatch && (
-                              <span className="ml-2 text-[10px] font-bold text-[#E65100] bg-orange-100 rounded-full px-2 py-0.5">
+                              <span className="ml-2 text-[11px] font-bold text-warn bg-warn-100 rounded-full px-2 py-0.5">
                                 {t('polls.needs_n_ringers', { count: match.ringer_count ?? 1 })}
                               </span>
                             )}
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className="text-gray-400">{match.timeSlot ?? `${match.start_time}–${match.end_time}`}</span>
+                            <span className="text-ink-2">{match.timeSlot ?? `${match.start_time}–${match.end_time}`}</span>
                             {isSelected && (
                               <button
                                 onClick={() => handleDropMatch(mIdx)}
-                                className="text-[10px] text-[#E65100] hover:text-[#BF360C] font-semibold"
+                                className="text-[11px] font-semibold text-warn hover:text-warn/80"
                               >
                                 {t('polls.drop')}
                               </button>
@@ -1203,28 +1203,28 @@ export function PollAdminView({
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-2">
                                     <PlayerAvatar name={name} avatarUrl={profile?.avatar_url} size="sm" />
-                                    <span className="text-[13px] font-medium text-gray-800">{name.split(' ')[0]}</span>
+                                    <span className="text-[13px] font-medium text-ink">{name.split(' ')[0]}</span>
                                     {activeOpts.map(([opt]) => {
                                       const icon = additionalIcon(opt)
                                       return icon
                                         ? <span key={opt} className="text-[14px]" title={opt}>{icon}</span>
-                                        : <span key={opt} className="text-[9px] text-gray-500 bg-gray-100 rounded-full px-1.5 py-0.5" title={opt}>{opt}</span>
+                                        : <span key={opt} className="text-[11px] text-ink-2 bg-hairline rounded-full px-1.5 py-0.5" title={opt}>{opt}</span>
                                     })}
                                   </div>
                                   {isSelected && (
                                     <button
                                       onClick={() => setSwapTarget(isSwapOpen ? null : { matchIdx: mIdx, playerIdx: pIdx })}
-                                      className="rounded-lg border border-teal-200 px-2.5 py-1 text-[11px] font-semibold text-court hover:bg-teal-50"
+                                      className="rounded-lg border border-court-100 px-2.5 py-1 text-[11px] font-semibold text-court hover:bg-court-50"
                                     >
                                       {isSwapOpen ? t('match.cancel') : t('polls.swap')}
                                     </button>
                                   )}
                                 </div>
                                 {isSwapOpen && (
-                                  <div className="ml-8 mt-1 mb-1 p-2 bg-white rounded-lg border border-teal-100 space-y-1">
-                                    <p className="text-[11px] text-gray-500 font-semibold">{t('polls.available_for_slot')}</p>
+                                  <div className="ml-8 mt-1 mb-1 p-2 bg-white rounded-lg border border-court-100 space-y-1">
+                                    <p className="text-[11px] text-ink-2 font-semibold">{t('polls.available_for_slot')}</p>
                                     {swapCandidates.length === 0 && (
-                                      <p className="text-[11px] text-gray-400">{t('polls.no_other_available')}</p>
+                                      <p className="text-[11px] text-ink-2">{t('polls.no_other_available')}</p>
                                     )}
                                     {swapCandidates.map((benchId: string) => {
                                       const bp = engineProfiles[benchId]
@@ -1232,7 +1232,7 @@ export function PollAdminView({
                                         <button
                                           key={benchId}
                                           onClick={() => handleSwapPlayer(mIdx, pIdx, benchId)}
-                                          className="flex items-center gap-2 w-full text-left text-[12px] text-court hover:bg-teal-50 rounded-lg px-2 py-1.5"
+                                          className="flex items-center gap-2 w-full text-left text-[12px] text-court hover:bg-court-50 rounded-lg px-2 py-1.5"
                                         >
                                           <PlayerAvatar name={bp?.name} avatarUrl={bp?.avatar_url} size="sm" />
                                           {bp?.name?.split(' ')[0] ?? benchId.slice(0, 8)}
@@ -1255,7 +1255,7 @@ export function PollAdminView({
                       'w-full rounded-xl border-2 py-2.5 text-[13px] font-bold transition-all active:scale-[0.98]',
                       selectedSchedule?.scheduleNumber === schedule.scheduleNumber
                         ? 'border-court bg-court text-white'
-                        : 'border-court text-court hover:bg-teal-50'
+                        : 'border-court text-court hover:bg-court-50'
                     )}
                   >
                     {selectedSchedule?.scheduleNumber === schedule.scheduleNumber ? t('polls.selected') : t('polls.select_option')}
@@ -1268,7 +1268,7 @@ export function PollAdminView({
                 <button
                   onClick={handleConfirmSchedule}
                   disabled={confirming || benchedDirty || recomputing}
-                  className="w-full rounded-2xl bg-gray-900 py-3.5 text-[14px] font-bold text-white disabled:opacity-50 mt-2"
+                  className="w-full rounded-2xl bg-ink py-3.5 text-[14px] font-bold text-white disabled:opacity-50 mt-2"
                 >
                   {confirming ? t('polls.scheduling')
                     : recomputing ? t('polls.recomputing')
@@ -1278,7 +1278,7 @@ export function PollAdminView({
 
               {/* Benched players summary */}
               {selectedSchedule && playersBenched.length > 0 && (
-                <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2 text-[11px] text-amber-700">
+                <div className="rounded-lg bg-warn-50 border border-warn-100 px-3 py-2 text-[11px] text-warn">
                   <span className="font-semibold">{t('polls.benched_count', { count: playersBenched.length })}</span>{' '}
                   {playersBenched.map(id => engineProfiles[id]?.name?.split(' ')[0] ?? id.slice(0,8)).join(', ')}
                 </div>
@@ -1286,7 +1286,7 @@ export function PollAdminView({
 
               {/* Excluded players warning (lack-of-numbers after dropping matches) */}
               {selectedSchedule && excludedCount > 0 && (
-                <div className="rounded-lg bg-gray-100 border border-gray-200 px-3 py-2 text-[11px] text-gray-500">
+                <div className="rounded-lg bg-hairline border border-hairline px-3 py-2 text-[11px] text-ink-2">
                   <span className="font-semibold">{t('polls.excluded_count', { count: excludedCount })}</span>{' '}
                   — {t('polls.excluded_reason')}
                 </div>
@@ -1299,9 +1299,9 @@ export function PollAdminView({
 
       {/* Matches needing ringers */}
       {isAdmin && matchesNeedingRingers.length > 0 && (
-        <div className="rounded-2xl border border-orange-100 bg-orange-50/30 px-4 py-3 mt-3 space-y-2">
+        <div className="rounded-2xl border border-warn-100 bg-warn-50/30 px-4 py-3 mt-3 space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-[12px] font-bold text-orange-700">{t('polls.matches_needing_ringers')}</p>
+            <p className="text-[12px] font-bold text-warn">{t('polls.matches_needing_ringers')}</p>
             {matchesNeedingRingers.length >= 1 && (
               <button
                 onClick={() => setAskRingersAll(true)}
@@ -1312,14 +1312,14 @@ export function PollAdminView({
             )}
           </div>
           {matchesNeedingRingers.map((m: any) => (
-            <div key={m.id} className="flex items-center justify-between rounded-xl bg-white border border-orange-100 px-3 py-2">
+            <div key={m.id} className="flex items-center justify-between rounded-xl bg-white border border-warn-100 px-3 py-2">
               <div>
-                <p className="text-[12px] font-medium text-gray-800">{m.match_date} {m.match_time?.slice(0, 5) ?? ''}</p>
-                <p className="text-[10px] text-gray-400">{t('polls.players_of_four', { count: m.player_ids?.length ?? 0 })}</p>
+                <p className="text-[12px] font-medium text-ink">{m.match_date} {m.match_time?.slice(0, 5) ?? ''}</p>
+                <p className="text-[11px] text-ink-2">{t('polls.players_of_four', { count: m.player_ids?.length ?? 0 })}</p>
               </div>
               <button
                 onClick={() => setAskRingersMatchId(m.id)}
-                className="rounded-lg border border-teal-200 bg-white px-3 py-1.5 text-[11px] font-semibold text-teal-700"
+                className="rounded-lg border border-court-100 bg-white px-3 py-1.5 text-[11px] font-semibold text-court-700"
               >
                 {t('polls.ask_ringers')}
               </button>

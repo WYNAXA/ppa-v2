@@ -18,15 +18,15 @@ function FaqAccordion({ id, q, a, defaultOpen }: { id: string; q: string; a: str
   }, [open])
 
   return (
-    <div id={id} className="border-b border-gray-100 last:border-0 scroll-mt-28">
+    <div id={id} className="border-b border-hairline last:border-0 scroll-mt-28">
       <button
         type="button"
         onClick={() => setOpen(!open)}
         className="flex w-full items-center justify-between gap-4 py-4 text-left group"
       >
-        <span className="text-[14px] font-semibold text-navy group-hover:text-teal-600 transition-colors">{q}</span>
+        <span className="text-[14px] font-semibold text-navy group-hover:text-court transition-colors">{q}</span>
         <ChevronDown
-          className={`h-4 w-4 flex-shrink-0 text-gray-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 flex-shrink-0 text-ink-2 transition-transform ${open ? 'rotate-180' : ''}`}
           style={reducedMotion ? { transition: 'none' } : undefined}
         />
       </button>
@@ -38,7 +38,7 @@ function FaqAccordion({ id, q, a, defaultOpen }: { id: string; q: string; a: str
           transition: reducedMotion ? 'none' : 'max-height 0.25s ease',
         }}
       >
-        <p className="pb-4 text-[13px] text-gray-600 leading-relaxed">{a}</p>
+        <p className="pb-4 text-[13px] text-ink-2 leading-relaxed">{a}</p>
       </div>
     </div>
   )
@@ -66,7 +66,7 @@ function ExplainerEmbed() {
   }, [])
 
   return (
-    <div ref={containerRef} className="mb-4 rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm">
+    <div ref={containerRef} className="mb-4 rounded-2xl overflow-hidden bg-white border border-hairline shadow-sm">
       <div style={{ aspectRatio: '16 / 9', width: '100%' }}>
         {loaded ? (
           <iframe
@@ -77,8 +77,8 @@ function ExplainerEmbed() {
             allow="autoplay; fullscreen"
           />
         ) : (
-          <div className="w-full h-full bg-gray-100 flex items-center justify-center">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+          <div className="w-full h-full bg-hairline flex items-center justify-center">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
           </div>
         )}
       </div>
@@ -135,14 +135,14 @@ export function FAQPage() {
   return (
     <div className="min-h-full bg-cream">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white border-b border-hairline">
         <div className="mx-auto max-w-3xl flex items-center gap-3 px-5 pt-14 pb-4">
           <Link
             to="/"
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 hover:bg-gray-200 transition-colors mkt-btn"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0 hover:bg-hairline transition-colors mkt-btn"
             aria-label="Back to home"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-ink-2" />
           </Link>
           <h1 className="font-display text-[18px] font-bold text-navy">Frequently Asked Questions</h1>
         </div>
@@ -151,21 +151,21 @@ export function FAQPage() {
       <div className="mx-auto max-w-3xl px-5 py-8">
         {/* Search */}
         <div className="relative mb-6">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2 pointer-events-none" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search questions..."
-            className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-10 py-3 text-[14px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-colors"
+            className="w-full rounded-xl border border-hairline bg-white pl-10 pr-10 py-3 text-[14px] outline-none focus:border-court focus:ring-2 focus:ring-court/20 transition-colors"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 rounded-full bg-hairline flex items-center justify-center hover:bg-hairline transition-colors"
               aria-label="Clear search"
             >
-              <X className="h-3 w-3 text-gray-500" />
+              <X className="h-3 w-3 text-ink-2" />
             </button>
           )}
         </div>
@@ -176,8 +176,8 @@ export function FAQPage() {
             onClick={() => setActiveCategory(null)}
             className={`mkt-btn flex-shrink-0 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-colors ${
               !activeCategory
-                ? 'bg-teal-500 text-white'
-                : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-200 hover:text-teal-600'
+                ? 'bg-court text-white'
+                : 'bg-white border border-hairline text-ink-2 hover:border-court-100 hover:text-court'
             }`}
           >
             All
@@ -188,8 +188,8 @@ export function FAQPage() {
               onClick={() => setActiveCategory(activeCategory === cat.id ? null : cat.id)}
               className={`mkt-btn flex-shrink-0 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-colors ${
                 activeCategory === cat.id
-                  ? 'bg-teal-500 text-white'
-                  : 'bg-white border border-gray-200 text-gray-600 hover:border-teal-200 hover:text-teal-600'
+                  ? 'bg-court text-white'
+                  : 'bg-white border border-hairline text-ink-2 hover:border-court-100 hover:text-court'
               }`}
             >
               {cat.label}
@@ -199,11 +199,11 @@ export function FAQPage() {
 
         {/* Grouped FAQ items */}
         {grouped.size === 0 ? (
-          <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-8 text-center">
-            <p className="text-[14px] text-gray-500">No questions match your search.</p>
+          <div className="rounded-2xl bg-white border border-hairline shadow-sm p-8 text-center">
+            <p className="text-[14px] text-ink-2">No questions match your search.</p>
             <button
               onClick={() => { setSearch(''); setActiveCategory(null) }}
-              className="mt-3 text-[13px] text-teal-600 font-semibold hover:underline"
+              className="mt-3 text-[13px] text-court font-semibold hover:underline"
             >
               Clear filters
             </button>
@@ -215,7 +215,7 @@ export function FAQPage() {
               <div key={topic} id={`cat-${topic}`} className="mb-6 scroll-mt-24">
                 <h2 className="font-display text-[15px] font-bold text-navy mb-2 px-1">{cat?.label ?? topic}</h2>
                 {topic === 'voting' && <ExplainerEmbed />}
-                <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden px-5">
+                <div className="rounded-2xl bg-white border border-hairline shadow-sm overflow-hidden px-5">
                   {items.map((faq) => (
                     <FaqAccordion
                       key={faq.id}
@@ -232,19 +232,19 @@ export function FAQPage() {
         )}
 
         {/* Still need help? */}
-        <div className="mt-10 rounded-2xl bg-teal-50 border border-teal-100 p-5 text-center">
+        <div className="mt-10 rounded-2xl bg-court-50 border border-court-100 p-5 text-center">
           <p className="text-[14px] font-semibold text-navy mb-1">Still have a question?</p>
-          <p className="text-[13px] text-gray-600 mb-3">We're happy to help.</p>
+          <p className="text-[13px] text-ink-2 mb-3">We're happy to help.</p>
           <div className="flex items-center justify-center gap-3 flex-wrap">
             <Link
               to="/contact"
-              className="mkt-btn inline-flex items-center gap-1.5 rounded-xl bg-teal-500 px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-teal-600 transition-colors"
+              className="mkt-btn inline-flex items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-semibold text-white hover:bg-court transition-colors"
             >
               Contact Us
             </Link>
             <Link
               to="/support"
-              className="mkt-btn inline-flex items-center gap-1.5 rounded-xl border border-teal-200 bg-white px-4 py-2.5 text-[13px] font-semibold text-teal-600 hover:bg-teal-50 transition-colors"
+              className="mkt-btn inline-flex items-center gap-1.5 rounded-xl border border-court-100 bg-white px-4 py-2.5 text-[13px] font-semibold text-court hover:bg-court-50 transition-colors"
             >
               Help Centre
             </Link>
@@ -252,12 +252,12 @@ export function FAQPage() {
         </div>
 
         {/* Footer links */}
-        <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-gray-400">
-          <Link to="/support" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Support</Link>
-          <Link to="/contact" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Contact</Link>
-          <Link to="/privacy" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Privacy</Link>
-          <Link to="/terms" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Terms</Link>
-          <Link to="/" className="mkt-link pb-0.5 hover:text-teal-600 transition-colors">Home</Link>
+        <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-ink-2">
+          <Link to="/support" className="mkt-link pb-0.5 hover:text-court transition-colors">Support</Link>
+          <Link to="/contact" className="mkt-link pb-0.5 hover:text-court transition-colors">Contact</Link>
+          <Link to="/privacy" className="mkt-link pb-0.5 hover:text-court transition-colors">Privacy</Link>
+          <Link to="/terms" className="mkt-link pb-0.5 hover:text-court transition-colors">Terms</Link>
+          <Link to="/" className="mkt-link pb-0.5 hover:text-court transition-colors">Home</Link>
         </div>
       </div>
     </div>

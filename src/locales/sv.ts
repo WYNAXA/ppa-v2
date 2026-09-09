@@ -25,6 +25,8 @@ export default {
     "see_all": "Visa alla"
   },
   "nav": {
+    "today": "Idag",
+    "courts": "Banor",
     "home": "Hem",
     "play": "Spela",
     "compete": "Tävla",
@@ -760,6 +762,10 @@ export default {
     "ringer_offer_multiple": "{{count}} väntande inhopparerbjudanden"
   },
   "play": {
+    "find_coach": "Hitta tränare",
+    "my_waitlist": "Min väntelista",
+    "sheet_all": "Se allt i Spela",
+    "record_result": "Registrera resultat",
     "title": "Spela",
     "find_my_game": "Hitta min match",
     "find_sub": "Dela din tillgänglighet och bli matchad",

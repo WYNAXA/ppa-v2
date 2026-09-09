@@ -1,5 +1,8 @@
 // ── notify-onesignal Edge Function ─────────────────────────────────────────
-// Called by a Database Webhook on INSERT into the `notifications` table.
+// Deploy: supabase functions deploy notify-onesignal --no-verify-jwt
+// Guarded by the x-webhook-secret header (Vault secret 'onesignal_webhook_secret',
+// sent by the dispatch_notification_to_onesignal trigger).
+// Called by the dispatch_notification_to_onesignal trigger on INSERT into `notifications`.
 // Sends a OneSignal push to the recipient so iOS App Store users get native push
 // for every in-app bell notification.
 // ────────────────────────────────────────────────────────────────────────────
@@ -14,6 +17,18 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Invoked by the database trigger dispatch_notification_to_onesignal, which
+  // sends a shared secret held in Vault. verify_jwt is disabled at the gateway
+  // because legacy service_role JWTs are no longer accepted by Supabase, so
+  // THIS CHECK is the only thing preventing arbitrary push sends.
+  // Fails closed: a missing env var or missing header returns 401.
+  if (req.headers.get('x-webhook-secret') !== Deno.env.get('ONESIGNAL_WEBHOOK_SECRET')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: corsHeaders,
+    })
   }
 
   const key = Deno.env.get('ONESIGNAL_REST_API_KEY')

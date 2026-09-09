@@ -1,73 +1,137 @@
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Home, Users, MapPin, User } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 
 /**
- * The centre action mark — a padel racket meeting the ball. Drawn rather than
- * iconified because this is the one piece of chrome that is unmistakably ours:
- * a generic "+" here would make the app indistinguishable from every other
- * booking app in the store.
+ * Bottom navigation — built to `Main.dc.html` from the design canvas.
  *
- * WHY A SINGLE RACKET AND NOT THE CROSSED PAIR
- *   The crossed-racket mark chosen on the design canvas was judged at ~150px.
- *   Rendered at its real size — 32px inside a 62px button — the two heads fuse
- *   into a heart silhouette, which in an app reads as "favourite", i.e. the
- *   opposite of a primary action. One racket with the ball off its face keeps
- *   the head, the throat and the handle all legible at 32px. Screenshots of
- *   both at true size are in the redesign notes.
+ * Geometry, colours and icons come from the artboard rather than being
+ * approximated: 64px bar, 20px radius, hairline border, and the 62px centre
+ * action sitting 14px proud of the bar on an `ink` fill with a 4px `surface`
+ * ring. The icon paths are the artboard's own — lucide's house, users and pin
+ * are each a touch heavier and read as a different set.
+ */
+
+const ICON = {
+  today: (
+    <>
+      <path d="M3 10.5L12 3l9 7.5" />
+      <path d="M5 9.5V21h14V9.5" />
+    </>
+  ),
+  club: (
+    <>
+      <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
+      <circle cx="10" cy="8" r="3.5" />
+      <path d="M19 20v-1.5a3.5 3.5 0 0 0-2.5-3.35" />
+      <path d="M15 4.6a3.5 3.5 0 0 1 0 6.8" />
+    </>
+  ),
+  courts: (
+    <>
+      <path d="M12 21s7-5.2 7-10.4A7 7 0 0 0 5 10.6C5 15.8 12 21 12 21z" />
+      <circle cx="12" cy="10.4" r="2.6" />
+    </>
+  ),
+  me: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+    </>
+  ),
+} as const
+
+/**
+ * The centre mark, as signed off on the canvas: two crossed rackets meeting at
+ * the ball, in `ball` on `ink`.
  */
 function PlayMark({ size = 32 }: { size?: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <g
-        fill="none"
-        stroke="var(--color-ball)"
-        strokeWidth="1.95"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        <ellipse cx="10" cy="9.8" rx="4.9" ry="5.9" transform="rotate(-22 10 9.8)" />
-        <path d="M12.5 15 15.1 20.6" />
+      <g transform="translate(12,12) scale(1.85) translate(-12,-9.4)">
+        <g
+          fill="none"
+          stroke="var(--color-ball)"
+          strokeWidth="0.62"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M7.8 13.4C9.5 13.9 11.5 13.2 13.2 11.6C15.4 9.6 17.06 7.8 17.06 6.4C17.06 5.1 16 4.5 14.9 4.5C13.7 4.5 12.4 5.4 12 6.4" />
+          <path d="M16.2 13.4C14.5 13.9 12.5 13.2 10.8 11.6C8.6 9.6 6.94 7.8 6.94 6.4C6.94 5.1 8 4.5 9.1 4.5C10.3 4.5 11.6 5.4 12 6.4" />
+        </g>
+        <circle cx="14.25" cy="9.05" r="1.34" fill="var(--color-ball)" />
       </g>
-      <circle cx="18" cy="6.6" r="2.5" fill="var(--color-ball)" />
     </svg>
   )
 }
 
-const ACTIVE = 'var(--color-court)'
-const ACTIVE_BG = 'color-mix(in srgb, var(--color-court) 9%, transparent)'
-
 type NavItem = {
-  icon: typeof Home
   /** i18n key under `nav.` */
-  key: string
+  key: keyof typeof ICON
   path: string
   /**
-   * Every route that should light this tab. Compete and Leagues hang off `you`
-   * because Compete lost its own tab in the redesign but is still a live route
-   * reached from the Play sheet, from Today, and from league deep links — a tab
-   * bar with nothing lit is worse than an approximate match.
+   * Every route that lights this tab. Compete and Leagues hang off `me`:
+   * Compete lost its tab in the redesign but is still a live route, reached
+   * from the Play sheet and from league deep links, and a tab bar with nothing
+   * lit is worse than an approximate match.
    */
   activePaths: string[]
 }
 
-/**
- * Labels come from the pages themselves. The canvas called these "Players" and
- * "Me"; the pages are titled Community and You, in eight languages. A tab bar
- * that names a screen differently from the screen makes the app feel like two
- * products stitched together, so the pages win.
- */
 const LEFT: NavItem[] = [
-  { icon: Home,  key: 'today',     path: '/home',      activePaths: ['/home'] },
-  { icon: Users, key: 'community', path: '/community', activePaths: ['/community', '/players'] },
+  { key: 'today', path: '/home',      activePaths: ['/home'] },
+  { key: 'club',  path: '/community', activePaths: ['/community', '/players'] },
 ]
 
 const RIGHT: NavItem[] = [
-  { icon: MapPin, key: 'courts', path: '/play/book-court', activePaths: ['/play/book-court', '/play/waitlist', '/venues', '/coaches'] },
-  { icon: User,   key: 'you',    path: '/you',             activePaths: ['/you', '/compete', '/leagues'] },
+  { key: 'courts', path: '/play/book-court', activePaths: ['/play/book-court', '/play/waitlist', '/venues', '/coaches'] },
+  { key: 'me',     path: '/you',             activePaths: ['/you', '/compete', '/leagues'] },
 ]
+
+function Tab({
+  item, active, onSelect, label,
+}: {
+  item: NavItem
+  active: boolean
+  onSelect: () => void
+  label: string
+}) {
+  return (
+    <motion.button
+      onClick={onSelect}
+      whileTap={{ scale: 0.9 }}
+      aria-current={active ? 'page' : undefined}
+      className="flex h-full min-h-[44px] touch-manipulation flex-col items-center justify-center gap-1"
+    >
+      <svg
+        width="22"
+        height="22"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke={active ? 'var(--color-court)' : 'currentColor'}
+        strokeWidth={active ? 2.3 : 2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={active ? '' : 'text-ink-2'}
+        aria-hidden="true"
+      >
+        {ICON[item.key]}
+      </svg>
+      {/* The board specifies ink-3 for inactive labels. At 11px that is 3.6:1 —
+          under the AA floor — so inactive labels use ink-2. It is the one place
+          this file departs from the artboard. */}
+      <span
+        className={cn(
+          'text-[11px] leading-3',
+          active ? 'font-bold text-court' : 'font-semibold text-ink-2',
+        )}
+      >
+        {label}
+      </span>
+    </motion.button>
+  )
+}
 
 export function BottomNav({ onPlayClick }: { onPlayClick: () => void }) {
   const navigate = useNavigate()
@@ -79,70 +143,39 @@ export function BottomNav({ onPlayClick }: { onPlayClick: () => void }) {
       (p) => location.pathname === p || location.pathname.startsWith(p + '/')
     )
 
-  const Tab = ({ item }: { item: NavItem }) => {
-    const Icon = item.icon
-    const active = isActive(item)
-    return (
-      <motion.button
-        onClick={() => navigate(item.path)}
-        whileTap={{ scale: 0.88 }}
-        aria-current={active ? 'page' : undefined}
-        className={cn(
-          'relative flex min-h-[44px] flex-col items-center justify-center gap-0.5 rounded-control px-1 py-2 transition-colors touch-manipulation',
-          active ? '' : 'text-ink-2 hover:bg-court-50 hover:text-ink'
-        )}
-        style={active ? { backgroundColor: ACTIVE_BG } : undefined}
-      >
-        <Icon
-          className="h-5 w-5"
-          style={{ color: active ? ACTIVE : undefined }}
-          strokeWidth={active ? 2.5 : 1.8}
-        />
-        <span
-          className="text-[11px] font-medium leading-none"
-          style={{ color: active ? ACTIVE : undefined }}
-        >
-          {t(`nav.${item.key}`)}
-        </span>
-      </motion.button>
-    )
-  }
-
   return (
     <div
-      className="fixed bottom-0 left-0 right-0 z-50 flex justify-center px-4"
-      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}
+      className="fixed bottom-0 left-0 right-0 z-50 px-3"
+      style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 16px)' }}
     >
-      <motion.nav
+      <motion.div
         initial={{ y: 100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 30, delay: 0.05 }}
-        className="w-full max-w-sm rounded-panel border border-hairline bg-card/95 px-2 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.10)] backdrop-blur-xl"
+        className="relative mx-auto w-full max-w-sm"
       >
-        <div className="grid grid-cols-5 items-end gap-1">
+        <div className="grid h-16 grid-cols-5 items-center rounded-[20px] border border-hairline bg-card shadow-[0_6px_24px_rgba(11,21,18,0.09)]">
           {LEFT.map((item) => (
-            <Tab key={item.path} item={item} />
+            <Tab key={item.path} item={item} active={isActive(item)} label={t(`nav.${item.key}`)} onSelect={() => navigate(item.path)} />
           ))}
-
-          {/* Centre action. Raised out of the bar so it reads as "do a thing"
-              rather than "go to a place" — it opens a sheet, it is not a tab. */}
-          <div className="flex justify-center">
-            <motion.button
-              onClick={onPlayClick}
-              whileTap={{ scale: 0.9 }}
-              aria-label={t('nav.play')}
-              aria-haspopup="dialog"
-              className="-mt-7 flex h-[62px] w-[62px] items-center justify-center rounded-pill bg-court shadow-[0_6px_18px_rgba(15,93,84,0.38)] ring-4 ring-card transition-colors active:bg-court-700"
-            >
-              <PlayMark />
-            </motion.button>
-          </div>
-
+          <div aria-hidden="true" />
           {RIGHT.map((item) => (
-            <Tab key={item.path} item={item} />
+            <Tab key={item.path} item={item} active={isActive(item)} label={t(`nav.${item.key}`)} onSelect={() => navigate(item.path)} />
           ))}
         </div>
-      </motion.nav>
+
+        {/* Centre action. It opens a sheet — a verb, not a destination — which
+            is why it sits proud of the bar and carries no label. */}
+        <motion.button
+          onClick={onPlayClick}
+          whileTap={{ scale: 0.92 }}
+          aria-label={t('nav.play')}
+          aria-haspopup="dialog"
+          className="absolute -top-3.5 left-1/2 flex h-[62px] w-[62px] -translate-x-1/2 items-center justify-center rounded-pill border-4 border-surface bg-ink shadow-[0_8px_22px_rgba(11,21,18,0.28)]"
+        >
+          <PlayMark />
+        </motion.button>
+      </motion.div>
     </div>
   )
 }

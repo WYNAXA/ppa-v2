@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, BarChart2, CalendarPlus, Car, Navigation, Shuffle, Ban, Trash2, Play, Users } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Edit2, LogOut, BookOpen, Trophy, CheckCircle, XCircle, CalendarPlus, Car, Navigation, Ban, Trash2, Play, Users } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO, addHours, isBefore } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
@@ -29,7 +29,7 @@ import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
 import type { Match, MatchResult, Profile } from '@/lib/types'
 import { calculateMatchPrediction, PAIRINGS, pairingToTeams, findPairingIndex } from '@/lib/predictions'
-import { PointsAtStake } from '@/components/match/PointsAtStake'
+import { MatchStakes } from '@/components/match/MatchStakes'
 import {
   getMatchTravelInfo,
   calculateDistance,
@@ -3346,115 +3346,57 @@ function TeamsAndPrediction({
     }
   }, [])
 
-  const team1Higher = prediction.team1WinProb >= prediction.team2WinProb
+  // What the next pairing would do to the split — the board's "swap and it's
+  // 58% / 42%" line. Computed, never guessed.
+  const swapPreview = useMemo(() => {
+    if (!canSwitch || playerIds.length !== 4 || !prediction.hasRankings) return null
+    const nextIndex = (pairingIndex + 1) % PAIRINGS.length
+    const { team1: nT1, team2: nT2 } = pairingToTeams(playerIds, nextIndex)
+    const byId = new Map(players.map((p) => [p.id, p]))
+    const nextT1 = nT1.map((id) => byId.get(id)).filter((p): p is Profile => !!p)
+    const nextT2 = nT2.map((id) => byId.get(id)).filter((p): p is Profile => !!p)
+    if (nextT1.length !== 2 || nextT2.length !== 2) return null
+    const moved1 = team1Players.find((p) => !nT1.includes(p.id))
+    const moved2 = team2Players.find((p) => !nT2.includes(p.id))
+    if (!moved1 || !moved2) return null
+    const next = calculateMatchPrediction(nextT1, nextT2)
+    if (next.team1WinProb === prediction.team1WinProb) return null
+    return {
+      team1WinProb: next.team1WinProb,
+      a: moved1.name?.split(' ')[0] ?? '',
+      b: moved2.name?.split(' ')[0] ?? '',
+    }
+  }, [canSwitch, playerIds, pairingIndex, players, team1Players, team2Players, prediction.hasRankings, prediction.team1WinProb])
 
   return (
-    <div className="px-5 mb-4">
-      <div className="rounded-2xl border border-hairline bg-surface p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <BarChart2 className="h-4 w-4 text-court" />
-          <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">{t('teams_prediction_title')}</p>
-          <AnimatePresence>
-            {savedTick && (
-              <motion.span
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0 }}
-                className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-green-600"
-              >
-                <CheckCircle className="h-3 w-3" />
-                {t('teams_saved')}
-              </motion.span>
-            )}
-            {saveError && !savedTick && (
-              <span className="ml-auto text-[11px] font-semibold text-red-500">{t('teams_save_failed')}</span>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <TeamRow
-          label={t('team1')}
-          players={team1Players}
-          winProb={prediction.team1WinProb}
-          highlight={team1Higher && prediction.hasRankings}
-        />
-        <div className="h-2" />
-        <TeamRow
-          label={t('team2')}
-          players={team2Players}
-          winProb={prediction.team2WinProb}
-          highlight={!team1Higher && prediction.hasRankings}
-        />
-
-        {!prediction.hasRankings && (
-          <p className="text-[11px] text-ink-2 mt-2 text-center italic">{t('predictions_unavailable')}</p>
-        )}
-
-        {/* Points at stake */}
-        {prediction.hasRankings && (
-          <PointsAtStake
-            team1Players={team1Players}
-            team2Players={team2Players}
-            isFriendly={isFriendly}
-            isLeagueMatch={isLeagueMatch}
-            currentUserId={currentUserId}
-          />
-        )}
-
-        {canSwitch && (
-          <button
-            onClick={handleSwitch}
-            className="mt-3 w-full flex items-center justify-center gap-1.5 rounded-xl border border-hairline bg-white py-2 text-[12px] font-semibold text-ink-2 active:scale-[0.98] transition-transform"
+    <div className="mb-4">
+      <AnimatePresence>
+        {savedTick && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="mb-2 px-5 text-[13px] font-semibold text-court"
           >
-            <Shuffle className="h-3.5 w-3.5" />
-            {t('switch_teams')}
-          </button>
+            {t('teams_saved')}
+          </motion.p>
         )}
-      </div>
+        {saveError && !savedTick && (
+          <p className="mb-2 px-5 text-[13px] font-semibold text-alert">{t('teams_save_failed')}</p>
+        )}
+      </AnimatePresence>
+
+      <MatchStakes
+        team1Players={team1Players}
+        team2Players={team2Players}
+        team1WinProb={prediction.team1WinProb}
+        hasRankings={prediction.hasRankings}
+        isFriendly={isFriendly}
+        isLeagueMatch={isLeagueMatch}
+        currentUserId={currentUserId}
+        onSwap={canSwitch ? handleSwitch : undefined}
+        swapPreview={swapPreview}
+      />
     </div>
   )
 }
-
-function TeamRow({
-  label,
-  players,
-  winProb,
-  highlight,
-}: {
-  label: string
-  players: Profile[]
-  winProb: number
-  highlight: boolean
-}) {
-  const { t } = useTranslation('', { keyPrefix: 'match' })
-  return (
-    <div
-      className={cn(
-        'flex items-center gap-3 rounded-xl border px-3 py-2.5',
-        highlight ? 'border-court-100 bg-court-50/60' : 'border-hairline bg-white',
-      )}
-    >
-      <div className="flex-shrink-0">
-        <p className={cn('text-[11px] font-bold uppercase tracking-wide', highlight ? 'text-court' : 'text-ink-2')}>
-          {label}
-        </p>
-      </div>
-      <div className="flex-1 flex items-center gap-2 min-w-0">
-        {players.map((p) => (
-          <div key={p.id} className="flex items-center gap-1.5 min-w-0">
-            <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-            <p className="text-[12px] font-semibold text-ink truncate">{p.name.split(' ')[0]}</p>
-          </div>
-        ))}
-      </div>
-      <div className="flex-shrink-0 text-right">
-        <p className={cn('text-[16px] font-black leading-none', highlight ? 'text-court' : 'text-ink-2')}>
-          {winProb}%
-        </p>
-        <p className="text-[11px] text-ink-2 mt-0.5">{t('to_win')}</p>
-      </div>
-    </div>
-  )
-}
-
-

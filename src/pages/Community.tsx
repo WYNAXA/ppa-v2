@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateGroupSheet } from '@/components/community/CreateGroupSheet'
 import { QuickLinksRow } from '@/components/community/QuickLinksRow'
+import { ClubThisWeek } from '@/components/community/ClubThisWeek'
 import { ConnectionRequestCard } from '@/components/community/ConnectionRequestCard'
 import { ConnectionCard } from '@/components/community/ConnectionCard'
 import { InviteToMatchSheet } from '@/components/community/InviteToMatchSheet'
@@ -1144,36 +1145,14 @@ export function CommunityPage() {
 
   return (
     <div className="min-h-full bg-surface pb-32">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-surface/95 backdrop-blur-sm z-10 border-b border-hairline">
-        <h1 className="text-[22px] font-bold text-ink">{t('community.title')}</h1>
+      <div className="px-5 pb-2 pt-14">
+        <ClubThisWeek
+          groups={allMyGroups.map((g) => ({ id: g.id, name: g.name }))}
+          userId={userId}
+        />
       </div>
 
-      <div className="px-5 space-y-6">
-        {/* Hero card */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--color-court) 0%, #00796B 100%)' }}>
-          <div className="px-5 py-5 text-white">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-[20px] font-extrabold leading-tight">{t('community.page_title')}</h2>
-                <p className="text-[13px] text-white/80 mt-1">{t('community.page_subtitle')}</p>
-              </div>
-              <div className="bg-white/15 rounded-xl px-3 py-2 text-center">
-                <p className="text-[22px] font-black leading-none">{allMyGroups.length}</p>
-                <p className="text-[11px] text-white/80 mt-0.5">{t('community.groups_count')}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={() => setShowCreateSheet(true)} className="flex-1 rounded-xl bg-white py-2.5 text-[13px] font-bold text-court">
-                {t('community.create_group_btn')}
-              </button>
-              <button onClick={() => playersRef.current?.scrollIntoView({ behavior: 'smooth' })} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2.5 text-[13px] font-bold text-white">
-                {t('community.find_players')}
-              </button>
-            </div>
-          </div>
-        </div>
-
+      <div className="px-5 space-y-6 pt-4">
         {/* Quick links */}
         <QuickLinksRow sections={quickLinks} />
 

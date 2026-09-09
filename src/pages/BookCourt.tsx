@@ -13,6 +13,7 @@ import {
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import { CourtsHome } from '@/components/play/CourtsHome'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -1109,22 +1110,19 @@ export function BookCourtPage() {
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       {/* ── Header ── */}
-      {step !== 'confirmation' && (
+      {step !== 'confirmation' && step !== 'venue' && (
         <div className="flex-shrink-0">
           <div className="flex items-center gap-3 px-5 pt-14 pb-2">
-            {/* Courts is a tab now, so step 1 can be the first screen in the
-                history stack. A back chevron there points at nothing and makes
-                a tab root read as a sub-page. React Router stamps an index on
-                each history entry; 0 means there is nothing behind us. */}
-            {!(step === 'venue' && (window.history.state?.idx ?? 0) === 0) && (
-              <button
-                onClick={goBack}
-                aria-label={t('common.back')}
-                className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-pill bg-card border border-hairline"
-              >
-                <ChevronLeft className="h-5 w-5 text-ink-2" />
-              </button>
-            )}
+            {/* Step 1 renders its own header (CourtsHome), so this chrome only
+                appears from step 2 on — where back always means "previous
+                step" and never points at nothing. */}
+            <button
+              onClick={goBack}
+              aria-label={t('common.back')}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-pill border border-hairline bg-card"
+            >
+              <ChevronLeft className="h-5 w-5 text-ink-2" />
+            </button>
             <h1 className="text-[18px] font-bold text-ink">{stepTitles[step]}</h1>
           </div>
           <StepIndicator step={step} />
@@ -1143,35 +1141,22 @@ export function BookCourtPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -24 }}
               transition={{ duration: 0.22 }}
-              className="px-5 pt-2 space-y-4"
+              className="px-5 pt-14 space-y-5"
             >
-              {/* Search input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
-                <input
-                  autoFocus
-                  type="text"
-                  value={venueQuery}
-                  onChange={(e) => {
-                    setVenueQuery(e.target.value)
-                    setNonPpaVenue(null)
-                  }}
-                  placeholder="Search venues by name or city…"
-                  className="w-full rounded-2xl border border-hairline bg-surface pl-10 pr-10 py-3 text-[15px] outline-none focus:border-court focus:ring-2 focus:ring-court/20 transition-all"
-                />
-                {venueQuery.length > 0 && (
-                  <button
-                    onClick={() => {
-                      setVenueQuery('')
-                      setVenueResults([])
-                      setNonPpaVenue(null)
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    <X className="h-4 w-4 text-ink-2" />
-                  </button>
-                )}
-              </div>
+              <CourtsHome
+                lat={coords?.lat ?? null}
+                lng={coords?.lng ?? null}
+                query={venueQuery}
+                onQueryChange={(v) => { setVenueQuery(v); setNonPpaVenue(null) }}
+                onUseLocation={requestLocation}
+                onPickVenue={(venueId) => {
+                  const v = [...venueResults, ...nearbyVenues].find(
+                    (c) => (c.venues_id ?? c.venue_id) === venueId,
+                  )
+                  if (v) selectVenue(v)
+                  else navigate(`/venues/${venueId}`)
+                }}
+              />
 
               {/* Non-PPA venue notice */}
               <AnimatePresence>

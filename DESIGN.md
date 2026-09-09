@@ -146,6 +146,55 @@ Order: tokens → nav & routing → Today → match ELO preview → Courts → C
   anything else in the app; it is now court, with the rating as the one
   ball-yellow element.
 
+### Built to the artboards (2026-09-09, second pass)
+
+The first pass repainted the existing screens. It was not the redesign. These
+are now built **against the `.dc.html` artboards**, element by element:
+
+- **Today** (`Main.dc.html`) — weekday as the headline, **Needs you** triage
+  stack (result awaiting your confirmation · a group match short of players · an
+  unanswered availability poll, each with its action inline), court-green next
+  match card with the ball countdown pill, **Your week** five-day strip. The
+  ranking, poll, win-rate and streak tiles were **removed** from Today: they are
+  Me's job, and Today is a screen you answer, not a dashboard you read.
+- **Play sheet** (`Play.dc.html`) — "Get a game / Four ways in. Start at the
+  top." Find my game gets the court card and the ball accent because it is the
+  one that does the work; the other three are rows in descending order of
+  effort. A six-tile grid made all six look equally good, which is precisely the
+  decision the player needs help with.
+- **Bottom nav** (`Main.dc.html`) — 64px bar, 20px radius, **ink** centre action
+  62px and 14px proud, the artboard's own icon paths, labels
+  **Today · Club · Courts · Me**. The centre mark is the crossed-racket pair as
+  signed off.
+
+One deliberate departure: the board specifies `ink-3` for inactive nav labels.
+At 11px that is 3.6:1, under AA, so inactive labels use `ink-2`.
+
+- **Match** (`Match.dc.html`) — `components/match/MatchStakes.tsx`. Win split on
+  court with the ball bar, then every player's swing both ways as +/− chips, then
+  a live "swap these two and it's 58% / 42%" bar computed from the next pairing.
+  Replaces the old TeamRow + PointsAtStakeSection pair, which also carried a
+  conditional-hook bug (`useMemo` after an early return on friendly matches).
+- **Me** (`Me.dc.html`) — `components/shared/EloHero.tsx`. Rating at 44px on
+  `ink`, sparkline from `rating_history` in `line` with a `ball` head, the
+  K-factor tier spelled out ("Regular · K10" is the honest answer to "why did I
+  only gain 4"), last five results as chips, then three stat cards and the badge
+  row. The old royal-blue gradient hero and its identity tiles are gone.
+- **Club** (`Club.dc.html`) — `components/community/ClubThisWeek.tsx`. Needs
+  players → Ringers on call, closest ELO first → league snapshot (top two plus
+  you). The ringer sub-line is the *distance* from the fixture's average, not the
+  raw rating, because the organiser is trying to keep the game even.
+- **Courts** (`Courts.dc.html`) — `components/play/CourtsHome.tsx`. Partner
+  venues first and alone under the ball `PPA VENUE` chip, with slots and the
+  per-player split; the directory below as an acquisition loop. It renders as the
+  landing state of the booking flow; typing hands over to the existing search.
+
+**Not built, deliberately:** the board's "Saturday 10:00 is gone / Join waitlist"
+card. Rendering it needs a specific slot the player wanted and was denied, and
+nothing in the data models that intent yet. Faking it from a waitlist row would
+invert its meaning. The waitlist entry point lives in the Play sheet until the
+booking flow records a missed slot.
+
 **Not done, and not pretended otherwise**
 
 - Courts, Players and Me have the new ground but their *contents* are

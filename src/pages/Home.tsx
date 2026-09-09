@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
-  TrendingUp, TrendingDown, Minus,
-  Calendar, MapPin, ChevronRight, Plus,
+  Calendar, Plus,
   Clock, Users, Trophy, BarChart3, Search, Bell,
+  Check, UserPlus,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns'
@@ -26,14 +26,16 @@ function todayStr() {
   return new Date().toISOString().split('T')[0]
 }
 
-function getCountdown(matchDate: string, matchTime: string | null, t: (key: string, opts?: Record<string, unknown>) => string): string {
+/** Short relative label for the hero pill — "Today", "Tomorrow", "2 days". */
+function getShortCountdown(matchDate: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
   try {
     const diff = differenceInCalendarDays(parseISO(matchDate), new Date())
-    if (diff === 0) return matchTime ? t('home.today_at', { time: matchTime.slice(0, 5) }) : t('home.today')
-    if (diff === 1) return matchTime ? t('home.tomorrow_at', { time: matchTime.slice(0, 5) }) : t('home.tomorrow')
-    if (diff > 1)  return t('home.in_days', { count: diff })
-  } catch { /* fall through */ }
-  return matchDate
+    if (diff <= 0) return t('home.today')
+    if (diff === 1) return t('home.tomorrow')
+    return t('home.in_days_short', { count: diff })
+  } catch {
+    return matchDate
+  }
 }
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -58,24 +60,12 @@ interface NextMatch {
   status: string
   player_ids: string[]
   booked_venue_name: string | null
+  booked_court_number: number | null
   players: Array<{ id: string; name: string; avatar_url: string | null }>
   has_result: boolean
 }
 
-interface ActivePoll {
-  id: string
-  title: string
-  group_id: string
-  responseCount: number
-  memberCount: number
-  userHasResponded: boolean
-}
 
-interface QuickStats {
-  weekMatches: number
-  winRate: number
-  streak: number
-}
 
 interface ActivityItem {
   id: string
@@ -86,10 +76,6 @@ interface ActivityItem {
   related_id: string | null
 }
 
-interface HomeRanking {
-  rank: number
-  trend: number
-}
 
 // ── Data hooks ────────────────────────────────────────────────────────────────
 
@@ -100,7 +86,7 @@ function useNextMatch(userId: string) {
     queryFn: async () => {
       const { data: match } = await supabase
         .from('matches')
-        .select('id, match_date, match_time, match_type, status, player_ids, booked_venue_name')
+        .select('id, match_date, match_time, match_type, status, player_ids, booked_venue_name, booked_court_number')
         .contains('player_ids', [userId])
         .gte('match_date', todayStr())
         .not('status', 'in', '("completed","cancelled")')
@@ -130,139 +116,6 @@ function useNextMatch(userId: string) {
       // card shows them instead of a blank avatar.
       const guestsByMatch = await guestPseudoProfilesForMatches([match.id])
       return { ...match, players: [...players, ...(guestsByMatch[match.id] ?? [])], has_result: (resultCount ?? 0) > 0 }
-    },
-  })
-}
-
-function useHomeRanking(userId: string, currentRanking: number | undefined) {
-  return useQuery<HomeRanking>({
-    queryKey: ['home-ranking', userId, currentRanking],
-    enabled: !!userId,
-    queryFn: async () => {
-      const [rankResult, trendData] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true })
-          .gt('internal_ranking', currentRanking ?? 0),
-        supabase
-          .from('ranking_changes')
-          .select('points_change')
-          .eq('player_id', userId)
-          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-      ])
-      const rank  = (rankResult.count ?? 0) + 1
-      const trend = (trendData.data ?? []).reduce((a, c) => a + (c.points_change as number), 0)
-      return { rank, trend }
-    },
-  })
-}
-
-function useActivePoll(userId: string) {
-  return useQuery<ActivePoll | null>({
-    queryKey: ['polls', 'mine', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data: memberships } = await supabase
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', userId)
-        .eq('status', 'approved')
-
-      const groupIds = (memberships ?? []).map((m) => m.group_id)
-      if (groupIds.length === 0) return null
-
-      const { data: polls } = await supabase
-        .from('polls')
-        .select('id, title, group_id')
-        .in('group_id', groupIds)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      const poll = polls?.[0]
-      if (!poll) return null
-
-      const [{ count: responseCount }, { count: memberCount }, { data: myResponse }] = await Promise.all([
-        supabase
-          .from('poll_responses')
-          .select('id', { count: 'exact', head: true })
-          .eq('poll_id', poll.id),
-        supabase
-          .from('group_members')
-          .select('id', { count: 'exact', head: true })
-          .eq('group_id', poll.group_id)
-          .eq('status', 'approved'),
-        supabase
-          .from('poll_responses')
-          .select('id')
-          .eq('poll_id', poll.id)
-          .eq('user_id', userId)
-          .maybeSingle(),
-      ])
-
-      return {
-        id:               poll.id,
-        title:            poll.title,
-        group_id:         poll.group_id,
-        responseCount:    responseCount ?? 0,
-        memberCount:      memberCount ?? 0,
-        userHasResponded: !!myResponse,
-      }
-    },
-  })
-}
-
-function useQuickStats(userId: string) {
-  return useQuery<QuickStats>({
-    queryKey: ['home-quick-stats', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-
-      const { data: results } = await supabase
-        .from('match_results')
-        .select('result_type, team1_players, team2_players, created_at')
-        .or(`team1_players.cs.{${userId}},team2_players.cs.{${userId}}`)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      const all = results ?? []
-
-      // Week stats
-      const weekResults = all.filter((r) => r.created_at >= sevenDaysAgo)
-      let weekWins = 0
-      for (const r of weekResults) {
-        const inTeam1 = (r.team1_players as string[]).includes(userId)
-        if (
-          (inTeam1 && r.result_type === 'team1_win') ||
-          (!inTeam1 && r.result_type === 'team2_win')
-        ) weekWins++
-      }
-
-      // Current streak (from most recent backwards)
-      let streak = 0
-      for (const r of all) {
-        const inTeam1 = (r.team1_players as string[]).includes(userId)
-        const isWin =
-          (inTeam1 && r.result_type === 'team1_win') ||
-          (!inTeam1 && r.result_type === 'team2_win')
-        if (isWin) streak++
-        else break
-      }
-
-      const winRate = all.length > 0
-        ? Math.round((all.filter((r) => {
-            const inTeam1 = (r.team1_players as string[]).includes(userId)
-            return (inTeam1 && r.result_type === 'team1_win') ||
-                   (!inTeam1 && r.result_type === 'team2_win')
-          }).length / all.length) * 100)
-        : 0
-
-      return {
-        weekMatches: weekResults.length,
-        winRate,
-        streak,
-      }
     },
   })
 }
@@ -339,11 +192,288 @@ function useSetupProgress(userId: string) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-const TYPE_BADGE: Record<string, { key: string; className: string }> = {
-  competitive: { key: 'home.type_competitive', className: 'bg-warn/25 text-warn-100 border-warn/30' },
-  friendly:    { key: 'home.type_friendly',    className: 'bg-blue-400/20 text-blue-100 border-blue-300/20'     },
-  casual:      { key: 'home.type_casual',      className: 'bg-white/20 text-white/80 border-white/20'           },
-  group:       { key: 'home.type_group',       className: 'bg-white/20 text-white/80 border-white/20'           },
+
+// ── NEEDS YOU ─────────────────────────────────────────────────────────────────
+// The signed-off Today screen leads with a triage stack, not a dashboard. Three
+// sources feed it — a result waiting on your confirmation, a match in your
+// group short of players, an availability poll you have not answered — and each
+// row carries the action inline so the screen is answerable without leaving it.
+// This is what replaced the ranking / poll / stats tiles: those are Me's job.
+
+export type NeedsYouItem = {
+  id: string
+  tone: 'court' | 'alert'
+  icon: 'check' | 'user-plus' | 'calendar'
+  title: string
+  detail: string
+  cta: string
+  /** Dark CTA reads as "commit"; court reads as "confirm". Matches the board. */
+  ctaTone: 'court' | 'ink'
+  to: string
+}
+
+function useNeedsYou(userId: string, t: (k: string, o?: Record<string, unknown>) => string) {
+  return useQuery<NeedsYouItem[]>({
+    queryKey: ['home-needs-you', userId],
+    enabled: !!userId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const items: NeedsYouItem[] = []
+      const today = todayStr()
+
+      // (a) Results submitted by someone else, still awaiting verification.
+      const { data: pending } = await supabase
+        .from('match_results')
+        .select('id, match_id, verification_status, submitted_by, team1_score, team2_score, created_at')
+        .neq('verification_status', 'verified')
+        .neq('submitted_by', userId)
+        .order('created_at', { ascending: false })
+        .limit(12)
+
+      if (pending && pending.length > 0) {
+        const ids = pending.map((r) => r.match_id)
+        const { data: mine } = await supabase
+          .from('matches')
+          .select('id, player_ids, match_date')
+          .in('id', ids)
+        const mineSet = new Set(
+          (mine ?? [])
+            .filter((m) => ((m.player_ids as string[]) ?? []).includes(userId))
+            .map((m) => m.id),
+        )
+        for (const r of pending) {
+          if (!mineSet.has(r.match_id)) continue
+          const score = r.team1_score != null && r.team2_score != null
+            ? `${r.team1_score}–${r.team2_score}`
+            : ''
+          items.push({
+            id: `result-${r.id}`,
+            tone: 'court',
+            icon: 'check',
+            title: t('home.needs_confirm_result'),
+            detail: [score, r.verification_status === 'disputed' ? t('home.needs_disputed') : '']
+              .filter(Boolean).join(' · '),
+            cta: r.verification_status === 'disputed' ? t('home.needs_review') : t('home.needs_confirm'),
+            ctaTone: 'court',
+            to: `/matches/${r.match_id}`,
+          })
+          if (items.length >= 2) break
+        }
+      }
+
+      // (b) A match in one of your groups that is short of players.
+      const { data: memberships } = await supabase
+        .from('group_members').select('group_id').eq('user_id', userId).eq('status', 'approved')
+      const groupIds = (memberships ?? []).map((m) => m.group_id)
+
+      if (groupIds.length > 0) {
+        const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd', { locale: getDateLocale() })
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('id, match_date, match_time, booked_venue_name, player_ids')
+          .in('group_id', groupIds)
+          .gte('match_date', today).lte('match_date', weekEnd)
+          .not('status', 'in', '(cancelled,completed)')
+          .order('match_date', { ascending: true })
+          .limit(10)
+        const short = (matches ?? []).filter(
+          (m) => !((m.player_ids as string[]) ?? []).includes(userId)
+            && ((m.player_ids as string[]) ?? []).length < 4,
+        )
+        for (const m of short.slice(0, 2)) {
+          const spots = 4 - ((m.player_ids as string[]) ?? []).length
+          const day = (() => {
+            try { return format(parseISO(m.match_date), 'EEEE', { locale: getDateLocale() }) }
+            catch { return m.match_date }
+          })()
+          items.push({
+            id: `spot-${m.id}`,
+            tone: 'alert',
+            icon: 'user-plus',
+            title: t('home.needs_spots', { day, count: spots }),
+            detail: [m.match_time?.slice(0, 5), m.booked_venue_name].filter(Boolean).join(' · '),
+            cta: t('home.needs_im_in'),
+            ctaTone: 'ink',
+            to: `/matches/${m.id}`,
+          })
+        }
+
+        // (c) An open availability poll you have not answered.
+        const { data: polls } = await supabase
+          .from('polls')
+          .select('id, title, group_id')
+          .in('group_id', groupIds)
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(3)
+        for (const poll of polls ?? []) {
+          const [{ data: mineResp }, { count: responded }, { count: members }] = await Promise.all([
+            supabase.from('poll_responses').select('id').eq('poll_id', poll.id).eq('user_id', userId).maybeSingle(),
+            supabase.from('poll_responses').select('id', { count: 'exact', head: true }).eq('poll_id', poll.id),
+            supabase.from('group_members').select('id', { count: 'exact', head: true }).eq('group_id', poll.group_id).eq('status', 'approved'),
+          ])
+          if (mineResp) continue
+          items.push({
+            id: `poll-${poll.id}`,
+            tone: 'court',
+            icon: 'calendar',
+            title: t('home.needs_availability'),
+            detail: `${poll.title} · ${t('home.responded', { count: responded ?? 0, total: members ?? 0 })}`,
+            cta: t('home.needs_add'),
+            ctaTone: 'ink',
+            to: `/play/availability/${poll.id}`,
+          })
+          break
+        }
+      }
+
+      return items.slice(0, 4)
+    },
+  })
+}
+
+const NEEDS_ICON = { check: Check, 'user-plus': UserPlus, calendar: Calendar } as const
+
+function NeedsYouSection({ items }: { items: NeedsYouItem[] }) {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  if (items.length === 0) return null
+
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+          {t('home.needs_you')}
+        </h2>
+        <span className="num rounded-pill bg-ball px-[7px] py-0.5 text-[11px] font-bold leading-[14px] text-ink">
+          {items.length}
+        </span>
+      </div>
+
+      {items.map((item, i) => {
+        const Icon = NEEDS_ICON[item.icon]
+        return (
+          <motion.button
+            key={item.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.04 }}
+            onClick={() => navigate(item.to)}
+            className="flex items-center gap-3 rounded-[14px] border border-hairline bg-card px-3.5 py-3 text-left transition-transform active:scale-[0.99]"
+          >
+            <span
+              className={cn(
+                'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-control',
+                item.tone === 'alert' ? 'bg-alert-50' : 'bg-court-50',
+              )}
+            >
+              <Icon
+                className={cn('h-[18px] w-[18px]', item.tone === 'alert' ? 'text-alert' : 'text-court')}
+                strokeWidth={2.2}
+              />
+            </span>
+            <span className="flex min-w-0 flex-grow flex-col gap-px">
+              <span className="line-clamp-2 text-[15px] font-semibold leading-5 text-ink">{item.title}</span>
+              {item.detail && (
+                <span className="num truncate text-[13px] leading-[18px] text-ink-2">{item.detail}</span>
+              )}
+            </span>
+            <span
+              className={cn(
+                'flex-shrink-0 rounded-control px-3.5 py-2.5 text-[13px] font-semibold leading-4 text-white',
+                item.ctaTone === 'ink' ? 'bg-ink' : 'bg-court',
+              )}
+            >
+              {item.cta}
+            </span>
+          </motion.button>
+        )
+      })}
+    </section>
+  )
+}
+
+// ── YOUR WEEK ─────────────────────────────────────────────────────────────────
+// Five days at a glance. A dot per day, today filled. It is the cheapest way to
+// answer "am I playing this week" without opening a calendar.
+
+function useYourWeek(userId: string) {
+  return useQuery<Record<string, number>>({
+    queryKey: ['home-your-week', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const from = todayStr()
+      const to = format(addDays(new Date(), 4), 'yyyy-MM-dd', { locale: getDateLocale() })
+      const { data } = await supabase
+        .from('matches')
+        .select('match_date, player_ids')
+        .gte('match_date', from).lte('match_date', to)
+        .not('status', 'in', '(cancelled)')
+      const counts: Record<string, number> = {}
+      for (const m of data ?? []) {
+        if (!((m.player_ids as string[]) ?? []).includes(userId)) continue
+        counts[m.match_date] = (counts[m.match_date] ?? 0) + 1
+      }
+      return counts
+    },
+  })
+}
+
+function YourWeekStrip({ counts }: { counts: Record<string, number> }) {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const locale = useDateLocale()
+  const today = new Date()
+
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+          {t('home.your_week')}
+        </h2>
+        <button onClick={() => navigate('/play')} className="text-[13px] font-semibold text-court">
+          {t('home.see_all')}
+        </button>
+      </div>
+      <div className="grid grid-cols-5 gap-1.5">
+        {Array.from({ length: 5 }, (_, i) => {
+          const d = addDays(today, i)
+          const key = format(d, 'yyyy-MM-dd', { locale: getDateLocale() })
+          const label = (() => {
+            try { return format(d, 'EEE', { locale }) } catch { return '' }
+          })()
+          const has = (counts[key] ?? 0) > 0
+          const isToday = i === 0
+          return (
+            <button
+              key={key}
+              onClick={() => navigate('/play')}
+              className={cn(
+                'flex min-h-[44px] flex-col items-center justify-center gap-1.5 rounded-card border py-2.5',
+                isToday ? 'border-ink bg-ink' : 'border-hairline bg-card',
+              )}
+            >
+              <span
+                className={cn(
+                  'text-[11px] font-semibold leading-[13px]',
+                  isToday ? 'text-white' : 'text-ink-2',
+                )}
+              >
+                {label}
+              </span>
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-pill',
+                  isToday ? (has ? 'bg-ball' : 'bg-white/25') : has ? 'bg-line' : 'bg-hairline',
+                )}
+              />
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
 }
 
 function NextMatchCard({
@@ -356,99 +486,81 @@ function NextMatchCard({
   const navigate   = useNavigate()
   const { t } = useTranslation()
   const locale = useDateLocale()
-  const countdown  = getCountdown(match.match_date, match.match_time, t)
+  const countdown  = getShortCountdown(match.match_date, t)
   const matchStart = match.match_time
     ? new Date(`${match.match_date}T${match.match_time}`)
     : new Date(`${match.match_date}T00:00:00`)
   const now = new Date()
-  const isPastMatchTime = now > matchStart
-  const withinWindow = now < new Date(matchStart.getTime() + 24 * 60 * 60 * 1000)
-  const canRecord  = isPastMatchTime && withinWindow && match.status === 'scheduled' && match.player_ids.length === 4 && !match.has_result
+  const canRecord = now > matchStart
+    && now < new Date(matchStart.getTime() + 24 * 60 * 60 * 1000)
+    && match.status === 'scheduled'
+    && match.player_ids.length === 4
+    && !match.has_result
+
+  const dateLine = (() => {
+    try { return format(parseISO(match.match_date), 'EEE d MMM', { locale }) }
+    catch { return match.match_date }
+  })()
+  const venueLine = [
+    match.booked_venue_name,
+    match.booked_court_number != null ? t('home.court_n', { n: match.booked_court_number }) : null,
+  ].filter(Boolean).join(' · ')
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="relative overflow-hidden rounded-panel bg-ink-surface"
+      className="flex flex-col gap-3.5 rounded-panel bg-court p-[18px]"
     >
-      {/* A padel court, drawn once, very quietly. It is where the palette gets
-          its name and it stops the hero being a plain dark rectangle. */}
-      <svg
-        className="pointer-events-none absolute inset-0 h-full w-full opacity-[0.13]"
-        viewBox="0 0 390 210"
-        preserveAspectRatio="xMidYMid slice"
-        aria-hidden="true"
-      >
-        <g fill="none" stroke="var(--color-line)" strokeWidth="1.4">
-          <rect x="26" y="18" width="338" height="174" rx="3" />
-          <line x1="195" y1="18" x2="195" y2="192" />
-          <line x1="26" y1="105" x2="364" y2="105" strokeDasharray="5 6" />
-          <line x1="110" y1="18" x2="110" y2="192" />
-          <line x1="280" y1="18" x2="280" y2="192" />
-        </g>
-      </svg>
-
-      <div className="relative p-5">
-        <div className="mb-3.5 flex items-center justify-between gap-2">
-          {/* The single ball-yellow element on this screen. The hero is the only
-              dark surface and the countdown is the only thing on it that is
-              time-critical, so this is where the accent is spent. */}
-          <span className="inline-flex items-center gap-1.5 rounded-pill bg-ball px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-ink">
-            <Clock className="h-3 w-3" />
-            {countdown}
-          </span>
-          {match.match_type && (
-            <span className="inline-flex items-center rounded-pill border border-white/20 px-2.5 py-0.5 text-[11px] font-semibold capitalize text-ink-4">
-              {t((TYPE_BADGE[match.match_type ?? 'group'] ?? TYPE_BADGE.group).key)}
-            </span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-[3px]">
+          <p className="num text-[24px] font-extrabold leading-[26px] tracking-[-0.01em] text-white">
+            {dateLine}
+            {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
+          </p>
+          {venueLine && (
+            <p className="truncate text-[13px] font-medium leading-[18px] text-court-100">{venueLine}</p>
           )}
         </div>
+        {/* The one ball-yellow element on Today. */}
+        <span className="flex-shrink-0 whitespace-nowrap rounded-pill bg-ball px-[9px] py-[5px] text-[11px] font-bold leading-[14px] text-ink">
+          {countdown}
+        </span>
+      </div>
 
-        <p className="text-[22px] font-extrabold leading-[26px] tracking-[-0.01em] text-white">
-          {(() => { try { return format(parseISO(match.match_date), 'EEEE, d MMMM', { locale }) } catch { return match.match_date } })()}
-        </p>
-
-        {(match.match_time || match.booked_venue_name) && (
-          <div className="mt-1.5 flex min-w-0 items-center gap-1.5">
-            <MapPin className="h-3.5 w-3.5 flex-shrink-0 text-line" />
-            <p className="truncate text-[13px] text-line">
-              {match.match_time && <span className="num font-semibold">{match.match_time.slice(0, 5)}</span>}
-              {match.match_time && match.booked_venue_name ? ' · ' : ''}
-              {match.booked_venue_name}
-            </p>
+      {match.players.length > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="flex">
+            {match.players.map((p, i) => (
+              <span key={p.id} className={cn('rounded-pill ring-2 ring-court', i > 0 && '-ml-2')}>
+                <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+              </span>
+            ))}
           </div>
-        )}
+          <p className="truncate text-[13px] font-medium leading-[18px] text-court-100">
+            {match.players.length >= 4
+              ? t('home.match_full')
+              : t('home.match_of_four', { count: match.players.length })}
+          </p>
+        </div>
+      )}
 
-        {match.players.length > 0 && (
-          <div className="mt-3.5 flex items-center gap-2">
-            <div className="flex -space-x-1.5">
-              {match.players.map((p) => (
-                <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
-              ))}
-            </div>
-            <p className="truncate text-[13px] text-ink-4">
-              {match.players.map((p) => p.name.split(' ')[0]).join(' & ')}
-            </p>
-          </div>
-        )}
-
-        <div className={cn('mt-4 grid gap-2', canRecord ? 'grid-cols-2' : 'grid-cols-1')}>
+      <div className="flex gap-2">
+        <button
+          onClick={() => navigate(`/matches/${match.id}`)}
+          className="min-h-[44px] flex-grow rounded-card bg-white py-[13px] text-center text-[15px] font-semibold leading-[18px] text-ink"
+        >
+          {t('home.match_details')}
+        </button>
+        {canRecord && (
           <button
-            onClick={() => navigate(`/matches/${match.id}`)}
-            className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-control bg-white text-[13px] font-bold text-ink"
+            onClick={onRecordResult}
+            aria-label={t('home.record_result')}
+            className="flex min-h-[44px] w-12 items-center justify-center rounded-card bg-white/[0.14]"
           >
-            {t('home.view_match')} <ChevronRight className="h-4 w-4" />
+            <Trophy className="h-5 w-5 text-white" strokeWidth={2} />
           </button>
-          {canRecord && (
-            <button
-              onClick={onRecordResult}
-              className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-control border border-white/25 bg-white/10 text-[13px] font-bold text-white"
-            >
-              <Trophy className="h-3.5 w-3.5" />
-              {t('home.record_result')}
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </motion.div>
   )
@@ -615,100 +727,6 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
   )
 }
 
-function RankingCard({
-  profile,
-  ranking,
-  isLoading,
-}: {
-  profile: { internal_ranking?: number | null } | null
-  ranking: HomeRanking | undefined
-  isLoading: boolean
-}) {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  const elo      = profile?.internal_ranking
-
-  return (
-    <motion.button
-      onClick={() => navigate('/compete')}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.05 }}
-      whileTap={{ scale: 0.97 }}
-      className="flex-1 rounded-panel border border-hairline bg-card p-4 text-left"
-    >
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.ranking')}</p>
-      <div className="flex items-baseline gap-1.5">
-        <p className="num text-[32px] font-extrabold leading-none tracking-[-0.02em] text-court">
-          {elo != null ? elo.toLocaleString() : '—'}
-        </p>
-        {!isLoading && ranking && ranking.trend !== 0 && (
-          ranking.trend > 0
-            ? <TrendingUp className="h-4 w-4 text-court" />
-            : <TrendingDown className="h-4 w-4 text-alert" />
-        )}
-      </div>
-      <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-3">ELO</p>
-
-      {!isLoading && ranking && (
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <p className="text-[11px] text-ink-2">
-            {t('home.ranked_globally', { rank: ranking.rank })}
-          </p>
-          {ranking.trend === 0 && <Minus className="h-3 w-3 text-ink-4" />}
-        </div>
-      )}
-      <ChevronRight className="mt-2 h-3.5 w-3.5 text-ink-4" />
-    </motion.button>
-  )
-}
-
-function PollCard({ poll }: { poll: ActivePoll | null }) {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  return (
-    <motion.button
-      onClick={() => navigate(poll ? `/play/availability/${poll.id}` : '/play/availability')}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.08 }}
-      whileTap={{ scale: 0.97 }}
-      className="flex-1 rounded-panel border border-hairline bg-card p-4 text-left"
-    >
-      <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.availability')}</p>
-      {poll ? (
-        <>
-          <p className="mb-1.5 line-clamp-2 text-[13px] font-bold leading-tight text-ink">
-            {poll.title}
-          </p>
-          <div className="flex items-center gap-1.5 mb-2">
-            <Users className="h-3 w-3 text-ink-3" />
-            <p className="text-[11px] text-ink-2">
-              {t('home.responded', { count: poll.responseCount, total: poll.memberCount })}
-            </p>
-          </div>
-          {poll.userHasResponded ? (
-            <span className="inline-flex items-center rounded-xl bg-court-50 border border-court-100 px-2.5 py-1 text-[11px] font-bold text-court">
-              {t('home.you_responded')}
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-xl bg-court px-2.5 py-1 text-[11px] font-bold text-white">
-              {t('home.add_yours')}
-            </span>
-          )}
-        </>
-      ) : (
-        <>
-          <p className="mb-2 text-[13px] text-ink-2">{t('home.no_polls')}</p>
-          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-court">
-            {t('home.check_availability')} <ChevronRight className="h-3.5 w-3.5" />
-          </span>
-        </>
-      )}
-    </motion.button>
-  )
-}
-
 const ACTIVITY_ICON: Record<string, typeof Trophy> = {
   match_result:   Trophy,
   player_joined:  Users,
@@ -764,92 +782,6 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
   )
 }
 
-function QuickStatsRow({ stats }: { stats: QuickStats | undefined }) {
-  const { t } = useTranslation()
-  const items = [
-    {
-      value:    stats ? `${stats.weekMatches}` : '—',
-      label:    t('home.matches_this_week'),
-      subtitle: t('home.this_week'),
-    },
-    {
-      value:    stats ? `${stats.winRate}%` : '—',
-      label:    t('home.win_rate'),
-      subtitle: t('home.all_time'),
-    },
-    {
-      value:    stats ? `${stats.streak}` : '—',
-      label:    t('home.win_streak'),
-      subtitle: t('home.last_5'),
-    },
-  ]
-  return (
-    <div className="flex gap-2">
-      {items.map(({ value, label, subtitle }, i) => (
-        <motion.div
-          key={label}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 + i * 0.04 }}
-          className="flex-1 rounded-card border border-hairline bg-card px-3 py-2.5 text-center"
-        >
-          <p className="num text-[19px] font-extrabold leading-none text-ink">{value}</p>
-          <p className="mt-1 text-[11px] font-semibold text-ink-2">{label}</p>
-          <p className="text-[11px] leading-tight text-ink-3">{subtitle}</p>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
-
-// ── Group opportunities (matches user is NOT in) ────────────────────────────
-
-function useGroupOpportunities(userId: string) {
-  return useQuery<Array<{ id: string; match_date: string; match_time: string | null; booked_venue_name: string | null; player_ids: string[]; group_name: string | null; spots: number }>>({
-    queryKey: ['home-group-opps', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data: memberships } = await supabase
-        .from('group_members').select('group_id').eq('user_id', userId).eq('status', 'approved')
-      if (!memberships || memberships.length === 0) return []
-      const groupIds = memberships.map((m) => m.group_id)
-      const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
-      const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd', { locale: getDateLocale() })
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, player_ids, group_id')
-        .in('group_id', groupIds)
-        .gte('match_date', today).lte('match_date', weekEnd)
-        .not('status', 'in', '(cancelled,completed)')
-        .order('match_date', { ascending: true })
-        .limit(10)
-      if (!matches) return []
-      // Only matches user is NOT in and has open slots
-      const opps = matches
-        .filter((m) => !(m.player_ids as string[]).includes(userId) && (m.player_ids as string[]).length < 4)
-        .slice(0, 3)
-      if (opps.length === 0) return []
-      const gIds = [...new Set(opps.map((m) => m.group_id).filter(Boolean))]
-      const { data: groups } = gIds.length > 0
-        ? await supabase.from('groups').select('id, name').in('id', gIds)
-        : { data: [] }
-      const gMap = Object.fromEntries((groups ?? []).map((g) => [g.id, g]))
-      return opps.map((m) => ({
-        id: m.id,
-        match_date: m.match_date,
-        match_time: m.match_time,
-        booked_venue_name: m.booked_venue_name,
-        player_ids: (m.player_ids as string[]) ?? [],
-        group_name: m.group_id ? gMap[m.group_id]?.name ?? null : null,
-        spots: 4 - ((m.player_ids as string[]) ?? []).length,
-      }))
-    },
-    staleTime: 5 * 60 * 1000,
-  })
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
-
 export function HomePage() {
   const { profile } = useAuth()
   const navigate    = useNavigate()
@@ -863,74 +795,62 @@ export function HomePage() {
   useUserMatchesSubscription(userId)
   useNotificationsSubscription(userId)
 
-  const { data: nextMatch,  isLoading: loadingMatch    } = useNextMatch(userId)
-  const { data: ranking,    isLoading: loadingRanking  } = useHomeRanking(userId, profile?.internal_ranking)
-  const { data: activePoll, isLoading: loadingPoll     } = useActivePoll(userId)
-  const { data: quickStats                             } = useQuickStats(userId)
-  const { data: activity = []                          } = useRecentActivity(userId)
-  const { data: groupOpps = [] } = useGroupOpportunities(userId)
-  const { data: setupProgress } = useSetupProgress(userId)
+  const { data: nextMatch, isLoading: loadingMatch } = useNextMatch(userId)
+  const { data: needsYou = [] }   = useNeedsYou(userId, t)
+  const { data: week = {} }       = useYourWeek(userId)
+  const { data: activity = [] }   = useRecentActivity(userId)
+  const { data: setupProgress }   = useSetupProgress(userId)
 
   const setupComplete = setupProgress
     ? setupProgress.groupState === 'usable' && setupProgress.hasPollOrMatch
     : true // hide card while loading (avoids flash)
 
   const today = new Date()
-  const dateLabel = (() => {
-    try { return format(today, 'EEEE, d MMMM', { locale }) } catch { return '' }
+  const weekday = (() => { try { return format(today, 'EEEE', { locale }) } catch { return '' } })()
+  const dayLine = (() => {
+    try { return format(today, 'd MMMM', { locale }) } catch { return '' }
   })()
+  const place = (profile as { city?: string | null } | null)?.city ?? null
 
   return (
     <div className="min-h-full bg-surface pb-32">
-      {/* Header */}
-      <div className="sticky top-0 z-10 flex items-start justify-between border-b border-hairline bg-surface/95 px-5 pb-5 pt-14 backdrop-blur-sm">
-        <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-3">{dateLabel}</p>
-          <h1 className="mt-1 text-[24px] font-extrabold leading-[26px] tracking-[-0.01em] text-ink">
-            {profile?.name
-              ? (() => {
-                  const h = new Date().getHours()
-                  const key = h < 12 ? 'home.greeting_morning' : h < 17 ? 'home.greeting_afternoon' : 'home.greeting_evening'
-                  return `${t(key)}, ${profile.name.split(' ')[0]}`
-                })()
-              : t('home.greeting_morning')}
+      {/* ── Header ────────────────────────────────────────────────────────
+          The day is the headline. A greeting tells the player nothing they
+          did not already know; the weekday is what they are orienting by. */}
+      <div className="flex flex-col gap-0.5 px-5 pb-4 pt-14">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
+            {weekday}
           </h1>
+          <div className="flex flex-shrink-0 gap-2">
+            <button
+              onClick={() => navigate('/search')}
+              aria-label={t('common.search')}
+              className="flex h-11 w-11 items-center justify-center rounded-pill border border-hairline bg-card"
+            >
+              <Search className="h-5 w-5 text-ink-2" strokeWidth={2} />
+            </button>
+            <NotificationBell />
+          </div>
         </div>
-        <div className="mt-1 flex items-center gap-2">
-          <NotificationBell />
-        </div>
+        <p className="text-[15px] font-medium leading-[22px] text-ink-3">
+          {[dayLine, place].filter(Boolean).join(' · ')}
+        </p>
       </div>
 
-      <div className="px-5 space-y-5">
+      <div className="flex flex-col gap-6 px-5">
 
-        {/* ── Search (prominent, so venues are easy to find) ── */}
-        <button
-          onClick={() => navigate('/search')}
-          className="flex h-12 w-full items-center gap-2.5 rounded-control border border-hairline bg-card px-4 text-left transition-transform active:scale-[0.99]"
-        >
-          <Search className="h-4 w-4 flex-shrink-0 text-ink-3" />
-          <span className="text-[13px] text-ink-3">{t('home.search_placeholder')}</span>
-        </button>
+        {/* Onboarding, only while setup is incomplete. */}
+        {!setupComplete && setupProgress && <GettingStartedCard progress={setupProgress} />}
 
-        {/* ── Getting Started (self-dismissing) ── */}
-        {!setupComplete && setupProgress && (
-          <section>
-            <GettingStartedCard progress={setupProgress} />
-          </section>
-        )}
+        {/* ── Needs you ── */}
+        <NeedsYouSection items={needsYou} />
 
-        {/* ── Next Match ── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.next_match')}</h2>
-            <button
-              onClick={() => navigate('/matches')}
-              className="text-[13px] font-semibold text-court"
-            >
-              {t('home.all_matches')}
-            </button>
-          </div>
-
+        {/* ── Next match ── */}
+        <section className="flex flex-col gap-2.5">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+            {t('home.next_match')}
+          </h2>
           {loadingMatch ? (
             <div className="h-44 animate-pulse rounded-panel bg-hairline/60" />
           ) : nextMatch ? (
@@ -939,68 +859,22 @@ export function HomePage() {
               onRecordResult={() => navigate(`/matches/${nextMatch.id}`)}
             />
           ) : (
-            <EmptyMatchCard onCreateMatch={() => setCreateMatchOpen(true)} hasUsableGroup={setupProgress?.groupState === 'usable'} />
+            <EmptyMatchCard
+              onCreateMatch={() => setCreateMatchOpen(true)}
+              hasUsableGroup={setupProgress?.groupState === 'usable'}
+            />
           )}
         </section>
 
-        {/* ── Ranking + Poll (side by side) ── */}
-        <div className="flex gap-3">
-          <RankingCard
-            profile={profile}
-            ranking={ranking}
-            isLoading={loadingRanking}
-          />
-          {loadingPoll ? (
-            <div className="h-32 flex-1 animate-pulse rounded-panel bg-hairline/60" />
-          ) : (
-            <PollCard poll={activePoll ?? null} />
-          )}
-        </div>
+        {/* ── Your week ── */}
+        <YourWeekStrip counts={week} />
 
-        {/* ── Quick Stats ── */}
-        <QuickStatsRow stats={quickStats} />
-
-        {/* ── Group opportunities ── */}
-        {groupOpps.length > 0 && (
-          <section>
-            <h2 className="mb-2 text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.in_your_groups_week')}</h2>
-            <div className="space-y-2">
-              {groupOpps.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => navigate(`/matches/${m.id}`)}
-                  className="w-full text-left rounded-2xl border border-warn-100 bg-warn-50/50 px-4 py-3 active:scale-[0.98] transition-transform"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-ink">
-                        {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
-                        {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
-                      </p>
-                      {m.booked_venue_name && (
-                        <p className="text-[11px] text-ink-2 mt-0.5 truncate">{m.booked_venue_name}</p>
-                      )}
-                      <div className="flex items-center gap-1.5 mt-1">
-                        {m.group_name && (
-                          <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{m.group_name}</span>
-                        )}
-                        <span className="text-[11px] font-bold text-warn">{m.spots === 1 ? t('home.spots_open_one', { count: 1 }) : t('home.spots_open', { count: m.spots })}</span>
-                      </div>
-                    </div>
-                    <span className="rounded-xl bg-court px-3 py-1.5 text-[11px] font-bold text-white flex-shrink-0">
-                      {t('home.join')}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── Recent Activity ── */}
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">{t('home.recent_activity')}</h2>
+        {/* ── Recent activity ── */}
+        <section className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+              {t('home.recent_activity')}
+            </h2>
             <button
               onClick={() => navigate('/notifications')}
               className="text-[13px] font-semibold text-court"
@@ -1010,18 +884,19 @@ export function HomePage() {
           </div>
 
           {activity.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+            <div className="rounded-panel border border-dashed border-hairline p-5 text-center">
               <p className="text-[13px] font-semibold text-ink-2">{t('home.no_activity')}</p>
-              <p className="text-[12px] text-ink-3 mt-1">{t('home.no_activity_sub')}</p>
+              <p className="mt-1 text-[13px] text-ink-3">{t('home.no_activity_sub')}</p>
             </div>
           ) : (
             <ActivityFeed items={activity} />
           )}
         </section>
 
+        <div className="h-2" />
       </div>
 
-      <CreateMatchSheet
+<CreateMatchSheet
         open={createMatchOpen}
         onClose={() => setCreateMatchOpen(false)}
       />

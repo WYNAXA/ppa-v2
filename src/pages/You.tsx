@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink } from 'lucide-react'
+import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink, Settings } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
@@ -13,7 +13,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { confirmDialog } from '@/components/shared/ConfirmDialog'
-import { BADGE_DEFINITIONS, PEER_VOTE_CATEGORIES, COURT_TIME_TIERS, courtTimeTier } from '@/lib/achievements'
+import { BADGE_DEFINITIONS, ACHIEVEMENT_LIBRARY, PEER_VOTE_CATEGORIES, COURT_TIME_TIERS, courtTimeTier } from '@/lib/achievements'
+import { EloHero } from '@/components/shared/EloHero'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
@@ -914,7 +915,6 @@ export function YouPage() {
   // Hero derived data
   const achievementsCount = achievements.length
   const topAchievements = achievements.slice(0, 3).map((a) => a.badge_key)
-  const favPartner = stats?.favouritePartnerName ? { name: stats.favouritePartnerName, avatar_url: null as string | null } : null
 
   const filteredHistory = history.filter((m) => {
     if (historyFilter === 'wins')   return m.result_type === 'win'
@@ -924,125 +924,87 @@ export function YouPage() {
 
   return (
     <div className="min-h-full bg-surface pb-32">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-surface/95 backdrop-blur-sm z-10 border-b border-hairline">
-        <h1 className="text-[22px] font-bold text-ink">{t('you.title')}</h1>
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-5 pb-3.5 pt-14">
+        <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
+          {t('you.title')}
+        </h1>
+        <button
+          onClick={() => settingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          aria-label={t('you.settings')}
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-pill border border-hairline bg-card"
+        >
+          <Settings className="h-5 w-5 text-ink-2" strokeWidth={2} />
+        </button>
       </div>
 
-      <div className="px-5 space-y-6">
+      <div className="px-5 space-y-[18px]">
 
-        {/* ── Hero Card — navy gradient, identity-focused ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl shadow-lg"
-          style={{ background: 'linear-gradient(135deg, var(--color-court-700) 0%, var(--color-court) 55%, #12786B 100%)' }}
-        >
-          <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+        {/* ── Rating hero ── */}
+        <EloHero
+          userId={userId}
+          name={profile?.name ?? authProfile?.email?.split('@')[0]}
+          avatarUrl={fullProfile?.avatar_url ?? authProfile?.avatar_url}
+          subtitle={fullProfile?.city ?? null}
+          elo={fullProfile?.internal_ranking ?? authProfile?.internal_ranking}
+          isProvisional={!!fullProfile?.is_provisional}
+          matchesPlayed={stats?.totalMatches}
+          recentResults={history.map((m) => m.result_type)}
+          onEdit={() => setShowEdit(true)}
+        />
 
-          <button
-            onClick={() => setShowEdit(true)}
-            className="absolute top-4 right-4 z-10 h-9 w-9 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors"
-            aria-label={t('you.edit_profile_aria')}
-          >
-            <Edit2 className="h-3.5 w-3.5 text-white" />
-          </button>
-
-          <div className="px-5 pt-6 pb-5">
-            <div className="flex items-start gap-4">
-              <PlayerAvatar
-                name={profile?.name}
-                avatarUrl={fullProfile?.avatar_url ?? authProfile?.avatar_url}
-                size="lg"
-              />
-              <div className="flex-1 min-w-0 pt-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-[20px] font-bold text-white truncate">
-                    {profile?.name || authProfile?.email?.split('@')[0] || '—'}
-                  </h2>
-                  {fullProfile?.account_type === 'coach' && (
-                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[11px] font-bold text-white">🎾 Coach</span>
-                  )}
-                  {fullProfile?.account_type === 'venue_manager' && (
-                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[11px] font-bold text-white">🏟️ Venue</span>
-                  )}
-                  {fullProfile?.account_type === 'organiser' && (
-                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[11px] font-bold text-white">🏆 Organiser</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  {fullProfile?.city && (
-                    <span className="text-[12px] text-white/70">{fullProfile.city}</span>
-                  )}
-                  {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
-                    <span className="num inline-flex items-center rounded-pill bg-ball px-2.5 py-0.5 text-[11px] font-extrabold text-ink">
-                      {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
-                      {fullProfile?.is_provisional && (
-                        <span className="ml-1 font-semibold text-ink/60">(provisional)</span>
-                      )}
-                    </span>
-                  )}
-                  {(fullProfile as any)?.can_drive && (
-                    <span className="inline-flex items-center rounded-pill bg-white/15 px-2.5 py-0.5 text-[11px] font-bold text-white backdrop-blur-sm">
-                      🚗 Has a car
-                    </span>
-                  )}
-                </div>
-              </div>
+        {/* ── Three numbers, per the board ── */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { value: stats ? `${stats.totalMatches}` : '—', label: t('you.matches_played') },
+            { value: stats ? `${stats.winRate}%` : '—',     label: t('you.win_rate') },
+            { value: stats ? `#${stats.rankPosition}` : '—', label: t('you.ranking') },
+          ].map(({ value, label }) => (
+            <div key={label} className="flex flex-col gap-[3px] rounded-[14px] border border-hairline bg-card px-3 py-3.5">
+              <p className="num text-[22px] font-extrabold leading-6 text-ink">{value}</p>
+              <p className="text-[11px] font-semibold leading-[14px] text-ink-2">{label}</p>
             </div>
+          ))}
+        </div>
 
-            {/* Identity grid — 3 tiles */}
-            <div className="grid grid-cols-3 gap-2 mt-5">
-              <button
-                onClick={() => achievementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
-              >
-                <div className="flex items-center gap-1 mb-1">
-                  {topAchievements.length > 0
-                    ? topAchievements.map((badgeKey, i) => (
-                        <span key={i} className="text-[15px]">{BADGE_DEFINITIONS[badgeKey]?.emoji ?? '🏅'}</span>
-                      ))
-                    : <span className="text-[15px] opacity-50">🏅</span>
-                  }
-                </div>
-                <p className="text-[18px] font-bold text-white leading-tight">{achievementsCount}</p>
-                <p className="text-[11px] text-white/60 leading-tight mt-0.5">{t('you.achievements_count_label')}</p>
-              </button>
-
-              <button
-                onClick={() => favPartnersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
-              >
-                <div className="mb-1 h-[15px]">
-                  {favPartner
-                    ? <div className="h-[15px] w-[15px] rounded-full bg-white/20 flex items-center justify-center"><span className="text-[11px] font-bold text-white">{favPartner.name?.charAt(0)?.toUpperCase() ?? '?'}</span></div>
-                    : <span className="text-[15px] opacity-50">👥</span>
-                  }
-                </div>
-                <p className="text-[13px] font-bold text-white leading-tight truncate">
-                  {favPartner?.name?.split(' ')[0] ?? '—'}
-                </p>
-                <p className="text-[11px] text-white/60 leading-tight mt-0.5">{t('you.fav_partner_label')}</p>
-              </button>
-
-              <button
-                onClick={() => householdRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
-              >
-                <div className="mb-1 h-[15px]">
-                  {householdPartner
-                    ? <Link className="h-[15px] w-[15px] text-white" />
-                    : <Unlink className="h-[15px] w-[15px] text-white/50" />
-                  }
-                </div>
-                <p className="text-[13px] font-bold text-white leading-tight truncate">
-                  {householdPartner?.name?.split(' ')[0] ?? t('you.link_partner_short')}
-                </p>
-                <p className="text-[11px] text-white/60 leading-tight mt-0.5">{t('you.household_label')}</p>
-              </button>
+        {/* ── Badges, per the board ── */}
+        <section className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+              {t('you.achievements')}
+            </h2>
+            <button
+              onClick={() => achievementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="num text-[13px] font-semibold leading-4 text-court"
+            >
+              {t('you.badges_of', { count: achievementsCount, total: Object.keys(ACHIEVEMENT_LIBRARY).length })}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => {
+              const key = topAchievements[i]
+              const bg = ['bg-court', 'bg-line', 'bg-ball'][i]
+              return (
+                <button
+                  key={i}
+                  onClick={() => achievementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className={cn(
+                    'flex h-[54px] w-[54px] items-center justify-center rounded-[15px] text-[24px]',
+                    key ? bg : 'border border-dashed border-ink-4 bg-card',
+                  )}
+                  aria-label={key ? t(`achievements.${key}`, { defaultValue: BADGE_DEFINITIONS[key]?.label ?? key }) : undefined}
+                >
+                  {key ? (BADGE_DEFINITIONS[key]?.emoji ?? '🏅') : ''}
+                </button>
+              )
+            })}
+            <div className="flex h-[54px] w-[54px] items-center justify-center rounded-[15px] border border-dashed border-ink-4 bg-card">
+              <span className="num text-[13px] font-bold text-ink-3">
+                +{Math.max(0, achievementsCount - 3)}
+              </span>
             </div>
           </div>
-        </motion.div>
+        </section>
 
         {/* Section nav chips */}
         <div className="-mx-5 px-5 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>

@@ -26,3 +26,7 @@ dist-ssr
 *.sw?
 supabase/migrations/*_placeholder.sql
 REBUILD_RATINGS_*.sql
+
+# Never commit local agent settings (contains service_role key)
+.claude/settings.local.json
+.claude/worktrees/

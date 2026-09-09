@@ -206,7 +206,7 @@ export function OnboardingPage() {
         <GetTheAppCard className="mt-6 w-full max-w-xs" />
         <button
           onClick={() => navigate('/home', { replace: true })}
-          className="mt-4 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+          className="mt-4 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
         >
           Continue to Padel Players
         </button>
@@ -221,7 +221,7 @@ export function OnboardingPage() {
         {STEPS.map((s, i) => (
           <div
             key={s}
-            className={`h-2 w-2 rounded-full transition-colors ${i <= stepIndex ? 'bg-[#009688]' : 'bg-gray-200'}`}
+            className={`h-2 w-2 rounded-full transition-colors ${i <= stepIndex ? 'bg-court' : 'bg-gray-200'}`}
           />
         ))}
       </div>
@@ -263,7 +263,7 @@ export function OnboardingPage() {
                       onClick={() => { setSelectedLang(code); setLanguage(code) }}
                       className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
                         selectedLang === code
-                          ? 'border-[#009688] bg-teal-50'
+                          ? 'border-court bg-teal-50'
                           : 'border-gray-100 bg-white'
                       }`}
                     >
@@ -280,7 +280,7 @@ export function OnboardingPage() {
               <>
                 <div className="flex justify-center mb-6 mt-6">
                   <div className="h-16 w-16 rounded-2xl bg-teal-50 flex items-center justify-center">
-                    <MapPin className="h-7 w-7 text-[#009688]" />
+                    <MapPin className="h-7 w-7 text-court" />
                   </div>
                 </div>
                 <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">{t('onboarding.location_title')}</h1>
@@ -290,7 +290,7 @@ export function OnboardingPage() {
                   <button
                     onClick={handleDetectLocation}
                     disabled={locationLoading}
-                    className="w-full rounded-2xl border-2 border-[#009688] bg-teal-50 py-3.5 text-[14px] font-semibold text-[#009688] mb-4 disabled:opacity-50"
+                    className="w-full rounded-2xl border-2 border-court bg-teal-50 py-3.5 text-[14px] font-semibold text-court mb-4 disabled:opacity-50"
                   >
                     {locationLoading ? t('onboarding.saving') : t('onboarding.location_use_my_location')}
                   </button>
@@ -348,7 +348,7 @@ export function OnboardingPage() {
                       key={opt.key}
                       onClick={() => setLevelBranch(opt.key)}
                       className={`w-full rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
-                        levelBranch === opt.key ? 'border-[#009688] bg-teal-50' : 'border-gray-100 bg-white'
+                        levelBranch === opt.key ? 'border-court bg-teal-50' : 'border-gray-100 bg-white'
                       }`}
                     >
                       <p className="text-[14px] font-semibold text-gray-800">{opt.title}</p>
@@ -393,11 +393,11 @@ export function OnboardingPage() {
 
                 <div className="space-y-3 flex-1 overflow-y-auto">
                   {([
-                    { icon: <Calendar className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card1_title', descKey: 'onboarding.tour_card1_desc' },
-                    { icon: <TrendingUp className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card2_title', descKey: 'onboarding.tour_card2_desc' },
-                    { icon: <Users className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card3_title', descKey: 'onboarding.tour_card3_desc' },
-                    { icon: <Trophy className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card4_title', descKey: 'onboarding.tour_card4_desc' },
-                    { icon: <Heart className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card5_title', descKey: 'onboarding.tour_card5_desc' },
+                    { icon: <Calendar className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card1_title', descKey: 'onboarding.tour_card1_desc' },
+                    { icon: <TrendingUp className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card2_title', descKey: 'onboarding.tour_card2_desc' },
+                    { icon: <Users className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card3_title', descKey: 'onboarding.tour_card3_desc' },
+                    { icon: <Trophy className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card4_title', descKey: 'onboarding.tour_card4_desc' },
+                    { icon: <Heart className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card5_title', descKey: 'onboarding.tour_card5_desc' },
                   ]).map(card => (
                     <div key={card.titleKey} className="flex items-start gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3">
                       <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
@@ -418,7 +418,7 @@ export function OnboardingPage() {
               <>
                 <div className="flex justify-center mb-6 mt-8">
                   <div className="h-20 w-20 rounded-3xl bg-teal-50 flex items-center justify-center">
-                    <Bell className="h-10 w-10 text-[#009688]" />
+                    <Bell className="h-10 w-10 text-court" />
                   </div>
                 </div>
                 <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">
@@ -434,7 +434,7 @@ export function OnboardingPage() {
                     t('onboarding.notifications_benefit3'),
                   ].map((text) => (
                     <div key={text} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3">
-                      <span className="text-[#009688] text-lg">✓</span>
+                      <span className="text-court text-lg">✓</span>
                       <span className="text-[13px] text-gray-700">{text}</span>
                     </div>
                   ))}
@@ -449,7 +449,7 @@ export function OnboardingPage() {
       <div className="px-6 pb-10 space-y-3" style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom))' }}>
         {step === 'welcome' && (
           <>
-            <button onClick={goNext} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white">
+            <button onClick={goNext} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white">
               {t('onboarding.welcome_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -468,7 +468,7 @@ export function OnboardingPage() {
 
         {step === 'language' && (
           <>
-            <button onClick={handleLanguageContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+            <button onClick={handleLanguageContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40">
               {saving ? t('onboarding.saving') : t('onboarding.language_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -480,7 +480,7 @@ export function OnboardingPage() {
 
         {step === 'location' && (
           <>
-            <button onClick={handleLocationContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+            <button onClick={handleLocationContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40">
               {saving ? t('onboarding.saving') : t('onboarding.location_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
@@ -498,7 +498,7 @@ export function OnboardingPage() {
             <button
               onClick={handleLevelContinue}
               disabled={saving || !levelBranch}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40"
             >
               {saving ? t('onboarding.saving') : t('onboarding.level_continue')}
               <ChevronRight className="h-5 w-5" />
@@ -523,7 +523,7 @@ export function OnboardingPage() {
               }
             }}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40"
           >
             {saving ? t('onboarding.saving') : t('onboarding.tour_finish')}
           </button>
@@ -541,7 +541,7 @@ export function OnboardingPage() {
                 await handleFinish()
               }}
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40"
             >
               {saving ? t('onboarding.saving') : t('onboarding.notifications_enable')}
             </button>

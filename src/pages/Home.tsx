@@ -422,7 +422,7 @@ function NextMatchCard({
         <div className={cn('grid gap-2', canRecord ? 'grid-cols-2' : 'grid-cols-1')}>
           <button
             onClick={() => navigate(`/matches/${match.id}`)}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 text-[13px] font-bold text-[#009688]"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 text-[13px] font-bold text-court"
           >
             {t('home.view_match')} <ChevronRight className="h-4 w-4" />
           </button>
@@ -484,7 +484,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                     <div className="flex gap-2 mt-2">
                       <button
                         onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
-                        className="rounded-lg bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white"
+                        className="rounded-lg bg-court px-3 py-1.5 text-[12px] font-bold text-white"
                       >
                         Create a group
                       </button>
@@ -531,7 +531,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                     <p className="text-[11px] text-gray-400 mt-0.5">Share your availability so your group can find a time</p>
                     <button
                       onClick={() => navigate('/play/availability')}
-                      className="mt-2 rounded-lg border border-[#009688] px-3 py-1.5 text-[12px] font-bold text-[#009688]"
+                      className="mt-2 rounded-lg border border-court px-3 py-1.5 text-[12px] font-bold text-court"
                     >
                       Check availability
                     </button>
@@ -569,13 +569,13 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => navigate('/play/availability')}
-            className="rounded-xl border border-[#009688] py-2.5 text-[13px] font-bold text-[#009688]"
+            className="rounded-xl border border-court py-2.5 text-[13px] font-bold text-court"
           >
             {t('home.find_my_game')}
           </button>
           <button
             onClick={onCreateMatch}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white"
           >
             <Plus className="h-3.5 w-3.5" />
             {t('home.create_match')}
@@ -585,7 +585,7 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white"
           >
             <Users className="h-3.5 w-3.5" />
             Create a group
@@ -625,7 +625,7 @@ function RankingCard({
       className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
     >
       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.ranking')}</p>
-      <p className="text-[26px] font-black text-[#009688] leading-none">{elo != null ? elo.toLocaleString() : '—'}</p>
+      <p className="text-[26px] font-black text-court leading-none">{elo != null ? elo.toLocaleString() : '—'}</p>
       <p className="text-[11px] text-gray-500 mt-0.5 font-medium">ELO</p>
 
       {!isLoading && ranking && (
@@ -672,11 +672,11 @@ function PollCard({ poll }: { poll: ActivePoll | null }) {
             </p>
           </div>
           {poll.userHasResponded ? (
-            <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11px] font-bold text-[#009688]">
+            <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11px] font-bold text-court">
               {t('home.you_responded')}
             </span>
           ) : (
-            <span className="inline-flex items-center rounded-xl bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white">
+            <span className="inline-flex items-center rounded-xl bg-court px-2.5 py-1 text-[11px] font-bold text-white">
               {t('home.add_yours')}
             </span>
           )}
@@ -684,7 +684,7 @@ function PollCard({ poll }: { poll: ActivePoll | null }) {
       ) : (
         <>
           <p className="text-[12px] text-gray-500 mb-2">{t('home.no_polls')}</p>
-          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#009688]">
+          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-court">
             {t('home.check_availability')} <ChevronRight className="h-3.5 w-3.5" />
           </span>
         </>
@@ -730,7 +730,7 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
               'h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
               item.read ? 'bg-gray-100' : 'bg-teal-50'
             )}>
-              <Icon className={cn('h-3.5 w-3.5', item.read ? 'text-gray-400' : 'text-[#009688]')} />
+              <Icon className={cn('h-3.5 w-3.5', item.read ? 'text-gray-400' : 'text-court')} />
             </div>
             <div className="flex-1 min-w-0">
               <p className={cn('text-[13px] leading-snug', item.read ? 'text-gray-600' : 'font-semibold text-gray-800')}>
@@ -739,7 +739,7 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
               <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo(item.created_at, t)}</p>
             </div>
             {!item.read && (
-              <div className="h-2 w-2 rounded-full bg-[#009688] flex-shrink-0 mt-2" />
+              <div className="h-2 w-2 rounded-full bg-court flex-shrink-0 mt-2" />
             )}
           </motion.button>
         )
@@ -915,7 +915,7 @@ export function HomePage() {
             <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.next_match')}</h2>
             <button
               onClick={() => navigate('/matches')}
-              className="text-[12px] text-[#009688] font-semibold"
+              className="text-[12px] text-court font-semibold"
             >
               {t('home.all_matches')}
             </button>
@@ -977,7 +977,7 @@ export function HomePage() {
                         <span className="text-[10px] font-bold text-orange-600">{m.spots === 1 ? t('home.spots_open_one', { count: 1 }) : t('home.spots_open', { count: m.spots })}</span>
                       </div>
                     </div>
-                    <span className="rounded-xl bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white flex-shrink-0">
+                    <span className="rounded-xl bg-court px-3 py-1.5 text-[11px] font-bold text-white flex-shrink-0">
                       {t('home.join')}
                     </span>
                   </div>
@@ -993,7 +993,7 @@ export function HomePage() {
             <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.recent_activity')}</h2>
             <button
               onClick={() => navigate('/notifications')}
-              className="text-[12px] text-[#009688] font-semibold"
+              className="text-[12px] text-court font-semibold"
             >
               {t('home.see_all')}
             </button>

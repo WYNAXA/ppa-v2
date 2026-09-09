@@ -27,7 +27,7 @@ function Toggle({ enabled, onChange, label }: { enabled: boolean; onChange: (v: 
       <button
         type="button"
         onClick={() => onChange(!enabled)}
-        className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', enabled ? 'bg-[#009688]' : 'bg-gray-200')}
+        className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', enabled ? 'bg-court' : 'bg-gray-200')}
       >
         <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition-transform', enabled ? 'translate-x-6' : 'translate-x-1')} />
       </button>
@@ -271,7 +271,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
                                 className={cn(
                                   'flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors',
                                   ringerApproval === opt
-                                    ? 'bg-[#009688] text-white border-[#009688]'
+                                    ? 'bg-court text-white border-court'
                                     : 'bg-white text-gray-600 border-gray-200'
                                 )}
                               >
@@ -293,7 +293,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={!canSubmit || createMutation.isPending}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {createMutation.isPending ? 'Creating…' : 'Create Group'}
               </button>

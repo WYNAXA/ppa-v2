@@ -95,7 +95,7 @@ const RSVP_OPTIONS: { label: string; value: RsvpStatus; activeClass: string; ina
   {
     label: 'Going',
     value: 'going',
-    activeClass: 'bg-[#009688] text-white border-[#009688]',
+    activeClass: 'bg-court text-white border-court',
     inactiveClass: 'bg-white text-gray-600 border border-gray-200',
   },
   {
@@ -145,7 +145,7 @@ export function EventDetailPage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -319,7 +319,7 @@ export function EventDetailPage() {
           </p>
           <div className="flex gap-4 mb-3">
             <span className="text-[13px] text-gray-700">
-              <span className="font-bold text-[#009688]">{goingCount}</span> going
+              <span className="font-bold text-court">{goingCount}</span> going
             </span>
             {interestedCount > 0 && (
               <span className="text-[13px] text-gray-700">
@@ -334,7 +334,7 @@ export function EventDetailPage() {
                   {(a.profile?.name ?? '?').charAt(0).toUpperCase()}
                 </div>
                 <span className="text-[13px] text-gray-700 flex-1">{a.profile?.name ?? 'Unknown'}</span>
-                <span className={`text-[11px] font-semibold ${a.status === 'going' ? 'text-[#009688]' : 'text-blue-500'}`}>
+                <span className={`text-[11px] font-semibold ${a.status === 'going' ? 'text-court' : 'text-blue-500'}`}>
                   {a.status === 'going' ? 'Going' : 'Interested'}
                 </span>
               </div>

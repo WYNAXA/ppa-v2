@@ -313,7 +313,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
       className="w-full text-left bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-teal-200 transition-colors relative"
     >
       <div className="flex">
-        <div className="w-1 bg-[#009688] flex-shrink-0" />
+        <div className="w-1 bg-court flex-shrink-0" />
         <div className="flex-1 px-4 py-3.5">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
@@ -476,7 +476,7 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOff
                     <button
                       onClick={() => onJoin(group.id)}
                       disabled={isJoining}
-                      className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                      className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
                     >
                       {isJoining ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
                     </button>
@@ -564,7 +564,7 @@ function DiscoverCard({ group, index, onJoin, joiningGroupId, onPreview }: { gro
             <button
               onClick={(e) => { e.stopPropagation(); onJoin(group.id) }}
               disabled={joiningGroupId === group.id}
-              className="inline-flex items-center rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
+              className="inline-flex items-center rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
             >
               {joiningGroupId === group.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
             </button>
@@ -1164,7 +1164,7 @@ export function CommunityPage() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={() => setShowCreateSheet(true)} className="flex-1 rounded-xl bg-white py-2.5 text-[13px] font-bold text-[#009688]">
+              <button onClick={() => setShowCreateSheet(true)} className="flex-1 rounded-xl bg-white py-2.5 text-[13px] font-bold text-court">
                 {t('community.create_group_btn')}
               </button>
               <button onClick={() => playersRef.current?.scrollIntoView({ behavior: 'smooth' })} className="flex-1 rounded-xl bg-white/15 border border-white/30 py-2.5 text-[13px] font-bold text-white">
@@ -1238,7 +1238,7 @@ export function CommunityPage() {
               <p className="text-[12px] text-gray-400 mb-4">{t('community.no_groups_sub')}</p>
               <button
                 onClick={() => setShowCreateSheet(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t('community.create_group')}
@@ -1299,7 +1299,7 @@ export function CommunityPage() {
                 onClick={() => setActiveFilter(activeFilter === key ? null : key)}
                 className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
                   activeFilter === key
-                    ? 'bg-[#009688] text-white border-[#009688]'
+                    ? 'bg-court text-white border-court'
                     : 'bg-white text-gray-600 border-gray-200'
                 }`}
               >
@@ -1346,7 +1346,7 @@ export function CommunityPage() {
               {discoverGroups.length > 6 && (
                 <button
                   onClick={() => navigate('/community/groups')}
-                  className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
+                  className="w-full text-center py-2.5 text-[13px] font-semibold text-court"
                 >
                   {t('community.show_all_groups', { count: discoverGroups.length })}
                 </button>
@@ -1404,7 +1404,7 @@ export function CommunityPage() {
               {connections.acceptedProfiles.length > 4 && (
                 <button
                   onClick={() => navigate('/community/connections')}
-                  className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
+                  className="w-full text-center py-2.5 text-[13px] font-semibold text-court"
                 >
                   {t('community.show_all_connections', { count: connections.acceptedProfiles.length })}
                 </button>
@@ -1437,7 +1437,7 @@ export function CommunityPage() {
               onClick={() => setPlayerCityFilter((v) => !v)}
               className={`mb-3 rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${
                 playerCityFilter
-                  ? 'bg-[#009688] text-white border-[#009688]'
+                  ? 'bg-court text-white border-court'
                   : 'bg-white text-gray-600 border-gray-200'
               }`}
             >
@@ -1477,7 +1477,7 @@ export function CommunityPage() {
                           <button
                             onClick={() => connectMutation.mutate(p.id)}
                             disabled={connectMutation.isPending}
-                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white hover:bg-teal-700 transition-colors"
+                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white hover:bg-teal-700 transition-colors"
                           >
                             <UserPlus className="h-3 w-3" /> {t('community.connect')}
                           </button>
@@ -1491,7 +1491,7 @@ export function CommunityPage() {
                           <button
                             onClick={() => acceptInlineMutation.mutate(p.id)}
                             disabled={acceptInlineMutation.isPending}
-                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white transition-colors"
+                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white transition-colors"
                           >
                             <Check className="h-3 w-3" /> {t('community.accept')}
                           </button>
@@ -1509,7 +1509,7 @@ export function CommunityPage() {
               {foundPlayers.length > 8 && (
                 <button
                   onClick={() => navigate('/community/players')}
-                  className="w-full text-center py-2.5 text-[13px] font-semibold text-[#009688]"
+                  className="w-full text-center py-2.5 text-[13px] font-semibold text-court"
                 >
                   {t('community.show_all_players', { count: foundPlayers.length })}
                 </button>
@@ -1538,7 +1538,7 @@ export function CommunityPage() {
       <motion.button
         onClick={() => setShowCreateSheet(true)}
         whileTap={{ scale: 0.9 }}
-        className="fixed bottom-[calc(80px+env(safe-area-inset-bottom)+16px)] right-5 z-40 h-14 w-14 rounded-full bg-[#009688] shadow-lg flex items-center justify-center"
+        className="fixed bottom-[calc(80px+env(safe-area-inset-bottom)+16px)] right-5 z-40 h-14 w-14 rounded-full bg-court shadow-lg flex items-center justify-center"
       >
         <Plus className="h-6 w-6 text-white" />
       </motion.button>

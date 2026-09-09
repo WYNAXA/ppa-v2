@@ -42,7 +42,7 @@ type EnrichedMatch = MatchCardData & {
 /** Border colour class based on match relationship to user */
 function getLeftBorder(match: EnrichedMatch, userId: string): string {
   const isPlayer = match.player_ids.includes(userId)
-  if (isPlayer) return match.status === 'pending' ? 'border-l-amber-400' : 'border-l-[#009688]'
+  if (isPlayer) return match.status === 'pending' ? 'border-l-amber-400' : 'border-l-court'
   if (match.player_ids.length >= 4) return 'border-l-gray-300'
   return 'border-l-orange-500'
 }
@@ -219,7 +219,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
           <button
             onClick={() => offerMutation.mutate()}
             disabled={offerMutation.isPending}
-            className="flex-1 rounded-2xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-50"
+            className="flex-1 rounded-2xl bg-court py-3 text-[14px] font-bold text-white disabled:opacity-50"
           >
             {offerMutation.isPending ? t('play.sending') : t('play.confirm')}
           </button>
@@ -741,9 +741,9 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 : `${format(weekStart, 'd MMM', { locale })} — ${format(weekEnd, 'd MMM', { locale })}`}
             </p>
             {selectedDay ? (
-              <button onClick={() => setSelectedDay(null)} className="text-[11px] font-semibold text-[#009688] mt-0.5">{t('play.show_full_week')}</button>
+              <button onClick={() => setSelectedDay(null)} className="text-[11px] font-semibold text-court mt-0.5">{t('play.show_full_week')}</button>
             ) : !isCurrentWeek ? (
-              <button onClick={goToday} className="text-[11px] font-semibold text-[#009688] mt-0.5">{t('play.today')}</button>
+              <button onClick={goToday} className="text-[11px] font-semibold text-court mt-0.5">{t('play.today')}</button>
             ) : null}
           </div>
           <button onClick={goNextWeek} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
@@ -763,14 +763,14 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 onClick={() => setSelectedDay(isSelected ? null : day)}
                 className={cn(
                   'flex-1 flex flex-col items-center py-2 rounded-xl transition-all min-w-0',
-                  isSelected ? 'bg-[#009688] text-white' : 'bg-white text-gray-700',
-                  isDayToday && !isSelected && 'ring-2 ring-[#009688]',
+                  isSelected ? 'bg-court text-white' : 'bg-white text-gray-700',
+                  isDayToday && !isSelected && 'ring-2 ring-court',
                 )}
               >
                 <span className={cn('text-[10px] font-medium', isSelected ? 'text-white/80' : 'text-gray-400')}>
                   {format(day, 'EEE', { locale })}
                 </span>
-                <span className={cn('text-[16px] font-bold leading-tight', isDayToday && !isSelected && 'text-[#009688]')}>
+                <span className={cn('text-[16px] font-bold leading-tight', isDayToday && !isSelected && 'text-court')}>
                   {format(day, 'd', { locale })}
                 </span>
                 {dots.length > 0 && (
@@ -778,7 +778,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                     {dots.map((color, i) => (
                       <div key={i} className={cn('h-1 w-1 rounded-full', {
                         'bg-white': isSelected,
-                        'bg-[#009688]': !isSelected && color === 'teal',
+                        'bg-court': !isSelected && color === 'teal',
                         'bg-gray-300': !isSelected && color === 'gray',
                         'bg-orange-400': !isSelected && color === 'orange',
                       })} />
@@ -812,7 +812,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               className={cn(
                 'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
                 selectedFilter === f.id
-                  ? 'bg-[#009688] border-[#009688] text-white'
+                  ? 'bg-court border-court text-white'
                   : 'border-gray-200 text-gray-600 bg-white',
               )}
             >
@@ -858,7 +858,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               </p>
               <button
                 onClick={onCreateMatch}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 <Plus className="h-4 w-4" />
                 {t('play.create_match')}
@@ -874,7 +874,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                       <div key={day.toISOString()}>
                         <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-1.5 mt-3 first:mt-0">
                           {format(day, 'EEEE d MMM', { locale })}
-                          {isSameDay(day, today) && <span className="text-[#009688] ml-1">{t('play.today_dot')}</span>}
+                          {isSameDay(day, today) && <span className="text-court ml-1">{t('play.today_dot')}</span>}
                         </p>
                         <div className="space-y-2">
                           {dayMatches.map((match, i) => (
@@ -906,7 +906,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               onClick={goNextWeek}
               className="mt-4 w-full rounded-2xl border border-dashed border-teal-200 bg-teal-50/50 px-4 py-3 text-center transition-colors active:bg-teal-100"
             >
-              <span className="text-[13px] font-semibold text-[#009688]">
+              <span className="text-[13px] font-semibold text-court">
                 {futureWeekCount === 1
                   ? t('play.next_week_indicator_singular')
                   : t('play.next_week_indicator_plural', { count: futureWeekCount })}

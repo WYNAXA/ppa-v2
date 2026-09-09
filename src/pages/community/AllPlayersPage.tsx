@@ -110,7 +110,7 @@ export function AllPlayersPage() {
         </div>
         {profile?.city && (
           <button onClick={() => setCityFilterOverride(!cityFilter)}
-            className={`rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${cityFilter ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'}`}>
+            className={`rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${cityFilter ? 'bg-court text-white border-court' : 'bg-white text-gray-600 border-gray-200'}`}>
             {t('community.near_me_city', { city: profile.city })}
           </button>
         )}
@@ -137,7 +137,7 @@ export function AllPlayersPage() {
                 )}
                 {state === 'none' && (
                   <button onClick={() => connectMutation.mutate(p.id)} disabled={connectMutation.isPending}
-                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white">
+                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
                     <UserPlus className="h-3 w-3" /> {t('community.connect')}
                   </button>
                 )}
@@ -148,7 +148,7 @@ export function AllPlayersPage() {
                 )}
                 {state === 'pending_in' && (
                   <button onClick={() => acceptMutation.mutate(p.id)} disabled={acceptMutation.isPending}
-                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white">
+                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
                     <Check className="h-3 w-3" /> {t('community.accept')}
                   </button>
                 )}

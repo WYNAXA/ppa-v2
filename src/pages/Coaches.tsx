@@ -80,10 +80,10 @@ export function CoachesPage() {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20"><div className="h-7 w-7 rounded-full border-2 border-[#009688] border-t-transparent animate-spin" /></div>
+        <div className="flex items-center justify-center py-20"><div className="h-7 w-7 rounded-full border-2 border-court border-t-transparent animate-spin" /></div>
       ) : coaches.length === 0 ? (
         <div className="px-5 py-16 text-center">
-          <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3"><GraduationCap className="h-7 w-7 text-[#009688]" /></div>
+          <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3"><GraduationCap className="h-7 w-7 text-court" /></div>
           <p className="text-[14px] font-semibold text-gray-700">No coaches yet</p>
           <p className="text-[13px] text-gray-400 mt-1 max-w-xs mx-auto">Coaches appear here once venues add them and they schedule sessions.</p>
         </div>

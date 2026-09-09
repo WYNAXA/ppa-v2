@@ -153,7 +153,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                           className={cn(
                             'flex flex-col items-center gap-1 rounded-xl px-3 py-2 transition-all border-2',
                             displayVotes[cat.id] === player.id
-                              ? 'border-[#009688] bg-teal-50'
+                              ? 'border-court bg-teal-50'
                               : 'border-transparent bg-gray-50',
                             !hasVoted && displayVotes[cat.id] !== player.id && 'hover:bg-gray-100',
                             hasVoted && 'cursor-default',
@@ -161,7 +161,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                         >
                           <div className={cn(
                             'rounded-full transition-shadow',
-                            displayVotes[cat.id] === player.id && 'ring-2 ring-[#009688] ring-offset-1'
+                            displayVotes[cat.id] === player.id && 'ring-2 ring-court ring-offset-1'
                           )}>
                             <PlayerAvatar name={player.name} avatarUrl={player.avatar_url} size="sm" />
                           </div>
@@ -180,7 +180,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                     <button
                       onClick={() => submitMutation.mutate()}
                       disabled={Object.keys(draftVotes).length === 0 || submitMutation.isPending}
-                      className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40 mt-2"
+                      className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40 mt-2"
                     >
                       {submitMutation.isPending ? t('peer_voting.submitting') : t('peer_voting.submit_votes')}
                     </button>

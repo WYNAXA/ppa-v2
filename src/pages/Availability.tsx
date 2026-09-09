@@ -127,7 +127,7 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
         </div>
         <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
           <motion.div
-            className={cn('h-full rounded-full', ready ? 'bg-green-500' : 'bg-[#009688]')}
+            className={cn('h-full rounded-full', ready ? 'bg-green-500' : 'bg-court')}
             initial={{ width: 0 }}
             animate={{ width: `${progress * 100}%` }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
@@ -144,7 +144,7 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
         onClick={onRespond}
         className={cn(
           'w-full rounded-xl py-2.5 text-[13px] font-bold text-white',
-          ready ? 'bg-green-600' : 'bg-[#009688]'
+          ready ? 'bg-green-600' : 'bg-court'
         )}
       >
         {hasResponded ? 'Update my availability' : 'Add my availability →'}
@@ -160,7 +160,7 @@ function EmptyPollState({ onStart }: { onStart: () => void }) {
       <p className="text-[12px] text-gray-400 mb-4">Start one for your group to find a game</p>
       <button
         onClick={onStart}
-        className="inline-flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
+        className="inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         Start one for your group
@@ -206,7 +206,7 @@ export function AvailabilityPage() {
           </div>
           <button
             onClick={() => navigate('/play/availability/create')}
-            className="h-9 w-9 rounded-full bg-[#009688] flex items-center justify-center shadow-sm"
+            className="h-9 w-9 rounded-full bg-court flex items-center justify-center shadow-sm"
             aria-label="Create availability poll"
           >
             <Plus className="h-5 w-5 text-white" />
@@ -216,7 +216,7 @@ export function AvailabilityPage() {
 
       {isLoading ? (
         <div className="flex justify-center py-16">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+          <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
         </div>
       ) : (
         <div className="px-5 space-y-6">
@@ -277,7 +277,7 @@ export function AvailabilityPage() {
                     className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3 text-left hover:border-teal-200 transition-colors"
                   >
                     <div className="h-8 w-8 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0">
-                      <Clock className="h-4 w-4 text-[#009688]" />
+                      <Clock className="h-4 w-4 text-court" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-semibold text-gray-900">{formatSlotLabel(poll, slot)}</p>

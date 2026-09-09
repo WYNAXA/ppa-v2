@@ -232,7 +232,7 @@ export function LeagueDiscoveryPage() {
                   className="w-full flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-gray-100 text-left"
                 >
                   <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
-                    <Trophy className="w-5 h-5 text-[#009688]" />
+                    <Trophy className="w-5 h-5 text-court" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-gray-900 truncate">{league.name}</p>
@@ -270,7 +270,7 @@ export function LeagueDiscoveryPage() {
                     <button
                       onClick={() => acceptMutation.mutate(inv)}
                       disabled={acceptMutation.isPending}
-                      className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                      className="flex-1 rounded-xl bg-court py-2 text-[13px] font-bold text-white disabled:opacity-50"
                     >
                       Accept
                     </button>
@@ -323,7 +323,7 @@ export function LeagueDiscoveryPage() {
                       joinMutation.mutate(league.id)
                     }}
                     disabled={joinMutation.isPending}
-                    className="shrink-0 rounded-xl bg-[#009688] px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
+                    className="shrink-0 rounded-xl bg-court px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
                   >
                     Join
                   </button>
@@ -345,7 +345,7 @@ export function LeagueDiscoveryPage() {
                 onClick={() => setLeagueFilter(f.id)}
                 className={cn(
                   'flex-shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors',
-                  leagueFilter === f.id ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-600 bg-white'
+                  leagueFilter === f.id ? 'bg-court border-court text-white' : 'border-gray-200 text-gray-600 bg-white'
                 )}
               >
                 {f.label}
@@ -361,7 +361,7 @@ export function LeagueDiscoveryPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search leagues..."
-              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-[#009688]/30 focus:border-[#009688]"
+              className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-9 pr-4 text-[14px] text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-court/30 focus:border-court"
             />
           </div>
 
@@ -376,7 +376,7 @@ export function LeagueDiscoveryPage() {
                   className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-gray-100"
                 >
                   <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
-                    <Trophy className="w-5 h-5 text-[#009688]" />
+                    <Trophy className="w-5 h-5 text-court" />
                   </div>
                   <div
                     className="flex-1 min-w-0 cursor-pointer"
@@ -397,7 +397,7 @@ export function LeagueDiscoveryPage() {
                   <button
                     onClick={() => joinMutation.mutate(league.id)}
                     disabled={joinMutation.isPending}
-                    className="shrink-0 rounded-xl bg-[#009688] px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
+                    className="shrink-0 rounded-xl bg-court px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
                   >
                     Join
                   </button>
@@ -411,13 +411,13 @@ export function LeagueDiscoveryPage() {
         <section className="px-4 pt-6 pb-4">
           <div className="rounded-2xl bg-white p-5 shadow-sm border border-gray-100 text-center">
             <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3">
-              <Plus className="w-6 h-6 text-[#009688]" />
+              <Plus className="w-6 h-6 text-court" />
             </div>
             <h3 className="text-[15px] font-bold text-gray-900">Start your own league</h3>
             <p className="text-[13px] text-gray-500 mt-1">Create a league for your group and track standings automatically.</p>
             <button
               onClick={() => navigate('/compete?createLeague=true')}
-              className="mt-4 w-full rounded-2xl bg-[#009688] py-3 text-[14px] font-bold text-white"
+              className="mt-4 w-full rounded-2xl bg-court py-3 text-[14px] font-bold text-white"
             >
               Create League
             </button>

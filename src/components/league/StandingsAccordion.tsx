@@ -57,7 +57,7 @@ export function StandingsAccordion<Row extends { id: string }>({
               onClick={() => toggle(row.id)}
               className={cn('w-full grid gap-1 items-center px-3 py-2 text-left', cols)}
             >
-              <span className={cn('text-[12px] font-bold', me ? 'text-[#009688]' : 'text-gray-400')}>
+              <span className={cn('text-[12px] font-bold', me ? 'text-court' : 'text-gray-400')}>
                 {i < 3 ? ['🥇', '🥈', '🥉'][i] : i + 1}
               </span>
               <div className="min-w-0 overflow-hidden flex items-center gap-2">

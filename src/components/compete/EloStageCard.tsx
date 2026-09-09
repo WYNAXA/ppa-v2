@@ -84,7 +84,7 @@ export function EloStageCard({ userId, matchesPlayed, careerElo }: EloStageCardP
       <p className="text-[12px] text-gray-500 mt-1 leading-relaxed">{interpolated}</p>
       <button
         onClick={() => navigate(copy.route)}
-        className="mt-3 rounded-xl bg-[#009688] px-4 py-2 text-[12px] font-bold text-white active:scale-95 transition-transform"
+        className="mt-3 rounded-xl bg-court px-4 py-2 text-[12px] font-bold text-white active:scale-95 transition-transform"
       >
         {copy.cta}
       </button>

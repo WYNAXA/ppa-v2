@@ -154,7 +154,7 @@ function PaymentForm({
       <button
         type="submit"
         disabled={!stripe || !elements || submitting}
-        className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
+        className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
       >
         {submitting ? 'Processing\u2026' : `Pay \u00a3${amountGBP}`}
       </button>
@@ -429,7 +429,7 @@ export function PayBookingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-[#009688] animate-spin" />
+        <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-court animate-spin" />
         <p className="text-[13px] text-gray-400">Loading booking\u2026</p>
       </div>
     )
@@ -457,7 +457,7 @@ export function PayBookingPage() {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-5 pt-14 pb-4">
-        <p className="text-[12px] font-semibold text-[#009688] uppercase tracking-wide mb-0.5">Court Booking</p>
+        <p className="text-[12px] font-semibold text-court uppercase tracking-wide mb-0.5">Court Booking</p>
         <h1 className="text-[22px] font-black text-gray-900">Split Payment</h1>
       </div>
 
@@ -507,7 +507,7 @@ export function PayBookingPage() {
                 key={p.id}
                 className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
                   selectedIds.has(p.id)
-                    ? 'border-[#009688]/30 bg-[#009688]/5'
+                    ? 'border-court/30 bg-court/5'
                     : 'border-gray-100'
                 } ${p.isCurrent ? 'cursor-default' : 'cursor-pointer'}`}
               >
@@ -516,7 +516,7 @@ export function PayBookingPage() {
                   checked={selectedIds.has(p.id)}
                   disabled={p.isCurrent}
                   onChange={() => togglePlayer(p.id)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#009688] focus:ring-[#009688] disabled:opacity-70"
+                  className="w-4 h-4 rounded border-gray-300 text-court focus:ring-court disabled:opacity-70"
                 />
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-semibold text-gray-900 truncate">
@@ -536,7 +536,7 @@ export function PayBookingPage() {
             <p className="text-[13px] font-semibold text-gray-700">
               Paying {shareCount} {shareCount === 1 ? 'share' : 'shares'}
             </p>
-            <p className="text-[22px] font-black text-[#009688]">{'\u00a3'}{totalGBP}</p>
+            <p className="text-[22px] font-black text-court">{'\u00a3'}{totalGBP}</p>
           </div>
         </div>
 
@@ -556,7 +556,7 @@ export function PayBookingPage() {
                 appearance: {
                   theme: 'stripe',
                   variables: {
-                    colorPrimary: '#009688',
+                    colorPrimary: 'var(--color-court)',
                     borderRadius: '12px',
                     fontFamily: 'system-ui, sans-serif',
                   },
@@ -576,7 +576,7 @@ export function PayBookingPage() {
           <button
             onClick={createPaymentIntent}
             disabled={creatingIntent}
-            className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
+            className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
           >
             {creatingIntent ? 'Setting up payment\u2026' : `Proceed to pay \u00a3${totalGBP}`}
           </button>

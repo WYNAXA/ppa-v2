@@ -227,7 +227,7 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
   return (
     <div className="mx-5 mb-4 rounded-2xl bg-gray-50 border border-gray-100 p-4">
       <div className="flex items-center gap-2 mb-3">
-        <Trophy className="h-4 w-4 text-[#009688]" />
+        <Trophy className="h-4 w-4 text-court" />
         <p className="text-[12px] font-bold text-gray-700 uppercase tracking-wide">{t('match.result_heading')}</p>
         <span className={cn(
           'ml-auto text-[10px] font-semibold rounded-full px-2 py-0.5 border',
@@ -1016,7 +1016,7 @@ export function MatchDetailPage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-7 w-7 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-7 w-7 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -1025,7 +1025,7 @@ export function MatchDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
         <p className="text-[14px] text-gray-500">{t('match.not_found')}</p>
-        <button onClick={() => navigate(-1)} className="text-[13px] text-[#009688] font-semibold">{t('match.go_back')}</button>
+        <button onClick={() => navigate(-1)} className="text-[13px] text-court font-semibold">{t('match.go_back')}</button>
       </div>
     )
   }
@@ -1422,7 +1422,7 @@ export function MatchDetailPage() {
             {(isParticipant || isGroupAdmin) && (
               <button
                 onClick={() => setShowInvite(true)}
-                className="text-[11px] font-semibold text-[#009688]"
+                className="text-[11px] font-semibold text-court"
               >
                 {t('match.add_player_plus')}
               </button>
@@ -1430,7 +1430,7 @@ export function MatchDetailPage() {
           </div>
           <div className="h-1.5 rounded-full bg-gray-100 overflow-hidden">
             <div
-              className="h-full rounded-full bg-[#009688] transition-all"
+              className="h-full rounded-full bg-court transition-all"
               style={{ width: `${(match.player_ids.length / 4) * 100}%` }}
             />
           </div>
@@ -1471,14 +1471,14 @@ export function MatchDetailPage() {
                     )}
                   </div>
                   {player.id === currentUserId && (
-                    <span className="text-[9px] font-bold text-[#009688] bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.you_badge')}</span>
+                    <span className="text-[9px] font-bold text-court bg-teal-50 px-1.5 py-0.5 rounded-full flex-shrink-0">{t('match.you_badge')}</span>
                   )}
                   {'isGuest' in player && player.isGuest && (
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {(isParticipant || isGroupAdmin) && guestInviteMap[player.id]?.token && match.status !== 'completed' && match.status !== 'cancelled' && (
                         <button
                           onClick={(e) => { e.stopPropagation(); shareGuestInvite(player.id) }}
-                          className="flex items-center gap-1 text-[10px] font-bold text-[#009688] bg-teal-50 hover:bg-teal-100 px-1.5 py-0.5 rounded-full transition-colors active:scale-95"
+                          className="flex items-center gap-1 text-[10px] font-bold text-court bg-teal-50 hover:bg-teal-100 px-1.5 py-0.5 rounded-full transition-colors active:scale-95"
                         >
                           <Share2 className="h-2.5 w-2.5" /> {t('match.send_invite', 'Invite')}
                         </button>
@@ -1719,7 +1719,7 @@ export function MatchDetailPage() {
                           toast.success(t('match.counter_submitted'))
                         }}
                         disabled={!counterResultType}
-                        className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-40"
+                        className="flex-1 rounded-xl bg-court py-2 text-[13px] font-bold text-white disabled:opacity-40"
                       >
                         {t('match.submit_counter')}
                       </button>
@@ -1933,7 +1933,7 @@ export function MatchDetailPage() {
                         toast.success(t('match.scores_updated'))
                       }}
                       disabled={!editResultType}
-                      className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-40"
+                      className="flex-1 rounded-xl bg-court py-2 text-[13px] font-bold text-white disabled:opacity-40"
                     >
                       {t('match.save')}
                     </button>
@@ -2237,7 +2237,7 @@ export function MatchDetailPage() {
           <div className="px-5 mb-4">
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
               <div className="flex items-center gap-2 mb-3">
-                <Car className="h-4 w-4 text-[#009688]" />
+                <Car className="h-4 w-4 text-court" />
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('match.getting_there')}</p>
               </div>
 
@@ -2331,7 +2331,7 @@ export function MatchDetailPage() {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 text-[12px] font-bold text-white"
+                        className="mt-3 w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 text-[12px] font-bold text-white"
                       >
                         <Navigation className="h-3.5 w-3.5" />
                         {t('match.navigate_google_maps')}
@@ -2355,7 +2355,7 @@ export function MatchDetailPage() {
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'accepted' })}
-                                className="rounded-lg bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white"
+                                className="rounded-lg bg-court px-2.5 py-1 text-[11px] font-bold text-white"
                               >
                                 {t('match.accept')}
                               </button>
@@ -2382,7 +2382,7 @@ export function MatchDetailPage() {
                         disabled={toggleDrivingMutation.isPending}
                         className={cn(
                           'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all active:scale-[0.98]',
-                          amDriving ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                          amDriving ? 'border-court bg-teal-50 text-court' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                         )}
                       >
                         <div className="flex items-center gap-2">
@@ -2392,7 +2392,7 @@ export function MatchDetailPage() {
                             <p className="text-[10px] font-normal opacity-70">{t('match.making_own_way')}</p>
                           </div>
                         </div>
-                        <span className={cn('text-[11px] rounded-full px-2 py-0.5', amDriving ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-400')}>
+                        <span className={cn('text-[11px] rounded-full px-2 py-0.5', amDriving ? 'bg-court text-white' : 'bg-gray-100 text-gray-400')}>
                           {amDriving ? t('match.yes') : t('match.no')}
                         </span>
                       </button>
@@ -2402,7 +2402,7 @@ export function MatchDetailPage() {
                           disabled={toggleOfferingMutation.isPending}
                           className={cn(
                             'w-full flex items-center justify-between rounded-xl border-2 px-4 py-3 text-[13px] font-semibold transition-all active:scale-[0.98]',
-                            amOffering ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            amOffering ? 'border-court bg-teal-50 text-court' : 'border-gray-200 text-gray-600 hover:border-gray-300'
                           )}
                         >
                           <div className="flex items-center gap-2">
@@ -2412,7 +2412,7 @@ export function MatchDetailPage() {
                               <p className="text-[10px] font-normal opacity-70">{t('match.happy_to_take_passengers')}</p>
                             </div>
                           </div>
-                          <span className={cn('text-[11px] rounded-full px-2 py-0.5', amOffering ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-400')}>
+                          <span className={cn('text-[11px] rounded-full px-2 py-0.5', amOffering ? 'bg-court text-white' : 'bg-gray-100 text-gray-400')}>
                             {amOffering ? t('match.yes') : t('match.no')}
                           </span>
                         </button>
@@ -2474,7 +2474,7 @@ export function MatchDetailPage() {
                               {isMe && !acceptedDriverLocal && (travelInfo!.drivers.length > 0) && (
                                 <button
                                   onClick={() => setShowLiftChooser(true)}
-                                  className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white"
+                                  className="shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white"
                                 >
                                   <Car className="h-3 w-3 inline mr-1" />
                                   {t('match.ask_for_a_lift')}
@@ -2508,7 +2508,7 @@ export function MatchDetailPage() {
                             queryClient.invalidateQueries({ queryKey: ['my-location', profile.id] })
                           })
                         }}
-                        className="rounded-xl bg-[#009688] px-4 py-2 text-[12px] font-bold text-white"
+                        className="rounded-xl bg-court px-4 py-2 text-[12px] font-bold text-white"
                       >
                         {t('match.enable_location')}
                       </button>
@@ -2649,7 +2649,7 @@ export function MatchDetailPage() {
             <button
               onClick={() => setShowRecordResult(true)}
               disabled={isAdminOverride && !adminOverrideReason.trim()}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Trophy className="h-4 w-4" />
               {isAdminOverride ? t('match.record_result_admin') : t('match.record_result')}
@@ -2678,7 +2678,7 @@ export function MatchDetailPage() {
                   <div className="flex items-center gap-3 mt-2">
                     <button
                       onClick={() => navigate(`/booking/${linkedBooking.id}`)}
-                      className="text-[11px] text-[#009688] font-semibold"
+                      className="text-[11px] text-court font-semibold"
                     >
                       {t('match.payment_and_booking')}
                     </button>
@@ -2823,7 +2823,7 @@ export function MatchDetailPage() {
             <button
               onClick={handlePlayAnother}
               disabled={creatingNext}
-              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50"
+              className="col-span-2 flex items-center justify-center gap-1.5 rounded-xl bg-court py-3 text-[13px] font-bold text-white disabled:opacity-50"
             >
               <Play className="h-4 w-4" />
               {creatingNext ? t('match.creating') : t('match.play_another')}
@@ -2965,7 +2965,7 @@ export function MatchDetailPage() {
                             setShowLiftChooser(false)
                           }}
                           disabled={!!hasActiveRequest || requestLiftMutation.isPending}
-                          className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white disabled:opacity-50"
+                          className="flex-shrink-0 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white disabled:opacity-50"
                         >
                           {t('match.ask')}
                         </button>
@@ -3352,7 +3352,7 @@ function TeamsAndPrediction({
     <div className="px-5 mb-4">
       <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
         <div className="flex items-center gap-2 mb-3">
-          <BarChart2 className="h-4 w-4 text-[#009688]" />
+          <BarChart2 className="h-4 w-4 text-court" />
           <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">{t('teams_prediction_title')}</p>
           <AnimatePresence>
             {savedTick && (
@@ -3435,7 +3435,7 @@ function TeamRow({
       )}
     >
       <div className="flex-shrink-0">
-        <p className={cn('text-[10px] font-bold uppercase tracking-wide', highlight ? 'text-[#009688]' : 'text-gray-400')}>
+        <p className={cn('text-[10px] font-bold uppercase tracking-wide', highlight ? 'text-court' : 'text-gray-400')}>
           {label}
         </p>
       </div>
@@ -3448,7 +3448,7 @@ function TeamRow({
         ))}
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className={cn('text-[16px] font-black leading-none', highlight ? 'text-[#009688]' : 'text-gray-500')}>
+        <p className={cn('text-[16px] font-black leading-none', highlight ? 'text-court' : 'text-gray-500')}>
           {winProb}%
         </p>
         <p className="text-[9px] text-gray-400 mt-0.5">{t('to_win')}</p>
@@ -3553,12 +3553,12 @@ function PointsAtStakeSection({
         <div>
           <span className="text-gray-500">{t('team1_wins_label')} </span>
           <span className={cn('font-bold', deltaColor(t1Win))}>{formatDelta(t1Win)} ELO</span>
-          {t1Lp !== null && <span className="text-[#009688] font-semibold ml-1">{t('league_points_gain', { count: t1Lp })}</span>}
+          {t1Lp !== null && <span className="text-court font-semibold ml-1">{t('league_points_gain', { count: t1Lp })}</span>}
         </div>
         <div>
           <span className="text-gray-500">{t('team2_wins_label')} </span>
           <span className={cn('font-bold', deltaColor(t2Win))}>{formatDelta(t2Win)} ELO</span>
-          {t2Lp !== null && <span className="text-[#009688] font-semibold ml-1">{t('league_points_gain', { count: t2Lp })}</span>}
+          {t2Lp !== null && <span className="text-court font-semibold ml-1">{t('league_points_gain', { count: t2Lp })}</span>}
         </div>
       </div>
       {!isLeagueMatch && (
@@ -3592,7 +3592,7 @@ function PointsAtStakeParticipant({
           <span className="text-[12px] text-gray-600">{t('if_you_win')}</span>
           <div className="flex items-center gap-3">
             <span className={cn('text-[13px] font-bold', deltaColor(winD))}>{formatDelta(winD)} ELO</span>
-            {winLp !== null && <span className="text-[11px] font-semibold text-[#009688]">{formatLp(winLp)}</span>}
+            {winLp !== null && <span className="text-[11px] font-semibold text-court">{formatLp(winLp)}</span>}
           </div>
         </div>
         <div className="flex items-center justify-between">
@@ -3614,7 +3614,7 @@ function PointsAtStakeParticipant({
       {/* View all players expansion */}
       <button
         onClick={() => setShowAll(v => !v)}
-        className="w-full text-center text-[11px] font-semibold text-[#009688] mt-2 py-1"
+        className="w-full text-center text-[11px] font-semibold text-court mt-2 py-1"
       >
         {showAll ? t('hide_all_players') : t('view_all_players')}
       </button>

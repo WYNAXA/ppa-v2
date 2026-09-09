@@ -621,7 +621,7 @@ export function TournamentModePage() {
           </div>
           <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
             <motion.div
-              className="h-full rounded-full bg-[#009688]"
+              className="h-full rounded-full bg-court"
               initial={{ width: 0 }}
               animate={{ width: `${progressPct}%` }}
               transition={{ type: 'spring', stiffness: 200, damping: 25 }}
@@ -642,7 +642,7 @@ export function TournamentModePage() {
               generateNextRound()
             }}
             disabled={generatingRound || (isPairs ? leagueTeams.length < 2 : standings.length < 4)}
-            className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-2xl bg-court py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {generatingRound ? 'Generating…' : currentRound === 0 ? 'Generate Round 1' : 'Generate Next Round'}
           </button>
@@ -770,7 +770,7 @@ export function TournamentModePage() {
                       <button
                         onClick={() => submitResult(idx)}
                         disabled={entry.submitting}
-                        className="mt-2 w-full rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                        className="mt-2 w-full rounded-xl bg-court py-2 text-[13px] font-bold text-white disabled:opacity-50"
                       >
                         {entry.submitting
                           ? 'Submitting...'

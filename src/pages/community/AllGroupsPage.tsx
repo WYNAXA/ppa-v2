@@ -162,7 +162,7 @@ export function AllGroupsPage() {
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
           {[{ key: 'near_me', label: t('community.filter_near_me') }, { key: 'open_to_join', label: t('community.filter_open_to_join') }, { key: 'welcomes_ringers', label: t('community.filter_welcomes_ringers') }].map(({ key, label }) => (
             <button key={key} onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-              className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${activeFilter === key ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'}`}>
+              className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${activeFilter === key ? 'bg-court text-white border-court' : 'bg-white text-gray-600 border-gray-200'}`}>
               {label}
             </button>
           ))}
@@ -208,7 +208,7 @@ export function AllGroupsPage() {
                     const isAutoJoin = g.visibility === 'open' || g.visibility === 'public' || g.auto_approve === true
                     return (
                       <button onClick={(e) => { e.stopPropagation(); joinMutation.mutate(g.id) }} disabled={joinMutation.isPending && joinMutation.variables === g.id}
-                        className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">
+                        className="rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">
                         {joinMutation.isPending && joinMutation.variables === g.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
                       </button>
                     )
@@ -298,7 +298,7 @@ export function AllGroupsPage() {
                         <button
                           onClick={() => joinMutation.mutate(previewGroup.id)}
                           disabled={joiningId === previewGroup.id}
-                          className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
+                          className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
                         >
                           {joiningId === previewGroup.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
                         </button>

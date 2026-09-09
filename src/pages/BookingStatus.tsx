@@ -251,7 +251,7 @@ export function BookingStatusPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-[#009688] animate-spin" />
+        <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-court animate-spin" />
         <p className="text-[13px] text-gray-400">Loading booking\u2026</p>
       </div>
     )
@@ -263,7 +263,7 @@ export function BookingStatusPage() {
         <div className="text-[48px] mb-4">{'\u26A0\uFE0F'}</div>
         <h1 className="text-[20px] font-bold text-gray-900 mb-2">Oops</h1>
         <p className="text-[14px] text-gray-500">{error ?? 'Something went wrong.'}</p>
-        <button onClick={() => navigate(-1)} className="mt-6 text-[14px] font-semibold text-[#009688]">Go back</button>
+        <button onClick={() => navigate(-1)} className="mt-6 text-[14px] font-semibold text-court">Go back</button>
       </div>
     )
   }
@@ -383,7 +383,7 @@ export function BookingStatusPage() {
                 ) : resState === 'active' ? (
                   <button
                     onClick={() => navigate(`/pay/booking/${bookingId}/player/${p.id}`)}
-                    className="flex items-center gap-1 rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"
+                    className="flex items-center gap-1 rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"
                   >
                     <CreditCard className="h-3 w-3" />
                     Pay share
@@ -407,7 +407,7 @@ export function BookingStatusPage() {
         {booking.match_id && (
           <button
             onClick={() => navigate(`/matches/${booking.match_id}`)}
-            className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688] flex items-center justify-center gap-2"
+            className="w-full rounded-2xl border-2 border-court py-3.5 text-[14px] font-bold text-court flex items-center justify-center gap-2"
           >
             <Users className="h-4 w-4" />
             Manage players on match

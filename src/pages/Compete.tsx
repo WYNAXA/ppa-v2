@@ -450,18 +450,18 @@ function LeaderboardRow({
     >
       <span className={cn(
         'w-6 text-center text-[12px] font-bold flex-shrink-0',
-        rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-gray-400' : rank === 3 ? 'text-orange-400' : isMe ? 'text-[#009688]' : 'text-gray-400'
+        rank === 1 ? 'text-yellow-500' : rank === 2 ? 'text-gray-400' : rank === 3 ? 'text-orange-400' : isMe ? 'text-court' : 'text-gray-400'
       )}>
         {rank <= 3 ? ['🥇', '🥈', '🥉'][rank - 1] : rank}
       </span>
       <PlayerAvatar name={profile.name} avatarUrl={profile.avatar_url} size="sm" />
       <div className="flex-1 min-w-0">
-        <p className={cn('text-[13px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+        <p className={cn('text-[13px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
           {profile.name}{isMe ? ` ${t('compete.you_suffix')}` : ''}
         </p>
       </div>
       <div className="flex-shrink-0 text-right">
-        <p className={cn('text-[13px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-700')}>
+        <p className={cn('text-[13px] font-bold', isMe ? 'text-court' : 'text-gray-700')}>
           {(profile.internal_ranking ?? 0).toLocaleString()}
         </p>
         <p className="text-[10px] text-gray-400">
@@ -509,7 +509,7 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
             <div className="flex items-center gap-3 mt-2">
               {league.standing.rank != null && (
                 <span className="text-[11px] text-gray-500">
-                  {t('compete.position')} <span className="font-bold text-[#009688]">#{league.standing.rank}</span>
+                  {t('compete.position')} <span className="font-bold text-court">#{league.standing.rank}</span>
                 </span>
               )}
               <span className="text-[11px] text-gray-500">
@@ -593,7 +593,7 @@ export function CompetePage() {
         <h1 className="text-[22px] font-bold text-gray-900">{t('compete.title')}</h1>
         <button
           onClick={() => setShowCreateLeague(true)}
-          className="flex items-center gap-1.5 rounded-xl bg-[#009688] px-3 py-2 text-[12px] font-bold text-white shadow-sm"
+          className="flex items-center gap-1.5 rounded-xl bg-court px-3 py-2 text-[12px] font-bold text-white shadow-sm"
         >
           <Plus className="h-3.5 w-3.5" />
           {t('compete.create_league')}
@@ -692,7 +692,7 @@ export function CompetePage() {
 
           {/* Your rank card — shown at top when ranked */}
           {myGlobalRank > 0 && !loadingLeaderboard && !leaderboardSearch && (
-            <div className="rounded-2xl bg-[#009688] px-4 py-3.5 mb-2 flex items-center justify-between">
+            <div className="rounded-2xl bg-court px-4 py-3.5 mb-2 flex items-center justify-between">
               <div>
                 <p className="text-[11px] text-white/70 font-medium mb-0.5">{t('compete.your_ranking')}</p>
                 <p className="text-[20px] font-black text-white">{t('compete.ranked_of', { rank: myGlobalRank, total: rawLeaderboard.length })}</p>
@@ -753,7 +753,7 @@ export function CompetePage() {
             <h2 className="text-[16px] font-bold text-gray-900">{t('compete.my_leagues')}</h2>
             <button
               onClick={() => setShowCreateLeague(true)}
-              className="flex items-center gap-1 rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white"
+              className="flex items-center gap-1 rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white"
             >
               <Plus className="h-3.5 w-3.5" />
               {t('compete.create_league')}
@@ -775,7 +775,7 @@ export function CompetePage() {
               <p className="text-[12px] text-gray-400 mb-4">{t('compete.no_leagues_sub')}</p>
               <button
                 onClick={() => setShowCreateLeague(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 <Plus className="h-3.5 w-3.5" />
                 {t('compete.create_league_cta')}
@@ -797,7 +797,7 @@ export function CompetePage() {
           )}
           <button
             onClick={() => navigate('/leagues')}
-            className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-50 border border-gray-100 py-2.5 text-[12px] font-semibold text-[#009688]"
+            className="mt-2 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gray-50 border border-gray-100 py-2.5 text-[12px] font-semibold text-court"
           >
             <Search className="h-3.5 w-3.5" />
             {t('compete.find_open_leagues')}

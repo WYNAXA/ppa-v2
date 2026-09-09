@@ -177,7 +177,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
 
               {searching && (
                 <div className="flex justify-center py-6">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
                 </div>
               )}
 
@@ -198,7 +198,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-gray-800 truncate">{player.name}</p>
                       </div>
-                      <UserPlus className="h-4 w-4 text-[#009688] flex-shrink-0" />
+                      <UserPlus className="h-4 w-4 text-court flex-shrink-0" />
                     </button>
                   ))}
                 </div>
@@ -271,7 +271,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                     <button
                       onClick={() => guestMutation.mutate()}
                       disabled={!guestName.trim() || guestMutation.isPending}
-                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+                      className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
                     >
                       {guestMutation.isPending ? t('invite.adding_guest') : t('invite.invite_and_share', 'Invite & share link')}
                     </button>

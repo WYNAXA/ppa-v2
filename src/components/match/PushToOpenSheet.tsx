@@ -155,7 +155,7 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
               <button
                 onClick={() => pushMutation.mutate()}
                 disabled={pushMutation.isPending || min >= max || tooLateToOpen}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
                 {pushMutation.isPending ? 'Saving\u2026' : isEditing ? 'Update ELO range' : t('open_matches.push_confirm')}
               </button>

@@ -98,7 +98,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
                 <button
                   onClick={() => close(true)}
                   className={`flex-1 rounded-xl py-2.5 text-[13px] font-bold text-white ${
-                    opts.destructive ? 'bg-red-500 active:bg-red-600' : 'bg-[#009688] active:bg-[#00796b]'
+                    opts.destructive ? 'bg-red-500 active:bg-red-600' : 'bg-court active:bg-[#00796b]'
                   }`}
                 >
                   {opts.confirmLabel ?? t('common.confirm')}

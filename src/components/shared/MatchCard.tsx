@@ -165,7 +165,7 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
           ) : action === 'join' && onJoin ? (
             <button
               onClick={(e) => { e.stopPropagation(); onJoin(match.id) }}
-              className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-teal-700 active:scale-95"
+              className="rounded-xl bg-court px-3 py-1.5 text-[12px] font-semibold text-white transition hover:bg-teal-700 active:scale-95"
             >
               {t('play.join')}
             </button>

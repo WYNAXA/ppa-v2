@@ -232,7 +232,7 @@ export function PlayerProfilePage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -241,7 +241,7 @@ export function PlayerProfilePage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
         <p className="text-[14px] text-gray-500">{t('player_profile.not_found')}</p>
-        <button onClick={() => goBack(navigate, '/community')} className="text-[13px] text-[#009688] font-semibold">{t('common.go_back')}</button>
+        <button onClick={() => goBack(navigate, '/community')} className="text-[13px] text-court font-semibold">{t('common.go_back')}</button>
       </div>
     )
   }
@@ -277,7 +277,7 @@ export function PlayerProfilePage() {
             {player.city && <p className="text-[13px] text-gray-400 mt-0.5">{player.city}</p>}
             <div className="flex items-center gap-2 mt-2">
               {player.internal_ranking != null && (
-                <span className="rounded-full bg-[#009688]/10 px-2.5 py-1 text-[12px] font-bold text-[#009688]">
+                <span className="rounded-full bg-court/10 px-2.5 py-1 text-[12px] font-bold text-court">
                   {player.internal_ranking} ELO
                 </span>
               )}
@@ -407,7 +407,7 @@ export function PlayerProfilePage() {
             <button
               onClick={() => connectMutation.mutate()}
               disabled={connectMutation.isPending}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-[#009688] px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-court px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
             >
               <UserPlus className="h-3.5 w-3.5" />
               {connectMutation.isPending ? t('community.sending') : t('community.connect')}

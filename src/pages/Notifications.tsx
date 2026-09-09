@@ -80,12 +80,12 @@ function NotifIcon({ type }: { type: string }) {
     case 'match_created':
     case 'match_scheduled':
     case 'match_suggested':
-      return <div className={`${base} bg-teal-50`}><Calendar className="w-4 h-4 text-[#009688]" /></div>
+      return <div className={`${base} bg-teal-50`}><Calendar className="w-4 h-4 text-court" /></div>
     case 'match_result':
     case 'result_verify':
-      return <div className={`${base} bg-teal-50`}><Trophy className="w-4 h-4 text-[#009688]" /></div>
+      return <div className={`${base} bg-teal-50`}><Trophy className="w-4 h-4 text-court" /></div>
     case 'poll_created':
-      return <div className={`${base} bg-teal-50`}><Activity className="w-4 h-4 text-[#009688]" /></div>
+      return <div className={`${base} bg-teal-50`}><Activity className="w-4 h-4 text-court" /></div>
     case 'league_update':
     case 'league_invite':
       return <div className={`${base} bg-amber-50`}><Trophy className="w-4 h-4 text-amber-500" /></div>
@@ -95,7 +95,7 @@ function NotifIcon({ type }: { type: string }) {
       return <div className={`${base} bg-blue-50`}><Users className="w-4 h-4 text-blue-500" /></div>
     case 'connection_request':
     case 'connection_accepted':
-      return <div className={`${base} bg-teal-50`}><Users className="w-4 h-4 text-[#009688]" /></div>
+      return <div className={`${base} bg-teal-50`}><Users className="w-4 h-4 text-court" /></div>
     case 'result_pending_verification':
     case 'result_verified':
       return <div className={`${base} bg-green-50`}><CheckCheck className="w-4 h-4 text-green-500" /></div>
@@ -221,7 +221,7 @@ export function NotificationsPage() {
             <button
               onClick={handleMarkAll}
               disabled={markingAll}
-              className="flex items-center gap-1.5 text-sm font-medium text-[#009688] disabled:opacity-50"
+              className="flex items-center gap-1.5 text-sm font-medium text-court disabled:opacity-50"
             >
               <CheckCheck className="w-4 h-4" />
               {t('notifications.mark_all_read')}
@@ -237,7 +237,7 @@ export function NotificationsPage() {
       <div className="flex-1 px-4 py-3">
         {isLoading ? (
           <div className="flex justify-center py-16">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
           </div>
         ) : notifications.length === 0 ? (
           <EmptyState
@@ -272,7 +272,7 @@ export function NotificationsPage() {
                         <p className="text-xs text-gray-400 mt-0.5">{timeAgo(n.created_at)}</p>
                       </div>
                       {!n.read && (
-                        <div className="w-2 h-2 rounded-full bg-[#009688] flex-shrink-0 mt-1.5" />
+                        <div className="w-2 h-2 rounded-full bg-court flex-shrink-0 mt-1.5" />
                       )}
                     </button>
                   ))}

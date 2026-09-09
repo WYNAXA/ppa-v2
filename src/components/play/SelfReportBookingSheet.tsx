@@ -154,7 +154,7 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
                   )}
                   <button
                     onClick={() => setManualMode(true)}
-                    className="text-[12px] text-[#009688] font-semibold mt-2"
+                    className="text-[12px] text-court font-semibold mt-2"
                   >
                     Can't find it? Enter manually
                   </button>
@@ -240,7 +240,7 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
               <button
                 onClick={handleSubmit}
                 disabled={!canSubmit || submitting}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {submitting ? 'Saving\u2026' : 'Confirm booking'}
               </button>

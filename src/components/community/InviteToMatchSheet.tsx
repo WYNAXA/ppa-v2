@@ -95,7 +95,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
             <div className="px-5 pb-6 overflow-y-auto" style={{ maxHeight: '60vh', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
               {isLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
                 </div>
               ) : matches.length === 0 ? (
                 <div className="text-center py-8">
@@ -124,7 +124,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                         className="w-full flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
                       >
                         <div className="h-9 w-9 rounded-full bg-teal-50 flex items-center justify-center flex-shrink-0">
-                          <Calendar className="h-4 w-4 text-[#009688]" />
+                          <Calendar className="h-4 w-4 text-court" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-semibold text-gray-800">{dateStr}{timeStr && ` · ${timeStr}`}</p>

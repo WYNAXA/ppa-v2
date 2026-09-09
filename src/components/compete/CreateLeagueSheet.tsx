@@ -90,7 +90,7 @@ function FormatInfoModal({ format, onClose }: { format: Format; onClose: () => v
         </div>
         <button
           onClick={onClose}
-          className="mt-5 w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white"
+          className="mt-5 w-full rounded-xl bg-court py-3 text-[14px] font-bold text-white"
         >
           {t('create_league.got_it')}
         </button>
@@ -107,7 +107,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <motion.div
           key={i}
-          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? '#009688' : '#e5e7eb' }}
+          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? 'var(--color-court)' : '#e5e7eb' }}
           transition={{ duration: 0.25 }}
           className="h-1.5 rounded-full"
         />
@@ -131,7 +131,7 @@ function StepPreset({ onSelect }: { onSelect: (mode: PresetMode) => void }) {
           className="w-full flex items-center gap-4 rounded-2xl border-2 border-teal-200 bg-teal-50/50 p-4 text-left transition-all hover:border-teal-400"
         >
           <div className="h-11 w-11 rounded-xl bg-teal-100 flex items-center justify-center shrink-0">
-            <Trophy className="h-5 w-5 text-[#009688]" />
+            <Trophy className="h-5 w-5 text-court" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -183,21 +183,21 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               onClick={() => setForm({ ...form, leagueType: type })}
               className={cn(
                 'w-full flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all',
-                selected ? 'border-[#009688] bg-teal-50/50' : 'border-gray-100 bg-white hover:border-gray-200'
+                selected ? 'border-court bg-teal-50/50' : 'border-gray-100 bg-white hover:border-gray-200'
               )}
             >
               <div className={cn(
                 'h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0',
                 selected ? 'bg-teal-100' : 'bg-gray-100'
               )}>
-                <Icon className={cn('h-5 w-5', selected ? 'text-[#009688]' : 'text-gray-400')} />
+                <Icon className={cn('h-5 w-5', selected ? 'text-court' : 'text-gray-400')} />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900">{t(`create_league.type_${type}_label`)}</p>
                 <p className="text-[13px] text-gray-500 mt-0.5">{t(`create_league.type_${type}_desc`)}</p>
               </div>
               {selected && (
-                <div className="h-5 w-5 rounded-full bg-[#009688] flex items-center justify-center flex-shrink-0">
+                <div className="h-5 w-5 rounded-full bg-court flex items-center justify-center flex-shrink-0">
                   <Check className="h-3 w-3 text-white" />
                 </div>
               )}
@@ -352,14 +352,14 @@ function Step2({
                   onClick={() => setForm({ ...form, scoringFormat: id })}
                   className={cn(
                     'w-full flex items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-all',
-                    form.scoringFormat === id ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 bg-white'
+                    form.scoringFormat === id ? 'border-court bg-teal-50/40' : 'border-gray-100 bg-white'
                   )}
                 >
                   <div className={cn(
                     'h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
-                    form.scoringFormat === id ? 'border-[#009688]' : 'border-gray-300'
+                    form.scoringFormat === id ? 'border-court' : 'border-gray-300'
                   )}>
-                    {form.scoringFormat === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
+                    {form.scoringFormat === id && <div className="h-2 w-2 rounded-full bg-court" />}
                   </div>
                   <div>
                     <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.scoring_${id}_label`)}</p>
@@ -446,14 +446,14 @@ function Step3({ form, setForm, isPpl }: { form: FormState; setForm: (f: FormSta
                 onClick={() => setForm({ ...form, visibility: id })}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all',
-                  form.visibility === id ? 'border-[#009688] bg-teal-50/50' : 'border-gray-100 bg-white'
+                  form.visibility === id ? 'border-court bg-teal-50/50' : 'border-gray-100 bg-white'
                 )}
               >
                 <div className={cn(
                   'h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
-                  form.visibility === id ? 'border-[#009688]' : 'border-gray-300'
+                  form.visibility === id ? 'border-court' : 'border-gray-300'
                 )}>
-                  {form.visibility === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
+                  {form.visibility === id && <div className="h-2 w-2 rounded-full bg-court" />}
                 </div>
                 <div>
                   <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.visibility_${id}_label`)}</p>
@@ -474,14 +474,14 @@ function Step3({ form, setForm, isPpl }: { form: FormState; setForm: (f: FormSta
                 onClick={() => setForm({ ...form, joinMode: id })}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all',
-                  form.joinMode === id ? 'border-[#009688] bg-teal-50/50' : 'border-gray-100 bg-white'
+                  form.joinMode === id ? 'border-court bg-teal-50/50' : 'border-gray-100 bg-white'
                 )}
               >
                 <div className={cn(
                   'h-4 w-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
-                  form.joinMode === id ? 'border-[#009688]' : 'border-gray-300'
+                  form.joinMode === id ? 'border-court' : 'border-gray-300'
                 )}>
-                  {form.joinMode === id && <div className="h-2 w-2 rounded-full bg-[#009688]" />}
+                  {form.joinMode === id && <div className="h-2 w-2 rounded-full bg-court" />}
                 </div>
                 <div>
                   <p className="text-[13px] font-semibold text-gray-900">{t(`create_league.join_mode_${id}_label`)}</p>
@@ -798,7 +798,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   onClick={() => setStep(step + 1)}
                   disabled={!canNext()}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-40"
-                  style={{ background: '#009688' }}
+                  style={{ background: 'var(--color-court)' }}
                 >
                   {t('create_league.continue')} <ChevronRight className="h-5 w-5" />
                 </button>
@@ -807,7 +807,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
                   onClick={() => createMutation.mutate()}
                   disabled={createMutation.isPending}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-60"
-                  style={{ background: '#009688' }}
+                  style={{ background: 'var(--color-court)' }}
                 >
                   {createMutation.isPending ? t('create_league.creating') : t('create_league.create_league_btn')}
                 </button>

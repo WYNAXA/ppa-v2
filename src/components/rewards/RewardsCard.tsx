@@ -35,7 +35,7 @@ function StampDot({ filled }: { filled: boolean }) {
       className={cn(
         'h-8 w-8 rounded-full flex items-center justify-center border-2 transition-colors',
         filled
-          ? 'bg-[#009688] border-[#009688]'
+          ? 'bg-court border-court'
           : 'bg-gray-100 border-gray-200'
       )}
     >

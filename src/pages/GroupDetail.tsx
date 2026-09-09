@@ -685,7 +685,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
     <div>
       <button
         onClick={onCreateMatch}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         {t('group_detail.create_group_match')}
@@ -719,7 +719,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
               key={key}
               onClick={() => setWeekFilter(key)}
               className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-                weekFilter === key ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-500 bg-white'
+                weekFilter === key ? 'bg-court border-court text-white' : 'border-gray-200 text-gray-500 bg-white'
               }`}
             >
               {label}
@@ -750,7 +750,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
                 key={f.id}
                 onClick={() => setPastFilter(f.id)}
                 className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-                  pastFilter === f.id ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-500 bg-white'
+                  pastFilter === f.id ? 'bg-court border-court text-white' : 'border-gray-200 text-gray-500 bg-white'
                 }`}
               >
                 {f.label}
@@ -816,7 +816,7 @@ function PollsTab({ polls, isLoading, groupId }: {
     <div>
       <button
         onClick={() => navigate(`/play/availability/create?group_id=${groupId}`)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         {t('group_detail.create_poll')}
@@ -898,7 +898,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
       {isAdmin && (
         <button
           onClick={() => setShowCreate(true)}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
         >
           <Plus className="h-4 w-4" />
           {t('group_detail.create_event')}
@@ -962,7 +962,7 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
     <div>
       <button
         onClick={() => navigate(`/compete/leagues/create?group_id=${groupId}`)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         {t('group_detail.create_league')}
@@ -1210,7 +1210,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 onClick={() => setAdminSection(s)}
                 className={`text-[11px] font-semibold py-2 rounded-xl capitalize transition-colors ${
                   adminSection === s
-                    ? 'bg-[#009688] text-white'
+                    ? 'bg-court text-white'
                     : 'bg-gray-100 text-gray-500'
                 }`}
               >
@@ -1270,7 +1270,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           </div>
                           <button
                             onClick={() => approveMember(pm.user_id)}
-                            className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white"
+                            className="rounded-lg bg-court px-3 py-1.5 text-[11px] font-bold text-white"
                           >
                             {t('group_detail.approve')}
                           </button>
@@ -1345,12 +1345,12 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 onChange={(e) => setAnnouncement(e.target.value)}
                 placeholder={t('group_detail.announcement_placeholder')}
                 rows={4}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court resize-none"
               />
               <button
                 onClick={sendAnnouncement}
                 disabled={sending || !announcement.trim()}
-                className="w-full rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-xl bg-court py-3 text-[13px] font-bold text-white disabled:opacity-40"
               >
                 {sent ? t('group_detail.sent_to_n_members', { count: sentCount }) : sending ? t('group_detail.sending') : t('group_detail.send_to_n_members', { count: approvedMembers.length })}
               </button>
@@ -1379,7 +1379,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
                 />
               </div>
 
@@ -1390,7 +1390,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
                   placeholder={t('group_detail.description_placeholder')}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court resize-none"
                 />
               </div>
 
@@ -1400,7 +1400,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder={t('group_detail.city_placeholder')}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
                 />
               </div>
 
@@ -1432,7 +1432,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                     <button
                       type="button"
                       onClick={() => setAllowJoinRequests(v => !v)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowJoinRequests ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowJoinRequests ? 'bg-court' : 'bg-gray-200'}`}
                     >
                       <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowJoinRequests ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
@@ -1443,7 +1443,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                       <button
                         type="button"
                         onClick={() => setAutoApprove(v => !v)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoApprove ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoApprove ? 'bg-court' : 'bg-gray-200'}`}
                       >
                         <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoApprove ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
@@ -1460,7 +1460,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   <button
                     type="button"
                     onClick={() => setAllowRingers(v => !v)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowRingers ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowRingers ? 'bg-court' : 'bg-gray-200'}`}
                   >
                     <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowRingers ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
@@ -1476,7 +1476,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           onClick={() => setRingerApproval(opt)}
                           className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${
                             ringerApproval === opt
-                              ? 'bg-[#009688] text-white border-[#009688]'
+                              ? 'bg-court text-white border-court'
                               : 'bg-white text-gray-600 border-gray-200'
                           }`}
                         >
@@ -1497,7 +1497,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                     <button
                       type="button"
                       onClick={() => setAutoMatchEnabled(v => !v)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoMatchEnabled ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoMatchEnabled ? 'bg-court' : 'bg-gray-200'}`}
                     >
                       <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoMatchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
@@ -1517,7 +1517,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   onChange={(e) => setMaxMembers(e.target.value)}
                   placeholder={t('group_detail.max_members_placeholder')}
                   min="1"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
                 />
               </div>
 
@@ -1528,14 +1528,14 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   onChange={(e) => setRules(e.target.value)}
                   rows={3}
                   placeholder={t('group_detail.group_rules_placeholder')}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court resize-none"
                 />
               </div>
 
               <button
                 onClick={saveSettings}
                 disabled={saving}
-                className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                className="w-full rounded-xl bg-court py-3 text-[14px] font-bold text-white disabled:opacity-60"
               >
                 {saved ? t('group_detail.saved') : saving ? t('group_detail.saving') : t('group_detail.save_changes')}
               </button>
@@ -1860,7 +1860,7 @@ export function GroupDetailPage() {
   if (loadingGroup) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -1939,7 +1939,7 @@ export function GroupDetailPage() {
             <button
               onClick={() => acceptInviteMutation.mutate()}
               disabled={acceptInviteMutation.isPending || declineInviteMutation.isPending}
-              className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
+              className="flex-1 rounded-xl bg-court py-2 text-[13px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
             >
               {acceptInviteMutation.isPending ? t('group_detail.accepting') : t('group_detail.accept_invite')}
             </button>
@@ -1970,7 +1970,7 @@ export function GroupDetailPage() {
               <PlayerAvatar name={first.name} avatarUrl={first.avatar_url} size="sm" />
               <p className="text-[13px] font-semibold text-gray-700 flex-1 min-w-0 truncate">{first.name}</p>
               <button onClick={() => approveBannerMutation.mutate(first)} disabled={busy}
-                className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
+                className="rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
                 {t('group_detail.approve')}
               </button>
               <button onClick={() => declineBannerMutation.mutate(first)} disabled={busy}
@@ -2026,14 +2026,14 @@ export function GroupDetailPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative pb-3 text-[13px] font-semibold flex-shrink-0 transition-colors ${
-                  active ? 'text-[#009688]' : 'text-gray-400'
+                  active ? 'text-court' : 'text-gray-400'
                 }`}
               >
                 {tab.label}
                 {active && (
                   <motion.div
                     layoutId="tab-underline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#009688] rounded-full"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-court rounded-full"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}

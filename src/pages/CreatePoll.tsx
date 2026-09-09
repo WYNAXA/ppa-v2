@@ -201,7 +201,7 @@ export function CreatePollPage() {
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. This week's game"
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688] focus:ring-2 focus:ring-[#009688]/20"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
           />
         </div>
 
@@ -216,7 +216,7 @@ export function CreatePollPage() {
               <p className="text-[12px] text-gray-400 mb-3">Go to Community to join or create a group first.</p>
               <button
                 onClick={() => navigate('/community')}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
+                className="inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 Go to Community
               </button>
@@ -230,7 +230,7 @@ export function CreatePollPage() {
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
               style={{ fontSize: '16px' }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688] bg-white"
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-court bg-white"
             >
               <option value="">Select a group…</option>
               {groups.map((g) => (
@@ -251,7 +251,7 @@ export function CreatePollPage() {
                 className={cn(
                   'flex-1 rounded-xl border-2 py-2.5 text-[13px] font-semibold capitalize transition-all',
                   pollType === type
-                    ? 'border-[#009688] bg-[#009688] text-white'
+                    ? 'border-court bg-court text-white'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300'
                 )}
               >
@@ -272,7 +272,7 @@ export function CreatePollPage() {
             value={weekStartDate}
             onChange={(e) => setWeekStartDate(e.target.value)}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688] bg-white"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-court bg-white"
           />
           <p className="text-[11px] text-gray-400 mt-1">Select the Monday of the target week</p>
         </div>
@@ -286,7 +286,7 @@ export function CreatePollPage() {
               className={cn(
                 "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
                 pollMode === 'ranges'
-                  ? "bg-[#009688] text-white border-[#009688]"
+                  ? "bg-court text-white border-court"
                   : "bg-white text-gray-600 border-gray-200"
               )}
             >
@@ -297,7 +297,7 @@ export function CreatePollPage() {
               className={cn(
                 "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
                 pollMode === 'slots'
-                  ? "bg-[#009688] text-white border-[#009688]"
+                  ? "bg-court text-white border-court"
                   : "bg-white text-gray-600 border-gray-200"
               )}
             >
@@ -331,7 +331,7 @@ export function CreatePollPage() {
                     className={cn(
                       "rounded-xl px-3 py-2 text-[12px] font-semibold border transition-colors",
                       isSelected
-                        ? "bg-[#009688] text-white border-[#009688]"
+                        ? "bg-court text-white border-court"
                         : "bg-white text-gray-600 border-gray-200"
                     )}
                   >
@@ -376,7 +376,7 @@ export function CreatePollPage() {
             {slots.length < 7 && (
               <button
                 onClick={addSlot}
-                className="flex items-center gap-1 text-[12px] font-semibold text-[#009688]"
+                className="flex items-center gap-1 text-[12px] font-semibold text-court"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add slot
@@ -422,7 +422,7 @@ export function CreatePollPage() {
                     <label className="block text-[11px] text-gray-500 mb-1">Day</label>
                     <select value={slot.day} onChange={(e) => updateSlot(slot.id, 'day', e.target.value)}
                       style={{ fontSize: '16px' }}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-court"
                     >
                       {DAYS.map((d) => (<option key={d} value={d}>{d}</option>))}
                     </select>
@@ -433,7 +433,7 @@ export function CreatePollPage() {
                       <input type="time" value={slot.start_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'start_time', e.target.value)}
                         style={{ fontSize: '16px' }}
-                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-court"
                       />
                     </div>
                     <div>
@@ -441,7 +441,7 @@ export function CreatePollPage() {
                       <input type="time" value={slot.end_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'end_time', e.target.value)}
                         style={{ fontSize: '16px' }}
-                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
+                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-court"
                       />
                     </div>
                   </div>
@@ -474,12 +474,12 @@ export function CreatePollPage() {
               onKeyDown={(e) => e.key === 'Enter' && addAdditionalOption()}
               placeholder="Add custom option…"
               style={{ fontSize: '16px' }}
-              className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-[#009688]"
+              className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-court"
             />
             <button
               onClick={addAdditionalOption}
               disabled={!customOption.trim()}
-              className="rounded-xl bg-[#009688] px-3 py-2 text-white disabled:opacity-40"
+              className="rounded-xl bg-court px-3 py-2 text-white disabled:opacity-40"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -495,7 +495,7 @@ export function CreatePollPage() {
             min={format(new Date(), "yyyy-MM-dd'T'HH:mm", { locale: getDateLocale() })}
             onChange={(e) => setClosesAt(e.target.value)}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688]"
+            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-court"
           />
         </div>
 
@@ -510,7 +510,7 @@ export function CreatePollPage() {
                 className={cn(
                   'flex-1 rounded-xl border-2 py-2.5 text-[13px] font-semibold capitalize transition-all',
                   recurrence === r
-                    ? 'border-[#009688] bg-[#009688] text-white'
+                    ? 'border-court bg-court text-white'
                     : 'border-gray-200 text-gray-600 hover:border-gray-300'
                 )}
               >
@@ -534,7 +534,7 @@ export function CreatePollPage() {
         <button
           onClick={() => createMutation.mutate()}
           disabled={!canSubmit || createMutation.isPending || groupsLoading}
-          className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+          className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
         >
           {createMutation.isPending ? 'Creating…' : 'Create & Add My Availability →'}
         </button>

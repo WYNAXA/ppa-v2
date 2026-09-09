@@ -241,7 +241,7 @@ export function AuthPage() {
                   }
                   setMessage({ type: 'success', text: 'Password reset link sent \u2014 check your email.' })
                 }}
-                className="mt-2 text-[13px] text-[#009688] font-medium hover:underline"
+                className="mt-2 text-[13px] text-court font-medium hover:underline"
               >
                 Forgot password?
               </button>
@@ -257,7 +257,7 @@ export function AuthPage() {
               <button
                 type="button"
                 onClick={() => { setMode('signin'); setMessage(null) }}
-                className="text-[13px] font-semibold text-[#009688] hover:underline"
+                className="text-[13px] font-semibold text-court hover:underline"
               >
                 {t('auth.sign_in')}
               </button>
@@ -301,7 +301,7 @@ export function AuthPage() {
           type="submit"
           disabled={submitting}
           className="w-full rounded-xl py-3 text-sm font-semibold text-white transition disabled:opacity-60"
-          style={{ background: '#009688' }}
+          style={{ background: 'var(--color-court)' }}
         >
           {submitting
             ? 'Loading\u2026'

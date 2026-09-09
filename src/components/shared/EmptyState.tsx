@@ -21,7 +21,7 @@ export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: Emp
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="mt-5 rounded-xl bg-[#009688] px-5 py-2.5 text-[13px] font-bold text-white"
+          className="mt-5 rounded-xl bg-court px-5 py-2.5 text-[13px] font-bold text-white"
         >
           {actionLabel}
         </button>

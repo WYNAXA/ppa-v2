@@ -34,7 +34,7 @@ const TYPE_META: Record<SearchResult['type'], {
 }> = {
   player: {
     icon:  <User className="h-4 w-4" />,
-    color: 'bg-teal-50 text-[#009688]',
+    color: 'bg-teal-50 text-court',
     label: 'Players',
     navFn: (id) => `/players/${id}`,
   },
@@ -193,7 +193,7 @@ export function SearchPage() {
         </div>
         <button
           onClick={() => goBack(navigate, '/home')}
-          className="text-[13px] font-semibold text-[#009688]"
+          className="text-[13px] font-semibold text-court"
         >
           Cancel
         </button>
@@ -203,7 +203,7 @@ export function SearchPage() {
       <div className="flex-1 overflow-y-auto">
         {searching && (
           <div className="flex justify-center py-12">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
           </div>
         )}
 

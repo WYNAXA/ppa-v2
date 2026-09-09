@@ -68,7 +68,7 @@ export function JoinMatchPage() {
         <GetTheAppCard className="mt-6 w-full max-w-xs" />
         <button
           onClick={() => navigate(`/matches/${claimedMatchId}`, { replace: true })}
-          className="mt-4 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+          className="mt-4 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
         >
           Go to the match
         </button>
@@ -109,7 +109,7 @@ export function JoinMatchPage() {
           {preview.status === 'accepted' ? (
             <button
               onClick={() => preview.match_id && navigate(`/matches/${preview.match_id}`)}
-              className="mt-6 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+              className="mt-6 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
             >
               View match
             </button>
@@ -118,7 +118,7 @@ export function JoinMatchPage() {
               <button
                 onClick={claim}
                 disabled={claiming}
-                className="mt-6 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+                className="mt-6 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
                 {claiming ? 'Joining…' : 'Join this match'}
               </button>
@@ -129,7 +129,7 @@ export function JoinMatchPage() {
               <p className="mt-5 text-[13px] text-gray-500">Create your free account to join — it takes a few seconds.</p>
               <button
                 onClick={() => { localStorage.setItem(PENDING_KEY, token); navigate(`/auth?invite=${token}&mode=signup`) }}
-                className="mt-3 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+                className="mt-3 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
               >
                 Sign up / Log in to join
               </button>

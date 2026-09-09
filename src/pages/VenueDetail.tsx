@@ -494,7 +494,7 @@ export function VenueDetailPage() {
               href={venueClaimUrl(venueId)}
               target="_blank"
               rel="noopener noreferrer"
-              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-[#009688] px-6 py-3 text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
+              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-court px-6 py-3 text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
             >
               Claim it now →
             </a>

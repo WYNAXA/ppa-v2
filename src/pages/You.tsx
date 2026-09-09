@@ -488,7 +488,7 @@ function LinkPartnerSheet({
               <button
                 onClick={() => selected && linkMutation.mutate(selected.id)}
                 disabled={!selected || linkMutation.isPending}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {linkMutation.isPending ? t('you.linking') : t('you.link_request_btn')}
               </button>
@@ -649,7 +649,7 @@ function EditProfileSheet({
                       {(profile?.name ?? '?')[0].toUpperCase()}
                     </div>
                   )}
-                  <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-[#009688] border-2 border-white flex items-center justify-center">
+                  <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-court border-2 border-white flex items-center justify-center">
                     <Edit2 className="h-3 w-3 text-white" />
                   </span>
                 </button>
@@ -723,7 +723,7 @@ function EditProfileSheet({
                   <button
                     type="button"
                     onClick={() => setCanDrive((v) => !v)}
-                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', canDrive ? 'bg-[#009688]' : 'bg-gray-200')}
+                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', canDrive ? 'bg-court' : 'bg-gray-200')}
                   >
                     <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition-transform', canDrive ? 'translate-x-6' : 'translate-x-1')} />
                   </button>
@@ -739,7 +739,7 @@ function EditProfileSheet({
                         max={4}
                         value={maxPassengers}
                         onChange={(e) => setMaxPassengers(Number(e.target.value))}
-                        className="w-full accent-[#009688]"
+                        className="w-full accent-court"
                       />
                       <div className="flex justify-between text-[10px] text-gray-300">
                         <span>1</span><span>2</span><span>3</span><span>4</span>
@@ -754,7 +754,7 @@ function EditProfileSheet({
                         max={20}
                         value={travelRadius}
                         onChange={(e) => setTravelRadius(Number(e.target.value))}
-                        className="w-full accent-[#009688]"
+                        className="w-full accent-court"
                       />
                       <div className="flex justify-between text-[10px] text-gray-300">
                         <span>1 mi</span><span>20 mi</span>
@@ -795,7 +795,7 @@ function EditProfileSheet({
               <button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {saveMutation.isPending ? t('you.saving') : t('you.save_changes')}
               </button>
@@ -1164,7 +1164,7 @@ export function YouPage() {
                         queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                         toast.success('Household partner linked!')
                       }}
-                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
+                      className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
                     >
                       {householdPending === req.id ? 'Linking...' : 'Accept'}
                     </button>
@@ -1216,7 +1216,7 @@ export function YouPage() {
               <p className="text-[12px] text-gray-400 mb-4">{t('you.link_partner_sub')}</p>
               <button
                 onClick={() => setShowLinkPartner(true)}
-                className="rounded-xl bg-[#009688] px-5 py-2.5 text-[13px] font-bold text-white"
+                className="rounded-xl bg-court px-5 py-2.5 text-[13px] font-bold text-white"
               >
                 {t('you.link_partner')}
               </button>
@@ -1461,7 +1461,7 @@ export function YouPage() {
                 }}
                 className={cn(
                   'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                  notifEnabled ? 'bg-[#009688]' : 'bg-gray-200'
+                  notifEnabled ? 'bg-court' : 'bg-gray-200'
                 )}
                 aria-label={t('you.toggle_notifications_aria')}
               >
@@ -1501,7 +1501,7 @@ export function YouPage() {
                     className={cn(
                       'flex-shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold border transition-colors',
                       i18n.language === lang.code
-                        ? 'bg-[#009688] text-white border-[#009688]'
+                        ? 'bg-court text-white border-court'
                         : 'bg-white text-gray-600 border-gray-200'
                     )}
                   >
@@ -1536,7 +1536,7 @@ export function YouPage() {
                     }}
                     className={cn(
                       'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                      currentVal ? 'bg-[#009688]' : 'bg-gray-200',
+                      currentVal ? 'bg-court' : 'bg-gray-200',
                       savingPrivacy === key && 'opacity-50'
                     )}
                     aria-label={label}

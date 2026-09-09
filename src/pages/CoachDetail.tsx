@@ -84,7 +84,7 @@ export function CoachDetailPage() {
   const venueNames = [...new Set((sessions as any[]).map((s) => s.venue?.venue_name).filter(Boolean))] as string[]
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-white"><div className="h-7 w-7 rounded-full border-2 border-[#009688] border-t-transparent animate-spin" /></div>
+    return <div className="min-h-screen flex items-center justify-center bg-white"><div className="h-7 w-7 rounded-full border-2 border-court border-t-transparent animate-spin" /></div>
   }
   if (!coach) {
     return (
@@ -104,8 +104,8 @@ export function CoachDetailPage() {
           <PlayerAvatar name={coach.name} avatarUrl={coach.avatar_url} size="lg" />
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <GraduationCap className="h-4 w-4 text-[#009688]" />
-              <span className="text-[11px] font-bold uppercase tracking-wide text-[#009688]">Coach</span>
+              <GraduationCap className="h-4 w-4 text-court" />
+              <span className="text-[11px] font-bold uppercase tracking-wide text-court">Coach</span>
             </div>
             <h1 className="text-[22px] font-bold text-gray-900 leading-tight truncate">{coach.name}</h1>
             {coach.headline && <p className="text-[13px] text-teal-600 font-medium">{coach.headline}</p>}

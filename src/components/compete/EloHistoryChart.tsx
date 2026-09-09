@@ -130,7 +130,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
     return (
       <div className={cn('rounded-2xl bg-gray-50 border border-gray-100 p-6 text-center', compact && 'p-4')}>
         {currentElo != null && (
-          <p className="text-[22px] font-black text-[#009688] mb-1">{currentElo.toLocaleString()} ELO</p>
+          <p className="text-[22px] font-black text-court mb-1">{currentElo.toLocaleString()} ELO</p>
         )}
         <p className="text-[13px] font-semibold text-gray-500">{currentElo != null ? t('compete.current_rating') : t('compete.no_rating_history')}</p>
         <p className="text-[11px] text-gray-400 mt-1">{t('compete.play_to_build_history')}</p>
@@ -150,7 +150,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
             className={cn(
               'rounded-full px-3 py-1 text-[11px] font-semibold transition-colors',
               !rangeEnabled[r] ? 'bg-gray-100 text-gray-300 opacity-50 cursor-default' :
-              range === r ? 'bg-[#009688] text-white' : 'bg-gray-100 text-gray-500'
+              range === r ? 'bg-court text-white' : 'bg-gray-100 text-gray-500'
             )}
           >
             {r === 'all' ? t('compete.time_all') : r.toUpperCase()}
@@ -183,8 +183,8 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
           >
             <defs>
               <linearGradient id="eloGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#009688" stopOpacity={0.2} />
-                <stop offset="95%" stopColor="#009688" stopOpacity={0} />
+                <stop offset="5%" stopColor="var(--color-court)" stopOpacity={0.2} />
+                <stop offset="95%" stopColor="var(--color-court)" stopOpacity={0} />
               </linearGradient>
             </defs>
             <XAxis
@@ -207,11 +207,11 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
             <Area
               type="monotone"
               dataKey="elo"
-              stroke="#009688"
+              stroke="var(--color-court)"
               strokeWidth={2}
               fill="url(#eloGradient)"
-              dot={{ r: 3, fill: '#009688', stroke: '#fff', strokeWidth: 1.5, cursor: 'pointer' }}
-              activeDot={{ r: 6, fill: '#009688', stroke: '#fff', strokeWidth: 2, cursor: 'pointer' }}
+              dot={{ r: 3, fill: 'var(--color-court)', stroke: '#fff', strokeWidth: 1.5, cursor: 'pointer' }}
+              activeDot={{ r: 6, fill: 'var(--color-court)', stroke: '#fff', strokeWidth: 2, cursor: 'pointer' }}
             />
           </AreaChart>
         </ResponsiveContainer>

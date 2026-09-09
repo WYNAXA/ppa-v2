@@ -419,7 +419,7 @@ export function AvailabilityPollPage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -428,7 +428,7 @@ export function AvailabilityPollPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
         <p className="text-[14px] text-gray-500">Poll not found.</p>
-        <button onClick={() => goBack(navigate, '/play')} className="text-[13px] text-[#009688] font-semibold">Go back</button>
+        <button onClick={() => goBack(navigate, '/play')} className="text-[13px] text-court font-semibold">Go back</button>
       </div>
     )
   }
@@ -483,7 +483,7 @@ export function AvailabilityPollPage() {
               exit={{ opacity: 0 }}
               className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-4 flex items-center gap-3"
             >
-              <div className="h-5 w-5 rounded-full border-2 border-[#009688] border-t-transparent animate-spin flex-shrink-0" />
+              <div className="h-5 w-5 rounded-full border-2 border-court border-t-transparent animate-spin flex-shrink-0" />
               <div>
                 <p className="text-[13px] font-bold text-teal-800">Finding your game…</p>
                 <p className="text-[11px] text-teal-600">Checking who else is available</p>
@@ -518,7 +518,7 @@ export function AvailabilityPollPage() {
               className="rounded-2xl bg-teal-50 border border-teal-100 px-4 py-3 space-y-1"
             >
               <div className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4 text-[#009688] flex-shrink-0" />
+                <CheckCircle className="h-4 w-4 text-court flex-shrink-0" />
                 <p className="text-[13px] font-semibold text-teal-800">Availability saved!</p>
               </div>
               <p className="text-[12px] text-teal-600 pl-6">
@@ -682,7 +682,7 @@ export function AvailabilityPollPage() {
                               className={cn(
                                 'flex flex-col items-center px-4 py-2.5 rounded-xl border-2 transition-all active:scale-[0.97]',
                                 isSelected
-                                  ? 'bg-[#009688] border-[#009688] text-white'
+                                  ? 'bg-court border-court text-white'
                                   : 'bg-white border-gray-200 text-gray-700 hover:border-teal-300'
                               )}
                             >
@@ -717,7 +717,7 @@ export function AvailabilityPollPage() {
                                     ...prev,
                                     [slot.id]: { start: e.target.value, end: currentEnd },
                                   }))}
-                                  className="w-full rounded-xl border border-gray-200 px-2 py-2 text-[13px] bg-white outline-none focus:border-[#009688]"
+                                  className="w-full rounded-xl border border-gray-200 px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
                                 >
                                   {startOptions.map((t) => (
                                     <option key={t} value={t}>{t}</option>
@@ -733,7 +733,7 @@ export function AvailabilityPollPage() {
                                     ...prev,
                                     [slot.id]: { start: currentStart, end: e.target.value },
                                   }))}
-                                  className="w-full rounded-xl border border-gray-200 px-2 py-2 text-[13px] bg-white outline-none focus:border-[#009688]"
+                                  className="w-full rounded-xl border border-gray-200 px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
                                 >
                                   {endOptions.map((t) => (
                                     <option key={t} value={t}>{t}</option>
@@ -772,14 +772,14 @@ export function AvailabilityPollPage() {
                         onClick={() => setMaxMatches(opt.value)}
                         className={cn(
                           'w-full flex items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98]',
-                          maxMatches === opt.value ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
+                          maxMatches === opt.value ? 'border-court bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
                         )}
                       >
                         <div className={cn(
                           'mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                          maxMatches === opt.value ? 'border-[#009688]' : 'border-gray-300'
+                          maxMatches === opt.value ? 'border-court' : 'border-gray-300'
                         )}>
-                          {maxMatches === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-[#009688]" />}
+                          {maxMatches === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-court" />}
                         </div>
                         <div>
                           <p className="text-[14px] font-semibold text-gray-900">{opt.title}</p>
@@ -800,14 +800,14 @@ export function AvailabilityPollPage() {
                         onClick={() => setGamesPerWeek(opt.value)}
                         className={cn(
                           'w-full flex items-start gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-all active:scale-[0.98]',
-                          gamesPerWeek === opt.value ? 'border-[#009688] bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
+                          gamesPerWeek === opt.value ? 'border-court bg-teal-50/40' : 'border-gray-100 hover:border-gray-200'
                         )}
                       >
                         <div className={cn(
                           'mt-0.5 h-5 w-5 rounded-full border-2 flex items-center justify-center flex-shrink-0',
-                          gamesPerWeek === opt.value ? 'border-[#009688]' : 'border-gray-300'
+                          gamesPerWeek === opt.value ? 'border-court' : 'border-gray-300'
                         )}>
-                          {gamesPerWeek === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-[#009688]" />}
+                          {gamesPerWeek === opt.value && <div className="h-2.5 w-2.5 rounded-full bg-court" />}
                         </div>
                         <div>
                           <p className="text-[14px] font-semibold text-gray-900">{opt.title}</p>
@@ -831,7 +831,7 @@ export function AvailabilityPollPage() {
                 <select
                   value={preferredDate}
                   onChange={(e) => setPreferredDate(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-3 text-[14px] text-gray-900 bg-white outline-none focus:border-[#009688]"
+                  className="w-full rounded-xl border border-gray-200 px-3 py-3 text-[14px] text-gray-900 bg-white outline-none focus:border-court"
                   style={{ fontSize: '16px' }}
                 >
                   <option value="">No preference</option>
@@ -878,7 +878,7 @@ export function AvailabilityPollPage() {
                                 toggleAdditional('I can drive')
                                 if (isDriving && isOffering) toggleAdditional('I can offer a lift')
                               }}
-                              className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                              className="h-5 w-5 rounded border-gray-300 text-court focus:ring-court"
                             />
                             <div>
                               <span className="text-[14px] font-medium text-gray-900">I can drive</span>
@@ -891,7 +891,7 @@ export function AvailabilityPollPage() {
                                 type="checkbox"
                                 checked={isOffering}
                                 onChange={() => toggleAdditional('I can offer a lift')}
-                                className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                                className="h-5 w-5 rounded border-gray-300 text-court focus:ring-court"
                               />
                               <div>
                                 <span className="text-[14px] font-medium text-gray-900">I can offer a lift</span>
@@ -911,7 +911,7 @@ export function AvailabilityPollPage() {
                           type="checkbox"
                           checked={additionalResponses[opt] ?? false}
                           onChange={() => toggleAdditional(opt)}
-                          className="h-5 w-5 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                          className="h-5 w-5 rounded border-gray-300 text-court focus:ring-court"
                         />
                         <span className="text-[14px] font-medium text-gray-900">{opt}</span>
                       </label>
@@ -947,7 +947,7 @@ export function AvailabilityPollPage() {
             <button
               onClick={handleSubmit}
               disabled={submitMutation.isPending || (!cantDoWeek && !hasAvailability)}
-              className="flex-1 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+              className="flex-1 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
             >
               {submitMutation.isPending
                 ? 'Saving…'

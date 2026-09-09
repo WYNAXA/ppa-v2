@@ -115,7 +115,7 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                     <button
                       key={preset.label}
                       onClick={() => addRange(date, { start: preset.start, end: preset.end })}
-                      className="text-[11px] font-semibold text-[#009688] bg-teal-50 border border-teal-100 rounded-lg px-2.5 py-1.5 hover:bg-teal-100 transition-colors"
+                      className="text-[11px] font-semibold text-court bg-teal-50 border border-teal-100 rounded-lg px-2.5 py-1.5 hover:bg-teal-100 transition-colors"
                     >
                       {preset.label}
                     </button>
@@ -170,7 +170,7 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                 {/* Add another range */}
                 <button
                   onClick={() => addRange(date, { start: '19:00', end: '21:00' })}
-                  className="flex items-center gap-1.5 text-[12px] text-[#009688] font-semibold hover:text-[#00796B]"
+                  className="flex items-center gap-1.5 text-[12px] text-court font-semibold hover:text-[#00796B]"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add another time range

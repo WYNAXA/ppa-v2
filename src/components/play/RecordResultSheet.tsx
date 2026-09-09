@@ -335,7 +335,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                 {[1, 2, 3].map((s) => (
                   <motion.div
                     key={s}
-                    className="h-1.5 rounded-full bg-[#009688]"
+                    className="h-1.5 rounded-full bg-court"
                     animate={{ width: s === step ? 20 : 6, opacity: s <= step ? 1 : 0.25 }}
                     transition={{ duration: 0.2 }}
                   />
@@ -405,7 +405,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     <button
                       onClick={() => setStep(2)}
                       disabled={!canAdvanceStep1}
-                      className="mt-5 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                      className="mt-5 w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
                       {t('record_result.next_scores')}
                     </button>
@@ -605,7 +605,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     <button
                       onClick={() => setStep(3)}
                       disabled={!canAdvanceStep2}
-                      className="mt-2 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                      className="mt-2 w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
                       {t('record_result.next_result')}
                     </button>
@@ -680,7 +680,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     <button
                       onClick={() => submitMutation.mutate()}
                       disabled={!resultType || submitMutation.isPending}
-                      className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                      className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
                       {submitMutation.isPending ? t('record_result.submitting') : t('record_result.submit')}
                     </button>
@@ -697,7 +697,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     className="flex flex-col items-center py-6"
                   >
                     <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center mb-3">
-                      <Trophy className="h-7 w-7 text-[#009688]" />
+                      <Trophy className="h-7 w-7 text-court" />
                     </div>
                     <h3 className="text-[18px] font-bold text-gray-900 mb-1">{t('record_result.result_recorded')}</h3>
 
@@ -759,7 +759,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                           }
                         }}
                         disabled={creatingNext}
-                        className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white mt-3 disabled:opacity-50"
+                        className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white mt-3 disabled:opacity-50"
                       >
                         <Play className="h-4 w-4" />
                         {creatingNext ? t('record_result.creating') : t('record_result.play_another')}

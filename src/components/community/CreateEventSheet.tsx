@@ -171,7 +171,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={!canSubmit || createMutation.isPending}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {createMutation.isPending ? 'Creating…' : 'Create Event'}
               </button>

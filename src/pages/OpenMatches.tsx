@@ -87,7 +87,7 @@ export function OpenMatchesPage() {
             onClick={() => setFilterMyElo(v => !v)}
             className={cn(
               'rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors mb-4',
-              filterMyElo ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'
+              filterMyElo ? 'bg-court text-white border-court' : 'bg-white text-gray-600 border-gray-200'
             )}
           >
             {t('open_matches.filter_match_my_elo')} ({userElo})

@@ -26,7 +26,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as 
 const STRIPE_APPEARANCE = {
   theme: 'stripe' as const,
   variables: {
-    colorPrimary: '#009688',
+    colorPrimary: 'var(--color-court)',
     borderRadius: '12px',
     fontFamily: 'system-ui, sans-serif',
   },
@@ -171,16 +171,16 @@ function StepIndicator({ step }: { step: BookingStep }) {
                 className={cn(
                   'h-2.5 w-2.5 rounded-full transition-all duration-300',
                   isDone
-                    ? 'bg-[#009688]'
+                    ? 'bg-court'
                     : isActive
-                      ? 'bg-[#009688] ring-2 ring-teal-200'
+                      ? 'bg-court ring-2 ring-teal-200'
                       : 'bg-gray-200',
                 )}
               />
               <span
                 className={cn(
                   'text-[9px] font-medium tracking-wide',
-                  isActive ? 'text-[#009688]' : isDone ? 'text-teal-500' : 'text-gray-300',
+                  isActive ? 'text-court' : isDone ? 'text-teal-500' : 'text-gray-300',
                 )}
               >
                 {s.label}
@@ -190,7 +190,7 @@ function StepIndicator({ step }: { step: BookingStep }) {
               <div
                 className={cn(
                   'h-px w-6 mb-3 transition-colors duration-300',
-                  i < stepIndex ? 'bg-[#009688]' : 'bg-gray-200',
+                  i < stepIndex ? 'bg-court' : 'bg-gray-200',
                 )}
               />
             )}
@@ -297,7 +297,7 @@ function PaymentForm({
       <button
         type="submit"
         disabled={loading || !stripe || !elements}
-        className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -1267,7 +1267,7 @@ export function BookCourtPage() {
                       </div>
                       {nearbyLoading && nearbyVenues.length === 0 ? (
                         <div className="flex items-center justify-center py-10">
-                          <svg className="h-5 w-5 animate-spin text-[#009688]" viewBox="0 0 24 24" fill="none">
+                          <svg className="h-5 w-5 animate-spin text-court" viewBox="0 0 24 24" fill="none">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                           </svg>
@@ -1285,7 +1285,7 @@ export function BookCourtPage() {
                   ) : (
                     <div className="flex flex-col items-center gap-3 py-10 text-center">
                       <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center">
-                        <MapPin className="h-7 w-7 text-[#009688]" />
+                        <MapPin className="h-7 w-7 text-court" />
                       </div>
                       <p className="text-[14px] font-semibold text-gray-700">Find your court</p>
                       <p className="text-[13px] text-gray-400 max-w-xs">
@@ -1294,7 +1294,7 @@ export function BookCourtPage() {
                       <button
                         onClick={requestLocation}
                         disabled={locating}
-                        className="mt-1 inline-flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
+                        className="mt-1 inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
                       >
                         {locating ? (
                           <>
@@ -1364,7 +1364,7 @@ export function BookCourtPage() {
                       className={cn(
                         'flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors',
                         selectedDuration === dur
-                          ? 'bg-[#009688] text-white border-[#009688]'
+                          ? 'bg-court text-white border-court'
                           : 'bg-white text-gray-600 border-gray-200 hover:border-teal-300',
                       )}
                     >
@@ -1397,7 +1397,7 @@ export function BookCourtPage() {
                           onClick={() => setSelectedDate(date)}
                           className={cn(
                             'h-10 w-full rounded-xl text-[13px] font-semibold transition-all relative',
-                            isSelected ? 'bg-[#009688] text-white' : 'bg-white text-gray-800 hover:bg-gray-50',
+                            isSelected ? 'bg-court text-white' : 'bg-white text-gray-800 hover:bg-gray-50',
                             isPpaExclusive && !isSelected && 'bg-teal-50/60',
                           )}
                         >
@@ -1412,7 +1412,7 @@ export function BookCourtPage() {
                   })()}
                 </div>
                 {selectedDate && (
-                  <p className="text-[12px] text-[#009688] font-semibold mt-2">
+                  <p className="text-[12px] text-court font-semibold mt-2">
                     {format(new Date(selectedDate + 'T12:00:00'), 'EEEE d MMMM yyyy', { locale })}
                     {dateRange.find(d => d.date === selectedDate)?.isPpaExclusive && ' · PPA exclusive'}
                   </p>
@@ -1429,7 +1429,7 @@ export function BookCourtPage() {
                   {loadingSlots && (
                     <div className="flex items-center justify-center py-10 gap-2">
                       <svg
-                        className="h-5 w-5 animate-spin text-[#009688]"
+                        className="h-5 w-5 animate-spin text-court"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -1480,7 +1480,7 @@ export function BookCourtPage() {
                             onClick={() => setTimePeriod(p.id)}
                             className={cn(
                               'flex-shrink-0 flex flex-col items-center rounded-xl border-2 px-4 py-2 transition-all min-w-[80px]',
-                              timePeriod === p.id ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-100 bg-white text-gray-600',
+                              timePeriod === p.id ? 'border-court bg-teal-50 text-court' : 'border-gray-100 bg-white text-gray-600',
                             )}
                           >
                             <span className="text-[18px]">{p.emoji}</span>
@@ -1528,7 +1528,7 @@ export function BookCourtPage() {
                               'rounded-2xl border p-3 text-left transition-all active:scale-[0.98]',
                               slot.available
                                 ? isSelected
-                                  ? 'border-[#009688] bg-teal-50 shadow-sm'
+                                  ? 'border-court bg-teal-50 shadow-sm'
                                   : 'border-gray-200 bg-white hover:border-teal-300'
                                 : onWaitlist
                                   ? 'border-teal-200 bg-teal-50/50'
@@ -1539,13 +1539,13 @@ export function BookCourtPage() {
                               <p
                                 className={cn(
                                   'text-[17px] font-bold',
-                                  isSelected ? 'text-[#009688]' : slot.available ? 'text-gray-800' : 'text-gray-400',
+                                  isSelected ? 'text-court' : slot.available ? 'text-gray-800' : 'text-gray-400',
                                 )}
                               >
                                 {formatSlotTime(slot.start_time)}
                               </p>
                               {isSelected && (
-                                <CheckCircle className="h-4 w-4 text-[#009688] flex-shrink-0" />
+                                <CheckCircle className="h-4 w-4 text-court flex-shrink-0" />
                               )}
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
@@ -1559,11 +1559,11 @@ export function BookCourtPage() {
                               )}
                             </div>
                             {slot.available ? (
-                              <p className="text-[12px] font-semibold text-[#009688] mt-1">
+                              <p className="text-[12px] font-semibold text-court mt-1">
                                 {formatPence(priceP)} · {formatPence(pricePerPlayer)}/player
                               </p>
                             ) : onWaitlist ? (
-                              <p className="text-[10px] font-semibold text-[#009688] mt-1 flex items-center gap-1">
+                              <p className="text-[10px] font-semibold text-court mt-1 flex items-center gap-1">
                                 <CheckCircle className="h-3 w-3" /> On the waitlist · tap to leave
                               </p>
                             ) : (
@@ -1604,12 +1604,12 @@ export function BookCourtPage() {
                             className={cn(
                               'flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.98]',
                               isSelected
-                                ? 'border-[#009688] bg-teal-50 text-[#009688]'
+                                ? 'border-court bg-teal-50 text-court'
                                 : 'border-gray-200 bg-white text-gray-600 hover:border-teal-300',
                             )}
                           >
                             {c.name}
-                            {isSelected && <CheckCircle className="h-3.5 w-3.5 text-[#009688]" />}
+                            {isSelected && <CheckCircle className="h-3.5 w-3.5 text-court" />}
                           </button>
                         )
                       })}
@@ -1635,7 +1635,7 @@ export function BookCourtPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => setStep('players')}
-                    className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+                    className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
                   >
                     Continue with {formatSlotTime(selectedSlot.start_time)}
                     {selectedSlot.courts?.find(c => c.id === selectedCourtId)?.name
@@ -1789,7 +1789,7 @@ export function BookCourtPage() {
                   }
                 }}
                 disabled={!pricingAvailable}
-                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {matchId ? 'Continue to payment' : 'Next'}
                 <ChevronRight className="h-4 w-4" />
@@ -1841,7 +1841,7 @@ export function BookCourtPage() {
                       className={cn(
                         'flex-1 rounded-xl py-3 text-[13px] font-semibold border-2 transition-colors',
                         matchType === opt.value
-                          ? 'bg-teal-50 border-[#009688] text-[#009688]'
+                          ? 'bg-teal-50 border-court text-court'
                           : 'border-gray-100 text-gray-500'
                       )}
                     >
@@ -1858,7 +1858,7 @@ export function BookCourtPage() {
               <button
                 onClick={() => setStep('payment')}
                 disabled={!pricingAvailable}
-                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 Continue to payment
                 <ChevronRight className="h-4 w-4" />
@@ -1889,7 +1889,7 @@ export function BookCourtPage() {
                         type="checkbox"
                         checked
                         disabled
-                        className="w-4 h-4 rounded border-gray-300 text-[#009688] disabled:opacity-70"
+                        className="w-4 h-4 rounded border-gray-300 text-court disabled:opacity-70"
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-[14px] font-semibold text-gray-900 truncate">
@@ -1912,7 +1912,7 @@ export function BookCourtPage() {
                           type="checkbox"
                           checked={coveredIds.has(p.id)}
                           onChange={() => toggleCoveredPlayer(p.id)}
-                          className="w-4 h-4 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                          className="w-4 h-4 rounded border-gray-300 text-court focus:ring-court"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-[14px] font-semibold text-gray-900 truncate">
@@ -1931,7 +1931,7 @@ export function BookCourtPage() {
                     <p className="text-[13px] font-semibold text-gray-700">
                       Paying {coveredCount} {coveredCount === 1 ? 'share' : 'shares'}
                     </p>
-                    <p className="text-[20px] font-black text-[#009688]">{formatPence(depositPence)}</p>
+                    <p className="text-[20px] font-black text-court">{formatPence(depositPence)}</p>
                   </div>
                 </div>
               )}
@@ -1940,7 +1940,7 @@ export function BookCourtPage() {
               {!clientSecret && !fetchingPayment && !paymentError && (
                 <button
                   onClick={initPayment}
-                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+                  className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
                 >
                   <CreditCard className="h-4 w-4" />
                   Proceed to pay {formatPence(depositPence)}
@@ -1950,7 +1950,7 @@ export function BookCourtPage() {
               {fetchingPayment && (
                 <div className="flex items-center justify-center py-16 gap-2">
                   <svg
-                    className="h-5 w-5 animate-spin text-[#009688]"
+                    className="h-5 w-5 animate-spin text-court"
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -1977,7 +1977,7 @@ export function BookCourtPage() {
                   <p className="text-[13px] text-red-600">{paymentError}</p>
                   <button
                     onClick={initPayment}
-                    className="rounded-xl bg-[#009688] px-5 py-2.5 text-[13px] font-bold text-white"
+                    className="rounded-xl bg-court px-5 py-2.5 text-[13px] font-bold text-white"
                   >
                     Try again
                   </button>
@@ -2024,7 +2024,7 @@ export function BookCourtPage() {
                   transition={{ delay: 0.1, type: 'spring', stiffness: 220, damping: 18 }}
                   className="h-20 w-20 rounded-full bg-teal-50 flex items-center justify-center"
                 >
-                  <CheckCircle className="h-10 w-10 text-[#009688]" />
+                  <CheckCircle className="h-10 w-10 text-court" />
                 </motion.div>
                 <h1 className="text-[26px] font-bold text-gray-900">
                   {coveredIds.size >= PLAYERS_PER_COURT ? 'Court secured! 🎾' : 'Court held 🎾'}
@@ -2168,7 +2168,7 @@ export function BookCourtPage() {
               {/* Action buttons */}
               <button
                 onClick={shareBooking}
-                className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688] flex items-center justify-center gap-2"
+                className="w-full rounded-2xl border-2 border-court py-3.5 text-[14px] font-bold text-court flex items-center justify-center gap-2"
               >
                 <Share2 className="h-4 w-4" />
                 Share booking
@@ -2177,7 +2177,7 @@ export function BookCourtPage() {
               {createdBooking && (
                 <button
                   onClick={() => navigate(`/booking/${createdBooking.id}`)}
-                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+                  className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white"
                 >
                   Manage booking
                 </button>
@@ -2186,7 +2186,7 @@ export function BookCourtPage() {
               {(matchId || createdMatchId) && (
                 <button
                   onClick={() => navigate(`/matches/${matchId || createdMatchId}`)}
-                  className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688]"
+                  className="w-full rounded-2xl border-2 border-court py-3.5 text-[14px] font-bold text-court"
                 >
                   View match
                 </button>
@@ -2198,7 +2198,7 @@ export function BookCourtPage() {
                   'w-full rounded-2xl py-4 text-[15px] font-bold',
                   matchId || createdMatchId
                     ? 'border-2 border-gray-200 text-gray-600'
-                    : 'bg-[#009688] text-white'
+                    : 'bg-court text-white'
                 )}
               >
                 Back to Play
@@ -2404,7 +2404,7 @@ export function BookCourtPage() {
                           : { phone: guestContact.trim() }),
                       })
                     }}
-                    className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
+                    className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
                   >
                     Add guest
                   </button>

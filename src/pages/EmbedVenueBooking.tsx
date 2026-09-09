@@ -79,7 +79,7 @@ export function EmbedVenueBookingPage() {
   if (loadingVenue) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="h-7 w-7 rounded-full border-2 border-[#009688] border-t-transparent animate-spin" />
+        <div className="h-7 w-7 rounded-full border-2 border-court border-t-transparent animate-spin" />
       </div>
     )
   }
@@ -93,7 +93,7 @@ export function EmbedVenueBookingPage() {
     <div className="min-h-screen bg-white text-gray-900 flex flex-col">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-gray-100">
-        <p className="text-[11px] font-bold uppercase tracking-wide text-[#009688]">Book a court</p>
+        <p className="text-[11px] font-bold uppercase tracking-wide text-court">Book a court</p>
         <h1 className="text-[18px] font-bold leading-tight truncate">{venue.venue_name}</h1>
         {venue.city && <p className="text-[12px] text-gray-400">{venue.city}</p>}
       </div>
@@ -105,7 +105,7 @@ export function EmbedVenueBookingPage() {
             href={venue.booking_url ?? bookUrl()}
             target="_blank"
             rel="noopener noreferrer"
-            className="h-11 px-6 rounded-xl bg-[#009688] text-white text-[14px] font-bold flex items-center"
+            className="h-11 px-6 rounded-xl bg-court text-white text-[14px] font-bold flex items-center"
           >
             {venue.booking_url ? `Book at ${venue.booking_platform ?? 'venue'}` : 'Find a court'}
           </a>
@@ -121,7 +121,7 @@ export function EmbedVenueBookingPage() {
                 <button
                   key={ds}
                   onClick={() => setDate(ds)}
-                  className={`flex-shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[52px] transition-colors ${active ? 'border-[#009688] bg-[#009688] text-white' : 'border-gray-200 bg-white text-gray-700'}`}
+                  className={`flex-shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[52px] transition-colors ${active ? 'border-court bg-court text-white' : 'border-gray-200 bg-white text-gray-700'}`}
                 >
                   <span className="text-[10px] font-semibold uppercase opacity-80">{format(d, 'EEE')}</span>
                   <span className="text-[16px] font-bold leading-tight">{format(d, 'd')}</span>
@@ -137,7 +137,7 @@ export function EmbedVenueBookingPage() {
               <button
                 key={dur}
                 onClick={() => setDuration(dur)}
-                className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${duration === dur ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'}`}
+                className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${duration === dur ? 'bg-court text-white border-court' : 'bg-white text-gray-600 border-gray-200'}`}
               >
                 {dur} min
               </button>
@@ -148,7 +148,7 @@ export function EmbedVenueBookingPage() {
           <div className="px-4 py-3">
             {loadingSlots ? (
               <div className="flex items-center justify-center py-10">
-                <div className="h-6 w-6 rounded-full border-2 border-[#009688] border-t-transparent animate-spin" />
+                <div className="h-6 w-6 rounded-full border-2 border-court border-t-transparent animate-spin" />
               </div>
             ) : slotsError ? (
               <p className="text-center text-[13px] text-red-500 py-8">{slotsError}</p>
@@ -162,7 +162,7 @@ export function EmbedVenueBookingPage() {
                     href={bookUrl(s.start_time)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-xl border border-gray-200 bg-white py-2.5 text-center text-[14px] font-semibold text-gray-800 hover:border-[#009688] hover:bg-[#009688]/[0.06] active:scale-95 transition-all"
+                    className="rounded-xl border border-gray-200 bg-white py-2.5 text-center text-[14px] font-semibold text-gray-800 hover:border-court hover:bg-court/[0.06] active:scale-95 transition-all"
                   >
                     {fmtSlot(s.start_time)}
                   </a>
@@ -180,7 +180,7 @@ export function EmbedVenueBookingPage() {
         rel="noopener noreferrer"
         className="flex items-center justify-center gap-1.5 py-2.5 border-t border-gray-100 text-[11px] font-medium text-gray-400 hover:text-gray-600"
       >
-        Powered by <span className="font-bold text-[#009688]">Padel Players</span> 🎾
+        Powered by <span className="font-bold text-court">Padel Players</span> 🎾
       </a>
     </div>
   )

@@ -193,7 +193,7 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
               ) : (
                 <>
                   {selectableRingers.length > 1 && (
-                    <button onClick={toggleSelectAll} className="text-[12px] text-[#009688] font-semibold mb-3">
+                    <button onClick={toggleSelectAll} className="text-[12px] text-court font-semibold mb-3">
                       {allSelected ? 'Deselect all' : 'Select all'}
                     </button>
                   )}
@@ -208,14 +208,14 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
                         <div key={ringer.id} className={cn(
                           'flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors',
                           allAsked ? 'border-gray-100 bg-gray-50 opacity-60' :
-                          isSelected ? 'border-[#009688] bg-teal-50' : 'border-gray-100 bg-white'
+                          isSelected ? 'border-court bg-teal-50' : 'border-gray-100 bg-white'
                         )}>
                           {!allAsked && (
                             <button
                               onClick={() => toggleSelect(ringer.id)}
                               className={cn(
                                 'h-5 w-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                                isSelected ? 'bg-[#009688] border-[#009688]' : 'border-gray-300'
+                                isSelected ? 'bg-court border-court' : 'border-gray-300'
                               )}
                             >
                               {isSelected && <Check className="h-3 w-3 text-white" />}
@@ -242,7 +242,7 @@ export function AskRingersAllSheet({ open, onClose, matches, groupId, onSent }: 
                     <button
                       onClick={() => sendMutation.mutate()}
                       disabled={sendMutation.isPending}
-                      className="w-full mt-4 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+                      className="w-full mt-4 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
                     >
                       {sendMutation.isPending
                         ? 'Sending...'

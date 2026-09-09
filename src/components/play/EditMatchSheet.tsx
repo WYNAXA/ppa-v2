@@ -316,7 +316,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         onClick={() => setMatchType(value)}
                         className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${
                           matchType === value
-                            ? 'bg-[#009688] text-white border-[#009688]'
+                            ? 'bg-court text-white border-court'
                             : 'bg-white text-gray-600 border-gray-200'
                         } ${matchTypeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
@@ -558,7 +558,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                             type="button"
                             onClick={() => inviteGuestMutation.mutate()}
                             disabled={!guestName.trim() || inviteGuestMutation.isPending}
-                            className="w-full rounded-lg bg-[#009688] py-2 text-[12px] font-bold text-white disabled:opacity-40"
+                            className="w-full rounded-lg bg-court py-2 text-[12px] font-bold text-white disabled:opacity-40"
                           >
                             {inviteGuestMutation.isPending ? 'Creating invite…' : 'Invite & share link'}
                           </button>
@@ -596,7 +596,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                 <button
                   onClick={() => saveMutation.mutate()}
                   disabled={saveMutation.isPending || !date}
-                  className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                  className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                 >
                   {saveMutation.isPending ? 'Saving…' : 'Save Changes'}
                 </button>

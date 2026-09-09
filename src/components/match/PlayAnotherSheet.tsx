@@ -139,7 +139,7 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
                 <Play className="h-4 w-4" />
                 {createMutation.isPending ? 'Creating\u2026' : 'Start Match'}

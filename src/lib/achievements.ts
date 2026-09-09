@@ -90,7 +90,7 @@ export const JERSEY_LIBRARY: Record<string, { emoji: string; name: string; descr
 }
 
 export const RARITY_COLORS: Record<string, string> = {
-  common: '#9CA3AF', uncommon: '#009688', rare: '#7C3AED', epic: '#D97706', special: '#EC4899',
+  common: '#9CA3AF', uncommon: 'var(--color-court)', rare: '#7C3AED', epic: '#D97706', special: '#EC4899',
 }
 
 export const PEER_VOTE_CATEGORIES = [

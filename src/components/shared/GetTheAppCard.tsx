@@ -41,7 +41,7 @@ export function GetTheAppCard({ title, subtitle, className }: GetTheAppCardProps
             href={PLAY_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-semibold text-white"
+            className="w-full rounded-xl bg-court py-3 text-[14px] font-semibold text-white"
           >
             ▶ Get it on Google Play
           </a>

@@ -28,7 +28,7 @@ import { useTranslation } from 'react-i18next'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
-const STRIPE_APPEARANCE = { theme: 'stripe' as const, variables: { colorPrimary: '#009688' } }
+const STRIPE_APPEARANCE = { theme: 'stripe' as const, variables: { colorPrimary: 'var(--color-court)' } }
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
@@ -149,7 +149,7 @@ export function VenueEventDetailPage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -248,7 +248,7 @@ export function VenueEventDetailPage() {
             <p className="text-[14px] font-bold text-gray-900">{event.name}</p>
             <p className="text-[13px] text-gray-500 mt-1">{venue.venue_name}</p>
             <p className="text-[13px] text-gray-500">{formattedDate} · {formattedTime}</p>
-            <p className="text-[16px] font-bold text-[#009688] mt-2">
+            <p className="text-[16px] font-bold text-court mt-2">
               {priceDisplay}
             </p>
           </div>
@@ -331,7 +331,7 @@ export function VenueEventDetailPage() {
               ? `${occurrence.spots_taken}/${capacity} ${t('play.ve_spots_filled')}`
               : `${occurrence.spots_taken} ${t('play.ve_going')}`}
             {spotsLeft != null && spotsLeft > 0 && (
-              <span className="text-[#009688] font-semibold ml-1">
+              <span className="text-court font-semibold ml-1">
                 · {t('play.ve_spots_left', { count: spotsLeft })}
               </span>
             )}
@@ -371,7 +371,7 @@ export function VenueEventDetailPage() {
         <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">{t('play.ve_whos_going')}</p>
 
         {connectionSummary && (
-          <p className="text-[13px] text-[#009688] font-semibold mb-3">{connectionSummary}</p>
+          <p className="text-[13px] text-court font-semibold mb-3">{connectionSummary}</p>
         )}
 
         {joinedParticipants.length === 0 ? (
@@ -400,7 +400,7 @@ export function VenueEventDetailPage() {
         {myParticipation ? (
           <div className="space-y-3">
             <div className="rounded-2xl bg-teal-50 border border-teal-100 p-4 text-center">
-              <p className="text-[14px] font-bold text-[#009688]">{t('play.ve_youre_going')}</p>
+              <p className="text-[14px] font-bold text-court">{t('play.ve_youre_going')}</p>
             </div>
             <button
               onClick={() => leaveMutation.mutate()}
@@ -418,7 +418,7 @@ export function VenueEventDetailPage() {
           <button
             onClick={() => joinMutation.mutate()}
             disabled={joinMutation.isPending}
-            className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {joinMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -430,7 +430,7 @@ export function VenueEventDetailPage() {
         ) : (
           <button
             onClick={initiatePayment}
-            className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <CreditCard className="h-4 w-4" />
             {t('play.ve_join_pay_now', { price: priceDisplay })}
@@ -459,7 +459,7 @@ function AttendeeRow({ name, avatarUrl, isConnection }: {
       )}
       <span className="text-[13px] text-gray-700 flex-1">{name ?? 'Unknown'}</span>
       {isConnection && (
-        <span className="text-[11px] font-semibold text-[#009688]">Connected</span>
+        <span className="text-[11px] font-semibold text-court">Connected</span>
       )}
     </div>
   )
@@ -522,7 +522,7 @@ function EventPaymentForm({ clientSecret, paymentIntentId, orderItemId, occurren
       <button
         type="submit"
         disabled={!stripe || processing}
-        className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {processing ? (
           <Loader2 className="h-4 w-4 animate-spin" />

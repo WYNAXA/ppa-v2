@@ -40,14 +40,14 @@ export function ForVenuesPage() {
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-5 py-4">
           <Link to="/" className="text-[18px] font-bold text-gray-900">
-            PPA <span className="text-[#009688]">Venues</span>
+            PPA <span className="text-court">Venues</span>
           </Link>
           <div className="flex items-center gap-6 text-[14px]">
             <Link to="/" className="text-gray-500 hover:text-gray-900 hidden sm:block">For Players</Link>
             <Link to="/faq" className="text-gray-500 hover:text-gray-900 hidden sm:block">FAQ</Link>
             <a
               href={VM_URL}
-              className="rounded-xl bg-[#009688] px-4 py-2 text-[13px] font-bold text-white hover:bg-[#00796B] transition-colors"
+              className="rounded-xl bg-court px-4 py-2 text-[13px] font-bold text-white hover:bg-[#00796B] transition-colors"
             >
               Sign in
             </a>
@@ -59,26 +59,26 @@ export function ForVenuesPage() {
       <section className="max-w-5xl mx-auto px-5 pt-16 pb-12 text-center">
         <h1 className="text-[32px] sm:text-[42px] font-bold text-gray-900 leading-tight">
           Manage your padel venue.<br />
-          <span className="text-[#009688]">Take bookings online.</span>
+          <span className="text-court">Take bookings online.</span>
         </h1>
         <p className="mt-4 text-[16px] sm:text-[18px] text-gray-500 max-w-2xl mx-auto leading-relaxed">
           Free to start — no monthly fee, no lock-in. List your courts, set your availability
           and pricing, and let players discover and book you directly. You only pay a small
           fee on bookings taken and paid in-app.
         </p>
-        <p className="mt-3 text-[13px] font-semibold text-[#009688]">
+        <p className="mt-3 text-[13px] font-semibold text-court">
           Founding offer: the first 100 venues get Hub Core free for life at a flat 2.25% booking fee.
         </p>
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
             href={VM_URL + '/onboarding'}
-            className="rounded-2xl bg-[#009688] px-8 py-3.5 text-[15px] font-bold text-white hover:bg-[#00796B] transition-all active:scale-[0.98] flex items-center gap-2"
+            className="rounded-2xl bg-court px-8 py-3.5 text-[15px] font-bold text-white hover:bg-[#00796B] transition-all active:scale-[0.98] flex items-center gap-2"
           >
             Get started free <ArrowRight className="h-4 w-4" />
           </a>
           <a
             href="#search"
-            className="rounded-2xl border-2 border-gray-200 px-8 py-3.5 text-[15px] font-bold text-gray-700 hover:border-[#009688] transition-all"
+            className="rounded-2xl border-2 border-gray-200 px-8 py-3.5 text-[15px] font-bold text-gray-700 hover:border-court transition-all"
           >
             Find your venue
           </a>
@@ -98,7 +98,7 @@ export function ForVenuesPage() {
             ].map(({ icon: Icon, title, desc }) => (
               <div key={title} className="rounded-2xl bg-white border border-gray-100 p-5">
                 <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center mb-4">
-                  <Icon className="h-5 w-5 text-[#009688]" />
+                  <Icon className="h-5 w-5 text-court" />
                 </div>
                 <h3 className="text-[15px] font-bold text-gray-900 mb-2">{title}</h3>
                 <p className="text-[13px] text-gray-500 leading-relaxed">{desc}</p>
@@ -123,14 +123,14 @@ export function ForVenuesPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by venue name or city..."
-              className="w-full rounded-2xl border-2 border-gray-200 pl-12 pr-4 py-4 text-[15px] text-gray-900 outline-none focus:border-[#009688] transition-colors"
+              className="w-full rounded-2xl border-2 border-gray-200 pl-12 pr-4 py-4 text-[15px] text-gray-900 outline-none focus:border-court transition-colors"
               style={{ fontSize: '16px' }}
             />
           </div>
 
           {searching && (
             <div className="mt-4 text-center">
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent mx-auto" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent mx-auto" />
             </div>
           )}
 
@@ -140,11 +140,11 @@ export function ForVenuesPage() {
                 <a
                   key={v.venue_id}
                   href={`${VM_URL}/claim?venue=${v.venue_id}`}
-                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 hover:border-[#009688] hover:bg-teal-50/30 transition-all group"
+                  className="flex items-center justify-between rounded-xl border border-gray-100 bg-white px-4 py-3 hover:border-court hover:bg-teal-50/30 transition-all group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
-                      <MapPin className="h-5 w-5 text-[#009688]" />
+                      <MapPin className="h-5 w-5 text-court" />
                     </div>
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold text-gray-900 truncate">{v.venue_name}</p>
@@ -153,7 +153,7 @@ export function ForVenuesPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-[12px] font-bold text-[#009688] flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1 text-[12px] font-bold text-court flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                     Claim <ChevronRight className="h-3.5 w-3.5" />
                   </div>
                 </a>
@@ -208,7 +208,7 @@ export function ForVenuesPage() {
           </p>
           <a
             href={VM_URL + '/onboarding'}
-            className="inline-flex items-center gap-2 rounded-2xl bg-[#009688] px-10 py-4 text-[16px] font-bold text-white hover:bg-[#00796B] transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-2xl bg-court px-10 py-4 text-[16px] font-bold text-white hover:bg-[#00796B] transition-all active:scale-[0.98]"
           >
             Claim your venue <ArrowRight className="h-5 w-5" />
           </a>

@@ -664,7 +664,7 @@ function MexicanoTab({
         <button
           onClick={() => generateMutation.mutate()}
           disabled={generateMutation.isPending}
-          className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+          className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
         >
           {generateMutation.isPending ? t('league.generating') : t('league.generate_next_round')}
         </button>
@@ -810,7 +810,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
                   disabled={invitedIds.includes(p.id)}
                   className={cn(
                     'rounded-lg px-3 py-1 text-[11px] font-bold shrink-0',
-                    invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white'
+                    invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-court text-white'
                   )}
                 >
                   {invitedIds.includes(p.id) ? t('league.invited_check') : t('league.invite')}
@@ -834,7 +834,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
               disabled={addingAll || addedAll}
               className={cn(
                 'rounded-lg px-3 py-1 text-[11px] font-bold shrink-0',
-                addedAll ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white disabled:opacity-50'
+                addedAll ? 'bg-gray-100 text-gray-400' : 'bg-court text-white disabled:opacity-50'
               )}
             >
               {addedAll ? t('league.added') : addingAll ? t('league.adding') : t('league.add_all')}
@@ -853,7 +853,7 @@ function InviteFromGroupSection({ league, standings }: { league: LeagueInfo; sta
                   disabled={invitedIds.includes(p.id)}
                   className={cn(
                     'rounded-lg px-3 py-1 text-[11px] font-bold shrink-0',
-                    invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-[#009688] text-white'
+                    invitedIds.includes(p.id) ? 'bg-gray-100 text-gray-400' : 'bg-court text-white'
                   )}
                 >
                   {invitedIds.includes(p.id) ? t('league.invited_check') : t('league.invite')}
@@ -1020,7 +1020,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
             <input
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
               autoFocus
             />
             <div className="flex gap-2">
@@ -1044,7 +1044,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
                   setEditingName(false)
                 }}
                 disabled={savingName || !newName.trim()}
-                className="flex-1 rounded-xl bg-[#009688] py-2 text-[12px] font-bold text-white disabled:opacity-40"
+                className="flex-1 rounded-xl bg-court py-2 text-[12px] font-bold text-white disabled:opacity-40"
               >
                 {savingName ? t('league.saving') : t('match.save')}
               </button>
@@ -1056,7 +1056,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
             className="w-full flex items-center justify-between rounded-xl border border-gray-200 px-3 py-2.5 text-left"
           >
             <span className="text-[13px] text-gray-900 truncate">{league.name}</span>
-            <span className="text-[11px] text-[#009688] font-semibold ml-2">{t('league.edit')}</span>
+            <span className="text-[11px] text-court font-semibold ml-2">{t('league.edit')}</span>
           </button>
         )}
       </div>
@@ -1067,7 +1067,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
         <select
           value={selectedUserId}
           onChange={e => setSelectedUserId(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
         >
           <option value="">{t('league.select_player')}</option>
           {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1076,7 +1076,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           <p className="text-[12px] text-gray-500">
             {t('league.current_points', { points: standings.find(s => s.user_id === selectedUserId)?.points ?? 0 })}
             {pointsDelta && (
-              <span className="ml-2">&rarr; <span className="font-bold text-[#009688]">{(standings.find(s => s.user_id === selectedUserId)?.points ?? 0) + parseInt(pointsDelta, 10)}</span> points</span>
+              <span className="ml-2">&rarr; <span className="font-bold text-court">{(standings.find(s => s.user_id === selectedUserId)?.points ?? 0) + parseInt(pointsDelta, 10)}</span> points</span>
             )}
           </p>
         )}
@@ -1085,18 +1085,18 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           value={pointsDelta}
           onChange={e => setPointsDelta(e.target.value.replace(/[^0-9-]/g, ''))}
           placeholder={t('league.points_change_placeholder')}
-          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
         />
         <input
           value={reason}
           onChange={e => setReason(e.target.value)}
           placeholder={t('league.reason_placeholder')}
-          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
         />
         <button
           onClick={saveAdjustment}
           disabled={adjusting || !selectedUserId || !pointsDelta}
-          className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+          className="w-full rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
         >
           {adjustSaved ? t('league.saved') : adjusting ? t('league.saving') : t('league.apply_adjustment')}
         </button>
@@ -1108,7 +1108,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
         <select
           value={jerseyUserId}
           onChange={e => setJerseyUserId(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
         >
           <option value="">{t('league.select_player')}</option>
           {playerOptions.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1120,7 +1120,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
               onClick={() => setJerseyNumber(c.id)}
               className={cn(
                 'flex flex-col items-center gap-1 rounded-xl border-2 p-2 text-center transition-all',
-                jerseyNumber === c.id ? 'border-[#009688] bg-teal-50' : 'border-gray-100'
+                jerseyNumber === c.id ? 'border-court bg-teal-50' : 'border-gray-100'
               )}
             >
               <span className="text-[18px]">{c.emoji}</span>
@@ -1131,7 +1131,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
         <button
           onClick={saveJersey}
           disabled={savingJersey || !jerseyUserId || !jerseyNumber}
-          className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+          className="w-full rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
         >
           {savingJersey ? t('league.saving') : t('league.assign_jersey')}
         </button>
@@ -1144,12 +1144,12 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
           type="date"
           value={newEndDate}
           onChange={e => setNewEndDate(e.target.value)}
-          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+          className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
         />
         <button
           onClick={saveEndDate}
           disabled={savingDate || !newEndDate}
-          className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+          className="w-full rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
         >
           {dateSaved ? t('league.saved') : savingDate ? t('league.saving') : t('league.update_end_date')}
         </button>
@@ -1226,7 +1226,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
                           categories: { ...prev.categories, [cat]: { ...prev.categories[cat], [place]: e.target.value } },
                         }))}
                         placeholder={t('league.prize_placeholder')}
-                        className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                        className="w-full rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
                       />
                     </div>
                   ))}
@@ -1249,7 +1249,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
                         jerseys: { ...prev.jerseys, [color]: e.target.value },
                       }))}
                       placeholder={t('league.prize_placeholder')}
-                      className="flex-1 rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                      className="flex-1 rounded-lg border border-gray-200 px-2 py-1.5 text-[12px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-court"
                     />
                   </div>
                 ))}
@@ -1266,7 +1266,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
                 queryClient.invalidateQueries({ queryKey: ['league', league.id] })
               }}
               disabled={savingPrizes}
-              className="w-full rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+              className="w-full rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
             >
               {savingPrizes ? t('league.saving') : t('match.save')}
             </button>
@@ -1662,7 +1662,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                   <button
                     onClick={() => setStep(2)}
                     disabled={!canAdvance}
-                    className="mt-2 w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                    className="mt-2 w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                   >
                     {t('league.next')}
                   </button>
@@ -1717,7 +1717,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                         handleSubmit()
                       }}
                       disabled={submitting}
-                      className="flex-1 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                      className="flex-1 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                     >
                       {submitting ? t('league.submitting') : t('league.submit_result')}
                     </button>
@@ -2082,7 +2082,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
               <button
                 onClick={handleGenerate}
                 disabled={selectedCount < 4 || generating}
-                className="w-full rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full rounded-2xl bg-court py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {generating ? t('league.generating') : selectedCount < 4 ? t('league.select_at_least_4') : t('league.generate_session', { count: effectiveRounds })}
               </button>
@@ -2336,7 +2336,7 @@ export function LeagueDetailPage() {
   if (loadingLeague) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -2413,7 +2413,7 @@ export function LeagueDetailPage() {
             <button
               onClick={() => acceptInviteMutation.mutate()}
               disabled={acceptInviteMutation.isPending}
-              className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white disabled:opacity-50"
+              className="flex-1 rounded-xl bg-court py-2 text-[13px] font-bold text-white disabled:opacity-50"
             >
               {acceptInviteMutation.isPending ? t('league.joining') : t('league.accept_and_join')}
             </button>
@@ -2439,14 +2439,14 @@ export function LeagueDetailPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
                   'relative pb-3 text-[13px] font-semibold flex-shrink-0 transition-colors',
-                  active ? 'text-[#009688]' : 'text-gray-400'
+                  active ? 'text-court' : 'text-gray-400'
                 )}
               >
                 {tab.label}
                 {active && (
                   <motion.div
                     layoutId="league-tab-underline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#009688] rounded-full"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-court rounded-full"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -2487,7 +2487,7 @@ export function LeagueDetailPage() {
                   {isAdmin && (
                     <button
                       onClick={() => setShowPairSheet(true)}
-                      className="rounded-xl bg-[#009688] px-5 py-2.5 text-[13px] font-bold text-white"
+                      className="rounded-xl bg-court px-5 py-2.5 text-[13px] font-bold text-white"
                     >
                       {tPairs('setup_title')}
                     </button>
@@ -2567,7 +2567,7 @@ export function LeagueDetailPage() {
                         <p className="text-[11px] text-gray-400">{t('league.pct_complete', { pct })}</p>
                       </div>
                       <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                        <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${pct}%` }} />
+                        <div className="h-full rounded-full bg-court transition-all" style={{ width: `${pct}%` }} />
                       </div>
                     </div>
                   )
@@ -2589,7 +2589,7 @@ export function LeagueDetailPage() {
                       <p className="text-[11px] text-gray-400">{pct}%</p>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                      <div className="h-full rounded-full bg-[#009688] transition-all" style={{ width: `${pct}%` }} />
+                      <div className="h-full rounded-full bg-court transition-all" style={{ width: `${pct}%` }} />
                     </div>
                   </div>
                 )
@@ -2618,7 +2618,7 @@ export function LeagueDetailPage() {
                         player1={{ name: row.player1?.name, avatarUrl: row.player1?.avatar_url }}
                         player2={{ name: row.player2?.name, avatarUrl: row.player2?.avatar_url }}
                       />
-                      <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                      <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
                         {row.team_name ?? `${row.player1?.name?.split(' ')[0] ?? '?'} & ${row.player2?.name?.split(' ')[0] ?? '?'}`}{isMe ? ' ★' : ''}
                       </span>
                       {[row.player1_id, row.player2_id].map((pid) => jerseyByUser[pid] ? (
@@ -2628,7 +2628,7 @@ export function LeagueDetailPage() {
                   )}
                   headlineLabel={t('league.pts_headline')}
                   headline={(row, isMe) => (
-                    <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.points}</span>
+                    <span className={cn('text-[12px] font-bold', isMe ? 'text-court' : 'text-gray-800')}>{row.points}</span>
                   )}
                   detail={(row) => (
                     <>
@@ -2719,7 +2719,7 @@ export function LeagueDetailPage() {
                         {standingsView === 'games_won' && t('league.explainer_gw')}
                         {standingsView === 'game_diff' && t('league.explainer_gd')}
                       </p>
-                      <button onClick={() => setShowScoringSheet(true)} className="text-[11px] text-[#009688] font-semibold whitespace-nowrap ml-2">{t('league.how_scoring_works')}</button>
+                      <button onClick={() => setShowScoringSheet(true)} className="text-[11px] text-court font-semibold whitespace-nowrap ml-2">{t('league.how_scoring_works')}</button>
                     </div>
                     {(() => {
                       const catMap: Record<string, string> = { form: 'form', points: 'pts', climbers: 'climb', upsets: 'upsets', games_won: 'gw', game_diff: 'gd' }
@@ -2743,7 +2743,7 @@ export function LeagueDetailPage() {
                         identity={(row, isMe) => (
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
@@ -2755,13 +2755,13 @@ export function LeagueDetailPage() {
                         headlineLabel={t('league.form_label')}
                         headline={(row, isMe) => (
                           <>
-                            <span className={cn('text-[12px] font-bold block', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.form.toFixed(2)}</span>
+                            <span className={cn('text-[12px] font-bold block', isMe ? 'text-court' : 'text-gray-800')}>{row.form.toFixed(2)}</span>
                             <span className="text-[9px] text-gray-400">{t('league.pts_per_set')}</span>
                           </>
                         )}
                         headlineLabel2={t('league.pts_headline')}
                         headline2={(row, isMe) => (
-                          <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                          <span className={cn('text-[12px] font-bold', isMe ? 'text-court' : 'text-gray-800')}>
                             {row.points}
                           </span>
                         )}
@@ -2787,7 +2787,7 @@ export function LeagueDetailPage() {
                         identity={(row, isMe) => (
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
@@ -2798,11 +2798,11 @@ export function LeagueDetailPage() {
                         )}
                         headlineLabel={t('league.pts_headline')}
                         headline={(row, isMe) => (
-                          <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>{row.points}</span>
+                          <span className={cn('text-[12px] font-bold', isMe ? 'text-court' : 'text-gray-800')}>{row.points}</span>
                         )}
                         headlineLabel2={t('league.form_label')}
                         headline2={(row, isMe) => (
-                          <span className={cn('text-[12px] font-bold', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                          <span className={cn('text-[12px] font-bold', isMe ? 'text-court' : 'text-gray-800')}>
                             {row.form.toFixed(2)}
                           </span>
                         )}
@@ -2825,7 +2825,7 @@ export function LeagueDetailPage() {
                         identity={(row, isMe) => (
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
@@ -2836,7 +2836,7 @@ export function LeagueDetailPage() {
                         )}
                         headlineLabel={t('league.tab_gw')}
                         headline={(row) => (
-                          <span className="text-[12px] font-bold text-[#009688]">{row.games_won}</span>
+                          <span className="text-[12px] font-bold text-court">{row.games_won}</span>
                         )}
                         detail={(row) => (
                           <>
@@ -2855,7 +2855,7 @@ export function LeagueDetailPage() {
                         identity={(row, isMe) => (
                           <>
                             <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                            <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
                                 <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
@@ -2893,7 +2893,7 @@ export function LeagueDetailPage() {
                             identity={(row, isMe) => (
                               <>
                                 <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                                <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
                                   {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
                                     <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
@@ -2933,7 +2933,7 @@ export function LeagueDetailPage() {
                             identity={(row, isMe) => (
                               <>
                                 <PlayerAvatar name={row.profile?.name} avatarUrl={row.profile?.avatar_url} size="sm" />
-                                <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-[#009688]' : 'text-gray-800')}>
+                                <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-gray-800')}>
                                   {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
                                     <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
@@ -2944,7 +2944,7 @@ export function LeagueDetailPage() {
                             )}
                             headlineLabel={t('league.wins_headline')}
                             headline={(row) => (
-                              <span className={cn('text-[12px] font-bold', row.upset_wins > 0 ? 'text-[#009688]' : 'text-gray-400')}>
+                              <span className={cn('text-[12px] font-bold', row.upset_wins > 0 ? 'text-court' : 'text-gray-400')}>
                                 {row.upset_wins}
                               </span>
                             )}
@@ -3053,7 +3053,7 @@ export function LeagueDetailPage() {
                           handleGenerateRound()
                         }}
                         disabled={generatingRound || (isPairs && leagueTeams.length === 0)}
-                        className="flex-1 rounded-2xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 rounded-2xl bg-court py-3 text-[13px] font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {generatingRound ? t('league.generating') : currentRound === 0 ? t('league.generate_round_1') : t('league.generate_next_round')}
                       </button>
@@ -3258,7 +3258,7 @@ export function LeagueDetailPage() {
         <>
           <button
             onClick={() => setShowFixturePicker(true)}
-            className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-[#009688] shadow-lg flex items-center justify-center z-40"
+            className="fixed bottom-24 right-6 h-14 w-14 rounded-full bg-court shadow-lg flex items-center justify-center z-40"
           >
             <Plus className="h-6 w-6 text-white" />
           </button>

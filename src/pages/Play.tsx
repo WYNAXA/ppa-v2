@@ -34,7 +34,7 @@ function WhatsOnSection() {
       <div>
         <h2 className="text-[15px] font-bold text-gray-900 mb-3">{t('play.whats_on')}</h2>
         <div className="flex justify-center py-6">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
         </div>
       </div>
     )
@@ -86,7 +86,7 @@ function WhatsOnSection() {
                     <span className="text-[12px] text-gray-500">{fmt(ev.starts_at)}</span>
                   </div>
                   <div className="flex items-center gap-3 mt-2">
-                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#009688]">
+                    <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-court">
                       <Users className="h-3.5 w-3.5" />
                       {spotsLeft != null
                         ? (spotsLeft > 0 ? t('play.ve_spots_left', { count: spotsLeft }) : t('play.ve_full'))
@@ -98,7 +98,7 @@ function WhatsOnSection() {
                     {priceLabel ? (
                       <span className="text-[11px] font-semibold text-gray-600">{priceLabel}</span>
                     ) : (
-                      <span className="text-[11px] font-semibold text-[#009688]">{t('play.ve_free')}</span>
+                      <span className="text-[11px] font-semibold text-court">{t('play.ve_free')}</span>
                     )}
                   </div>
                 </div>
@@ -214,14 +214,14 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
             <div className="overflow-y-auto flex-1 px-5 pb-8">
               {isLoading ? (
                 <div className="flex justify-center py-12">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
                 </div>
               ) : openMatches.length === 0 ? (
                 <div className="text-center py-12 px-4">
                   <p className="text-[15px] font-bold text-gray-700 mb-1">{t('play.no_open_matches')}</p>
                   <p className="text-[13px] text-gray-400 mb-4">{t('play.create_one_invite')}</p>
                   {onCreateMatch && (
-                    <button onClick={() => { onClose(); onCreateMatch() }} className="rounded-2xl bg-[#009688] px-5 py-2.5 text-[13px] font-semibold text-white">
+                    <button onClick={() => { onClose(); onCreateMatch() }} className="rounded-2xl bg-court px-5 py-2.5 text-[13px] font-semibold text-white">
                       {t('play.create_match')}
                     </button>
                   )}
@@ -313,10 +313,10 @@ export function PlayPage() {
               {/* Create Match */}
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <Plus className="h-4 w-4 text-[#009688]" />
+                  <Plus className="h-4 w-4 text-court" />
                 </div>
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.create_match')}</span>
               </button>
@@ -324,10 +324,10 @@ export function PlayPage() {
               {/* Join Match */}
               <button
                 onClick={() => setJoinSheetOpen(true)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <Search className="h-4 w-4 text-[#009688]" />
+                  <Search className="h-4 w-4 text-court" />
                 </div>
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.join_match')}</span>
               </button>
@@ -335,10 +335,10 @@ export function PlayPage() {
               {/* Book Court */}
               <button
                 onClick={() => navigate('/play/book-court')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <BookOpen className="h-4 w-4 text-[#009688]" />
+                  <BookOpen className="h-4 w-4 text-court" />
                 </div>
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.book_court')}</span>
               </button>
@@ -346,10 +346,10 @@ export function PlayPage() {
               {/* Leagues */}
               <button
                 onClick={() => navigate('/leagues')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <Trophy className="h-4 w-4 text-[#009688]" />
+                  <Trophy className="h-4 w-4 text-court" />
                 </div>
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.leagues')}</span>
               </button>
@@ -357,17 +357,17 @@ export function PlayPage() {
               {/* Find a coach */}
               <button
                 onClick={() => navigate('/coaches')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-[#009688] bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-teal-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-teal-50 flex items-center justify-center">
-                  <GraduationCap className="h-4 w-4 text-[#009688]" />
+                  <GraduationCap className="h-4 w-4 text-court" />
                 </div>
                 <span className="text-[11px] font-semibold text-gray-700 text-center leading-tight">{t('play.find_coach', 'Find a coach')}</span>
               </button>
             </div>
             <button
               onClick={() => navigate('/play/waitlist')}
-              className="mt-2.5 mx-auto flex items-center gap-1.5 text-[12px] font-semibold text-gray-400 hover:text-[#009688] transition-colors"
+              className="mt-2.5 mx-auto flex items-center gap-1.5 text-[12px] font-semibold text-gray-400 hover:text-court transition-colors"
             >
               <Bell className="h-3.5 w-3.5" /> {t('play.my_waitlist', 'My waitlist')}
             </button>

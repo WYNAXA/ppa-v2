@@ -104,7 +104,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#009688] py-3 text-sm font-bold text-white disabled:opacity-40"
+              className="w-full rounded-xl bg-court py-3 text-sm font-bold text-white disabled:opacity-40"
             >
               {loading ? 'Updating\u2026' : 'Set new password'}
             </button>

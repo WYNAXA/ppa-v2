@@ -67,7 +67,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <motion.div
           key={i}
-          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? '#009688' : '#e5e7eb' }}
+          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? 'var(--color-court)' : '#e5e7eb' }}
           transition={{ duration: 0.25 }}
           className="h-1.5 rounded-full"
         />
@@ -81,7 +81,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
 const MATCH_TYPES: Array<{ type: MatchType; label: string; desc: string; Icon: typeof Trophy; accent: string; bg: string }> = [
   { type: 'competitive', label: 'Competitive', desc: 'Results count toward your ranking', Icon: Trophy,      accent: '#E65100', bg: '#fff7f0' },
   { type: 'friendly',    label: 'Friendly',    desc: 'Play for fun, no ranking impact',   Icon: Handshake,   accent: '#1565C0', bg: '#f0f4ff' },
-  { type: 'casual',      label: 'Casual',      desc: 'Informal — anyone can join',        Icon: Users,       accent: '#009688', bg: '#f0fdfb' },
+  { type: 'casual',      label: 'Casual',      desc: 'Informal — anyone can join',        Icon: Users,       accent: 'var(--color-court)', bg: '#f0fdfb' },
 ]
 
 function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: FormState) => void; userGroups: GroupOption[] }) {
@@ -99,7 +99,7 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
               onClick={() => setForm({ ...form, matchType: type })}
               className={cn(
                 'w-full flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all',
-                selected ? 'border-[#009688] shadow-sm' : 'border-gray-100 hover:border-gray-200'
+                selected ? 'border-court shadow-sm' : 'border-gray-100 hover:border-gray-200'
               )}
               style={{ backgroundColor: selected ? bg : 'white' }}
             >
@@ -111,7 +111,7 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
                 <p className="text-[13px] text-gray-500 mt-0.5">{desc}</p>
               </div>
               {selected && (
-                <div className="h-5 w-5 rounded-full bg-[#009688] flex items-center justify-center flex-shrink-0">
+                <div className="h-5 w-5 rounded-full bg-court flex items-center justify-center flex-shrink-0">
                   <Check className="h-3 w-3 text-white" />
                 </div>
               )}
@@ -131,13 +131,13 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
                 onClick={() => setForm({ ...form, group: form.group?.id === g.id ? null : g })}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-colors',
-                  form.group?.id === g.id ? 'border-[#009688] bg-teal-50' : 'border-gray-100'
+                  form.group?.id === g.id ? 'border-court bg-teal-50' : 'border-gray-100'
                 )}
               >
                 <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
                 <span className="text-[13px] font-medium text-gray-800 truncate">{g.name}</span>
                 {form.group?.id === g.id && (
-                  <div className="ml-auto h-4 w-4 rounded-full bg-[#009688] flex items-center justify-center flex-shrink-0">
+                  <div className="ml-auto h-4 w-4 rounded-full bg-court flex items-center justify-center flex-shrink-0">
                     <Check className="h-2.5 w-2.5 text-white" />
                   </div>
                 )}
@@ -900,7 +900,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
                   onClick={() => setStep(step + 1)}
                   disabled={!canNext()}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-40"
-                  style={{ background: '#009688' }}
+                  style={{ background: 'var(--color-court)' }}
                 >
                   {t('common.continue')} <ChevronRight className="h-5 w-5" />
                 </button>
@@ -909,7 +909,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-60"
-                  style={{ background: '#009688' }}
+                  style={{ background: 'var(--color-court)' }}
                 >
                   {submitting ? t('create_match.creating') : t('play.create_match')}
                 </button>
@@ -959,7 +959,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
                       onClick={() => handleSubmit()}
                       disabled={submitting}
                       className="flex-1 rounded-2xl py-3 text-[14px] font-bold text-white disabled:opacity-60"
-                      style={{ background: '#009688' }}
+                      style={{ background: 'var(--color-court)' }}
                     >
                       {submitting ? t('create_match.creating') : t('create_match.create_anyway')}
                     </button>

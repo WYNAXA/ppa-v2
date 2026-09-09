@@ -101,7 +101,7 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
             <div className="px-5 pb-6 overflow-y-auto" style={{ maxHeight: '60vh', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
               {isLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
                 </div>
               ) : adminGroups.length === 0 ? (
                 <div className="text-center py-8">

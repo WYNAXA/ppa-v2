@@ -23,7 +23,7 @@ function PadelBallIcon({ className, strokeWidth = 1.8 }: { className?: string; s
   )
 }
 
-const ACTIVE = '#009688'
+const ACTIVE = 'var(--color-court)'
 const ACTIVE_BG = 'rgba(0,150,136,0.09)'
 
 const NAV_ITEMS = [

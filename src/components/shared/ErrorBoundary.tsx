@@ -32,7 +32,7 @@ class ErrorBoundaryInner extends Component<Props, State> {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="w-full max-w-xs rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+            className="w-full max-w-xs rounded-2xl bg-court py-4 text-[15px] font-bold text-white"
           >
             Refresh App
           </button>
@@ -62,7 +62,7 @@ export function SentryErrorBoundary({ children }: { children: ReactNode }) {
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="w-full max-w-xs rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+          className="w-full max-w-xs rounded-2xl bg-court py-4 text-[15px] font-bold text-white"
         >
           Refresh App
         </button>

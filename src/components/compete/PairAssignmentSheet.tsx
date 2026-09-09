@@ -301,7 +301,7 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                     {t('reset')}
                   </button>
                   {canProceedToReview() && (
-                    <button onClick={handleManualToReview} className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white">
+                    <button onClick={handleManualToReview} className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white">
                       Review
                     </button>
                   )}
@@ -371,7 +371,7 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                   <button
                     onClick={handleConfirm}
                     disabled={saving}
-                    className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
                   >
                     {saving ? t('generating_pairs') : t('confirm_pairs')}
                   </button>

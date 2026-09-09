@@ -13,7 +13,7 @@ export function SplashScreen() {
         alt="Padel Players"
         className="h-24 w-24 rounded-2xl mb-8 shadow-sm"
       />
-      <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+      <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
     </motion.div>
   )
 }

@@ -48,13 +48,14 @@ export function NotificationBell() {
   return (
     <button
       onClick={() => navigate('/notifications')}
-      className="relative h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+      aria-label={count > 0 ? `${count} unread` : 'Notifications'}
+      className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-pill border border-hairline bg-card"
     >
-      <Bell className="h-5 w-5 text-gray-600" />
+      <Bell className="h-5 w-5 text-ink-2" strokeWidth={2} />
+      {/* A dot, not a count. The number was never actionable and the board
+          uses the dot so the two header controls stay the same silhouette. */}
       {count > 0 && (
-        <span className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full bg-[#009688] text-[9px] font-bold text-white flex items-center justify-center">
-          {count > 9 ? '9+' : count}
-        </span>
+        <span className="absolute right-[9px] top-2 h-2 w-2 rounded-pill border-2 border-card bg-alert" />
       )}
     </button>
   )

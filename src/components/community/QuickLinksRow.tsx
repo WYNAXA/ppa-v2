@@ -53,8 +53,8 @@ export function QuickLinksRow({ sections }: QuickLinksRowProps) {
           className={cn(
             'flex-shrink-0 flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2.5 text-[12px] font-semibold border transition-colors min-h-[44px]',
             activeKey === s.key
-              ? 'bg-teal-50 text-teal-700 border-teal-200'
-              : 'bg-gray-50 text-gray-600 border-gray-100'
+              ? 'bg-court-50 text-court-700 border-court-100'
+              : 'bg-surface text-ink-2 border-hairline'
           )}
         >
           <span>{s.emoji}</span>

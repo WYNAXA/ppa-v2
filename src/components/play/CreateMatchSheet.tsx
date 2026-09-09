@@ -67,7 +67,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <motion.div
           key={i}
-          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? '#009688' : '#e5e7eb' }}
+          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? 'var(--color-court)' : '#e5e7eb' }}
           transition={{ duration: 0.25 }}
           className="h-1.5 rounded-full"
         />
@@ -79,17 +79,17 @@ function StepDots({ current, total }: { current: number; total: number }) {
 // ── Step 1 — Match type ───────────────────────────────────────────────────────
 
 const MATCH_TYPES: Array<{ type: MatchType; label: string; desc: string; Icon: typeof Trophy; accent: string; bg: string }> = [
-  { type: 'competitive', label: 'Competitive', desc: 'Results count toward your ranking', Icon: Trophy,      accent: '#E65100', bg: '#fff7f0' },
+  { type: 'competitive', label: 'Competitive', desc: 'Results count toward your ranking', Icon: Trophy,      accent: 'var(--color-warn)', bg: 'var(--color-warn-50)' },
   { type: 'friendly',    label: 'Friendly',    desc: 'Play for fun, no ranking impact',   Icon: Handshake,   accent: '#1565C0', bg: '#f0f4ff' },
-  { type: 'casual',      label: 'Casual',      desc: 'Informal — anyone can join',        Icon: Users,       accent: '#009688', bg: '#f0fdfb' },
+  { type: 'casual',      label: 'Casual',      desc: 'Informal — anyone can join',        Icon: Users,       accent: 'var(--color-court)', bg: '#f0fdfb' },
 ]
 
 function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: FormState) => void; userGroups: GroupOption[] }) {
   const { t } = useTranslation()
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.match_type')}</h2>
-      <p className="text-sm text-gray-500 mb-6">{t('create_match.match_type_sub')}</p>
+      <h2 className="text-xl font-bold text-ink mb-1">{t('create_match.match_type')}</h2>
+      <p className="text-sm text-ink-2 mb-6">{t('create_match.match_type_sub')}</p>
       <div className="space-y-3">
         {MATCH_TYPES.map(({ type, label, desc, Icon, accent, bg }) => {
           const selected = form.matchType === type
@@ -99,7 +99,7 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
               onClick={() => setForm({ ...form, matchType: type })}
               className={cn(
                 'w-full flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all',
-                selected ? 'border-[#009688] shadow-sm' : 'border-gray-100 hover:border-gray-200'
+                selected ? 'border-court shadow-sm' : 'border-hairline hover:border-hairline'
               )}
               style={{ backgroundColor: selected ? bg : 'white' }}
             >
@@ -107,11 +107,11 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
                 <Icon className="h-5 w-5" style={{ color: accent }} />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-gray-900">{label}</p>
-                <p className="text-[13px] text-gray-500 mt-0.5">{desc}</p>
+                <p className="font-semibold text-ink">{label}</p>
+                <p className="text-[13px] text-ink-2 mt-0.5">{desc}</p>
               </div>
               {selected && (
-                <div className="h-5 w-5 rounded-full bg-[#009688] flex items-center justify-center flex-shrink-0">
+                <div className="h-5 w-5 rounded-full bg-court flex items-center justify-center flex-shrink-0">
                   <Check className="h-3 w-3 text-white" />
                 </div>
               )}
@@ -122,8 +122,8 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
 
       {userGroups.length > 0 && (
         <div className="mt-6">
-          <h3 className="text-[14px] font-bold text-gray-900 mb-1">Which group?</h3>
-          <p className="text-[12px] text-gray-500 mb-3">Match will be visible to this group's members</p>
+          <h3 className="text-[14px] font-bold text-ink mb-1">Which group?</h3>
+          <p className="text-[12px] text-ink-2 mb-3">Match will be visible to this group's members</p>
           <div className="space-y-2">
             {userGroups.map((g) => (
               <button
@@ -131,13 +131,13 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
                 onClick={() => setForm({ ...form, group: form.group?.id === g.id ? null : g })}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-colors',
-                  form.group?.id === g.id ? 'border-[#009688] bg-teal-50' : 'border-gray-100'
+                  form.group?.id === g.id ? 'border-court bg-court-50' : 'border-hairline'
                 )}
               >
-                <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                <span className="text-[13px] font-medium text-gray-800 truncate">{g.name}</span>
+                <Users className="h-4 w-4 text-ink-2 flex-shrink-0" />
+                <span className="text-[13px] font-medium text-ink truncate">{g.name}</span>
                 {form.group?.id === g.id && (
-                  <div className="ml-auto h-4 w-4 rounded-full bg-[#009688] flex items-center justify-center flex-shrink-0">
+                  <div className="ml-auto h-4 w-4 rounded-full bg-court flex items-center justify-center flex-shrink-0">
                     <Check className="h-2.5 w-2.5 text-white" />
                   </div>
                 )}
@@ -147,10 +147,10 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
               onClick={() => setForm({ ...form, group: null })}
               className={cn(
                 'w-full flex items-center gap-3 rounded-xl border-2 px-3 py-2.5 text-left transition-colors',
-                !form.group ? 'border-gray-300 bg-gray-50' : 'border-gray-100'
+                !form.group ? 'border-hairline bg-surface' : 'border-hairline'
               )}
             >
-              <span className="text-[13px] text-gray-500">No group (open match)</span>
+              <span className="text-[13px] text-ink-2">No group (open match)</span>
             </button>
           </div>
         </div>
@@ -198,40 +198,40 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.match_setup')}</h2>
-      <p className="text-sm text-gray-500 mb-6">{t('create_match.match_setup_sub')}</p>
+      <h2 className="text-xl font-bold text-ink mb-1">{t('create_match.match_setup')}</h2>
+      <p className="text-sm text-ink-2 mb-6">{t('create_match.match_setup_sub')}</p>
       <div className="space-y-4">
 
         {/* Date + Time — stacked, constrained to parent */}
         <div className="flex flex-col gap-3" style={{ overflow: 'hidden' }}>
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.date')}</label>
+            <label className="block text-[13px] font-medium text-ink-2 mb-1.5">{t('match.date')}</label>
             <input
               type="date"
               value={form.date}
               min={todayStr()}
               onChange={(e) => setForm({ ...form, date: e.target.value })}
               style={{ fontSize: '16px', maxWidth: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
             />
           </div>
 
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.time')}</label>
+            <label className="block text-[13px] font-medium text-ink-2 mb-1.5">{t('match.time')}</label>
             <input
               type="time"
               value={form.time}
               step="1800"
               onChange={(e) => setForm({ ...form, time: e.target.value })}
               style={{ fontSize: '16px', maxWidth: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
             />
           </div>
         </div>
 
         {/* Duration */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('create_match.duration')}</label>
+          <label className="block text-[13px] font-medium text-ink-2 mb-1.5">{t('create_match.duration')}</label>
           <div className="flex gap-2">
             {DURATIONS.map((d) => (
               <button
@@ -240,8 +240,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 className={cn(
                   'flex-1 rounded-xl border py-2.5 text-sm font-medium transition-all',
                   form.duration === d
-                    ? 'border-teal-500 bg-teal-50 text-teal-700'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    ? 'border-court bg-court-50 text-court-700'
+                    : 'border-hairline text-ink-2 hover:border-hairline'
                 )}
               >
                 {d} min
@@ -252,11 +252,11 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
         {/* Venue search */}
         <div className="relative">
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            {t('match.venue')} <span className="text-gray-400 font-normal">({t('common.optional')})</span>
+          <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+            {t('match.venue')} <span className="text-ink-2 font-normal">({t('common.optional')})</span>
           </label>
           <div className="relative">
-            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
             <input
               type="text"
               value={venueQuery}
@@ -264,14 +264,14 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               onFocus={() => setShowVenues(true)}
               placeholder={t('book_court.venue_placeholder')}
               style={{ fontSize: '16px', maxWidth: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
             />
             {form.venue && (
               <button
                 onClick={() => { setVenueQuery(''); setForm({ ...form, venue: null, court: null }); setCourts([]) }}
                 className="absolute right-3 top-1/2 -translate-y-1/2"
               >
-                <X className="h-4 w-4 text-gray-400" />
+                <X className="h-4 w-4 text-ink-2" />
               </button>
             )}
           </div>
@@ -281,17 +281,17 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className="absolute z-50 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg overflow-hidden"
+                className="absolute z-50 mt-1 w-full rounded-xl border border-hairline bg-white shadow-lg overflow-hidden"
               >
                 {venues.map((v) => (
                   <li key={v.venue_id}>
                     <button
                       onClick={() => { setForm({ ...form, venue: v, court: null }); setVenueQuery(v.venue_name); setShowVenues(false) }}
-                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 flex items-center gap-2"
+                      className="w-full text-left px-4 py-2.5 text-sm hover:bg-court-50 flex items-center gap-2"
                     >
-                      <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                      <span className="font-medium text-gray-800">{v.venue_name}</span>
-                      {v.city && <span className="text-gray-400 text-[12px]">{v.city}</span>}
+                      <MapPin className="h-3.5 w-3.5 text-ink-2 flex-shrink-0" />
+                      <span className="font-medium text-ink">{v.venue_name}</span>
+                      {v.city && <span className="text-ink-2 text-[12px]">{v.city}</span>}
                     </button>
                   </li>
                 ))}
@@ -303,7 +303,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
         {/* Court dropdown */}
         {form.venue && courts.length > 0 && (
           <div>
-            <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('match.court')}</label>
+            <label className="block text-[13px] font-medium text-ink-2 mb-1.5">{t('match.court')}</label>
             <select
               value={form.court?.id ?? ''}
               onChange={(e) => {
@@ -311,7 +311,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 setForm({ ...form, court: c })
               }}
               style={{ fontSize: '16px' }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-white"
             >
               <option value="">Any court</option>
               {courts.map((c) => (
@@ -325,8 +325,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
 
         {/* Notes */}
         <div>
-          <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-            {t('match.notes')} <span className="text-gray-400 font-normal">({t('common.optional')})</span>
+          <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+            {t('match.notes')} <span className="text-ink-2 font-normal">({t('common.optional')})</span>
           </label>
           <textarea
             value={form.notes}
@@ -334,7 +334,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
             placeholder={t('create_match.notes_placeholder')}
             rows={2}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
+            className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 resize-none"
           />
         </div>
       </div>
@@ -394,8 +394,8 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
   return (
     // min-h keeps the sheet stable when search results appear/disappear
     <div className="min-h-[360px]">
-      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.select_players')}</h2>
-      <p className="text-sm text-gray-500 mb-4">
+      <h2 className="text-xl font-bold text-ink mb-1">{t('create_match.select_players')}</h2>
+      <p className="text-sm text-ink-2 mb-4">
         {t('create_match.players_selected', { count: form.players.length })}
       </p>
 
@@ -406,33 +406,33 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
           const conflicts = playerConflicts[p.id]
           const hasConflict = conflicts && conflicts.length > 0
           return (
-            <div key={p.id} className={cn('flex items-center gap-3 rounded-xl border px-3 py-2.5', hasConflict ? 'border-amber-200 bg-amber-50/60' : 'border-gray-100 bg-gray-50/60')}>
+            <div key={p.id} className={cn('flex items-center gap-3 rounded-xl border px-3 py-2.5', hasConflict ? 'border-warn bg-warn-50/60' : 'border-hairline bg-surface/60')}>
               <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : p.avatar_url} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-semibold text-gray-900 truncate">{p.name}</p>
+                <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
                 {hasConflict ? (
-                  <p className="text-[11px] text-amber-600 font-medium">
+                  <p className="text-[11px] text-warn font-medium">
                     {t('create_match.conflict_at_time', { time: conflicts[0].conflicting_time?.slice(0, 5) ?? form.time.slice(0, 5) })}
                   </p>
                 ) : !p.isGuest && p.playtomic_level != null ? (
-                  <p className="text-[11px] text-gray-400">Level {Number(p.playtomic_level).toFixed(1)}</p>
+                  <p className="text-[11px] text-ink-2">Level {Number(p.playtomic_level).toFixed(1)}</p>
                 ) : null}
               </div>
               {hasConflict && (
-                <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0" />
+                <AlertTriangle className="h-4 w-4 text-warn flex-shrink-0" />
               )}
               {isCreator && !hasConflict && (
-                <span className="text-[10px] font-bold text-teal-600 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5">{t('common.you')}</span>
+                <span className="text-[11px] font-bold text-court bg-court-50 border border-court-100 rounded-full px-2 py-0.5">{t('common.you')}</span>
               )}
               {p.isGuest && (
-                <span className="text-[10px] font-bold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2 py-0.5">{t('common.guest')}</span>
+                <span className="text-[11px] font-bold text-ink-2 bg-hairline border border-hairline rounded-full px-2 py-0.5">{t('common.guest')}</span>
               )}
               {!isCreator && (
                 <button
                   onClick={() => removePlayer(p.id)}
-                  className="h-6 w-6 rounded-full bg-gray-200 hover:bg-red-100 flex items-center justify-center transition-colors flex-shrink-0"
+                  className="h-6 w-6 rounded-full bg-hairline hover:bg-red-100 flex items-center justify-center transition-colors flex-shrink-0"
                 >
-                  <X className="h-3 w-3 text-gray-500 hover:text-red-500" />
+                  <X className="h-3 w-3 text-ink-2 hover:text-red-500" />
                 </button>
               )}
             </div>
@@ -441,8 +441,8 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
 
         {/* Empty slots */}
         {Array.from({ length: Math.max(0, 4 - form.players.length) }).map((_, i) => (
-          <div key={i} className="flex items-center gap-3 rounded-xl border border-dashed border-gray-200 px-3 py-2.5 text-gray-300">
-            <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center">
+          <div key={i} className="flex items-center gap-3 rounded-xl border border-dashed border-hairline px-3 py-2.5 text-ink-3">
+            <div className="h-7 w-7 rounded-full border-2 border-dashed border-hairline flex items-center justify-center">
               <UserPlus className="h-3.5 w-3.5" />
             </div>
             <p className="text-[13px]">{t('create_match.open_spot')}</p>
@@ -453,14 +453,14 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
       {/* Search */}
       {form.players.length < 4 && (
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t('create_match.search_players')}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
           />
         </div>
       )}
@@ -472,19 +472,19 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-1 rounded-xl border border-gray-100 bg-white shadow-lg overflow-y-auto max-h-40"
+            className="mt-1 rounded-xl border border-hairline bg-white shadow-lg overflow-y-auto max-h-40"
           >
             {results.map((p) => (
               <li key={p.id}>
                 <button
                   onClick={() => addPlayer(p)}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-teal-50 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-court-50 transition-colors text-left"
                 >
                   <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-900 truncate">{p.name}</p>
+                    <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
                     {p.playtomic_level != null && (
-                      <p className="text-[11px] text-gray-400">Level {Number(p.playtomic_level).toFixed(1)}</p>
+                      <p className="text-[11px] text-ink-2">Level {Number(p.playtomic_level).toFixed(1)}</p>
                     )}
                   </div>
                 </button>
@@ -507,18 +507,18 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
                 placeholder={t('create_match.guest_name')}
                 autoFocus
                 style={{ fontSize: '16px' }}
-                className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                className="flex-1 rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
               />
               <button
                 onClick={addGuest}
                 disabled={!guestName.trim()}
-                className="rounded-xl bg-gray-800 px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-40"
+                className="rounded-xl bg-ink px-4 py-2.5 text-[13px] font-semibold text-white disabled:opacity-40"
               >
                 {t('create_match.add')}
               </button>
               <button
                 onClick={() => { setShowGuestInput(false); setGuestName('') }}
-                className="rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-500"
+                className="rounded-xl border border-hairline px-3 py-2.5 text-[13px] text-ink-2"
               >
                 ✕
               </button>
@@ -526,7 +526,7 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
           ) : (
             <button
               onClick={() => setShowGuestInput(true)}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-gray-300 py-2.5 text-[13px] text-gray-500 hover:border-teal-300 hover:text-teal-600 transition-colors"
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-hairline py-2.5 text-[13px] text-ink-2 hover:border-court-100 hover:text-court transition-colors"
             >
               <UserPlus className="h-4 w-4" />
               {t('create_match.add_guest')}
@@ -540,16 +540,16 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
         const conflictCount = Object.values(playerConflicts).filter(c => c.length > 0).length
         if (conflictCount === 0) return null
         return (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 flex items-start gap-2.5">
-            <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-            <p className="text-[12px] text-amber-700 font-medium">
+          <div className="mt-4 rounded-xl border border-warn bg-warn-50 px-4 py-3 flex items-start gap-2.5">
+            <AlertTriangle className="h-4 w-4 text-warn flex-shrink-0 mt-0.5" />
+            <p className="text-[12px] text-warn font-medium">
               {t('create_match.players_have_conflicts', { count: conflictCount })}
             </p>
           </div>
         )
       })()}
       {conflictsLoading && form.players.length > 0 && form.date && form.time && (
-        <p className="text-[11px] text-gray-400 mt-2 text-center">{t('create_match.checking_conflicts')}</p>
+        <p className="text-[11px] text-ink-2 mt-2 text-center">{t('create_match.checking_conflicts')}</p>
       )}
     </div>
   )
@@ -569,45 +569,45 @@ function Step4({ form, safePlayers, playerConflicts }: { form: FormState; safePl
   ]
   return (
     <div>
-      <h2 className="text-xl font-bold text-gray-900 mb-1">{t('create_match.review')}</h2>
-      <p className="text-sm text-gray-500 mb-6">{t('create_match.review_sub')}</p>
+      <h2 className="text-xl font-bold text-ink mb-1">{t('create_match.review')}</h2>
+      <p className="text-sm text-ink-2 mb-6">{t('create_match.review_sub')}</p>
 
-      <div className="rounded-2xl border border-gray-100 bg-gray-50/60 divide-y divide-gray-100 mb-5 overflow-hidden">
+      <div className="rounded-2xl border border-hairline bg-surface/60 divide-y divide-hairline mb-5 overflow-hidden">
         {rows.map(({ label, value }) => (
           <div key={label} className="flex items-center justify-between px-4 py-3">
-            <span className="text-[13px] text-gray-500">{label}</span>
-            <span className="text-[13px] font-semibold text-gray-900 capitalize">{value}</span>
+            <span className="text-[13px] text-ink-2">{label}</span>
+            <span className="text-[13px] font-semibold text-ink capitalize">{value}</span>
           </div>
         ))}
       </div>
 
-      <p className="text-[13px] font-medium text-gray-700 mb-2.5">{t('match.players')}</p>
+      <p className="text-[13px] font-medium text-ink-2 mb-2.5">{t('match.players')}</p>
       <div className="grid grid-cols-2 gap-2">
         {safePlayers.map((p) => {
           const hasConflict = playerConflicts[p.id]?.length > 0
           return (
-            <div key={p.id} className={cn('flex items-center gap-2 rounded-xl px-3 py-2.5', hasConflict ? 'bg-amber-50 border border-amber-200' : 'bg-white border border-gray-100')}>
+            <div key={p.id} className={cn('flex items-center gap-2 rounded-xl px-3 py-2.5', hasConflict ? 'bg-warn-50 border border-warn' : 'bg-white border border-hairline')}>
               <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="text-[12px] font-semibold text-gray-900 truncate">{p.name.split(' ')[0]}</p>
-                {p.isGuest && <p className="text-[10px] text-gray-400">{t('common.guest')}</p>}
+                <p className="text-[12px] font-semibold text-ink truncate">{p.name.split(' ')[0]}</p>
+                {p.isGuest && <p className="text-[11px] text-ink-2">{t('common.guest')}</p>}
               </div>
-              {hasConflict && <AlertTriangle className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />}
+              {hasConflict && <AlertTriangle className="h-3.5 w-3.5 text-warn flex-shrink-0" />}
             </div>
           )
         })}
         {Array.from({ length: Math.max(0, 4 - safePlayers.length) }).map((_, i) => (
-          <div key={i} className="flex items-center gap-2 border border-dashed border-gray-200 rounded-xl px-3 py-2.5">
-            <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex-shrink-0" />
-            <p className="text-[12px] text-gray-300">{t('create_match.open_spot')}</p>
+          <div key={i} className="flex items-center gap-2 border border-dashed border-hairline rounded-xl px-3 py-2.5">
+            <div className="h-7 w-7 rounded-full border-2 border-dashed border-hairline flex-shrink-0" />
+            <p className="text-[12px] text-ink-3">{t('create_match.open_spot')}</p>
           </div>
         ))}
       </div>
 
       {form.notes && (
-        <div className="mt-4 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
-          <p className="text-[12px] text-gray-500 mb-1">Notes</p>
-          <p className="text-[13px] text-gray-700">{form.notes}</p>
+        <div className="mt-4 rounded-xl bg-surface border border-hairline px-4 py-3">
+          <p className="text-[12px] text-ink-2 mb-1">Notes</p>
+          <p className="text-[13px] text-ink-2">{form.notes}</p>
         </div>
       )}
     </div>
@@ -853,18 +853,18 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
 
             {/* Header */}
             <div className="flex items-center justify-between px-5 pb-2 flex-shrink-0">
               <button
                 onClick={step > 1 ? () => setStep(step - 1) : onClose}
-                className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center"
+                className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center"
               >
-                {step > 1 ? <ChevronLeft className="h-5 w-5 text-gray-600" /> : <X className="h-4 w-4 text-gray-600" />}
+                {step > 1 ? <ChevronLeft className="h-5 w-5 text-ink-2" /> : <X className="h-4 w-4 text-ink-2" />}
               </button>
-              <span className="text-[13px] text-gray-400 font-medium">{t('create_match.step_of', { step, total: 4 })}</span>
+              <span className="text-[13px] text-ink-2 font-medium">{t('create_match.step_of', { step, total: 4 })}</span>
               <div className="w-9" />
             </div>
 
@@ -893,14 +893,14 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
             </div>
 
             {/* Footer */}
-            <div className="px-5 pt-4 flex-shrink-0 border-t border-gray-50"
+            <div className="px-5 pt-4 flex-shrink-0 border-t border-hairline"
                  style={{ paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}>
               {step < 4 ? (
                 <button
                   onClick={() => setStep(step + 1)}
                   disabled={!canNext()}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-40"
-                  style={{ background: '#009688' }}
+                  style={{ background: 'var(--color-court)' }}
                 >
                   {t('common.continue')} <ChevronRight className="h-5 w-5" />
                 </button>
@@ -909,7 +909,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
                   onClick={handleSubmit}
                   disabled={submitting}
                   className="w-full flex items-center justify-center gap-2 rounded-2xl py-4 text-base font-semibold text-white transition disabled:opacity-60"
-                  style={{ background: '#009688' }}
+                  style={{ background: 'var(--color-court)' }}
                 >
                   {submitting ? t('create_match.creating') : t('play.create_match')}
                 </button>
@@ -936,12 +936,12 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
                   style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
                 >
                   <div className="flex justify-center mb-5">
-                    <div className="h-10 w-10 rounded-full bg-yellow-50 flex items-center justify-center">
+                    <div className="h-10 w-10 rounded-full bg-warn-50 flex items-center justify-center">
                       <span className="text-[20px]">⚠️</span>
                     </div>
                   </div>
-                  <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('create_match.conflict_title')}</p>
-                  <p className="text-[13px] text-gray-500 text-center mb-6">
+                  <p className="text-[16px] font-bold text-ink text-center mb-2">{t('create_match.conflict_title')}</p>
+                  <p className="text-[13px] text-ink-2 text-center mb-6">
                     {conflictWarning.match_time
                       ? `${t('create_match.conflict_at')} ${conflictWarning.match_time.slice(0, 5)}`
                       : t('create_match.conflict_date')}
@@ -951,7 +951,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
                   <div className="flex gap-3">
                     <button
                       onClick={() => setConflictWarning(null)}
-                      className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700"
+                      className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2"
                     >
                       {t('common.cancel')}
                     </button>
@@ -959,7 +959,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
                       onClick={() => handleSubmit()}
                       disabled={submitting}
                       className="flex-1 rounded-2xl py-3 text-[14px] font-bold text-white disabled:opacity-60"
-                      style={{ background: '#009688' }}
+                      style={{ background: 'var(--color-court)' }}
                     >
                       {submitting ? t('create_match.creating') : t('create_match.create_anyway')}
                     </button>

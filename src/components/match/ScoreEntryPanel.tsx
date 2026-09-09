@@ -115,11 +115,11 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
       {/* Column headers with team names */}
       <div className="grid grid-cols-[1fr_60px_16px_60px] gap-2 mb-2 px-1">
         <div />
-        <p className="text-[10px] font-bold text-teal-700 text-center leading-tight truncate">
+        <p className="text-[11px] font-bold text-court-700 text-center leading-tight truncate">
           {team1Names}
         </p>
         <div />
-        <p className="text-[10px] font-bold text-orange-600 text-center leading-tight truncate">
+        <p className="text-[11px] font-bold text-warn text-center leading-tight truncate">
           {team2Names}
         </p>
       </div>
@@ -131,11 +131,11 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
           <div key={i} className="mb-3">
             <div className="flex items-center gap-2">
               <div className="flex-1 flex items-center gap-1.5">
-                <span className="text-[12px] text-gray-400 w-10">Set {i + 1}</span>
+                <span className="text-[12px] text-ink-2 w-10">Set {i + 1}</span>
                 {sets.length > 1 && (
                   <button
                     onClick={() => removeSet(i)}
-                    className="text-[10px] text-gray-300 hover:text-red-400"
+                    className="text-[11px] text-ink-3 hover:text-red-400"
                   >
                     x
                   </button>
@@ -149,9 +149,9 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                 max={7}
                 value={s.team1}
                 onChange={(e) => updateSet(i, 'team1', e.target.value)}
-                className="w-[60px] rounded-xl border border-gray-200 bg-teal-50 py-2.5 text-center text-[16px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                className="w-[60px] rounded-xl border border-hairline bg-court-50 py-2.5 text-center text-[16px] font-bold text-court-700 focus:outline-none focus:border-court"
               />
-              <span className="text-gray-300 text-sm">{'\u2014'}</span>
+              <span className="text-ink-3 text-sm">{'\u2014'}</span>
               <input
                 ref={(el) => { inputRefs.current[`${i}-team2`] = el }}
                 type="number"
@@ -160,7 +160,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                 max={7}
                 value={s.team2}
                 onChange={(e) => updateSet(i, 'team2', e.target.value)}
-                className="w-[60px] rounded-xl border border-gray-200 bg-orange-50 py-2.5 text-center text-[16px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                className="w-[60px] rounded-xl border border-hairline bg-warn-50 py-2.5 text-center text-[16px] font-bold text-warn focus:outline-none focus:border-warn"
               />
             </div>
             {/* Unusual score: neither team reaches 6 */}
@@ -171,7 +171,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                   value={s.note ?? ''}
                   onChange={(e) => setSets(prev => prev.map((ss, j) => j === i ? { ...ss, note: e.target.value } : ss))}
                   placeholder="Match didn't finish? Add a note (optional)"
-                  className="w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] text-gray-700 placeholder:text-amber-400 focus:outline-none focus:border-amber-300"
+                  className="w-full rounded-lg border border-warn bg-warn-50 px-3 py-2 text-[12px] text-ink-2 placeholder:text-warn focus:outline-none focus:border-warn"
                 />
               </div>
             )}
@@ -179,7 +179,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
             {is76 && (
               <div className="mt-2 ml-1">
                 <div className="flex items-center gap-2 pl-2">
-                  <span className="text-[11px] text-gray-400">Tie-break:</span>
+                  <span className="text-[11px] text-ink-2">Tie-break:</span>
                   <input
                     ref={(el) => { inputRefs.current[`tb-${i}-team1`] = el }}
                     type="number"
@@ -188,9 +188,9 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                     max={99}
                     value={s.tiebreak?.team1 ?? ''}
                     onChange={(e) => updateTiebreak(i, 'team1', e.target.value)}
-                    className="w-[48px] rounded-lg border border-gray-200 bg-teal-50 py-1.5 text-center text-[14px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                    className="w-[48px] rounded-lg border border-hairline bg-court-50 py-1.5 text-center text-[14px] font-bold text-court-700 focus:outline-none focus:border-court"
                   />
-                  <span className="text-gray-300 text-sm">{'\u2014'}</span>
+                  <span className="text-ink-3 text-sm">{'\u2014'}</span>
                   <input
                     ref={(el) => { inputRefs.current[`tb-${i}-team2`] = el }}
                     type="number"
@@ -199,7 +199,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                     max={99}
                     value={s.tiebreak?.team2 ?? ''}
                     onChange={(e) => updateTiebreak(i, 'team2', e.target.value)}
-                    className="w-[48px] rounded-lg border border-gray-200 bg-orange-50 py-1.5 text-center text-[14px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                    className="w-[48px] rounded-lg border border-hairline bg-warn-50 py-1.5 text-center text-[14px] font-bold text-warn focus:outline-none focus:border-warn"
                   />
                 </div>
                 {s.tiebreak && s.tiebreak.team1 === 0 && s.tiebreak.team2 === 0 && (
@@ -209,8 +209,8 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
             )}
             {isTied66 && (
               <div className="mt-2 ml-1">
-                <div className="rounded-lg bg-teal-50 border border-teal-100 px-3 py-2 mb-2">
-                  <p className="text-[12px] font-semibold text-teal-700">Set tied 6-6. How did it finish?</p>
+                <div className="rounded-lg bg-court-50 border border-court-100 px-3 py-2 mb-2">
+                  <p className="text-[12px] font-semibold text-court-700">Set tied 6-6. How did it finish?</p>
                 </div>
                 <div className="flex gap-2 mb-2">
                   <button
@@ -218,8 +218,8 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                     className={cn(
                       'flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors',
                       s.tiebreak && !s.time_limit
-                        ? 'bg-teal-50 border-teal-300 text-teal-700'
-                        : 'border-gray-200 text-gray-500 hover:border-teal-200'
+                        ? 'bg-court-50 border-court-100 text-court-700'
+                        : 'border-hairline text-ink-2 hover:border-court-100'
                     )}
                   >
                     Tiebreak played
@@ -229,8 +229,8 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                     className={cn(
                       'flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors',
                       s.time_limit
-                        ? 'bg-orange-50 border-orange-300 text-orange-700'
-                        : 'border-gray-200 text-gray-500 hover:border-orange-200'
+                        ? 'bg-warn-50 border-warn text-warn'
+                        : 'border-hairline text-ink-2 hover:border-warn'
                     )}
                   >
                     Finished on time
@@ -238,7 +238,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                 </div>
                 {s.tiebreak && !s.time_limit && (
                   <div className="flex items-center gap-2 pl-2">
-                    <span className="text-[11px] text-gray-400">TB:</span>
+                    <span className="text-[11px] text-ink-2">TB:</span>
                     <input
                       ref={(el) => { inputRefs.current[`tb-${i}-team1`] = el }}
                       type="number"
@@ -247,9 +247,9 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                       max={99}
                       value={s.tiebreak.team1}
                       onChange={(e) => updateTiebreak(i, 'team1', e.target.value)}
-                      className="w-[48px] rounded-lg border border-gray-200 bg-teal-50 py-1.5 text-center text-[14px] font-bold text-teal-700 focus:outline-none focus:border-teal-400"
+                      className="w-[48px] rounded-lg border border-hairline bg-court-50 py-1.5 text-center text-[14px] font-bold text-court-700 focus:outline-none focus:border-court"
                     />
-                    <span className="text-gray-300 text-sm">{'\u2014'}</span>
+                    <span className="text-ink-3 text-sm">{'\u2014'}</span>
                     <input
                       ref={(el) => { inputRefs.current[`tb-${i}-team2`] = el }}
                       type="number"
@@ -258,12 +258,12 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                       max={99}
                       value={s.tiebreak.team2}
                       onChange={(e) => updateTiebreak(i, 'team2', e.target.value)}
-                      className="w-[48px] rounded-lg border border-gray-200 bg-orange-50 py-1.5 text-center text-[14px] font-bold text-orange-600 focus:outline-none focus:border-orange-300"
+                      className="w-[48px] rounded-lg border border-hairline bg-warn-50 py-1.5 text-center text-[14px] font-bold text-warn focus:outline-none focus:border-warn"
                     />
                   </div>
                 )}
                 {s.time_limit && (
-                  <p className="text-[11px] text-gray-400 italic pl-2">Drawn set — no winner</p>
+                  <p className="text-[11px] text-ink-2 italic pl-2">Drawn set — no winner</p>
                 )}
               </div>
             )}
@@ -274,7 +274,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
       {sets.length < maxSets && (
         <button
           onClick={addSet}
-          className="w-full rounded-xl border border-dashed border-gray-200 py-2.5 text-[12px] text-gray-400 hover:border-teal-300 hover:text-teal-600 transition-colors mb-3"
+          className="w-full rounded-xl border border-dashed border-hairline py-2.5 text-[12px] text-ink-2 hover:border-court-100 hover:text-court transition-colors mb-3"
         >
           + Add set
         </button>
@@ -285,9 +285,9 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
         const label = resultType === 'team1_win' ? `${team1Names} win`
           : resultType === 'team2_win' ? `${team2Names} win`
           : 'Draw / unfinished'
-        const color = resultType === 'team1_win' ? 'text-teal-700 bg-teal-50'
-          : resultType === 'team2_win' ? 'text-orange-600 bg-orange-50'
-          : 'text-gray-600 bg-gray-50'
+        const color = resultType === 'team1_win' ? 'text-court-700 bg-court-50'
+          : resultType === 'team2_win' ? 'text-warn bg-warn-50'
+          : 'text-ink-2 bg-surface'
         return (
           <div className={cn('rounded-xl py-2 px-3 text-center text-[12px] font-bold mt-2 mb-1', color)}>
             {label}

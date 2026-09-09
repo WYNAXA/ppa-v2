@@ -262,14 +262,14 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
 
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Edit Match</h2>
+              <h2 className="text-[15px] font-bold text-ink">Edit Match</h2>
               <div className="w-9" />
             </div>
 
@@ -280,32 +280,32 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
               <div className="space-y-4 pb-2">
                 {/* Date */}
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Date</label>
+                  <label className="block text-[13px] font-medium text-ink-2 mb-1.5">Date</label>
                   <input
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                   />
                 </div>
 
                 {/* Time */}
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Time</label>
+                  <label className="block text-[13px] font-medium text-ink-2 mb-1.5">Time</label>
                   <input
                     type="time"
                     value={time}
                     step="1800"
                     onChange={(e) => setTime(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                   />
                 </div>
 
                 {/* Match type */}
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Match type</label>
+                  <label className="block text-[13px] font-medium text-ink-2 mb-1.5">Match type</label>
                   {matchTypeLocked && (
-                    <p className="text-[11px] text-amber-600 mb-1.5">Cannot change — a result has been recorded for this match.</p>
+                    <p className="text-[11px] text-warn mb-1.5">Cannot change — a result has been recorded for this match.</p>
                   )}
                   <div className="grid grid-cols-3 gap-2">
                     {MATCH_TYPES.map(({ value, label }) => (
@@ -316,8 +316,8 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         onClick={() => setMatchType(value)}
                         className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${
                           matchType === value
-                            ? 'bg-[#009688] text-white border-[#009688]'
-                            : 'bg-white text-gray-600 border-gray-200'
+                            ? 'bg-court text-white border-court'
+                            : 'bg-white text-ink-2 border-hairline'
                         } ${matchTypeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {label}
@@ -328,11 +328,11 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
 
                 {/* Venue */}
                 <div className="relative">
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                    Venue <span className="text-gray-400 font-normal">(optional)</span>
+                  <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+                    Venue <span className="text-ink-2 font-normal">(optional)</span>
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
                     <input
                       type="text"
                       value={venueQuery}
@@ -343,14 +343,14 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                       }}
                       onFocus={() => setShowVenues(true)}
                       placeholder="Search venues…"
-                      className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                      className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                     />
                     {selectedVenue && (
                       <button
                         onClick={() => { setVenueQuery(''); setSelectedVenue(null); setSelectedCourtId('') }}
                         className="absolute right-3 top-1/2 -translate-y-1/2"
                       >
-                        <X className="h-4 w-4 text-gray-400" />
+                        <X className="h-4 w-4 text-ink-2" />
                       </button>
                     )}
                   </div>
@@ -360,7 +360,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="absolute z-50 mt-1 w-full rounded-xl border border-gray-100 bg-white shadow-lg max-h-48 overflow-y-auto"
+                        className="absolute z-50 mt-1 w-full rounded-xl border border-hairline bg-white shadow-lg max-h-48 overflow-y-auto"
                       >
                         {venues.map((v) => (
                           <li key={v.venue_id}>
@@ -371,11 +371,11 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                                 setShowVenues(false)
                                 setSelectedCourtId('')
                               }}
-                              className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 flex items-center gap-2"
+                              className="w-full text-left px-4 py-2.5 text-sm hover:bg-court-50 flex items-center gap-2"
                             >
-                              <MapPin className="h-3.5 w-3.5 text-gray-400 flex-shrink-0" />
-                              <span className="font-medium text-gray-800">{v.venue_name}</span>
-                              {v.city && <span className="text-gray-400 text-[12px]">{v.city}</span>}
+                              <MapPin className="h-3.5 w-3.5 text-ink-2 flex-shrink-0" />
+                              <span className="font-medium text-ink">{v.venue_name}</span>
+                              {v.city && <span className="text-ink-2 text-[12px]">{v.city}</span>}
                             </button>
                           </li>
                         ))}
@@ -386,14 +386,14 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
 
                 {/* Court selector */}
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                    Court <span className="text-gray-400 font-normal">(optional)</span>
+                  <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+                    Court <span className="text-ink-2 font-normal">(optional)</span>
                   </label>
                   {courts.length > 0 ? (
                     <select
                       value={selectedCourtId}
                       onChange={(e) => setSelectedCourtId(e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
+                      className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-white"
                     >
                       <option value="">Select a court…</option>
                       {courts.map((c) => (
@@ -409,14 +409,14 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                       onChange={(e) => setCourtNumber(e.target.value)}
                       placeholder="Court number"
                       min="1"
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                      className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                     />
                   )}
                 </div>
 
                 {/* Players */}
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                  <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
                     <span className="flex items-center gap-1.5"><Users className="h-3.5 w-3.5" /> Players</span>
                   </label>
                   <div className="space-y-2 mb-2">
@@ -427,21 +427,21 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                       return (
                         <div key={pid} className="flex items-center gap-2">
                           <PlayerAvatar name={displayName} avatarUrl={guest ? null : (p?.avatar_url ?? null)} size="sm" />
-                          <span className="flex-1 text-[13px] text-gray-800 truncate">
+                          <span className="flex-1 text-[13px] text-ink truncate">
                             {displayName}
-                            {guest && <span className="ml-1.5 text-[10px] font-semibold text-amber-600 bg-amber-50 border border-amber-100 rounded px-1 py-0.5">invite pending</span>}
+                            {guest && <span className="ml-1.5 text-[11px] font-semibold text-warn bg-warn-50 border border-warn-100 rounded px-1 py-0.5">invite pending</span>}
                           </span>
                           <button
                             type="button"
                             onClick={() => { setReplacingIdx(idx); setPlayerSearch(''); setPlayerResults([]); setInvitingNew(false); setGuestName(''); setGuestContact('') }}
-                            className="text-[11px] font-semibold text-teal-600 border border-teal-200 rounded-lg px-2 py-1"
+                            className="text-[11px] font-semibold text-court border border-court-100 rounded-lg px-2 py-1"
                           >
                             Replace
                           </button>
                           <button
                             type="button"
                             onClick={() => setPlayerIds((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-gray-300 hover:text-red-500 px-1"
+                            className="text-ink-3 hover:text-red-500 px-1"
                             aria-label="Remove player"
                           >
                             <X className="h-4 w-4" />
@@ -452,14 +452,14 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                     {legacyGuests.map((g, gi) => (
                       <div key={`lg-${gi}`} className="flex items-center gap-2">
                         <PlayerAvatar name={g} avatarUrl={null} size="sm" />
-                        <span className="flex-1 text-[13px] text-gray-800 truncate">
+                        <span className="flex-1 text-[13px] text-ink truncate">
                           {g}
-                          <span className="ml-1.5 text-[10px] font-semibold text-gray-500 bg-gray-100 border border-gray-200 rounded px-1 py-0.5">guest</span>
+                          <span className="ml-1.5 text-[11px] font-semibold text-ink-2 bg-hairline border border-hairline rounded px-1 py-0.5">guest</span>
                         </span>
                         <button
                           type="button"
                           onClick={() => setLegacyGuests((prev) => prev.filter((_, i) => i !== gi))}
-                          className="text-gray-300 hover:text-red-500 px-1"
+                          className="text-ink-3 hover:text-red-500 px-1"
                           aria-label="Remove guest"
                         >
                           <X className="h-4 w-4" />
@@ -471,24 +471,24 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                     <button
                       type="button"
                       onClick={() => { setReplacingIdx(-1); setPlayerSearch(''); setPlayerResults([]); setInvitingNew(false); setGuestName(''); setGuestContact('') }}
-                      className="mb-2 w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-teal-200 py-2.5 text-[12px] font-semibold text-teal-700 hover:bg-teal-50/40"
+                      className="mb-2 w-full flex items-center justify-center gap-2 rounded-xl border border-dashed border-court-100 py-2.5 text-[12px] font-semibold text-court-700 hover:bg-court-50/40"
                     >
                       <UserPlus className="h-4 w-4" /> Add player
                     </button>
                   )}
                   {replacingIdx !== null && (
-                    <div className="border border-gray-200 rounded-xl p-3">
-                      <p className="text-[12px] text-gray-500 mb-2">
+                    <div className="border border-hairline rounded-xl p-3">
+                      <p className="text-[12px] text-ink-2 mb-2">
                         {replacingIdx === -1 ? 'Add a player — search by name:' : `Replacing player ${replacingIdx + 1} — search by name:`}
                       </p>
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-ink-2" />
                         <input
                           type="text"
                           value={playerSearch}
                           onChange={(e) => setPlayerSearch(e.target.value)}
                           placeholder="Search by name…"
-                          className="w-full rounded-lg border border-gray-200 pl-8 pr-3 py-2 text-sm outline-none focus:border-teal-400"
+                          className="w-full rounded-lg border border-hairline pl-8 pr-3 py-2 text-sm outline-none focus:border-court"
                           autoFocus
                         />
                       </div>
@@ -506,10 +506,10 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                                 setPlayerSearch('')
                                 setPlayerResults([])
                               }}
-                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-teal-50 text-left"
+                              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-court-50 text-left"
                             >
                               <PlayerAvatar name={pr.name} avatarUrl={pr.avatar_url} size="sm" />
-                              <span className="text-[13px] text-gray-800">{pr.name}</span>
+                              <span className="text-[13px] text-ink">{pr.name}</span>
                             </button>
                           ))}
                         </div>
@@ -519,18 +519,18 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         <button
                           type="button"
                           onClick={() => { setInvitingNew(true); setGuestName(playerSearch.trim()) }}
-                          className="mt-2 w-full flex items-center gap-2 rounded-lg border border-dashed border-gray-200 px-2.5 py-2 text-left hover:border-teal-300 hover:bg-teal-50/30"
+                          className="mt-2 w-full flex items-center gap-2 rounded-lg border border-dashed border-hairline px-2.5 py-2 text-left hover:border-court-100 hover:bg-court-50/30"
                         >
-                          <UserPlus className="h-4 w-4 text-teal-600 flex-shrink-0" />
-                          <span className="text-[12px] font-semibold text-gray-600">Not on PPA? Invite a new player</span>
+                          <UserPlus className="h-4 w-4 text-court flex-shrink-0" />
+                          <span className="text-[12px] font-semibold text-ink-2">Not on PPA? Invite a new player</span>
                         </button>
                       ) : (
-                        <div className="mt-2 rounded-lg bg-gray-50 border border-gray-200 p-3 space-y-2">
+                        <div className="mt-2 rounded-lg bg-surface border border-hairline p-3 space-y-2">
                           {isContactPickerSupported() && (
                             <button
                               type="button"
                               onClick={chooseGuestFromContacts}
-                              className="w-full flex items-center justify-center gap-2 rounded-lg border border-teal-200 bg-white py-2 text-[12px] font-semibold text-teal-700"
+                              className="w-full flex items-center justify-center gap-2 rounded-lg border border-court-100 bg-white py-2 text-[12px] font-semibold text-court-700"
                             >
                               <UserRound className="h-3.5 w-3.5" /> Choose from contacts
                             </button>
@@ -541,16 +541,16 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                             onChange={(e) => setGuestName(e.target.value)}
                             placeholder="New player's name"
                             autoFocus
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-teal-400"
+                            className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-court"
                           />
                           <input
                             type="text"
                             value={guestContact}
                             onChange={(e) => setGuestContact(e.target.value)}
                             placeholder="Phone or email (optional)"
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-teal-400"
+                            className="w-full rounded-lg border border-hairline px-3 py-2 text-sm outline-none focus:border-court"
                           />
-                          <p className="text-[11px] text-gray-400 leading-snug">We'll create an invite link and open the share sheet — send it via WhatsApp or Messages. They join the match when they sign up.</p>
+                          <p className="text-[11px] text-ink-2 leading-snug">We'll create an invite link and open the share sheet — send it via WhatsApp or Messages. They join the match when they sign up.</p>
                           {inviteGuestMutation.isError && (
                             <p className="text-[12px] text-red-500">Couldn't create the invite. Try again.</p>
                           )}
@@ -558,7 +558,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                             type="button"
                             onClick={() => inviteGuestMutation.mutate()}
                             disabled={!guestName.trim() || inviteGuestMutation.isPending}
-                            className="w-full rounded-lg bg-[#009688] py-2 text-[12px] font-bold text-white disabled:opacity-40"
+                            className="w-full rounded-lg bg-court py-2 text-[12px] font-bold text-white disabled:opacity-40"
                           >
                             {inviteGuestMutation.isPending ? 'Creating invite…' : 'Invite & share link'}
                           </button>
@@ -567,7 +567,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                       <button
                         type="button"
                         onClick={() => { setReplacingIdx(null); setInvitingNew(false) }}
-                        className="mt-2 text-[11px] text-gray-400 w-full text-center"
+                        className="mt-2 text-[11px] text-ink-2 w-full text-center"
                       >
                         Cancel
                       </button>
@@ -577,15 +577,15 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
 
                 {/* Notes */}
                 <div>
-                  <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                    Notes <span className="text-gray-400 font-normal">(optional)</span>
+                  <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+                    Notes <span className="text-ink-2 font-normal">(optional)</span>
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Any details for the players…"
                     rows={2}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
+                    className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20 resize-none"
                   />
                 </div>
 
@@ -596,7 +596,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                 <button
                   onClick={() => saveMutation.mutate()}
                   disabled={saveMutation.isPending || !date}
-                  className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                  className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
                 >
                   {saveMutation.isPending ? 'Saving…' : 'Save Changes'}
                 </button>

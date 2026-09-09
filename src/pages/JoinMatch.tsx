@@ -63,12 +63,12 @@ export function JoinMatchPage() {
     return (
       <div className="min-h-full bg-white flex flex-col items-center justify-center px-8 text-center">
         <div className="text-5xl mb-3">🎾</div>
-        <h1 className="text-xl font-bold text-gray-900">You're in!</h1>
-        <p className="mt-2 text-[14px] text-gray-500">You've joined the match.</p>
+        <h1 className="text-xl font-bold text-ink">You're in!</h1>
+        <p className="mt-2 text-[14px] text-ink-2">You've joined the match.</p>
         <GetTheAppCard className="mt-6 w-full max-w-xs" />
         <button
           onClick={() => navigate(`/matches/${claimedMatchId}`, { replace: true })}
-          className="mt-4 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+          className="mt-4 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
         >
           Go to the match
         </button>
@@ -88,28 +88,28 @@ export function JoinMatchPage() {
 
       {invalid ? (
         <>
-          <h1 className="text-xl font-bold text-gray-900">Invite not found</h1>
-          <p className="mt-2 text-[14px] text-gray-500">This invite link is invalid or has been removed.</p>
+          <h1 className="text-xl font-bold text-ink">Invite not found</h1>
+          <p className="mt-2 text-[14px] text-ink-2">This invite link is invalid or has been removed.</p>
         </>
       ) : expired ? (
         <>
-          <h1 className="text-xl font-bold text-gray-900">This invite has expired</h1>
-          <p className="mt-2 text-[14px] text-gray-500">Ask whoever invited you to send a fresh link.</p>
+          <h1 className="text-xl font-bold text-ink">This invite has expired</h1>
+          <p className="mt-2 text-[14px] text-ink-2">Ask whoever invited you to send a fresh link.</p>
         </>
       ) : (
         <>
-          <h1 className="text-xl font-bold text-gray-900">
+          <h1 className="text-xl font-bold text-ink">
             {preview.inviter_name ? `${preview.inviter_name} invited you` : "You're invited"} to a padel match
           </h1>
-          <div className="mt-3 rounded-2xl bg-gray-50 border border-gray-100 px-5 py-4 text-[14px] text-gray-700 w-full max-w-xs">
+          <div className="mt-3 rounded-2xl bg-surface border border-hairline px-5 py-4 text-[14px] text-ink-2 w-full max-w-xs">
             {dateStr && <p className="font-semibold">{dateStr}{preview.match_time ? ` · ${preview.match_time.slice(0, 5)}` : ''}</p>}
-            {preview.venue && <p className="text-gray-500 mt-0.5">{preview.venue}</p>}
+            {preview.venue && <p className="text-ink-2 mt-0.5">{preview.venue}</p>}
           </div>
 
           {preview.status === 'accepted' ? (
             <button
               onClick={() => preview.match_id && navigate(`/matches/${preview.match_id}`)}
-              className="mt-6 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+              className="mt-6 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
             >
               View match
             </button>
@@ -118,7 +118,7 @@ export function JoinMatchPage() {
               <button
                 onClick={claim}
                 disabled={claiming}
-                className="mt-6 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+                className="mt-6 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
                 {claiming ? 'Joining…' : 'Join this match'}
               </button>
@@ -126,10 +126,10 @@ export function JoinMatchPage() {
             </>
           ) : (
             <>
-              <p className="mt-5 text-[13px] text-gray-500">Create your free account to join — it takes a few seconds.</p>
+              <p className="mt-5 text-[13px] text-ink-2">Create your free account to join — it takes a few seconds.</p>
               <button
                 onClick={() => { localStorage.setItem(PENDING_KEY, token); navigate(`/auth?invite=${token}&mode=signup`) }}
-                className="mt-3 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+                className="mt-3 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
               >
                 Sign up / Log in to join
               </button>

@@ -12,7 +12,7 @@ const tealIcon = L.divIcon({
   iconSize: [28, 40],
   iconAnchor: [14, 40],
   html: `<svg width="28" height="40" viewBox="0 0 28 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.27 21.73 0 14 0z" fill="#009688"/>
+    <path d="M14 0C6.27 0 0 6.27 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.27 21.73 0 14 0z" fill="var(--color-court)"/>
     <circle cx="14" cy="14" r="6" fill="white"/>
   </svg>`,
 })

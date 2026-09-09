@@ -6,6 +6,12 @@ export interface Profile {
   email?: string | null
   avatar_url?: string | null
   playtomic_level?: number | null
+  /**
+   * Career ELO. Optional because plenty of queries select a narrow column set;
+   * declaring it here is what lets the ELO preview stop casting through `any`.
+   */
+  internal_ranking?: number | null
+  matches_played?: number | null
 }
 
 export interface Match {

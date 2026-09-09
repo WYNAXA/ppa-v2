@@ -34,7 +34,7 @@ const TYPE_META: Record<SearchResult['type'], {
 }> = {
   player: {
     icon:  <User className="h-4 w-4" />,
-    color: 'bg-teal-50 text-[#009688]',
+    color: 'bg-court-50 text-court',
     label: 'Players',
     navFn: (id) => `/players/${id}`,
   },
@@ -46,19 +46,19 @@ const TYPE_META: Record<SearchResult['type'], {
   },
   venue: {
     icon:  <MapPin className="h-4 w-4" />,
-    color: 'bg-orange-50 text-orange-500',
+    color: 'bg-warn-50 text-warn',
     label: 'Venues',
     navFn: (id) => `/venues/${id}`,
   },
   match: {
     icon:  <Calendar className="h-4 w-4" />,
-    color: 'bg-gray-100 text-gray-500',
+    color: 'bg-hairline text-ink-2',
     label: 'Matches',
     navFn: (id) => `/matches/${id}`,
   },
   league: {
     icon:  <Trophy className="h-4 w-4" />,
-    color: 'bg-amber-50 text-amber-500',
+    color: 'bg-warn-50 text-warn',
     label: 'Leagues',
     navFn: (id) => `/compete/leagues/${id}`,
   },
@@ -171,29 +171,29 @@ export function SearchPage() {
       exit={{ opacity: 0 }}
     >
       {/* Search bar */}
-      <div className="flex items-center gap-3 px-5 pt-14 pb-3 border-b border-gray-100">
+      <div className="flex items-center gap-3 px-5 pt-14 pb-3 border-b border-hairline">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search players, groups, venues…"
-            className="w-full rounded-xl border border-gray-200 pl-9 pr-9 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-hairline pl-9 pr-9 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
           />
           {query && (
             <button
               onClick={() => { setQuery(''); setResults([]) }}
               className="absolute right-3 top-1/2 -translate-y-1/2"
             >
-              <X className="h-4 w-4 text-gray-400" />
+              <X className="h-4 w-4 text-ink-2" />
             </button>
           )}
         </div>
         <button
           onClick={() => goBack(navigate, '/home')}
-          className="text-[13px] font-semibold text-[#009688]"
+          className="text-[13px] font-semibold text-court"
         >
           Cancel
         </button>
@@ -203,7 +203,7 @@ export function SearchPage() {
       <div className="flex-1 overflow-y-auto">
         {searching && (
           <div className="flex justify-center py-12">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+            <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
           </div>
         )}
 
@@ -217,7 +217,7 @@ export function SearchPage() {
 
         {!searching && query.length < 2 && (
           <div className="py-16 text-center px-8">
-            <p className="text-[14px] text-gray-400">Search players, groups, venues, leagues, and matches</p>
+            <p className="text-[14px] text-ink-2">Search players, groups, venues, leagues, and matches</p>
           </div>
         )}
 
@@ -234,13 +234,13 @@ export function SearchPage() {
                 const meta = TYPE_META[type]
                 return (
                   <div key={type}>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{meta.label}</p>
+                    <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2">{meta.label}</p>
                     <div className="space-y-1">
                       {items.map((item) => (
                         <button
                           key={item.id}
                           onClick={() => handleTap(item)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface transition-colors text-left"
                         >
                           {item.avatarName ? (
                             <PlayerAvatar name={item.avatarName} avatarUrl={item.avatarUrl} size="sm" />
@@ -250,9 +250,9 @@ export function SearchPage() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-gray-800 truncate">{item.label}</p>
+                            <p className="text-[13px] font-semibold text-ink truncate">{item.label}</p>
                             {item.sublabel && (
-                              <p className="text-[11px] text-gray-400 truncate">{item.sublabel}</p>
+                              <p className="text-[11px] text-ink-2 truncate">{item.sublabel}</p>
                             )}
                           </div>
                         </button>

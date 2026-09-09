@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { useEffect, useState, lazy, Suspense } from 'react'
+import { useEffect, useState, useCallback, lazy, Suspense } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Toaster } from 'sonner'
 import { AuthProvider } from '@/context/AuthContext'
@@ -53,6 +53,10 @@ const MyConnectionsPage = lazy(() => import('@/pages/community/MyConnectionsPage
 const OpenMatchesPage = lazy(() => import('@/pages/OpenMatches').then(m => ({ default: m.OpenMatchesPage })))
 const VenueEventDetailPage = lazy(() => import('@/pages/VenueEventDetail').then(m => ({ default: m.VenueEventDetailPage })))
 const JoinMatchPage = lazy(() => import('@/pages/JoinMatch').then(m => ({ default: m.JoinMatchPage })))
+
+// The Play sheet pulls in CreateMatchSheet (~42KB) — lazy so it stays out of
+// the initial bundle until the player actually taps the centre action.
+const PlaySheet = lazy(() => import('@/components/play/PlaySheet').then(m => ({ default: m.PlaySheet })))
 
 
 const queryClient = new QueryClient({
@@ -128,6 +132,20 @@ function AppShell() {
   const { session, profile, loading } = useAuth()
   const location = useLocation()
   const navigate = useNavigate()
+
+  // Centre nav action. `playMounted` latches so the sheet keeps its exit
+  // animation on close — unmounting the lazy boundary would cut it short.
+  const [playOpen, setPlayOpen] = useState(false)
+  const [playMounted, setPlayMounted] = useState(false)
+  const openPlaySheet = useCallback(() => {
+    setPlayMounted(true)
+    setPlayOpen(true)
+  }, [])
+
+  // A route change always dismisses the sheet — otherwise a deep link fired
+  // from inside it (or the browser back button) leaves it hanging over the new
+  // screen.
+  useEffect(() => { setPlayOpen(false) }, [location.pathname])
 
   // After a new player signs up via a match-invite link, bring them back to the
   // invite once their profile is complete so they can join (see JoinMatch page).
@@ -290,7 +308,13 @@ function AppShell() {
           </Suspense>
         </main>
 
-        {showNav && <BottomNav />}
+        {showNav && <BottomNav onPlayClick={openPlaySheet} />}
+
+        {playMounted && (
+          <Suspense fallback={null}>
+            <PlaySheet open={playOpen} onClose={() => setPlayOpen(false)} />
+          </Suspense>
+        )}
       </div>
     </OnboardingGuard>
   )

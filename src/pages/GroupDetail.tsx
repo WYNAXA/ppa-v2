@@ -512,19 +512,19 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
     <div>
       <button
         onClick={shareOrCopyInvite}
-        className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-teal-50 py-2.5 mb-4 text-[13px] font-semibold text-teal-700 transition-colors"
+        className="w-full flex items-center justify-center gap-2 rounded-xl border border-court-100 bg-court-50 py-2.5 mb-4 text-[13px] font-semibold text-court-700 transition-colors"
       >
         {copied ? <><Check className="h-4 w-4" /> {t('group_detail.copied')}</> : <><Share2 className="h-4 w-4" /> {t('group_detail.share_group')}</>}
       </button>
 
       {/* Member/Ringer filter */}
-      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-4">
+      <div className="flex bg-hairline rounded-xl p-1 gap-1 mb-4">
         {(['members', 'ringers'] as const).map((f) => (
           <button
             key={f}
             onClick={() => setMemberFilter(f)}
             className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors capitalize ${
-              memberFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              memberFilter === f ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
             }`}
           >
             {f === 'members' ? t('group_detail.members_count', { count: members.length }) : t('group_detail.ringers_count', { count: members.filter(m => m.memberStatus === 'ringer').length })}
@@ -537,21 +537,21 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
       ) : (
         <div className="space-y-2">
           {filtered.map((m) => (
-            <div key={m.id} className="flex items-center gap-3 rounded-xl bg-gray-50 px-3 py-2.5">
+            <div key={m.id} className="flex items-center gap-3 rounded-xl bg-surface px-3 py-2.5">
               <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="md" />
               <div className="flex-1 min-w-0">
-                <p className="text-[14px] font-semibold text-gray-900 truncate">{m.name}</p>
+                <p className="text-[14px] font-semibold text-ink truncate">{m.name}</p>
               </div>
               {m.role === 'admin' && (
-                <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">{t('group_detail.badge_admin')}</span>
+                <span className="rounded-full bg-court-50 border border-court-100 px-2 py-0.5 text-[11px] font-bold text-court">{t('group_detail.badge_admin')}</span>
               )}
               {m.memberStatus === 'ringer' && (
-                <span className="rounded-full bg-orange-50 border border-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-500">{t('group_detail.badge_ringer')}</span>
+                <span className="rounded-full bg-warn-50 border border-warn-100 px-2 py-0.5 text-[11px] font-bold text-warn">{t('group_detail.badge_ringer')}</span>
               )}
               {isAdmin && m.id !== currentUserId && (
                 <button
                   onClick={() => setMenuMemberId(m.id)}
-                  className="h-7 w-7 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 flex-shrink-0"
+                  className="h-7 w-7 flex items-center justify-center rounded-full text-ink-2 hover:text-ink-2 flex-shrink-0"
                 >
                   <MoreHorizontal className="h-4 w-4" />
                 </button>
@@ -576,11 +576,11 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}
             >
-              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-3 mb-4 pb-3 border-b border-hairline">
                 <PlayerAvatar name={menuMember.name} avatarUrl={menuMember.avatar_url} size="md" />
                 <div>
-                  <p className="text-[15px] font-bold text-gray-900">{menuMember.name}</p>
-                  <p className="text-[12px] text-gray-400 capitalize">{menuMember.memberStatus}</p>
+                  <p className="text-[15px] font-bold text-ink">{menuMember.name}</p>
+                  <p className="text-[12px] text-ink-2 capitalize">{menuMember.memberStatus}</p>
                 </div>
               </div>
               <div className="space-y-1">
@@ -588,9 +588,9 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
                   <button
                     onClick={() => memberAction.mutate({ action: 'make_admin', memberId: menuMemberId })}
                     disabled={memberAction.isPending}
-                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-ink-2 hover:bg-surface"
                   >
-                    <Shield className="h-4 w-4 text-teal-500" />
+                    <Shield className="h-4 w-4 text-court" />
                     {t('group_detail.make_admin')}
                   </button>
                 )}
@@ -598,18 +598,18 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
                   <button
                     onClick={() => memberAction.mutate({ action: 'make_ringer', memberId: menuMemberId })}
                     disabled={memberAction.isPending}
-                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-ink-2 hover:bg-surface"
                   >
-                    <Star className="h-4 w-4 text-orange-400" />
+                    <Star className="h-4 w-4 text-warn" />
                     {t('group_detail.mark_as_ringer')}
                   </button>
                 ) : (
                   <button
                     onClick={() => memberAction.mutate({ action: 'remove_ringer', memberId: menuMemberId })}
                     disabled={memberAction.isPending}
-                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-50"
+                    className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-ink-2 hover:bg-surface"
                   >
-                    <Star className="h-4 w-4 text-gray-400" />
+                    <Star className="h-4 w-4 text-ink-2" />
                     {t('group_detail.promote_to_member')}
                   </button>
                 )}
@@ -685,20 +685,20 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
     <div>
       <button
         onClick={onCreateMatch}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         {t('group_detail.create_group_match')}
       </button>
 
       {/* Upcoming / Past toggle */}
-      <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
+      <div className="flex bg-hairline rounded-xl p-1 gap-1 mb-3">
         {(['upcoming', 'past'] as const).map((v) => (
           <button
             key={v}
             onClick={() => setView(v)}
             className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors capitalize ${
-              view === v ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              view === v ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
             }`}
           >
             {v === 'upcoming' ? t('group_detail.upcoming_count', { count: upcoming.length }) : t('group_detail.past_count', { count: past.length })}
@@ -719,7 +719,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
               key={key}
               onClick={() => setWeekFilter(key)}
               className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-                weekFilter === key ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-500 bg-white'
+                weekFilter === key ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-white'
               }`}
             >
               {label}
@@ -728,7 +728,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
           <button
             onClick={() => setNeedsRingersOnly(v => !v)}
             className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-              needsRingersOnly ? 'bg-orange-500 border-orange-500 text-white' : 'border-gray-200 text-gray-500 bg-white'
+              needsRingersOnly ? 'bg-warn border-warn text-white' : 'border-hairline text-ink-2 bg-white'
             }`}
           >
             {t('group_detail.needs_ringers')}
@@ -750,7 +750,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
                 key={f.id}
                 onClick={() => setPastFilter(f.id)}
                 className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-                  pastFilter === f.id ? 'bg-[#009688] border-[#009688] text-white' : 'border-gray-200 text-gray-500 bg-white'
+                  pastFilter === f.id ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-white'
                 }`}
               >
                 {f.label}
@@ -759,13 +759,13 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
           </div>
           {/* Stats summary */}
           {playedCount > 0 && (
-          <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-2 mb-3">
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-1">{t('group_detail.your_record_in_group')}</p>
+          <div className="rounded-xl bg-surface border border-hairline px-3 py-2 mb-3">
+            <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-1">{t('group_detail.your_record_in_group')}</p>
             <div className="flex gap-4">
-              <span className="text-[13px] font-bold text-gray-900">{t('group_detail.played', { count: playedCount })}</span>
+              <span className="text-[13px] font-bold text-ink">{t('group_detail.played', { count: playedCount })}</span>
               <span className="text-[13px] font-bold text-green-700">{winsCount}W</span>
               <span className="text-[13px] font-bold text-red-500">{lossesCount}L</span>
-              <span className="text-[13px] font-bold text-gray-500">{playedCount > 0 ? Math.round((winsCount / playedCount) * 100) : 0}%</span>
+              <span className="text-[13px] font-bold text-ink-2">{playedCount > 0 ? Math.round((winsCount / playedCount) * 100) : 0}%</span>
             </div>
           </div>
           )}
@@ -784,7 +784,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
             return (
               <div key={match.id} className={!isInMatch ? 'opacity-75' : ''}>
                 {!isInMatch && (
-                  <p className="text-[10px] text-gray-400 mb-0.5 pl-1">{t('group_detail.not_in_this_match')}</p>
+                  <p className="text-[11px] text-ink-2 mb-0.5 pl-1">{t('group_detail.not_in_this_match')}</p>
                 )}
                 <MatchCard match={match} currentUserId={userId} action="view" index={i} />
               </div>
@@ -816,7 +816,7 @@ function PollsTab({ polls, isLoading, groupId }: {
     <div>
       <button
         onClick={() => navigate(`/play/availability/create?group_id=${groupId}`)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         {t('group_detail.create_poll')}
@@ -828,7 +828,7 @@ function PollsTab({ polls, isLoading, groupId }: {
         <>
           {active.length > 0 && (
             <div className="mb-4">
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('group_detail.active')}</p>
+              <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2">{t('group_detail.active')}</p>
               <div className="space-y-2">
                 {active.map((poll) => <PollCard key={poll.id} poll={poll} />)}
               </div>
@@ -836,7 +836,7 @@ function PollsTab({ polls, isLoading, groupId }: {
           )}
           {past.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('group_detail.past')}</p>
+              <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-2">{t('group_detail.past')}</p>
               <div className="space-y-2">
                 {past.map((poll) => <PollCard key={poll.id} poll={poll} />)}
               </div>
@@ -854,21 +854,21 @@ function PollCard({ poll }: { poll: Poll }) {
   return (
     <button
       onClick={() => navigate(`/play/availability/${poll.id}`)}
-      className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
+      className="w-full text-left rounded-xl border border-hairline bg-surface px-4 py-3 hover:border-court-100 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-semibold text-gray-900 truncate">{poll.title}</p>
+          <p className="text-[13px] font-semibold text-ink truncate">{poll.title}</p>
           {poll.closes_at && (
-            <p className="text-[11px] text-gray-400 mt-0.5">
+            <p className="text-[11px] text-ink-2 mt-0.5">
               {t('group_detail.closes')} {format(parseISO(poll.closes_at), 'EEE d MMM, HH:mm', { locale: getDateLocale() })}
             </p>
           )}
         </div>
-        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold flex-shrink-0 mt-0.5 ${
+        <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold flex-shrink-0 mt-0.5 ${
           poll.status === 'open'
             ? 'bg-green-50 text-green-600 border border-green-100'
-            : 'bg-gray-100 text-gray-500'
+            : 'bg-hairline text-ink-2'
         }`}>
           {poll.status === 'open' ? t('group_detail.poll_open') : t('group_detail.poll_closed')}
         </span>
@@ -898,7 +898,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
       {isAdmin && (
         <button
           onClick={() => setShowCreate(true)}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
         >
           <Plus className="h-4 w-4" />
           {t('group_detail.create_event')}
@@ -913,15 +913,15 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
             <button
               key={event.id}
               onClick={() => navigate(`/community/events/${event.id}`)}
-              className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
+              className="w-full text-left rounded-xl border border-hairline bg-surface px-4 py-3 hover:border-court-100 transition-colors"
             >
-              <p className="text-[13px] font-semibold text-gray-900">{event.title}</p>
-              <p className="text-[12px] text-gray-500 mt-0.5">
+              <p className="text-[13px] font-semibold text-ink">{event.title}</p>
+              <p className="text-[12px] text-ink-2 mt-0.5">
                 {format(parseISO(event.start_time), 'EEE d MMM · HH:mm', { locale })}
                 {event.end_time && ` – ${format(parseISO(event.end_time), 'HH:mm', { locale })}`}
               </p>
               {event.location && (
-                <p className="text-[11px] text-gray-400 mt-0.5">{event.location}</p>
+                <p className="text-[11px] text-ink-2 mt-0.5">{event.location}</p>
               )}
             </button>
           ))}
@@ -955,14 +955,14 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
   const STATUS_STYLE: Record<string, string> = {
     active:    'bg-green-50 text-green-600 border-green-100',
     upcoming:  'bg-blue-50 text-blue-600 border-blue-100',
-    completed: 'bg-gray-100 text-gray-500 border-gray-200',
+    completed: 'bg-hairline text-ink-2 border-hairline',
   }
 
   return (
     <div>
       <button
         onClick={() => navigate(`/compete/leagues/create?group_id=${groupId}`)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#009688] py-2.5 mb-4 text-[13px] font-bold text-white"
+        className="w-full flex items-center justify-center gap-2 rounded-xl bg-court py-2.5 mb-4 text-[13px] font-bold text-white"
       >
         <Plus className="h-4 w-4" />
         {t('group_detail.create_league')}
@@ -976,16 +976,16 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
             <button
               key={league.id}
               onClick={() => navigate(`/compete/leagues/${league.id}`)}
-              className="w-full text-left rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 hover:border-teal-200 transition-colors"
+              className="w-full text-left rounded-xl border border-hairline bg-surface px-4 py-3 hover:border-court-100 transition-colors"
             >
               <div className="flex items-center justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-semibold text-gray-900 truncate">{league.name}</p>
+                  <p className="text-[13px] font-semibold text-ink truncate">{league.name}</p>
                   {league.city && (
-                    <p className="text-[11px] text-gray-400 mt-0.5">{league.city}</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">{league.city}</p>
                   )}
                 </div>
-                <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold flex-shrink-0 capitalize ${STATUS_STYLE[league.status] ?? 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold flex-shrink-0 capitalize ${STATUS_STYLE[league.status] ?? 'bg-hairline text-ink-2 border-hairline'}`}>
                   {league.status}
                 </span>
               </div>
@@ -1210,8 +1210,8 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 onClick={() => setAdminSection(s)}
                 className={`text-[11px] font-semibold py-2 rounded-xl capitalize transition-colors ${
                   adminSection === s
-                    ? 'bg-[#009688] text-white'
-                    : 'bg-gray-100 text-gray-500'
+                    ? 'bg-court text-white'
+                    : 'bg-hairline text-ink-2'
                 }`}
               >
                 {s === 'overview' ? t('group_detail.admin_overview') : s === 'members' ? t('group_detail.admin_members') : s === 'announce' ? t('group_detail.admin_post') : t('group_detail.admin_settings')}
@@ -1229,16 +1229,16 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   { label: t('group_detail.stat_avg_elo'), value: avgElo?.toLocaleString() ?? '—' },
                   { label: t('group_detail.stat_created'), value: group.created_at ? format(parseISO(group.created_at), 'd MMM yyyy', { locale }) : '—' },
                 ].map(({ label, value }) => (
-                  <div key={label} className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
-                    <p className="text-[11px] text-gray-400 font-medium">{label}</p>
-                    <p className="text-[20px] font-black text-gray-900 mt-0.5">{value}</p>
+                  <div key={label} className="rounded-2xl border border-hairline bg-surface px-4 py-3">
+                    <p className="text-[11px] text-ink-2 font-medium">{label}</p>
+                    <p className="text-[20px] font-black text-ink mt-0.5">{value}</p>
                   </div>
                 ))}
               </div>
               {pendingMembers.length > 0 && (
                 <button
                   onClick={() => setAdminSection('members')}
-                  className="w-full rounded-xl bg-amber-50 border border-amber-100 py-3 text-[13px] font-bold text-amber-700"
+                  className="w-full rounded-xl bg-warn-50 border border-warn-100 py-3 text-[13px] font-bold text-warn"
                 >
                   {pendingMembers.length === 1 ? t('group_detail.pending_review', { count: pendingMembers.length }) : t('group_detail.pending_review_plural', { count: pendingMembers.length })}
                 </button>
@@ -1251,26 +1251,26 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
             <div className="space-y-3">
               {/* Pending requests */}
               {(loadingPending || pendingMembers.length > 0) && (
-                <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-                  <p className="text-[12px] font-bold text-amber-700 uppercase tracking-wide mb-3">
+                <div className="rounded-2xl border border-warn-100 bg-warn-50 p-4">
+                  <p className="text-[12px] font-bold text-warn uppercase tracking-wide mb-3">
                     {t('group_detail.pending_requests_label')} {pendingMembers.length > 0 ? `(${pendingMembers.length})` : ''}
                   </p>
                   {loadingPending ? (
-                    <div className="h-10 bg-amber-100 rounded-xl animate-pulse" />
+                    <div className="h-10 bg-warn-100 rounded-xl animate-pulse" />
                   ) : (
                     <div className="space-y-2">
                       {pendingMembers.map((pm) => (
                         <div key={pm.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5">
                           <PlayerAvatar name={pm.name} avatarUrl={pm.avatar_url} size="sm" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-[13px] font-semibold text-gray-800 truncate">{pm.name}</p>
+                            <p className="text-[13px] font-semibold text-ink truncate">{pm.name}</p>
                             {pm.internal_ranking != null && (
-                              <p className="text-[11px] text-gray-400">{pm.internal_ranking} ELO</p>
+                              <p className="text-[11px] text-ink-2">{pm.internal_ranking} ELO</p>
                             )}
                           </div>
                           <button
                             onClick={() => approveMember(pm.user_id)}
-                            className="rounded-lg bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white"
+                            className="rounded-lg bg-court px-3 py-1.5 text-[11px] font-bold text-white"
                           >
                             {t('group_detail.approve')}
                           </button>
@@ -1288,8 +1288,8 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               )}
 
               {/* Approved members */}
-              <div className="rounded-2xl border border-gray-100 p-4">
-                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">
+              <div className="rounded-2xl border border-hairline p-4">
+                <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-3">
                   {t('group_detail.members_label', { count: approvedMembers.length })}
                 </p>
                 <div className="space-y-2">
@@ -1298,16 +1298,16 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                       <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="sm" />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="text-[13px] font-semibold text-gray-800 truncate">{m.name}</p>
+                          <p className="text-[13px] font-semibold text-ink truncate">{m.name}</p>
                           {m.id === currentUserId && (
-                            <span className="text-[10px] text-gray-400">(you)</span>
+                            <span className="text-[11px] text-ink-2">(you)</span>
                           )}
                           {m.role === 'admin' && (
-                            <span className="text-[10px] font-bold text-teal-600 bg-teal-50 rounded-full px-1.5 py-0.5">{t('group_detail.badge_admin')}</span>
+                            <span className="text-[11px] font-bold text-court bg-court-50 rounded-full px-1.5 py-0.5">{t('group_detail.badge_admin')}</span>
                           )}
                         </div>
                         {m.internal_ranking != null && (
-                          <p className="text-[11px] text-gray-400">{m.internal_ranking.toLocaleString()} ELO</p>
+                          <p className="text-[11px] text-ink-2">{m.internal_ranking.toLocaleString()} ELO</p>
                         )}
                       </div>
                       {m.id !== currentUserId && (
@@ -1315,14 +1315,14 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           <button
                             onClick={() => toggleRole(m)}
                             disabled={actionPending === m.id}
-                            className="rounded-lg border border-gray-200 px-2.5 py-1 text-[10px] font-semibold text-gray-600 disabled:opacity-50"
+                            className="rounded-lg border border-hairline px-2.5 py-1 text-[11px] font-semibold text-ink-2 disabled:opacity-50"
                           >
                             {m.role === 'admin' ? t('group_detail.role_demote') : t('group_detail.role_make_admin')}
                           </button>
                           <button
                             onClick={() => removeMember(m.id)}
                             disabled={actionPending === m.id}
-                            className="rounded-lg border border-red-200 px-2.5 py-1 text-[10px] font-semibold text-red-500 disabled:opacity-50"
+                            className="rounded-lg border border-red-200 px-2.5 py-1 text-[11px] font-semibold text-red-500 disabled:opacity-50"
                           >
                             {t('group_detail.remove')}
                           </button>
@@ -1337,20 +1337,20 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
           {/* ANNOUNCE */}
           {adminSection === 'announce' && (
-            <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('group_detail.send_announcement')}</p>
-              <p className="text-[12px] text-gray-400">{t('group_detail.announcement_subtitle', { count: approvedMembers.length })}</p>
+            <div className="rounded-2xl border border-hairline p-4 space-y-3">
+              <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">{t('group_detail.send_announcement')}</p>
+              <p className="text-[12px] text-ink-2">{t('group_detail.announcement_subtitle', { count: approvedMembers.length })}</p>
               <textarea
                 value={announcement}
                 onChange={(e) => setAnnouncement(e.target.value)}
                 placeholder={t('group_detail.announcement_placeholder')}
                 rows={4}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[13px] text-ink focus:outline-none focus:ring-1 focus:ring-court resize-none"
               />
               <button
                 onClick={sendAnnouncement}
                 disabled={sending || !announcement.trim()}
-                className="w-full rounded-xl bg-[#009688] py-3 text-[13px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-xl bg-court py-3 text-[13px] font-bold text-white disabled:opacity-40"
               >
                 {sent ? t('group_detail.sent_to_n_members', { count: sentCount }) : sending ? t('group_detail.sending') : t('group_detail.send_to_n_members', { count: approvedMembers.length })}
               </button>
@@ -1359,53 +1359,53 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
           {/* SETTINGS */}
           {adminSection === 'settings' && (
-            <div className="rounded-2xl border border-gray-100 p-4 space-y-3">
-              <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">{t('group_detail.group_settings')}</p>
+            <div className="rounded-2xl border border-hairline p-4 space-y-3">
+              <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">{t('group_detail.group_settings')}</p>
 
               {/* Banner upload */}
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.group_banner')}</label>
+                <label className="text-[12px] text-ink-2 font-medium mb-1 block">{t('group_detail.group_banner')}</label>
                 {group.banner_url && (
                   <img src={group.banner_url} alt="Banner" className="w-full h-24 object-cover rounded-xl mb-2" />
                 )}
-                <label className={`flex items-center justify-center gap-2 w-full rounded-xl border border-dashed border-gray-300 py-2.5 text-[12px] font-semibold text-gray-500 cursor-pointer hover:border-teal-400 hover:text-teal-600 transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                <label className={`flex items-center justify-center gap-2 w-full rounded-xl border border-dashed border-hairline py-2.5 text-[12px] font-semibold text-ink-2 cursor-pointer hover:border-court hover:text-court transition-colors ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
                   <input type="file" accept="image/*" className="hidden" onChange={handleBannerUpload} />
                   {uploading ? t('group_detail.uploading') : t('group_detail.upload_banner')}
                 </label>
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.name_label')}</label>
+                <label className="text-[12px] text-ink-2 font-medium mb-1 block">{t('group_detail.name_label')}</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[14px] text-ink focus:outline-none focus:ring-1 focus:ring-court"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.description_label')}</label>
+                <label className="text-[12px] text-ink-2 font-medium mb-1 block">{t('group_detail.description_label')}</label>
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   rows={2}
                   placeholder={t('group_detail.description_placeholder')}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[13px] text-ink focus:outline-none focus:ring-1 focus:ring-court resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.city_label')}</label>
+                <label className="text-[12px] text-ink-2 font-medium mb-1 block">{t('group_detail.city_label')}</label>
                 <input
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder={t('group_detail.city_placeholder')}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[14px] text-ink focus:outline-none focus:ring-1 focus:ring-court"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.visibility_label')}</label>
+                <label className="text-[12px] text-ink-2 font-medium mb-1 block">{t('group_detail.visibility_label')}</label>
                 <div className="flex gap-2">
                   {(['open', 'private'] as const).map((v) => (
                     <button
@@ -1413,8 +1413,8 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                       onClick={() => setVisibility(v)}
                       className={`flex-1 rounded-xl border py-2 text-[12px] font-semibold capitalize transition-colors ${
                         visibility === v
-                          ? 'border-teal-300 bg-teal-50 text-teal-700'
-                          : 'border-gray-200 text-gray-500'
+                          ? 'border-court-100 bg-court-50 text-court-700'
+                          : 'border-hairline text-ink-2'
                       }`}
                     >
                       {v === 'open' ? t('group_detail.visibility_open') : t('group_detail.visibility_private')}
@@ -1425,25 +1425,25 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
               {/* Join request settings — only shown for private groups */}
               {visibility === 'private' && (
-                <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
-                  <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Join Requests</p>
+                <div className="rounded-xl border border-hairline bg-surface px-4 py-3 space-y-3">
+                  <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">Join Requests</p>
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-700">Allow join requests</span>
+                    <span className="text-[13px] text-ink-2">Allow join requests</span>
                     <button
                       type="button"
                       onClick={() => setAllowJoinRequests(v => !v)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowJoinRequests ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowJoinRequests ? 'bg-court' : 'bg-hairline'}`}
                     >
                       <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowJoinRequests ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                   {allowJoinRequests && (
                     <div className="flex items-center justify-between">
-                      <span className="text-[13px] text-gray-700">Auto-approve requests</span>
+                      <span className="text-[13px] text-ink-2">Auto-approve requests</span>
                       <button
                         type="button"
                         onClick={() => setAutoApprove(v => !v)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoApprove ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoApprove ? 'bg-court' : 'bg-hairline'}`}
                       >
                         <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoApprove ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
@@ -1453,21 +1453,21 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               )}
 
               {/* Ringer / Guest Policy */}
-              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
-                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Ringer / Guest Policy</p>
+              <div className="rounded-xl border border-hairline bg-surface px-4 py-3 space-y-3">
+                <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">Ringer / Guest Policy</p>
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] text-gray-700">Allow ringers</span>
+                  <span className="text-[13px] text-ink-2">Allow ringers</span>
                   <button
                     type="button"
                     onClick={() => setAllowRingers(v => !v)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowRingers ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowRingers ? 'bg-court' : 'bg-hairline'}`}
                   >
                     <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowRingers ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
                 {allowRingers && (
                   <div>
-                    <p className="text-[12px] text-gray-500 mb-2">Who can add ringers?</p>
+                    <p className="text-[12px] text-ink-2 mb-2">Who can add ringers?</p>
                     <div className="flex gap-2">
                       {(['admin', 'any_member'] as const).map((opt) => (
                         <button
@@ -1476,8 +1476,8 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           onClick={() => setRingerApproval(opt)}
                           className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${
                             ringerApproval === opt
-                              ? 'bg-[#009688] text-white border-[#009688]'
-                              : 'bg-white text-gray-600 border-gray-200'
+                              ? 'bg-court text-white border-court'
+                              : 'bg-white text-ink-2 border-hairline'
                           }`}
                         >
                           {opt === 'admin' ? 'Admin only' : 'Any member'}
@@ -1489,53 +1489,53 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               </div>
 
               {/* Match Generation */}
-              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
-                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">Match Generation</p>
+              <div className="rounded-xl border border-hairline bg-surface px-4 py-3 space-y-3">
+                <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">Match Generation</p>
                 <div>
                   <div className="flex items-center justify-between">
-                    <span className="text-[13px] text-gray-700">Auto-generate matches</span>
+                    <span className="text-[13px] text-ink-2">Auto-generate matches</span>
                     <button
                       type="button"
                       onClick={() => setAutoMatchEnabled(v => !v)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoMatchEnabled ? 'bg-[#009688]' : 'bg-gray-200'}`}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoMatchEnabled ? 'bg-court' : 'bg-hairline'}`}
                     >
                       <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoMatchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-1">When voting closes, create the matches automatically. Turn this off if you'd rather review and generate them yourself.</p>
+                  <p className="text-[11px] text-ink-2 mt-1">When voting closes, create the matches automatically. Turn this off if you'd rather review and generate them yourself.</p>
                   {!autoMatchEnabled && members.filter(m => m.role === 'admin').length < 2 && (
-                    <p className="text-[11px] text-gray-400 mt-1 italic">You're the only admin. Consider adding a second so matches still get generated when you're away.</p>
+                    <p className="text-[11px] text-ink-2 mt-1 italic">You're the only admin. Consider adding a second so matches still get generated when you're away.</p>
                   )}
                 </div>
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.max_members_label')}</label>
+                <label className="text-[12px] text-ink-2 font-medium mb-1 block">{t('group_detail.max_members_label')}</label>
                 <input
                   type="number"
                   value={maxMembers}
                   onChange={(e) => setMaxMembers(e.target.value)}
                   placeholder={t('group_detail.max_members_placeholder')}
                   min="1"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[14px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688]"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[14px] text-ink focus:outline-none focus:ring-1 focus:ring-court"
                 />
               </div>
 
               <div>
-                <label className="text-[12px] text-gray-500 font-medium mb-1 block">{t('group_detail.group_rules_label')}</label>
+                <label className="text-[12px] text-ink-2 font-medium mb-1 block">{t('group_detail.group_rules_label')}</label>
                 <textarea
                   value={rules}
                   onChange={(e) => setRules(e.target.value)}
                   rows={3}
                   placeholder={t('group_detail.group_rules_placeholder')}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-[13px] text-gray-900 focus:outline-none focus:ring-1 focus:ring-[#009688] resize-none"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[13px] text-ink focus:outline-none focus:ring-1 focus:ring-court resize-none"
                 />
               </div>
 
               <button
                 onClick={saveSettings}
                 disabled={saving}
-                className="w-full rounded-xl bg-[#009688] py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                className="w-full rounded-xl bg-court py-3 text-[14px] font-bold text-white disabled:opacity-60"
               >
                 {saved ? t('group_detail.saved') : saving ? t('group_detail.saving') : t('group_detail.save_changes')}
               </button>
@@ -1546,7 +1546,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
 
       {/* Danger Zone — visible to all members */}
       <div className="rounded-2xl border border-red-100 p-4">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">{t('group_detail.danger_zone')}</p>
+        <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-3">{t('group_detail.danger_zone')}</p>
         <button
           onClick={() => setConfirmLeave(true)}
           className="w-full rounded-xl border border-red-200 py-3 text-[14px] font-semibold text-red-500"
@@ -1569,10 +1569,10 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">{t('group_detail.leave_group')}</p>
-              <p className="text-[13px] text-gray-500 text-center mb-6">{t('group_detail.leave_group_help')}</p>
+              <p className="text-[16px] font-bold text-ink text-center mb-2">{t('group_detail.leave_group')}</p>
+              <p className="text-[13px] text-ink-2 text-center mb-6">{t('group_detail.leave_group_help')}</p>
               <div className="flex gap-3">
-                <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">{t('group_detail.cancel')}</button>
+                <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2">{t('group_detail.cancel')}</button>
                 <button onClick={leaveGroup} disabled={leaving} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-50">{leaving ? 'Leaving...' : t('group_detail.leave')}</button>
               </div>
             </motion.div>
@@ -1631,14 +1631,14 @@ function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: 
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <p className="text-[16px] font-bold text-gray-900 text-center mb-2">
+              <p className="text-[16px] font-bold text-ink text-center mb-2">
                 {isRinger ? t('group_detail.stop_ringer_title') : t('group_detail.leave_group')}
               </p>
-              <p className="text-[13px] text-gray-500 text-center mb-6">
+              <p className="text-[13px] text-ink-2 text-center mb-6">
                 {isRinger ? t('group_detail.stop_ringer_confirm') : t('group_detail.leave_group_confirm')}
               </p>
               <div className="flex gap-3">
-                <button onClick={() => setConfirmOpen(false)} className="flex-1 rounded-2xl border border-gray-200 py-3 text-[14px] font-semibold text-gray-700">
+                <button onClick={() => setConfirmOpen(false)} className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2">
                   {t('group_detail.cancel')}
                 </button>
                 <button onClick={() => leaveMutation.mutate()} disabled={leaveMutation.isPending}
@@ -1660,7 +1660,7 @@ function TabSkeleton() {
   return (
     <div className="space-y-2">
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
+        <div key={i} className="h-14 rounded-xl bg-hairline animate-pulse" />
       ))}
     </div>
   )
@@ -1668,9 +1668,9 @@ function TabSkeleton() {
 
 function EmptyTab({ message, sub }: { message: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
-      <p className="text-[13px] font-semibold text-gray-500">{message}</p>
-      {sub && <p className="text-[12px] text-gray-400 mt-1">{sub}</p>}
+    <div className="rounded-2xl border border-dashed border-hairline p-8 text-center">
+      <p className="text-[13px] font-semibold text-ink-2">{message}</p>
+      {sub && <p className="text-[12px] text-ink-2 mt-1">{sub}</p>}
     </div>
   )
 }
@@ -1860,7 +1860,7 @@ export function GroupDetailPage() {
   if (loadingGroup) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -1868,8 +1868,8 @@ export function GroupDetailPage() {
   if (!group) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-        <p className="text-[14px] font-semibold text-gray-500">{t('group_detail.group_not_found')}</p>
-        <button onClick={() => navigate('/community')} className="mt-4 text-[13px] text-teal-600 font-semibold">
+        <p className="text-[14px] font-semibold text-ink-2">{t('group_detail.group_not_found')}</p>
+        <button onClick={() => navigate('/community')} className="mt-4 text-[13px] text-court font-semibold">
           {t('group_detail.back_to_community')}
         </button>
       </div>
@@ -1890,34 +1890,34 @@ export function GroupDetailPage() {
         <div className="flex items-center gap-3 mb-4">
           <button
             onClick={() => navigate('/community')}
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-ink-2" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-[20px] font-bold text-gray-900 truncate">{group.name}</h1>
+            <h1 className="text-[20px] font-bold text-ink truncate">{group.name}</h1>
             <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-              <span className="text-[12px] text-gray-400">
+              <span className="text-[12px] text-ink-2">
                 {memberCount} member{memberCount !== 1 ? 's' : ''}
               </span>
               {group.city && (
                 <>
-                  <span className="text-gray-300">·</span>
-                  <span className="text-[12px] text-gray-400">{group.city}</span>
+                  <span className="text-ink-3">·</span>
+                  <span className="text-[12px] text-ink-2">{group.city}</span>
                 </>
               )}
               {group.visibility === 'private' && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-bold text-gray-600">
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-hairline px-2 py-0.5 text-[11px] font-bold text-ink-2">
                   <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
                 </span>
               )}
               {isAdmin && (
-                <span className="rounded-full bg-teal-50 border border-teal-100 px-2 py-0.5 text-[10px] font-bold text-teal-600">
+                <span className="rounded-full bg-court-50 border border-court-100 px-2 py-0.5 text-[11px] font-bold text-court">
                   {t('group_detail.badge_admin')}
                 </span>
               )}
               {isRinger && !isAdmin && (
-                <span className="rounded-full bg-orange-50 border border-orange-100 px-2 py-0.5 text-[10px] font-bold text-orange-600">
+                <span className="rounded-full bg-warn-50 border border-warn-100 px-2 py-0.5 text-[11px] font-bold text-warn">
                   {t('community.badge_ringer')}
                 </span>
               )}
@@ -1931,22 +1931,22 @@ export function GroupDetailPage() {
 
       {/* Invite banner */}
       {effectiveInviteData && !acceptInviteMutation.isSuccess && !declineInviteMutation.isSuccess && (
-        <div className={`mx-5 mb-3 rounded-xl border px-4 py-3 ${isRingerInvite ? 'border-orange-200 bg-orange-50' : 'border-teal-200 bg-teal-50'}`}>
-          <p className="text-[13px] font-semibold text-gray-800 mb-2">
+        <div className={`mx-5 mb-3 rounded-xl border px-4 py-3 ${isRingerInvite ? 'border-warn bg-warn-50' : 'border-court-100 bg-court-50'}`}>
+          <p className="text-[13px] font-semibold text-ink mb-2">
             {isRingerInvite ? t('group_detail.ringer_invite_banner', { name: group.name }) : t('group_detail.invite_banner', { name: group.name })}
           </p>
           <div className="flex gap-2">
             <button
               onClick={() => acceptInviteMutation.mutate()}
               disabled={acceptInviteMutation.isPending || declineInviteMutation.isPending}
-              className="flex-1 rounded-xl bg-[#009688] py-2 text-[13px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
+              className="flex-1 rounded-xl bg-court py-2 text-[13px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50"
             >
               {acceptInviteMutation.isPending ? t('group_detail.accepting') : t('group_detail.accept_invite')}
             </button>
             <button
               onClick={() => declineInviteMutation.mutate()}
               disabled={acceptInviteMutation.isPending || declineInviteMutation.isPending}
-              className="flex-1 rounded-xl bg-gray-100 py-2 text-[13px] font-semibold text-gray-600 active:scale-95 transition-transform disabled:opacity-50"
+              className="flex-1 rounded-xl bg-hairline py-2 text-[13px] font-semibold text-ink-2 active:scale-95 transition-transform disabled:opacity-50"
             >
               {t('group_detail.decline_invite')}
             </button>
@@ -1960,27 +1960,27 @@ export function GroupDetailPage() {
         const count = pendingRequests.length
         const busy = approveBannerMutation.isPending || declineBannerMutation.isPending
         return (
-          <div className="mx-5 mb-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-            <p className="text-[13px] font-semibold text-gray-800 mb-2">
+          <div className="mx-5 mb-3 rounded-xl border border-warn bg-warn-50 px-4 py-3">
+            <p className="text-[13px] font-semibold text-ink mb-2">
               {count === 1
                 ? t('group_detail.pending_single', { name: first.name })
                 : t('group_detail.pending_multiple', { count })}
             </p>
             <div className="flex items-center gap-3">
               <PlayerAvatar name={first.name} avatarUrl={first.avatar_url} size="sm" />
-              <p className="text-[13px] font-semibold text-gray-700 flex-1 min-w-0 truncate">{first.name}</p>
+              <p className="text-[13px] font-semibold text-ink-2 flex-1 min-w-0 truncate">{first.name}</p>
               <button onClick={() => approveBannerMutation.mutate(first)} disabled={busy}
-                className="rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
+                className="rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
                 {t('group_detail.approve')}
               </button>
               <button onClick={() => declineBannerMutation.mutate(first)} disabled={busy}
-                className="rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-600 active:scale-95 transition-transform disabled:opacity-50">
+                className="rounded-xl bg-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2 active:scale-95 transition-transform disabled:opacity-50">
                 {t('group_detail.decline')}
               </button>
             </div>
             {count > 1 && (
               <button onClick={() => setActiveTab('settings')}
-                className="mt-2 text-[12px] font-semibold text-amber-700">
+                className="mt-2 text-[12px] font-semibold text-warn">
                 {t('group_detail.view_all_requests', { count })}
               </button>
             )}
@@ -1994,21 +1994,21 @@ export function GroupDetailPage() {
         const count = pendingRingerOffers.length
         const busy = approveRingerMutation.isPending || declineRingerMutation.isPending
         return (
-          <div className="mx-5 mb-3 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3">
-            <p className="text-[13px] font-semibold text-gray-800 mb-2">
+          <div className="mx-5 mb-3 rounded-xl border border-warn bg-warn-50 px-4 py-3">
+            <p className="text-[13px] font-semibold text-ink mb-2">
               {count === 1
                 ? t('group_detail.ringer_offer_single', { name: first.name })
                 : t('group_detail.ringer_offer_multiple', { count })}
             </p>
             <div className="flex items-center gap-3">
               <PlayerAvatar name={first.name} avatarUrl={first.avatar_url} size="sm" />
-              <p className="text-[13px] font-semibold text-gray-700 flex-1 min-w-0 truncate">{first.name}</p>
+              <p className="text-[13px] font-semibold text-ink-2 flex-1 min-w-0 truncate">{first.name}</p>
               <button onClick={() => approveRingerMutation.mutate(first)} disabled={busy}
-                className="rounded-xl bg-orange-500 px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
+                className="rounded-xl bg-warn px-3 py-1.5 text-[12px] font-bold text-white active:scale-95 transition-transform disabled:opacity-50">
                 {t('group_detail.approve')}
               </button>
               <button onClick={() => declineRingerMutation.mutate(first)} disabled={busy}
-                className="rounded-xl bg-gray-100 px-3 py-1.5 text-[12px] font-semibold text-gray-600 active:scale-95 transition-transform disabled:opacity-50">
+                className="rounded-xl bg-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2 active:scale-95 transition-transform disabled:opacity-50">
                 {t('group_detail.decline')}
               </button>
             </div>
@@ -2017,7 +2017,7 @@ export function GroupDetailPage() {
       })()}
 
       {/* Tabs */}
-      <div className="relative px-5 border-b border-gray-100">
+      <div className="relative px-5 border-b border-hairline">
         <div className="flex gap-5 overflow-x-auto no-scrollbar">
           {TABS.map((tab) => {
             const active = activeTab === tab.id
@@ -2026,14 +2026,14 @@ export function GroupDetailPage() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`relative pb-3 text-[13px] font-semibold flex-shrink-0 transition-colors ${
-                  active ? 'text-[#009688]' : 'text-gray-400'
+                  active ? 'text-court' : 'text-ink-2'
                 }`}
               >
                 {tab.label}
                 {active && (
                   <motion.div
                     layoutId="tab-underline"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#009688] rounded-full"
+                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-court rounded-full"
                     transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                   />
                 )}
@@ -2054,10 +2054,10 @@ export function GroupDetailPage() {
           className="px-5 pt-4 pb-32"
         >
           {isPrivateAndNotMember && (activeTab === 'members' || activeTab === 'matches' || activeTab === 'polls') ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center">
-              <Lock className="h-6 w-6 text-gray-300 mx-auto mb-3" />
-              <p className="text-[13px] font-semibold text-gray-500">{t('group_detail.private_locked_title')}</p>
-              <p className="text-[12px] text-gray-400 mt-1">{t('group_detail.private_locked_sub')}</p>
+            <div className="rounded-2xl border border-dashed border-hairline p-8 text-center">
+              <Lock className="h-6 w-6 text-ink-3 mx-auto mb-3" />
+              <p className="text-[13px] font-semibold text-ink-2">{t('group_detail.private_locked_title')}</p>
+              <p className="text-[12px] text-ink-2 mt-1">{t('group_detail.private_locked_sub')}</p>
             </div>
           ) : (
             <>

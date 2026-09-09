@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink } from 'lucide-react'
+import { X, ChevronLeft, Edit2, LogOut, ChevronRight, Home, Search, Link, Unlink, Settings } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { useTranslation } from 'react-i18next'
@@ -13,7 +13,8 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { confirmDialog } from '@/components/shared/ConfirmDialog'
-import { BADGE_DEFINITIONS, PEER_VOTE_CATEGORIES, COURT_TIME_TIERS, courtTimeTier } from '@/lib/achievements'
+import { BADGE_DEFINITIONS, ACHIEVEMENT_LIBRARY, PEER_VOTE_CATEGORIES, COURT_TIME_TIERS, courtTimeTier } from '@/lib/achievements'
+import { EloHero } from '@/components/shared/EloHero'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { RewardsCard } from '@/components/rewards/RewardsCard'
@@ -438,28 +439,28 @@ function LinkPartnerSheet({
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">{t('you.link_household_title')}</h2>
+              <h2 className="text-[15px] font-bold text-ink">{t('you.link_household_title')}</h2>
               <div className="w-9" />
             </div>
             <div className="px-5 pb-6" style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
-              <p className="text-[13px] text-gray-500 mb-4">
+              <p className="text-[13px] text-ink-2 mb-4">
                 {t('you.link_household_search_help')}
               </p>
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
                 <input
                   type="text"
                   value={search}
                   onChange={(e) => { setSearch(e.target.value); setSelected(null) }}
                   placeholder={t('you.search_by_name')}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
               {results.length > 0 && (
@@ -470,13 +471,13 @@ function LinkPartnerSheet({
                       onClick={() => setSelected(p)}
                       className={cn(
                         'w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-colors',
-                        selected?.id === p.id ? 'bg-teal-50 border border-teal-200' : 'bg-gray-50 border border-gray-100'
+                        selected?.id === p.id ? 'bg-court-50 border border-court-100' : 'bg-surface border border-hairline'
                       )}
                     >
                       <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                      <span className="text-[14px] font-medium text-gray-800">{p.name}</span>
+                      <span className="text-[14px] font-medium text-ink">{p.name}</span>
                       {selected?.id === p.id && (
-                        <span className="ml-auto text-[11px] font-bold text-teal-600">{t('you.search_selected')}</span>
+                        <span className="ml-auto text-[11px] font-bold text-court">{t('you.search_selected')}</span>
                       )}
                     </button>
                   ))}
@@ -488,7 +489,7 @@ function LinkPartnerSheet({
               <button
                 onClick={() => selected && linkMutation.mutate(selected.id)}
                 disabled={!selected || linkMutation.isPending}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {linkMutation.isPending ? t('you.linking') : t('you.link_request_btn')}
               </button>
@@ -618,14 +619,14 @@ function EditProfileSheet({
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="flex items-center gap-1.5 text-[13px] font-semibold text-gray-600">
+              <button onClick={onClose} className="flex items-center gap-1.5 text-[13px] font-semibold text-ink-2">
                 <ChevronLeft className="h-4 w-4" />
                 Back
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">{t('you.edit_profile_title')}</h2>
+              <h2 className="text-[15px] font-bold text-ink">{t('you.edit_profile_title')}</h2>
               <div className="w-14" />
             </div>
 
@@ -642,18 +643,18 @@ function EditProfileSheet({
                     <img
                       src={avatarPreview ?? profile!.avatar_url!}
                       alt="avatar"
-                      className="h-20 w-20 rounded-full object-cover border-2 border-gray-200"
+                      className="h-20 w-20 rounded-full object-cover border-2 border-hairline"
                     />
                   ) : (
-                    <div className="h-20 w-20 rounded-full bg-gray-200 flex items-center justify-center text-[28px] font-bold text-gray-500">
+                    <div className="h-20 w-20 rounded-full bg-hairline flex items-center justify-center text-[28px] font-bold text-ink-2">
                       {(profile?.name ?? '?')[0].toUpperCase()}
                     </div>
                   )}
-                  <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-[#009688] border-2 border-white flex items-center justify-center">
+                  <span className="absolute bottom-0 right-0 h-6 w-6 rounded-full bg-court border-2 border-white flex items-center justify-center">
                     <Edit2 className="h-3 w-3 text-white" />
                   </span>
                 </button>
-                <p className="text-[11px] text-gray-400">{uploading ? t('you.uploading') : t('you.tap_change_photo')}</p>
+                <p className="text-[11px] text-ink-2">{uploading ? t('you.uploading') : t('you.tap_change_photo')}</p>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -664,17 +665,17 @@ function EditProfileSheet({
               </div>
 
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">{t('you.name_label')}</label>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">{t('you.name_label')}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
                   {t('you.city_label')}
                 </label>
                 <input
@@ -683,11 +684,11 @@ function EditProfileSheet({
                   onChange={(e) => setCity(e.target.value)}
                   placeholder={t('you.city_placeholder')}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
                   {t('you.postal_code_label')}
                 </label>
                 <input
@@ -696,18 +697,18 @@ function EditProfileSheet({
                   onChange={(e) => setPostalCode(e.target.value)}
                   placeholder={t('you.postal_code_placeholder')}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
                   {t('you.country_label')}
                 </label>
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 bg-white"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-white"
                 >
                   <option value="">{t('you.country_placeholder')}</option>
                   {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -715,15 +716,15 @@ function EditProfileSheet({
               </div>
 
               {/* Travel preferences */}
-              <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3 space-y-3">
-                <p className="text-[12px] font-bold text-gray-500 uppercase tracking-wide">{t('you.travel_preferences')}</p>
+              <div className="rounded-xl border border-hairline bg-surface px-4 py-3 space-y-3">
+                <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">{t('you.travel_preferences')}</p>
 
                 <div className="flex items-center justify-between">
-                  <span className="text-[13px] text-gray-700">{t('you.i_have_a_car')}</span>
+                  <span className="text-[13px] text-ink-2">{t('you.i_have_a_car')}</span>
                   <button
                     type="button"
                     onClick={() => setCanDrive((v) => !v)}
-                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', canDrive ? 'bg-[#009688]' : 'bg-gray-200')}
+                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', canDrive ? 'bg-court' : 'bg-hairline')}
                   >
                     <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition-transform', canDrive ? 'translate-x-6' : 'translate-x-1')} />
                   </button>
@@ -732,31 +733,31 @@ function EditProfileSheet({
                 {canDrive && (
                   <>
                     <div>
-                      <label className="text-[12px] text-gray-500 block mb-1.5">Max passengers: {maxPassengers}</label>
+                      <label className="text-[12px] text-ink-2 block mb-1.5">Max passengers: {maxPassengers}</label>
                       <input
                         type="range"
                         min={1}
                         max={4}
                         value={maxPassengers}
                         onChange={(e) => setMaxPassengers(Number(e.target.value))}
-                        className="w-full accent-[#009688]"
+                        className="w-full accent-court"
                       />
-                      <div className="flex justify-between text-[10px] text-gray-300">
+                      <div className="flex justify-between text-[11px] text-ink-3">
                         <span>1</span><span>2</span><span>3</span><span>4</span>
                       </div>
                     </div>
 
                     <div>
-                      <label className="text-[12px] text-gray-500 block mb-1.5">Pick-up radius: {travelRadius} miles</label>
+                      <label className="text-[12px] text-ink-2 block mb-1.5">Pick-up radius: {travelRadius} miles</label>
                       <input
                         type="range"
                         min={1}
                         max={20}
                         value={travelRadius}
                         onChange={(e) => setTravelRadius(Number(e.target.value))}
-                        className="w-full accent-[#009688]"
+                        className="w-full accent-court"
                       />
-                      <div className="flex justify-between text-[10px] text-gray-300">
+                      <div className="flex justify-between text-[11px] text-ink-3">
                         <span>1 mi</span><span>20 mi</span>
                       </div>
                     </div>
@@ -782,7 +783,7 @@ function EditProfileSheet({
                       () => { setLocating(false); toast.error('Could not get your location') },
                     )
                   }}
-                  className="w-full rounded-xl border border-gray-200 bg-white py-2 text-[12px] font-semibold text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors"
+                  className="w-full rounded-xl border border-hairline bg-white py-2 text-[12px] font-semibold text-ink-2 hover:bg-surface disabled:opacity-40 transition-colors"
                 >
                   {locating ? t('you.getting_location') : t('you.use_current_location')}
                 </button>
@@ -795,7 +796,7 @@ function EditProfileSheet({
               <button
                 onClick={() => saveMutation.mutate()}
                 disabled={saveMutation.isPending}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {saveMutation.isPending ? t('you.saving') : t('you.save_changes')}
               </button>
@@ -914,7 +915,6 @@ export function YouPage() {
   // Hero derived data
   const achievementsCount = achievements.length
   const topAchievements = achievements.slice(0, 3).map((a) => a.badge_key)
-  const favPartner = stats?.favouritePartnerName ? { name: stats.favouritePartnerName, avatar_url: null as string | null } : null
 
   const filteredHistory = history.filter((m) => {
     if (historyFilter === 'wins')   return m.result_type === 'win'
@@ -923,126 +923,88 @@ export function YouPage() {
   })
 
   return (
-    <div className="min-h-full bg-white pb-32">
-      {/* Header */}
-      <div className="px-5 pt-14 pb-4 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-        <h1 className="text-[22px] font-bold text-gray-900">{t('you.title')}</h1>
+    <div className="min-h-full bg-surface pb-32">
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between px-5 pb-3.5 pt-14">
+        <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
+          {t('you.title')}
+        </h1>
+        <button
+          onClick={() => settingsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          aria-label={t('you.settings')}
+          className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-pill border border-hairline bg-card"
+        >
+          <Settings className="h-5 w-5 text-ink-2" strokeWidth={2} />
+        </button>
       </div>
 
-      <div className="px-5 space-y-6">
+      <div className="px-5 space-y-[18px]">
 
-        {/* ── Hero Card — navy gradient, identity-focused ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-3xl shadow-lg"
-          style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #3b82f6 100%)' }}
-        >
-          <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full opacity-20" style={{ background: 'radial-gradient(circle, white 0%, transparent 70%)' }} />
+        {/* ── Rating hero ── */}
+        <EloHero
+          userId={userId}
+          name={profile?.name ?? authProfile?.email?.split('@')[0]}
+          avatarUrl={fullProfile?.avatar_url ?? authProfile?.avatar_url}
+          subtitle={fullProfile?.city ?? null}
+          elo={fullProfile?.internal_ranking ?? authProfile?.internal_ranking}
+          isProvisional={!!fullProfile?.is_provisional}
+          matchesPlayed={stats?.totalMatches}
+          recentResults={history.map((m) => m.result_type)}
+          onEdit={() => setShowEdit(true)}
+        />
 
-          <button
-            onClick={() => setShowEdit(true)}
-            className="absolute top-4 right-4 z-10 h-9 w-9 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center hover:bg-white/25 transition-colors"
-            aria-label={t('you.edit_profile_aria')}
-          >
-            <Edit2 className="h-3.5 w-3.5 text-white" />
-          </button>
-
-          <div className="px-5 pt-6 pb-5">
-            <div className="flex items-start gap-4">
-              <PlayerAvatar
-                name={profile?.name}
-                avatarUrl={fullProfile?.avatar_url ?? authProfile?.avatar_url}
-                size="lg"
-              />
-              <div className="flex-1 min-w-0 pt-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-[20px] font-bold text-white truncate">
-                    {profile?.name || authProfile?.email?.split('@')[0] || '—'}
-                  </h2>
-                  {fullProfile?.account_type === 'coach' && (
-                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white">🎾 Coach</span>
-                  )}
-                  {fullProfile?.account_type === 'venue_manager' && (
-                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white">🏟️ Venue</span>
-                  )}
-                  {fullProfile?.account_type === 'organiser' && (
-                    <span className="rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-[10px] font-bold text-white">🏆 Organiser</span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                  {fullProfile?.city && (
-                    <span className="text-[12px] text-white/70">{fullProfile.city}</span>
-                  )}
-                  {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking) != null && (
-                    <span className="inline-flex items-center rounded-full bg-white/15 backdrop-blur-sm px-2 py-0.5 text-[11px] font-bold text-white">
-                      {(fullProfile?.internal_ranking ?? authProfile?.internal_ranking)?.toLocaleString()} ELO
-                      {fullProfile?.is_provisional && (
-                        <span className="ml-1 text-white/60 font-normal">(provisional)</span>
-                      )}
-                    </span>
-                  )}
-                  {(fullProfile as any)?.can_drive && (
-                    <span className="inline-flex items-center rounded-full bg-blue-500/20 backdrop-blur-sm px-2 py-0.5 text-[11px] font-bold text-white">
-                      🚗 Has a car
-                    </span>
-                  )}
-                </div>
-              </div>
+        {/* ── Three numbers, per the board ── */}
+        <div className="grid grid-cols-3 gap-2">
+          {[
+            { value: stats ? `${stats.totalMatches}` : '—', label: t('you.matches_played') },
+            { value: stats ? `${stats.winRate}%` : '—',     label: t('you.win_rate') },
+            { value: stats ? `#${stats.rankPosition}` : '—', label: t('you.ranking') },
+          ].map(({ value, label }) => (
+            <div key={label} className="flex flex-col gap-[3px] rounded-[14px] border border-hairline bg-card px-3 py-3.5">
+              <p className="num text-[22px] font-extrabold leading-6 text-ink">{value}</p>
+              <p className="text-[11px] font-semibold leading-[14px] text-ink-2">{label}</p>
             </div>
+          ))}
+        </div>
 
-            {/* Identity grid — 3 tiles */}
-            <div className="grid grid-cols-3 gap-2 mt-5">
-              <button
-                onClick={() => achievementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
-              >
-                <div className="flex items-center gap-1 mb-1">
-                  {topAchievements.length > 0
-                    ? topAchievements.map((badgeKey, i) => (
-                        <span key={i} className="text-[15px]">{BADGE_DEFINITIONS[badgeKey]?.emoji ?? '🏅'}</span>
-                      ))
-                    : <span className="text-[15px] opacity-50">🏅</span>
-                  }
-                </div>
-                <p className="text-[18px] font-bold text-white leading-tight">{achievementsCount}</p>
-                <p className="text-[10px] text-white/60 leading-tight mt-0.5">{t('you.achievements_count_label')}</p>
-              </button>
-
-              <button
-                onClick={() => favPartnersRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
-              >
-                <div className="mb-1 h-[15px]">
-                  {favPartner
-                    ? <div className="h-[15px] w-[15px] rounded-full bg-white/20 flex items-center justify-center"><span className="text-[9px] font-bold text-white">{favPartner.name?.charAt(0)?.toUpperCase() ?? '?'}</span></div>
-                    : <span className="text-[15px] opacity-50">👥</span>
-                  }
-                </div>
-                <p className="text-[13px] font-bold text-white leading-tight truncate">
-                  {favPartner?.name?.split(' ')[0] ?? '—'}
-                </p>
-                <p className="text-[10px] text-white/60 leading-tight mt-0.5">{t('you.fav_partner_label')}</p>
-              </button>
-
-              <button
-                onClick={() => householdRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="rounded-2xl bg-white/10 backdrop-blur-sm px-3 py-3 hover:bg-white/15 transition-colors text-left"
-              >
-                <div className="mb-1 h-[15px]">
-                  {householdPartner
-                    ? <Link className="h-[15px] w-[15px] text-white" />
-                    : <Unlink className="h-[15px] w-[15px] text-white/50" />
-                  }
-                </div>
-                <p className="text-[13px] font-bold text-white leading-tight truncate">
-                  {householdPartner?.name?.split(' ')[0] ?? t('you.link_partner_short')}
-                </p>
-                <p className="text-[10px] text-white/60 leading-tight mt-0.5">{t('you.household_label')}</p>
-              </button>
+        {/* ── Badges, per the board ── */}
+        <section className="flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+              {t('you.achievements')}
+            </h2>
+            <button
+              onClick={() => achievementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+              className="num text-[13px] font-semibold leading-4 text-court"
+            >
+              {t('you.badges_of', { count: achievementsCount, total: Object.keys(ACHIEVEMENT_LIBRARY).length })}
+            </button>
+          </div>
+          <div className="flex gap-2">
+            {[0, 1, 2].map((i) => {
+              const key = topAchievements[i]
+              const bg = ['bg-court', 'bg-line', 'bg-ball'][i]
+              return (
+                <button
+                  key={i}
+                  onClick={() => achievementsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  className={cn(
+                    'flex h-[54px] w-[54px] items-center justify-center rounded-[15px] text-[24px]',
+                    key ? bg : 'border border-dashed border-ink-4 bg-card',
+                  )}
+                  aria-label={key ? t(`achievements.${key}`, { defaultValue: BADGE_DEFINITIONS[key]?.label ?? key }) : undefined}
+                >
+                  {key ? (BADGE_DEFINITIONS[key]?.emoji ?? '🏅') : ''}
+                </button>
+              )
+            })}
+            <div className="flex h-[54px] w-[54px] items-center justify-center rounded-[15px] border border-dashed border-ink-4 bg-card">
+              <span className="num text-[13px] font-bold text-ink-3">
+                +{Math.max(0, achievementsCount - 3)}
+              </span>
             </div>
           </div>
-        </motion.div>
+        </section>
 
         {/* Section nav chips */}
         <div className="-mx-5 px-5 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none', WebkitOverflowScrolling: 'touch' }}>
@@ -1058,7 +1020,7 @@ export function YouPage() {
               <button
                 key={key}
                 onClick={() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="rounded-full bg-gray-100 border border-gray-200 px-4 py-2 text-[12px] font-semibold text-gray-700 whitespace-nowrap hover:bg-gray-200 transition-colors"
+                className="rounded-full bg-hairline border border-hairline px-4 py-2 text-[12px] font-semibold text-ink-2 whitespace-nowrap hover:bg-hairline transition-colors"
               >
                 {label}
               </button>
@@ -1068,11 +1030,11 @@ export function YouPage() {
 
         {/* ── Stats Summary ── */}
         <section ref={statsRef} style={{ scrollMarginTop: '80px' }}>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.stats')}</h2>
+          <h2 className="text-[16px] font-bold text-ink mb-3">{t('you.stats')}</h2>
           {loadingStats ? (
             <div className="grid grid-cols-2 gap-2">
               {[0, 1, 2, 3].map((i) => (
-                <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />
+                <div key={i} className="h-16 rounded-xl bg-hairline animate-pulse" />
               ))}
             </div>
           ) : stats ? (
@@ -1083,15 +1045,15 @@ export function YouPage() {
                 { label: t('you.ranking'),         value: `#${stats.rankPosition}` },
                 { label: t('you.best_streak'),     value: `${stats.bestStreak}W` },
               ].map(({ label, value }) => (
-                <div key={label} className="rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
-                  <p className="text-[20px] font-black text-gray-900">{value}</p>
-                  <p className="text-[11px] text-gray-400 mt-0.5">{label}</p>
+                <div key={label} className="rounded-xl bg-surface border border-hairline px-4 py-3">
+                  <p className="text-[20px] font-black text-ink">{value}</p>
+                  <p className="text-[11px] text-ink-2 mt-0.5">{label}</p>
                 </div>
               ))}
               {stats.favouritePartnerName && (
-                <div ref={favPartnersRef as React.RefObject<HTMLDivElement>} className="col-span-2 rounded-xl bg-teal-50 border border-teal-100 px-4 py-3" style={{ scrollMarginTop: '80px' }}>
-                  <p className="text-[13px] font-bold text-teal-800 truncate">{stats.favouritePartnerName}</p>
-                  <p className="text-[11px] text-teal-600 mt-0.5">{t('you.favourite_partner')}</p>
+                <div ref={favPartnersRef as React.RefObject<HTMLDivElement>} className="col-span-2 rounded-xl bg-court-50 border border-court-100 px-4 py-3" style={{ scrollMarginTop: '80px' }}>
+                  <p className="text-[13px] font-bold text-court-700 truncate">{stats.favouritePartnerName}</p>
+                  <p className="text-[11px] text-court mt-0.5">{t('you.favourite_partner')}</p>
                 </div>
               )}
             </div>
@@ -1101,7 +1063,7 @@ export function YouPage() {
         {/* ── Rating History ── */}
         {userId && (
           <section ref={ratingRef} className="pb-2" style={{ scrollMarginTop: '80px' }}>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.rating_history')}</h2>
+            <h2 className="text-[16px] font-bold text-ink mb-3">{t('you.rating_history')}</h2>
             {stats && (
               <EloStageCard
                 userId={userId}
@@ -1116,7 +1078,7 @@ export function YouPage() {
         {/* ── My Rewards ── */}
         {myRewards.length > 0 && (
           <section className="pb-2">
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.my_rewards')}</h2>
+            <h2 className="text-[16px] font-bold text-ink mb-3">{t('you.my_rewards')}</h2>
             <div className="space-y-3">
               {myRewards.map((venue) => (
                 <RewardsCard
@@ -1132,24 +1094,24 @@ export function YouPage() {
 
         {/* ── Household ── */}
         <section ref={householdRef} style={{ scrollMarginTop: '80px' }}>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-1">
+          <h2 className="text-[16px] font-bold text-ink mb-1">
             <span className="inline-flex items-center gap-2">
-              <Home className="h-4 w-4 text-gray-500" />
+              <Home className="h-4 w-4 text-ink-2" />
               {t('you.household')}
             </span>
           </h2>
-          <p className="text-[12px] text-gray-400 mb-3 leading-relaxed">{t('you.household_description')}</p>
+          <p className="text-[12px] text-ink-2 mb-3 leading-relaxed">{t('you.household_description')}</p>
 
           {/* Pending incoming requests */}
           {householdRequests.length > 0 && !householdPartner && (
             <div className="space-y-2 mb-3">
               {householdRequests.map((req) => (
-                <div key={req.id} className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div key={req.id} className="rounded-2xl border border-warn bg-warn-50 p-4">
                   <div className="flex items-center gap-3 mb-3">
                     <PlayerAvatar name={req.requesterName} avatarUrl={req.requesterAvatar} size="sm" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-gray-800">{req.requesterName}</p>
-                      <p className="text-[11px] text-amber-700">wants to link as household partners</p>
+                      <p className="text-[13px] font-semibold text-ink">{req.requesterName}</p>
+                      <p className="text-[11px] text-warn">wants to link as household partners</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -1164,7 +1126,7 @@ export function YouPage() {
                         queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                         toast.success('Household partner linked!')
                       }}
-                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
+                      className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
                     >
                       {householdPending === req.id ? 'Linking...' : 'Accept'}
                     </button>
@@ -1177,7 +1139,7 @@ export function YouPage() {
                         if (error) { toast.error(error.message); return }
                         queryClient.invalidateQueries({ queryKey: ['household-requests', userId] })
                       }}
-                      className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 disabled:opacity-50"
+                      className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2 disabled:opacity-50"
                     >
                       Decline
                     </button>
@@ -1188,12 +1150,12 @@ export function YouPage() {
           )}
 
           {householdPartner ? (
-            <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div className="rounded-2xl border border-hairline bg-surface p-4">
               <div className="flex items-center gap-3 mb-3">
                 <PlayerAvatar name={householdPartner.name} avatarUrl={householdPartner.avatar_url} size="md" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-0.5">{t('you.household_partner')}</p>
-                  <p className="text-[15px] font-bold text-gray-900 truncate">{householdPartner.name}</p>
+                  <p className="text-[11px] text-ink-2 uppercase tracking-wide mb-0.5">{t('you.household_partner')}</p>
+                  <p className="text-[15px] font-bold text-ink truncate">{householdPartner.name}</p>
                 </div>
               </div>
               <button
@@ -1208,15 +1170,15 @@ export function YouPage() {
               </button>
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-3">
-                <Link className="h-5 w-5 text-gray-400" />
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+              <div className="h-10 w-10 rounded-full bg-hairline flex items-center justify-center mx-auto mb-3">
+                <Link className="h-5 w-5 text-ink-2" />
               </div>
-              <p className="text-[14px] font-semibold text-gray-700 mb-1">{t('you.link_partner')}</p>
-              <p className="text-[12px] text-gray-400 mb-4">{t('you.link_partner_sub')}</p>
+              <p className="text-[14px] font-semibold text-ink-2 mb-1">{t('you.link_partner')}</p>
+              <p className="text-[12px] text-ink-2 mb-4">{t('you.link_partner_sub')}</p>
               <button
                 onClick={() => setShowLinkPartner(true)}
-                className="rounded-xl bg-[#009688] px-5 py-2.5 text-[13px] font-bold text-white"
+                className="rounded-xl bg-court px-5 py-2.5 text-[13px] font-bold text-white"
               >
                 {t('you.link_partner')}
               </button>
@@ -1226,10 +1188,10 @@ export function YouPage() {
 
         {/* ── Match History ── */}
         <section ref={matchHistoryRef} style={{ scrollMarginTop: '80px' }}>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.match_history')}</h2>
+          <h2 className="text-[16px] font-bold text-ink mb-3">{t('you.match_history')}</h2>
 
           {/* Filter tabs */}
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1 mb-3">
+          <div className="flex bg-hairline rounded-xl p-1 gap-1 mb-3">
             {([
               ['all',    t('you.history_all')],
               ['wins',   t('you.wins')],
@@ -1240,7 +1202,7 @@ export function YouPage() {
                 onClick={() => setHistoryFilter(f)}
                 className={cn(
                   'flex-1 rounded-lg py-2 text-[12px] font-semibold capitalize transition-colors',
-                  historyFilter === f ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                  historyFilter === f ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
                 )}
               >
                 {label}
@@ -1251,12 +1213,12 @@ export function YouPage() {
           {loadingHistory ? (
             <div className="space-y-2">
               {[0, 1, 2].map((i) => (
-                <div key={i} className="h-14 rounded-xl bg-gray-100 animate-pulse" />
+                <div key={i} className="h-14 rounded-xl bg-hairline animate-pulse" />
               ))}
             </div>
           ) : filteredHistory.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-6 text-center">
-              <p className="text-[13px] font-semibold text-gray-500">{t('you.no_matches_found')}</p>
+            <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">{t('you.no_matches_found')}</p>
             </div>
           ) : (
             <>
@@ -1266,20 +1228,20 @@ export function YouPage() {
                     try { return format(parseISO(m.match_date), 'd MMM yyyy', { locale }) } catch { return m.match_date }
                   })()
                   return (
-                    <div key={m.id} className="flex items-center gap-3 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+                    <div key={m.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-surface px-3 py-2.5">
                       <span className={cn(
-                        'flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold capitalize',
+                        'flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold capitalize',
                         m.result_type === 'win'  ? 'bg-green-50 text-green-700 border border-green-100' :
                         m.result_type === 'loss' ? 'bg-red-50 text-red-500 border border-red-100'       :
-                                                   'bg-gray-100 text-gray-500 border border-gray-200'
+                                                   'bg-hairline text-ink-2 border border-hairline'
                       )}>
                         {m.result_type ?? '—'}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-[12px] font-semibold text-gray-800 truncate">vs {m.opponents}</p>
-                        <p className="text-[11px] text-gray-400">{dateStr}</p>
+                        <p className="text-[12px] font-semibold text-ink truncate">vs {m.opponents}</p>
+                        <p className="text-[11px] text-ink-2">{dateStr}</p>
                       </div>
-                      <span className="text-[13px] font-bold text-gray-700 flex-shrink-0">{m.score}</span>
+                      <span className="text-[13px] font-bold text-ink-2 flex-shrink-0">{m.score}</span>
                     </div>
                   )
                 })}
@@ -1287,7 +1249,7 @@ export function YouPage() {
               {history.length >= historyLimit && (
                 <button
                   onClick={() => setHistoryLimit((l) => l + 10)}
-                  className="mt-3 w-full rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+                  className="mt-3 w-full rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2 hover:bg-surface transition-colors"
                 >
                   {t('you.load_more')}
                 </button>
@@ -1305,35 +1267,35 @@ export function YouPage() {
           const nextTier = tierIdx >= 0 && tierIdx < COURT_TIME_TIERS.length - 1 ? COURT_TIME_TIERS[tierIdx + 1] : null
           const setsToNext = nextTier ? nextTier.minSets - totalSets : null
           const ctTierColors: Record<string, string> = {
-            bronze: 'border-orange-200 bg-orange-50',
-            silver: 'border-gray-200 bg-gray-50',
-            gold: 'border-amber-200 bg-amber-50',
+            bronze: 'border-warn bg-warn-50',
+            silver: 'border-hairline bg-surface',
+            gold: 'border-warn bg-warn-50',
             platinum: 'border-slate-300 bg-slate-50',
             diamond: 'border-cyan-200 bg-cyan-50',
           }
           const ctTierTextColors: Record<string, string> = {
-            bronze: 'text-orange-600',
-            silver: 'text-gray-500',
-            gold: 'text-amber-600',
+            bronze: 'text-warn',
+            silver: 'text-ink-2',
+            gold: 'text-warn',
             platinum: 'text-slate-600',
             diamond: 'text-cyan-600',
           }
           const tierLabel = currentTier ? currentTier.charAt(0).toUpperCase() + currentTier.slice(1) : null
           return (
             <section>
-              <div className={cn('rounded-xl border p-4', currentTier ? ctTierColors[currentTier] : 'border-dashed border-gray-200 bg-gray-50/50')}>
+              <div className={cn('rounded-xl border p-4', currentTier ? ctTierColors[currentTier] : 'border-dashed border-hairline bg-surface/50')}>
                 <div className="flex items-center gap-3">
                   <span className="text-[28px]">🎾</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <p className="text-[14px] font-bold text-gray-900">Court Time</p>
+                      <p className="text-[14px] font-bold text-ink">Court Time</p>
                       {tierLabel && (
-                        <span className={cn('text-[9px] font-bold uppercase tracking-wide rounded-full px-1.5 py-0.5', currentTier ? `${ctTierColors[currentTier]} ${ctTierTextColors[currentTier]}` : '')}>
+                        <span className={cn('text-[11px] font-bold uppercase tracking-wide rounded-full px-1.5 py-0.5', currentTier ? `${ctTierColors[currentTier]} ${ctTierTextColors[currentTier]}` : '')}>
                           {tierLabel}
                         </span>
                       )}
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
+                    <p className="text-[11px] text-ink-2 mt-0.5">
                       {totalSets} logged sets
                       {setsToNext != null && setsToNext > 0
                         ? ` · ${setsToNext} to ${(nextTier!.tier.charAt(0).toUpperCase() + nextTier!.tier.slice(1))}`
@@ -1349,7 +1311,7 @@ export function YouPage() {
         {/* ── Achievements ── */}
         {achievements.filter(a => a.badge_key !== 'court_time').length > 0 && (
           <section ref={achievementsRef} style={{ scrollMarginTop: '80px' }}>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.achievements')}</h2>
+            <h2 className="text-[16px] font-bold text-ink mb-3">{t('you.achievements')}</h2>
             <div className="grid grid-cols-3 gap-2">
               {achievements.filter(a => a.badge_key !== 'court_time').map((a) => {
                 const meta = {
@@ -1357,10 +1319,10 @@ export function YouPage() {
                   emoji: BADGE_DEFINITIONS[a.badge_key]?.emoji ?? '🏅',
                 }
                 return (
-                  <div key={a.id} className="rounded-xl border border-gray-100 bg-gray-50 p-3 text-center">
+                  <div key={a.id} className="rounded-xl border border-hairline bg-surface p-3 text-center">
                     <p className="text-[24px] leading-none mb-1">{meta.emoji}</p>
-                    <p className="text-[11px] font-semibold text-gray-700 leading-tight">{meta.label}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[11px] font-semibold text-ink-2 leading-tight">{meta.label}</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">
                       {(() => { try { return format(parseISO(a.earned_at), 'd MMM', { locale }) } catch { return '' } })()}
                     </p>
                   </div>
@@ -1373,26 +1335,26 @@ export function YouPage() {
         {/* ── Peer vote totals ── */}
         {voteCounts.length > 0 && (
           <section>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Peer votes received</h2>
+            <h2 className="text-[16px] font-bold text-ink mb-3">Peer votes received</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {PEER_VOTE_CATEGORIES.map((cat) => {
                 const count = voteCounts.find(v => v.vote_category === cat.id)?.vote_count ?? 0
                 if (count === 0) return null
                 const tier = count >= 40 ? 'gold' : count >= 15 ? 'silver' : count >= 5 ? 'bronze' : null
                 const tierColors: Record<string, string> = {
-                  gold: 'border-amber-200 bg-amber-50',
-                  silver: 'border-gray-200 bg-gray-50',
-                  bronze: 'border-orange-200 bg-orange-50',
+                  gold: 'border-warn bg-warn-50',
+                  silver: 'border-hairline bg-surface',
+                  bronze: 'border-warn bg-warn-50',
                 }
                 const tierLabel: Record<string, string> = { gold: 'Gold', silver: 'Silver', bronze: 'Bronze' }
                 return (
-                  <div key={cat.id} className={`rounded-xl border p-3 text-center ${tier ? tierColors[tier] : 'border-gray-100 bg-gray-50'}`}>
+                  <div key={cat.id} className={`rounded-xl border p-3 text-center ${tier ? tierColors[tier] : 'border-hairline bg-surface'}`}>
                     <p className="text-[20px] leading-none mb-1">{cat.emoji}</p>
-                    <p className="text-[18px] font-extrabold text-gray-800">{count}</p>
-                    <p className="text-[10px] font-semibold text-gray-500 leading-tight mt-0.5">{cat.name}</p>
+                    <p className="text-[18px] font-extrabold text-ink">{count}</p>
+                    <p className="text-[11px] font-semibold text-ink-2 leading-tight mt-0.5">{cat.name}</p>
                     {tier && (
-                      <p className={`text-[9px] font-bold mt-1 uppercase tracking-wide ${
-                        tier === 'gold' ? 'text-amber-600' : tier === 'silver' ? 'text-gray-500' : 'text-orange-600'
+                      <p className={`text-[11px] font-bold mt-1 uppercase tracking-wide ${
+                        tier === 'gold' ? 'text-warn' : tier === 'silver' ? 'text-ink-2' : 'text-warn'
                       }`}>{tierLabel[tier]}</p>
                     )}
                   </div>
@@ -1405,16 +1367,16 @@ export function YouPage() {
         {/* ── Entertainer jersey ── */}
         {(isCurrentEntertainer || entertainerTitles > 0) && (
           <section>
-            <h2 className="text-[16px] font-bold text-gray-900 mb-3">Entertainer</h2>
-            <div className="rounded-xl border border-blue-100 bg-blue-50/40 px-4 py-3 flex items-center gap-3">
+            <h2 className="text-[16px] font-bold text-ink mb-3">Entertainer</h2>
+            <div className="flex items-center gap-3 rounded-card border border-court-100 bg-court-50 px-4 py-3">
               <span className="text-[22px]">🔵</span>
               <div className="flex-1 min-w-0">
                 {isCurrentEntertainer ? (
-                  <p className="text-[13px] font-bold text-blue-700">Current holder</p>
+                  <p className="text-[13px] font-bold text-court">Current holder</p>
                 ) : (
-                  <p className="text-[13px] font-semibold text-gray-600">Previously held</p>
+                  <p className="text-[13px] font-semibold text-ink-2">Previously held</p>
                 )}
-                <p className="text-[11px] text-gray-500">
+                <p className="text-[11px] text-ink-2">
                   {entertainerTitles} {entertainerTitles === 1 ? 'title' : 'titles'} won
                 </p>
               </div>
@@ -1424,12 +1386,12 @@ export function YouPage() {
 
         {/* ── Settings ── */}
         <section ref={settingsRef} style={{ scrollMarginTop: '80px' }}>
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.settings')}</h2>
-          <div className="rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+          <h2 className="text-[16px] font-bold text-ink mb-3">{t('you.settings')}</h2>
+          <div className="rounded-2xl border border-hairline overflow-hidden divide-y divide-hairline">
 
             {/* Push notifications toggle */}
             <div className="flex items-center justify-between px-4 py-3.5">
-              <span className="text-[13px] font-medium text-gray-700">{t('you.push_notifications')}</span>
+              <span className="text-[13px] font-medium text-ink-2">{t('you.push_notifications')}</span>
               <button
                 disabled={savingPush}
                 onClick={async () => {
@@ -1461,7 +1423,7 @@ export function YouPage() {
                 }}
                 className={cn(
                   'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                  notifEnabled ? 'bg-[#009688]' : 'bg-gray-200'
+                  notifEnabled ? 'bg-court' : 'bg-hairline'
                 )}
                 aria-label={t('you.toggle_notifications_aria')}
               >
@@ -1473,7 +1435,7 @@ export function YouPage() {
             </div>
             {iosHint && (
               <div className="px-4 pb-3">
-                <p className="text-[12px] text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
+                <p className="text-[12px] text-warn bg-warn-50 rounded-lg px-3 py-2">
                   To enable notifications on iPhone, first add this app to your home screen: tap the Share button → Add to Home Screen.
                 </p>
               </div>
@@ -1481,7 +1443,7 @@ export function YouPage() {
 
             {/* Language */}
             <div className="px-4 py-3.5">
-              <span className="text-[13px] font-medium text-gray-700 block mb-2">{t('you.language')}</span>
+              <span className="text-[13px] font-medium text-ink-2 block mb-2">{t('you.language')}</span>
               <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
                 {SUPPORTED_LANGUAGES.map((lang) => (
                   <button
@@ -1501,8 +1463,8 @@ export function YouPage() {
                     className={cn(
                       'flex-shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold border transition-colors',
                       i18n.language === lang.code
-                        ? 'bg-[#009688] text-white border-[#009688]'
-                        : 'bg-white text-gray-600 border-gray-200'
+                        ? 'bg-court text-white border-court'
+                        : 'bg-white text-ink-2 border-hairline'
                     )}
                   >
                     {lang.label}
@@ -1521,7 +1483,7 @@ export function YouPage() {
               const currentVal = !!(fullProfile as any)?.[key]
               return (
                 <div key={key} className="flex items-center justify-between px-4 py-3.5">
-                  <span className="text-[13px] font-medium text-gray-700">{label}</span>
+                  <span className="text-[13px] font-medium text-ink-2">{label}</span>
                   <button
                     disabled={savingPrivacy === key}
                     onClick={async () => {
@@ -1536,7 +1498,7 @@ export function YouPage() {
                     }}
                     className={cn(
                       'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                      currentVal ? 'bg-[#009688]' : 'bg-gray-200',
+                      currentVal ? 'bg-court' : 'bg-hairline',
                       savingPrivacy === key && 'opacity-50'
                     )}
                     aria-label={label}
@@ -1574,10 +1536,10 @@ export function YouPage() {
               }}
               className="w-full flex items-center justify-between px-4 py-3.5 disabled:opacity-50"
             >
-              <span className="text-[13px] font-medium text-gray-700">
+              <span className="text-[13px] font-medium text-ink-2">
                 {resetSent ? t('you.reset_sent') : t('you.reset_password')}
               </span>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
+              <ChevronRight className="h-4 w-4 text-ink-2" />
             </button>
 
             {/* Privacy Policy */}
@@ -1585,8 +1547,8 @@ export function YouPage() {
               onClick={() => navigate('/privacy')}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
-              <span className="text-[13px] font-medium text-gray-700">{t('you.privacy_policy')}</span>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
+              <span className="text-[13px] font-medium text-ink-2">{t('you.privacy_policy')}</span>
+              <ChevronRight className="h-4 w-4 text-ink-2" />
             </button>
 
             {/* Terms of Service */}
@@ -1594,8 +1556,8 @@ export function YouPage() {
               onClick={() => navigate('/terms')}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
-              <span className="text-[13px] font-medium text-gray-700">{t('you.terms')}</span>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
+              <span className="text-[13px] font-medium text-ink-2">{t('you.terms')}</span>
+              <ChevronRight className="h-4 w-4 text-ink-2" />
             </button>
 
             {/* Help & Support */}
@@ -1603,8 +1565,8 @@ export function YouPage() {
               onClick={() => navigate('/support')}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
-              <span className="text-[13px] font-medium text-gray-700">{t('you.support_link')}</span>
-              <ChevronRight className="h-4 w-4 text-gray-400" />
+              <span className="text-[13px] font-medium text-ink-2">{t('you.support_link')}</span>
+              <ChevronRight className="h-4 w-4 text-ink-2" />
             </button>
 
             {/* Delete account */}
@@ -1618,7 +1580,7 @@ export function YouPage() {
           </div>
 
           {/* App version */}
-          <p className="text-[11px] text-gray-300 text-center mt-3">{`PPA v${__APP_VERSION__}`}</p>
+          <p className="text-[11px] text-ink-3 text-center mt-3">{`PPA v${__APP_VERSION__}`}</p>
 
           {/* Sign out */}
           <button
@@ -1649,14 +1611,14 @@ export function YouPage() {
               >
                 {deleteStep === 1 ? (
                   <>
-                    <h3 className="text-[17px] font-bold text-gray-900 text-center mb-2">{t('you.delete_account_confirm')}</h3>
-                    <p className="text-[13px] text-gray-500 text-center mb-5">
+                    <h3 className="text-[17px] font-bold text-ink text-center mb-2">{t('you.delete_account_confirm')}</h3>
+                    <p className="text-[13px] text-ink-2 text-center mb-5">
                       This will permanently delete your account, all matches, results, ELO history, and you cannot recover this. Are you sure?
                     </p>
                     <div className="flex gap-3">
                       <button
                         onClick={() => { setShowDeleteConfirm(false); setDeleteStep(1); setDeleteTyped('') }}
-                        className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700"
+                        className="flex-1 rounded-xl border border-hairline py-3 text-[13px] font-semibold text-ink-2"
                       >
                         {t('common.cancel')}
                       </button>
@@ -1671,8 +1633,8 @@ export function YouPage() {
                 ) : (
                   <>
                     <h3 className="text-[17px] font-bold text-red-600 text-center mb-2">Final confirmation</h3>
-                    <p className="text-[13px] text-gray-500 text-center mb-3">
-                      Type <span className="font-bold text-gray-900">DELETE</span> below to confirm.
+                    <p className="text-[13px] text-ink-2 text-center mb-3">
+                      Type <span className="font-bold text-ink">DELETE</span> below to confirm.
                     </p>
                     <input
                       type="text"
@@ -1680,13 +1642,13 @@ export function YouPage() {
                       onChange={(e) => setDeleteTyped(e.target.value)}
                       placeholder="Type DELETE"
                       autoFocus
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-[14px] font-bold text-gray-900 focus:outline-none focus:border-red-400 mb-4"
+                      className="w-full rounded-xl border border-hairline px-4 py-3 text-center text-[14px] font-bold text-ink focus:outline-none focus:border-red-400 mb-4"
                     />
                     <div className="flex gap-3">
                       <button
                         onClick={() => { setDeleteStep(1); setDeleteTyped('') }}
                         disabled={deleting}
-                        className="flex-1 rounded-xl border border-gray-200 py-3 text-[13px] font-semibold text-gray-700 disabled:opacity-50"
+                        className="flex-1 rounded-xl border border-hairline py-3 text-[13px] font-semibold text-ink-2 disabled:opacity-50"
                       >
                         Back
                       </button>
@@ -1714,7 +1676,7 @@ export function YouPage() {
                         {deleting ? 'Deleting…' : 'Delete my account'}
                       </button>
                     </div>
-                    <p className="text-[11px] text-gray-400 text-center mt-4">
+                    <p className="text-[11px] text-ink-2 text-center mt-4">
                       Having trouble?{' '}
                       <a href="mailto:support@padelplayersapp.com" className="underline">
                         support@padelplayersapp.com
@@ -1731,16 +1693,16 @@ export function YouPage() {
       {/* ── Admin Section ── */}
       {adminGroups.length > 0 && (
         <section className="px-5 pb-4">
-          <h2 className="text-[16px] font-bold text-gray-900 mb-3">{t('you.admin_section')}</h2>
-          <div className="rounded-2xl border border-gray-100 overflow-hidden divide-y divide-gray-50">
+          <h2 className="text-[16px] font-bold text-ink mb-3">{t('you.admin_section')}</h2>
+          <div className="rounded-2xl border border-hairline overflow-hidden divide-y divide-hairline">
             {adminGroups.map(({ group_id, groups }) => groups && (
               <button
                 key={group_id}
                 onClick={() => navigate(`/community/groups/${group_id}`)}
                 className="w-full flex items-center justify-between px-4 py-3.5"
               >
-                <span className="text-[13px] font-medium text-gray-700">{groups.name}</span>
-                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <span className="text-[13px] font-medium text-ink-2">{groups.name}</span>
+                <ChevronRight className="h-4 w-4 text-ink-2" />
               </button>
             ))}
           </div>

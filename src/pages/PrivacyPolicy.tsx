@@ -11,15 +11,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-[13px] text-gray-600 leading-relaxed mb-2">{children}</p>
+  return <p className="text-[13px] text-ink-2 leading-relaxed mb-2">{children}</p>
 }
 
 function Ul({ items }: { items: string[] }) {
   return (
     <ul className="mt-1 mb-2 space-y-1">
       {items.map((item) => (
-        <li key={item} className="text-[13px] text-gray-600 flex gap-2">
-          <span className="text-teal-500 flex-shrink-0">{'\u2022'}</span>
+        <li key={item} className="text-[13px] text-ink-2 flex gap-2">
+          <span className="text-court flex-shrink-0">{'\u2022'}</span>
           {item}
         </li>
       ))}
@@ -30,32 +30,32 @@ function Ul({ items }: { items: string[] }) {
 export function PrivacyPolicyPage() {
   return (
     <div className="min-h-full bg-cream">
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white border-b border-hairline">
         <div className="mx-auto max-w-2xl flex items-center gap-3 px-5 pt-14 pb-4">
           <Link
             to="/"
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 hover:bg-gray-200 transition-colors"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0 hover:bg-hairline transition-colors"
             aria-label="Back to home"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-ink-2" />
           </Link>
           <h1 className="text-[18px] font-bold text-navy">Privacy Policy</h1>
         </div>
       </div>
 
       <div className="mx-auto max-w-2xl px-5 py-8">
-        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-8">
-          <p className="text-[12px] text-gray-400 mb-4">Last updated: 1 June 2026</p>
+        <div className="rounded-2xl bg-white border border-hairline shadow-sm p-5 sm:p-8">
+          <p className="text-[12px] text-ink-2 mb-4">Last updated: 1 June 2026</p>
           <P>This Privacy Policy explains how Wynaxa Sports Tech Ltd (part of Wynaxa Limited), acting as the operator of Padel Players App ({'"'}the App{'"'}), collects, uses, and protects your personal data. We are committed to protecting your privacy in accordance with the General Data Protection Regulation (GDPR) and applicable Irish data protection law.</P>
           <P><strong>We do not use your data for advertising, behavioural tracking, or profiling. We do not share or sell data to data brokers or ad networks.</strong></P>
 
           <Section title="1. Who We Are">
             <P>Padel Players App is operated by Wynaxa Sports Tech Ltd, a company incorporated in Ireland (part of Wynaxa Limited), with registered office at 26 Fitzwilliam Square West, Dublin, D02 HX82, Ireland.</P>
-            <P>For data protection enquiries, contact us at: <a href="mailto:privacy@padelplayersapp.com" className="text-teal-600 underline hover:no-underline">privacy@padelplayersapp.com</a></P>
+            <P>For data protection enquiries, contact us at: <a href="mailto:privacy@padelplayersapp.com" className="text-court underline hover:no-underline">privacy@padelplayersapp.com</a></P>
           </Section>
 
           <Section title="2. What Data We Collect">
-            <p className="text-[13px] font-semibold text-gray-700 mt-2 mb-1">Account Information:</p>
+            <p className="text-[13px] font-semibold text-ink-2 mt-2 mb-1">Account Information:</p>
             <Ul items={[
               'Full name and email address',
               'Account/user ID (assigned automatically when you sign up)',
@@ -63,7 +63,7 @@ export function PrivacyPolicyPage() {
               'Phone number (optional)',
               'Preferred language',
             ]} />
-            <p className="text-[13px] font-semibold text-gray-700 mt-2 mb-1">Profile Information:</p>
+            <p className="text-[13px] font-semibold text-ink-2 mt-2 mb-1">Profile Information:</p>
             <Ul items={[
               'Profile photo / avatar image (optional)',
               'Banner image (optional)',
@@ -71,13 +71,13 @@ export function PrivacyPolicyPage() {
               'City and country of residence',
               'Household members (if you use the household scheduling feature)',
             ]} />
-            <p className="text-[13px] font-semibold text-gray-700 mt-2 mb-1">Location Data:</p>
+            <p className="text-[13px] font-semibold text-ink-2 mt-2 mb-1">Location Data:</p>
             <Ul items={[
               'Approximate location (city/region level) \u2014 used to show matches and venues near you',
               'Precise location (GPS coordinates), only when you grant permission \u2014 used for nearby-match discovery and the \u201cFind My Game\u201d feature',
             ]} />
             <P>Location data is used solely for app functionality (match discovery, venue search). It is not used for advertising, analytics, or tracking. You can revoke location permission at any time in your device settings.</P>
-            <p className="text-[13px] font-semibold text-gray-700 mt-2 mb-1">Activity Data:</p>
+            <p className="text-[13px] font-semibold text-ink-2 mt-2 mb-1">Activity Data:</p>
             <Ul items={[
               'Match records: date, time, players, scores, venue',
               'Poll responses: time slot availability you submit each week',
@@ -86,7 +86,7 @@ export function PrivacyPolicyPage() {
               'Group memberships and join dates',
               'Chat messages within group chats',
             ]} />
-            <p className="text-[13px] font-semibold text-gray-700 mt-2 mb-1">Technical Data:</p>
+            <p className="text-[13px] font-semibold text-ink-2 mt-2 mb-1">Technical Data:</p>
             <Ul items={[
               'Device type and browser information',
               'Push notification subscription token (if you grant permission)',
@@ -137,7 +137,7 @@ export function PrivacyPolicyPage() {
               'Right to object: Object to processing based on legitimate interests.',
               'Right to withdraw consent: Where processing is consent-based, withdraw at any time.',
             ]} />
-            <P>To exercise any of these rights, email <a href="mailto:privacy@padelplayersapp.com" className="text-teal-600 underline hover:no-underline">privacy@padelplayersapp.com</a>. We will respond within 30 days. You also have the right to lodge a complaint with the Data Protection Commission of Ireland.</P>
+            <P>To exercise any of these rights, email <a href="mailto:privacy@padelplayersapp.com" className="text-court underline hover:no-underline">privacy@padelplayersapp.com</a>. We will respond within 30 days. You also have the right to lodge a complaint with the Data Protection Commission of Ireland.</P>
           </Section>
 
           <Section title="7. How to Delete Your Data">
@@ -158,27 +158,27 @@ export function PrivacyPolicyPage() {
           </Section>
 
           <Section title="10. Children\u2019s Privacy">
-            <P>The App is not directed at children under the age of 13. We do not knowingly collect personal data from children under 13. If you believe a child has provided us with personal data, contact us immediately at <a href="mailto:privacy@padelplayersapp.com" className="text-teal-600 underline hover:no-underline">privacy@padelplayersapp.com</a>.</P>
+            <P>The App is not directed at children under the age of 13. We do not knowingly collect personal data from children under 13. If you believe a child has provided us with personal data, contact us immediately at <a href="mailto:privacy@padelplayersapp.com" className="text-court underline hover:no-underline">privacy@padelplayersapp.com</a>.</P>
           </Section>
 
           <Section title="11. Changes to This Policy">
             <P>We may update this Privacy Policy from time to time. We will notify you of significant changes via an in-app notification and by updating the {'"'}Last updated{'"'} date above. Your continued use of the App after changes constitutes acceptance of the updated policy.</P>
           </Section>
 
-          <section className="mt-8 pt-6 border-t border-gray-100">
+          <section className="mt-8 pt-6 border-t border-hairline">
             <p className="text-[13px] font-bold text-navy mb-1">Contact Us</p>
-            <p className="text-[13px] text-gray-600">Wynaxa Sports Tech Ltd (part of Wynaxa Limited)</p>
-            <p className="text-[13px] text-gray-600">26 Fitzwilliam Square West, Dublin, D02 HX82, Ireland</p>
-            <p className="text-[13px] text-gray-600">Email: <a href="mailto:privacy@padelplayersapp.com" className="text-teal-600 underline hover:no-underline">privacy@padelplayersapp.com</a></p>
+            <p className="text-[13px] text-ink-2">Wynaxa Sports Tech Ltd (part of Wynaxa Limited)</p>
+            <p className="text-[13px] text-ink-2">26 Fitzwilliam Square West, Dublin, D02 HX82, Ireland</p>
+            <p className="text-[13px] text-ink-2">Email: <a href="mailto:privacy@padelplayersapp.com" className="text-court underline hover:no-underline">privacy@padelplayersapp.com</a></p>
           </section>
         </div>
 
         {/* Footer links */}
-        <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-gray-400">
-          <Link to="/terms" className="hover:text-teal-600 transition-colors">Terms</Link>
-          <Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link>
-          <Link to="/contact" className="hover:text-teal-600 transition-colors">Contact</Link>
-          <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
+        <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-ink-2">
+          <Link to="/terms" className="hover:text-court transition-colors">Terms</Link>
+          <Link to="/faq" className="hover:text-court transition-colors">FAQ</Link>
+          <Link to="/contact" className="hover:text-court transition-colors">Contact</Link>
+          <Link to="/" className="hover:text-court transition-colors">Home</Link>
         </div>
       </div>
     </div>

@@ -11,15 +11,15 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 
 function P({ children }: { children: React.ReactNode }) {
-  return <p className="text-[13px] text-gray-600 leading-relaxed mb-2">{children}</p>
+  return <p className="text-[13px] text-ink-2 leading-relaxed mb-2">{children}</p>
 }
 
 function Ul({ items }: { items: string[] }) {
   return (
     <ul className="mt-1 mb-2 space-y-1">
       {items.map((item) => (
-        <li key={item} className="text-[13px] text-gray-600 flex gap-2">
-          <span className="text-teal-500 flex-shrink-0">{'\u2022'}</span>
+        <li key={item} className="text-[13px] text-ink-2 flex gap-2">
+          <span className="text-court flex-shrink-0">{'\u2022'}</span>
           {item}
         </li>
       ))}
@@ -30,22 +30,22 @@ function Ul({ items }: { items: string[] }) {
 export function TermsOfServicePage() {
   return (
     <div className="min-h-full bg-cream">
-      <div className="bg-white border-b border-gray-100">
+      <div className="bg-white border-b border-hairline">
         <div className="mx-auto max-w-2xl flex items-center gap-3 px-5 pt-14 pb-4">
           <Link
             to="/"
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0 hover:bg-gray-200 transition-colors"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0 hover:bg-hairline transition-colors"
             aria-label="Back to home"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-ink-2" />
           </Link>
           <h1 className="text-[18px] font-bold text-navy">Terms of Service</h1>
         </div>
       </div>
 
       <div className="mx-auto max-w-2xl px-5 py-8">
-        <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-5 sm:p-8">
-          <p className="text-[12px] text-gray-400 mb-4">Last updated: 1 June 2026</p>
+        <div className="rounded-2xl bg-white border border-hairline shadow-sm p-5 sm:p-8">
+          <p className="text-[12px] text-ink-2 mb-4">Last updated: 1 June 2026</p>
           <P>These Terms of Service ({'"'}Terms{'"'}) govern your use of the Padel Players application ({'"'}the App{'"'}) operated by Wynaxa Sports Tech Ltd (part of Wynaxa Limited), a company incorporated in Ireland with registered office at 26 Fitzwilliam Square West, Dublin, D02 HX82. By creating an account or using the App, you agree to these Terms in full.</P>
 
           <Section title="1. Eligibility">
@@ -154,28 +154,28 @@ export function TermsOfServicePage() {
               'If your account has been inactive for more than 24 months',
               'If required by law or court order',
             ]} />
-            <P>Upon termination, your personal data will be handled as described in our <Link to="/privacy" className="text-teal-600 underline hover:no-underline">Privacy Policy</Link>. Match records may be retained in anonymised form.</P>
+            <P>Upon termination, your personal data will be handled as described in our <Link to="/privacy" className="text-court underline hover:no-underline">Privacy Policy</Link>. Match records may be retained in anonymised form.</P>
           </Section>
 
           <Section title="13. Governing Law and Disputes">
-            <P>These Terms are governed by the laws of Ireland. Any dispute arising from or in connection with these Terms shall first be attempted to be resolved by contacting us at <a href="mailto:support@padelplayersapp.com" className="text-teal-600 underline hover:no-underline">support@padelplayersapp.com</a>. If unresolved, disputes shall be subject to the exclusive jurisdiction of the courts of Ireland.</P>
+            <P>These Terms are governed by the laws of Ireland. Any dispute arising from or in connection with these Terms shall first be attempted to be resolved by contacting us at <a href="mailto:support@padelplayersapp.com" className="text-court underline hover:no-underline">support@padelplayersapp.com</a>. If unresolved, disputes shall be subject to the exclusive jurisdiction of the courts of Ireland.</P>
             <P>If you are a consumer in the EU, you also have the right to access the EU Online Dispute Resolution platform.</P>
           </Section>
 
-          <section className="mt-8 pt-6 border-t border-gray-100">
+          <section className="mt-8 pt-6 border-t border-hairline">
             <p className="text-[13px] font-bold text-navy mb-1">Contact</p>
-            <p className="text-[13px] text-gray-600">For questions about these Terms, contact us at: <a href="mailto:support@padelplayersapp.com" className="text-teal-600 underline hover:no-underline">support@padelplayersapp.com</a></p>
-            <p className="text-[13px] text-gray-600 mt-1">Wynaxa Sports Tech Ltd (part of Wynaxa Limited)</p>
-            <p className="text-[13px] text-gray-600">26 Fitzwilliam Square West, Dublin, D02 HX82, Ireland</p>
+            <p className="text-[13px] text-ink-2">For questions about these Terms, contact us at: <a href="mailto:support@padelplayersapp.com" className="text-court underline hover:no-underline">support@padelplayersapp.com</a></p>
+            <p className="text-[13px] text-ink-2 mt-1">Wynaxa Sports Tech Ltd (part of Wynaxa Limited)</p>
+            <p className="text-[13px] text-ink-2">26 Fitzwilliam Square West, Dublin, D02 HX82, Ireland</p>
           </section>
         </div>
 
         {/* Footer links */}
-        <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-gray-400">
-          <Link to="/privacy" className="hover:text-teal-600 transition-colors">Privacy</Link>
-          <Link to="/faq" className="hover:text-teal-600 transition-colors">FAQ</Link>
-          <Link to="/contact" className="hover:text-teal-600 transition-colors">Contact</Link>
-          <Link to="/" className="hover:text-teal-600 transition-colors">Home</Link>
+        <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[13px] font-medium text-ink-2">
+          <Link to="/privacy" className="hover:text-court transition-colors">Privacy</Link>
+          <Link to="/faq" className="hover:text-court transition-colors">FAQ</Link>
+          <Link to="/contact" className="hover:text-court transition-colors">Contact</Link>
+          <Link to="/" className="hover:text-court transition-colors">Home</Link>
         </div>
       </div>
     </div>

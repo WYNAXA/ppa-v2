@@ -93,67 +93,67 @@ export function AllPlayersPage() {
 
   return (
     <div className="min-h-full bg-white pb-32">
-      <div className="px-4 pt-12 pb-4 bg-white border-b border-gray-100">
+      <div className="px-4 pt-12 pb-4 bg-white border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 -ml-1">
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+            <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-gray-900">{t('community.find_players')}</h1>
+          <h1 className="text-xl font-bold text-ink">{t('community.find_players')}</h1>
         </div>
       </div>
       <div className="px-5 pt-4 space-y-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('community.search_players')}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20" />
+            className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20" />
         </div>
         {profile?.city && (
           <button onClick={() => setCityFilterOverride(!cityFilter)}
-            className={`rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${cityFilter ? 'bg-[#009688] text-white border-[#009688]' : 'bg-white text-gray-600 border-gray-200'}`}>
+            className={`rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${cityFilter ? 'bg-court text-white border-court' : 'bg-white text-ink-2 border-hairline'}`}>
             {t('community.near_me_city', { city: profile.city })}
           </button>
         )}
         <div className="space-y-2">
           {isError ? (
-            <p className="text-center text-[13px] text-gray-400 py-8">{t('community.players_load_failed')}</p>
+            <p className="text-center text-[13px] text-ink-2 py-8">{t('community.players_load_failed')}</p>
           ) : isLoading ? (
-            <p className="text-center text-[13px] text-gray-400 py-8">{t('common.loading')}</p>
+            <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
           ) : players.length === 0 ? (
-            <p className="text-center text-[13px] text-gray-400 py-8">{t('community.no_players_found')}</p>
+            <p className="text-center text-[13px] text-ink-2 py-8">{t('community.no_players_found')}</p>
           ) : players.map(p => {
             const state = getState(p.id)
             return (
-              <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-gray-50">
+              <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface">
                 <button onClick={() => navigate(`/players/${p.id}`)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
                   <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
-                    {p.city && <p className="text-[11px] text-gray-400">{p.city}</p>}
+                    <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
+                    {p.city && <p className="text-[11px] text-ink-2">{p.city}</p>}
                   </div>
                 </button>
                 {p.internal_ranking != null && (
-                  <span className="text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">{p.internal_ranking} ELO</span>
+                  <span className="text-[11px] font-bold text-court-700 bg-court-50 border border-court-100 rounded-full px-2 py-0.5 flex-shrink-0">{p.internal_ranking} ELO</span>
                 )}
                 {state === 'none' && (
                   <button onClick={() => connectMutation.mutate(p.id)} disabled={connectMutation.isPending}
-                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white">
+                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
                     <UserPlus className="h-3 w-3" /> {t('community.connect')}
                   </button>
                 )}
                 {state === 'pending_out' && (
-                  <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
+                  <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
                     <Clock className="h-3 w-3" /> {t('community.pending')}
                   </span>
                 )}
                 {state === 'pending_in' && (
                   <button onClick={() => acceptMutation.mutate(p.id)} disabled={acceptMutation.isPending}
-                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-[#009688] text-white">
+                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
                     <Check className="h-3 w-3" /> {t('community.accept')}
                   </button>
                 )}
                 {state === 'accepted' && (
-                  <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-gray-100 text-gray-400">
+                  <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
                     <Check className="h-3 w-3" /> {t('community.connected')}
                   </span>
                 )}

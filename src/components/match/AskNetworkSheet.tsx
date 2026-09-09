@@ -142,24 +142,24 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
-            <div className="flex justify-center pt-3 pb-1 flex-shrink-0"><div className="h-1 w-10 rounded-full bg-gray-200" /></div>
+            <div className="flex justify-center pt-3 pb-1 flex-shrink-0"><div className="h-1 w-10 rounded-full bg-hairline" /></div>
             <div className="flex items-center justify-between px-5 py-3 flex-shrink-0">
-              <h2 className="text-[15px] font-bold text-gray-900">{t('invitations.invite_someone_title')}</h2>
-              <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-500" />
+              <h2 className="text-[15px] font-bold text-ink">{t('invitations.invite_someone_title')}</h2>
+              <button onClick={onClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
             </div>
 
             <div className="px-5 pb-6 overflow-y-auto flex-1" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-              {expiryLabel && <p className="text-[12px] text-gray-400 mb-3">{t('invitations.replies_needed_by', { expiry: expiryLabel })}</p>}
+              {expiryLabel && <p className="text-[12px] text-ink-2 mb-3">{t('invitations.replies_needed_by', { expiry: expiryLabel })}</p>}
 
               {/* Search */}
               <div className="relative mb-3">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
                 <input
                   type="text" value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Search by name..." style={{ fontSize: '16px' }}
-                  className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 outline-none focus:border-blue-500"
+                  className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-blue-500"
                 />
               </div>
 
@@ -172,17 +172,17 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                 ]).map(f => (
                   <button key={f.key} onClick={() => setFilter(f.key)}
                     className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
-                      filter === f.key ? 'bg-blue-600 border-blue-600 text-white' : 'border-gray-200 text-gray-500'
+                      filter === f.key ? 'bg-blue-600 border-blue-600 text-white' : 'border-hairline text-ink-2'
                     )}>{f.label}</button>
                 ))}
               </div>
 
               {people.length === 0 ? (
-                <p className="text-[13px] text-gray-400 text-center py-6">{t('invitations.no_one_found')}</p>
+                <p className="text-[13px] text-ink-2 text-center py-6">{t('invitations.no_one_found')}</p>
               ) : (
                 <>
                 <div className="flex items-center justify-between px-1 mb-2">
-                  <p className="text-[11px] text-gray-500">{people.length} {people.length === 1 ? 'person' : 'people'}</p>
+                  <p className="text-[11px] text-ink-2">{people.length} {people.length === 1 ? 'person' : 'people'}</p>
                   {people.filter(p => !getInvitationStatus(p.id)).length > 0 && (
                     <button
                       onClick={() => {
@@ -212,32 +212,32 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                     return (
                       <div key={person.id} className={cn(
                         'flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors',
-                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-gray-100 bg-white'
+                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-hairline bg-white'
                       )}>
                         {isSelectable && (
                           <button onClick={() => toggleSelect(person.id)}
                             className={cn('h-5 w-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                              isSelected ? 'bg-blue-600 border-blue-600' : 'border-gray-300'
+                              isSelected ? 'bg-blue-600 border-blue-600' : 'border-hairline'
                             )}>
                             {isSelected && <Check className="h-3 w-3 text-white" />}
                           </button>
                         )}
                         <PlayerAvatar name={person.name} avatarUrl={person.avatar_url} size="sm" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[13px] font-semibold text-gray-800 truncate">{person.name}</p>
-                          <p className="text-[11px] text-gray-400">
+                          <p className="text-[13px] font-semibold text-ink truncate">{person.name}</p>
+                          <p className="text-[11px] text-ink-2">
                             {person.internal_ranking ?? '—'} ELO
-                            <span className="ml-1.5 text-[10px] text-gray-300">
+                            <span className="ml-1.5 text-[11px] text-ink-3">
                               {person.source === 'connection' ? 'Connection' : 'Group'}
                             </span>
                           </p>
                         </div>
                         {status && (
-                          <span className={cn('text-[10px] font-bold rounded-full px-2 py-0.5 flex-shrink-0',
+                          <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5 flex-shrink-0',
                             status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-100' :
-                            status === 'pending' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                            status === 'pending' ? 'bg-warn-50 text-warn border border-warn-100' :
                             status === 'declined' ? 'bg-red-50 text-red-500 border border-red-100' :
-                            'bg-gray-100 text-gray-400'
+                            'bg-hairline text-ink-2'
                           )}>
                             {status === 'accepted' ? 'Available' : status === 'pending' ? 'Waiting' : status === 'declined' ? "Can't play" : 'Filled'}
                           </span>

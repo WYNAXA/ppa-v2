@@ -83,13 +83,13 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Create Event</h2>
+              <h2 className="text-[15px] font-bold text-ink">Create Event</h2>
               <div className="w-9" />
             </div>
 
@@ -98,61 +98,61 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
               style={{ maxHeight: '80vh', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
             >
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Title <span className="text-red-400">*</span></label>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">Title <span className="text-red-400">*</span></label>
                 <input
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="e.g. Club Tournament"
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">Start time</label>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">Start time</label>
                 <input
                   type="datetime-local"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                  End time <span className="text-gray-400 font-normal">(optional)</span>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+                  End time <span className="text-ink-2 font-normal">(optional)</span>
                 </label>
                 <input
                   type="datetime-local"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
 
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                  Location <span className="text-gray-400 font-normal">(optional)</span>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+                  Location <span className="text-ink-2 font-normal">(optional)</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
                   <input
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="Venue or address"
                     style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                    className="w-full rounded-xl border border-gray-200 pl-9 pr-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    className="w-full rounded-xl border border-hairline pl-9 pr-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
-                  Description <span className="text-gray-400 font-normal">(optional)</span>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+                  Description <span className="text-ink-2 font-normal">(optional)</span>
                 </label>
                 <textarea
                   value={description}
@@ -160,7 +160,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
                   placeholder="Details for members…"
                   rows={2}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 resize-none"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 resize-none"
                 />
               </div>
 
@@ -171,7 +171,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={!canSubmit || createMutation.isPending}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
               >
                 {createMutation.isPending ? 'Creating…' : 'Create Event'}
               </button>

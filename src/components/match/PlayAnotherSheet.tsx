@@ -88,39 +88,39 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">Play Another</h2>
+              <h2 className="text-[15px] font-bold text-ink">Play Another</h2>
               <div className="w-9" />
             </div>
             <div className="px-5 pb-6" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-              <p className="text-[12px] text-gray-400 mb-4 text-center">{t('play_another.same_players_subtitle')}</p>
+              <p className="text-[12px] text-ink-2 mb-4 text-center">{t('play_another.same_players_subtitle')}</p>
 
               {/* Team 1 */}
-              <div className="rounded-xl bg-teal-50 border border-teal-100 p-3 mb-2">
-                <p className="text-[10px] font-bold text-teal-600 uppercase tracking-wide mb-2">Team 1</p>
+              <div className="rounded-xl bg-court-50 border border-court-100 p-3 mb-2">
+                <p className="text-[11px] font-bold text-court uppercase tracking-wide mb-2">Team 1</p>
                 <div className="flex gap-3">
                   {team1Players.map(p => (
                     <div key={p.id} className="flex items-center gap-2">
                       <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                      <span className="text-[13px] font-medium text-gray-800">{p.name?.split(' ')[0]}</span>
+                      <span className="text-[13px] font-medium text-ink">{p.name?.split(' ')[0]}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Team 2 */}
-              <div className="rounded-xl bg-orange-50 border border-orange-100 p-3 mb-4">
-                <p className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mb-2">Team 2</p>
+              <div className="rounded-xl bg-warn-50 border border-warn-100 p-3 mb-4">
+                <p className="text-[11px] font-bold text-warn uppercase tracking-wide mb-2">Team 2</p>
                 <div className="flex gap-3">
                   {team2Players.map(p => (
                     <div key={p.id} className="flex items-center gap-2">
                       <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                      <span className="text-[13px] font-medium text-gray-800">{p.name?.split(' ')[0]}</span>
+                      <span className="text-[13px] font-medium text-ink">{p.name?.split(' ')[0]}</span>
                     </div>
                   ))}
                 </div>
@@ -129,7 +129,7 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
               {/* Switch teams */}
               <button
                 onClick={handleSwitch}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600 mb-4"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2 mb-4"
               >
                 <Shuffle className="h-4 w-4" />
                 Switch teams
@@ -139,7 +139,7 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
               <button
                 onClick={() => createMutation.mutate()}
                 disabled={createMutation.isPending}
-                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
                 <Play className="h-4 w-4" />
                 {createMutation.isPending ? 'Creating\u2026' : 'Start Match'}

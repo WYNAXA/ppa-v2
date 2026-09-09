@@ -28,7 +28,7 @@ export function AuthPage() {
   if (loading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-teal-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -138,12 +138,12 @@ export function AuthPage() {
           alt="Padel Players"
           className="mx-auto mb-4 h-20 w-20 rounded-2xl shadow-sm"
         />
-        <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Padel Players</h1>
-        <p className="mt-1 text-sm text-gray-500">The social padel app</p>
+        <h1 className="text-2xl font-extrabold text-ink tracking-tight">Padel Players</h1>
+        <p className="mt-1 text-sm text-ink-2">The social padel app</p>
       </div>
 
       {/* Tab switcher */}
-      <div className="mb-6 flex w-full max-w-sm gap-1 rounded-xl bg-gray-100 p-1">
+      <div className="mb-6 flex w-full max-w-sm gap-1 rounded-xl bg-hairline p-1">
         {([
           { key: 'signin' as const, label: 'Sign In' },
           { key: 'signup' as const, label: 'Sign Up' },
@@ -154,7 +154,7 @@ export function AuthPage() {
             type="button"
             onClick={() => { setMode(key); setMessage(null) }}
             className={`flex-1 rounded-lg py-2 text-[12px] font-medium transition-colors ${
-              mode === key ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+              mode === key ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
             }`}
           >
             {label}
@@ -173,7 +173,7 @@ export function AuthPage() {
       >
         {mode === 'signup' && (
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Your name</label>
+            <label className="mb-1.5 block text-sm font-medium text-ink-2">Your name</label>
             <input
               type="text"
               required
@@ -181,26 +181,26 @@ export function AuthPage() {
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Christian Shanahan"
               autoComplete="name"
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline px-4 py-3 text-sm outline-none transition focus:border-court focus:ring-2 focus:ring-court/20"
             />
           </div>
         )}
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-gray-700">Email</label>
+          <label className="mb-1.5 block text-sm font-medium text-ink-2">Email</label>
           <input
             type="email"
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
-            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+            className="w-full rounded-xl border border-hairline px-4 py-3 text-sm outline-none transition focus:border-court focus:ring-2 focus:ring-court/20"
           />
         </div>
 
         {(mode === 'signin' || mode === 'signup') && (
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-gray-700">Password</label>
+            <label className="mb-1.5 block text-sm font-medium text-ink-2">Password</label>
             <input
               type="password"
               required
@@ -208,7 +208,7 @@ export function AuthPage() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder={mode === 'signup' ? 'Min 8 characters' : '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022'}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+              className="w-full rounded-xl border border-hairline px-4 py-3 text-sm outline-none transition focus:border-court focus:ring-2 focus:ring-court/20"
             />
             {mode === 'signup' && (
               <input
@@ -218,7 +218,7 @@ export function AuthPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Confirm password"
                 autoComplete="new-password"
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 mt-3"
+                className="w-full rounded-xl border border-hairline px-4 py-3 text-sm outline-none transition focus:border-court focus:ring-2 focus:ring-court/20 mt-3"
               />
             )}
             {mode === 'signin' && (
@@ -241,7 +241,7 @@ export function AuthPage() {
                   }
                   setMessage({ type: 'success', text: 'Password reset link sent \u2014 check your email.' })
                 }}
-                className="mt-2 text-[13px] text-[#009688] font-medium hover:underline"
+                className="mt-2 text-[13px] text-court font-medium hover:underline"
               >
                 Forgot password?
               </button>
@@ -250,14 +250,14 @@ export function AuthPage() {
         )}
 
         {message && message.text === '__already_registered__' ? (
-          <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 space-y-2">
-            <p className="text-sm font-semibold text-amber-800">{t('auth.already_registered_title')}</p>
-            <p className="text-[13px] text-amber-700">{t('auth.already_registered_subtitle')}</p>
+          <div className="rounded-lg bg-warn-50 border border-warn px-4 py-3 space-y-2">
+            <p className="text-sm font-semibold text-warn">{t('auth.already_registered_title')}</p>
+            <p className="text-[13px] text-warn">{t('auth.already_registered_subtitle')}</p>
             <div className="flex gap-3">
               <button
                 type="button"
                 onClick={() => { setMode('signin'); setMessage(null) }}
-                className="text-[13px] font-semibold text-[#009688] hover:underline"
+                className="text-[13px] font-semibold text-court hover:underline"
               >
                 {t('auth.sign_in')}
               </button>
@@ -279,7 +279,7 @@ export function AuthPage() {
                   }
                   setMessage({ type: 'success', text: 'Password reset link sent — check your email.' })
                 }}
-                className="text-[13px] font-semibold text-amber-700 hover:underline"
+                className="text-[13px] font-semibold text-warn hover:underline"
               >
                 {t('auth.already_registered_reset')}
               </button>
@@ -289,7 +289,7 @@ export function AuthPage() {
           <p
             className={`rounded-lg px-4 py-3 text-sm ${
               message.type === 'success'
-                ? 'bg-teal-50 text-teal-700'
+                ? 'bg-court-50 text-court-700'
                 : 'bg-red-50 text-red-700'
             }`}
           >
@@ -301,7 +301,7 @@ export function AuthPage() {
           type="submit"
           disabled={submitting}
           className="w-full rounded-xl py-3 text-sm font-semibold text-white transition disabled:opacity-60"
-          style={{ background: '#009688' }}
+          style={{ background: 'var(--color-court)' }}
         >
           {submitting
             ? 'Loading\u2026'
@@ -313,13 +313,13 @@ export function AuthPage() {
         </button>
 
         {mode === 'signup' && (
-          <p className="text-[11px] text-gray-500 text-center mt-3">
+          <p className="text-[11px] text-ink-2 text-center mt-3">
             Welcome! After signing up we'll help you set up your padel profile.
           </p>
         )}
 
         {mode === 'signup' && (
-          <p className="text-[11px] text-gray-400 text-center mt-2">
+          <p className="text-[11px] text-ink-2 text-center mt-2">
             {t('auth.signup_consent_prefix')}{' '}
             <Link to="/terms" className="underline hover:no-underline">
               {t('auth.terms_link')}

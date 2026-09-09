@@ -26,18 +26,18 @@ class ErrorBoundaryInner extends Component<Props, State> {
           <div className="h-20 w-20 rounded-3xl bg-red-50 flex items-center justify-center mb-6">
             <span className="text-4xl">&#x26A0;&#xFE0F;</span>
           </div>
-          <h1 className="text-[22px] font-bold text-gray-900 mb-2">Something went wrong</h1>
-          <p className="text-[14px] text-gray-500 mb-8 max-w-xs">
+          <h1 className="text-[22px] font-bold text-ink mb-2">Something went wrong</h1>
+          <p className="text-[14px] text-ink-2 mb-8 max-w-xs">
             The app encountered an unexpected error. Please refresh to continue.
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="w-full max-w-xs rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+            className="w-full max-w-xs rounded-2xl bg-court py-4 text-[15px] font-bold text-white"
           >
             Refresh App
           </button>
           {this.state.eventId && (
-            <p className="mt-4 text-[11px] text-gray-300 max-w-xs break-all">
+            <p className="mt-4 text-[11px] text-ink-3 max-w-xs break-all">
               Error ID: {this.state.eventId}
             </p>
           )}
@@ -56,18 +56,18 @@ export function SentryErrorBoundary({ children }: { children: ReactNode }) {
         <div className="h-20 w-20 rounded-3xl bg-red-50 flex items-center justify-center mb-6">
           <span className="text-4xl">&#x26A0;&#xFE0F;</span>
         </div>
-        <h1 className="text-[22px] font-bold text-gray-900 mb-2">Something went wrong</h1>
-        <p className="text-[14px] text-gray-500 mb-8 max-w-xs">
+        <h1 className="text-[22px] font-bold text-ink mb-2">Something went wrong</h1>
+        <p className="text-[14px] text-ink-2 mb-8 max-w-xs">
           The app encountered an unexpected error. Please refresh to continue.
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="w-full max-w-xs rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+          className="w-full max-w-xs rounded-2xl bg-court py-4 text-[15px] font-bold text-white"
         >
           Refresh App
         </button>
         {eventId && (
-          <p className="mt-4 text-[11px] text-gray-300 max-w-xs break-all">
+          <p className="mt-4 text-[11px] text-ink-3 max-w-xs break-all">
             Error ID: {eventId}
           </p>
         )}

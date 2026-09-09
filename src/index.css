@@ -52,6 +52,16 @@
   --color-alert:     #D9480F;
   --color-alert-50:  #FDF0E9;
 
+  /* Needs attention — not a failure. Spots open, awaiting a result, ringers
+     wanted, provisional rating. Distinct from `alert` (something is wrong) and
+     from `ball` (live, and dark-surfaces only). Deliberately a quiet burnt
+     amber: a warning that shouts competes with the primary action.
+     #A85F00 clears 4.9:1 both as text on white and as white text on it, so the
+     single value serves both roles. */
+  --color-warn:      #A85F00;
+  --color-warn-50:   #FDF3E6;
+  --color-warn-100:  #F2DEBE;
+
   /* Dark surfaces. Defined here so screens can adopt them as they
      migrate; the dark variant itself is not wired up yet. */
   --color-ink-surface: #0B1512;

@@ -201,12 +201,12 @@ export function OnboardingPage() {
     return (
       <div className="min-h-full bg-white flex flex-col items-center justify-center px-8 text-center">
         <div className="text-5xl mb-3">🎾</div>
-        <h1 className="text-xl font-bold text-gray-900">You're all set!</h1>
-        <p className="mt-2 text-[14px] text-gray-500">Your account is ready.</p>
+        <h1 className="text-xl font-bold text-ink">You're all set!</h1>
+        <p className="mt-2 text-[14px] text-ink-2">Your account is ready.</p>
         <GetTheAppCard className="mt-6 w-full max-w-xs" />
         <button
           onClick={() => navigate('/home', { replace: true })}
-          className="mt-4 w-full max-w-xs rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white"
+          className="mt-4 w-full max-w-xs rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
         >
           Continue to Padel Players
         </button>
@@ -221,7 +221,7 @@ export function OnboardingPage() {
         {STEPS.map((s, i) => (
           <div
             key={s}
-            className={`h-2 w-2 rounded-full transition-colors ${i <= stepIndex ? 'bg-[#009688]' : 'bg-gray-200'}`}
+            className={`h-2 w-2 rounded-full transition-colors ${i <= stepIndex ? 'bg-court' : 'bg-hairline'}`}
           />
         ))}
       </div>
@@ -240,20 +240,20 @@ export function OnboardingPage() {
             {step === 'welcome' && (
               <>
                 <div className="flex justify-center mb-6 mt-8">
-                  <div className="h-20 w-20 rounded-3xl bg-teal-50 flex items-center justify-center text-4xl">🎾</div>
+                  <div className="h-20 w-20 rounded-3xl bg-court-50 flex items-center justify-center text-4xl">🎾</div>
                 </div>
-                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">
+                <h1 className="text-[24px] font-bold text-ink text-center mb-2">
                   {t('onboarding.welcome_title', { name: profile?.name?.split(' ')[0] ?? '' })}
                 </h1>
-                <p className="text-[14px] text-gray-500 text-center mb-8">{t('onboarding.welcome_subtitle')}</p>
+                <p className="text-[14px] text-ink-2 text-center mb-8">{t('onboarding.welcome_subtitle')}</p>
               </>
             )}
 
             {/* ═══ LANGUAGE ═══ */}
             {step === 'language' && (
               <>
-                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2 mt-8">{t('onboarding.language_title')}</h1>
-                <p className="text-[14px] text-gray-500 text-center mb-6">
+                <h1 className="text-[24px] font-bold text-ink text-center mb-2 mt-8">{t('onboarding.language_title')}</h1>
+                <p className="text-[14px] text-ink-2 text-center mb-6">
                   {t('onboarding.language_subtitle', { language: currentLangName })}
                 </p>
                 <div className="space-y-2">
@@ -263,12 +263,12 @@ export function OnboardingPage() {
                       onClick={() => { setSelectedLang(code); setLanguage(code) }}
                       className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
                         selectedLang === code
-                          ? 'border-[#009688] bg-teal-50'
-                          : 'border-gray-100 bg-white'
+                          ? 'border-court bg-court-50'
+                          : 'border-hairline bg-white'
                       }`}
                     >
                       <span className="text-2xl">{flag}</span>
-                      <span className="text-[15px] font-semibold text-gray-800">{label}</span>
+                      <span className="text-[15px] font-semibold text-ink">{label}</span>
                     </button>
                   ))}
                 </div>
@@ -279,53 +279,53 @@ export function OnboardingPage() {
             {step === 'location' && (
               <>
                 <div className="flex justify-center mb-6 mt-6">
-                  <div className="h-16 w-16 rounded-2xl bg-teal-50 flex items-center justify-center">
-                    <MapPin className="h-7 w-7 text-[#009688]" />
+                  <div className="h-16 w-16 rounded-2xl bg-court-50 flex items-center justify-center">
+                    <MapPin className="h-7 w-7 text-court" />
                   </div>
                 </div>
-                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">{t('onboarding.location_title')}</h1>
-                <p className="text-[14px] text-gray-500 text-center mb-6">{t('onboarding.location_subtitle')}</p>
+                <h1 className="text-[24px] font-bold text-ink text-center mb-2">{t('onboarding.location_title')}</h1>
+                <p className="text-[14px] text-ink-2 text-center mb-6">{t('onboarding.location_subtitle')}</p>
 
                 {!locationDetected && (
                   <button
                     onClick={handleDetectLocation}
                     disabled={locationLoading}
-                    className="w-full rounded-2xl border-2 border-[#009688] bg-teal-50 py-3.5 text-[14px] font-semibold text-[#009688] mb-4 disabled:opacity-50"
+                    className="w-full rounded-2xl border-2 border-court bg-court-50 py-3.5 text-[14px] font-semibold text-court mb-4 disabled:opacity-50"
                   >
                     {locationLoading ? t('onboarding.saving') : t('onboarding.location_use_my_location')}
                   </button>
                 )}
 
                 {locationDetected && locationCity && (
-                  <div className="rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3 mb-4">
-                    <p className="text-[13px] text-teal-800 font-medium">{t('onboarding.location_detected', { city: locationCity })}</p>
-                    <p className="text-[12px] text-teal-600 mt-0.5">{t('onboarding.location_detected_change')}</p>
+                  <div className="rounded-2xl bg-court-50 border border-court-100 px-4 py-3 mb-4">
+                    <p className="text-[13px] text-court-700 font-medium">{t('onboarding.location_detected', { city: locationCity })}</p>
+                    <p className="text-[12px] text-court mt-0.5">{t('onboarding.location_detected_change')}</p>
                   </div>
                 )}
 
                 {locationError && (
-                  <p className="text-[12px] text-amber-700 bg-amber-50 rounded-xl px-3 py-2 mb-4">{locationError}</p>
+                  <p className="text-[12px] text-warn bg-warn-50 rounded-xl px-3 py-2 mb-4">{locationError}</p>
                 )}
 
                 <div className="space-y-3">
                   <div>
-                    <label className="block text-[12px] font-medium text-gray-700 mb-1">{t('onboarding.location_manual_city_label')}</label>
+                    <label className="block text-[12px] font-medium text-ink-2 mb-1">{t('onboarding.location_manual_city_label')}</label>
                     <input
                       type="text"
                       value={locationCity}
                       onChange={(e) => setLocationCity(e.target.value)}
                       placeholder={t('onboarding.location_manual_city_placeholder')}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                      className="w-full rounded-xl border border-hairline px-4 py-3 text-[15px] outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-medium text-gray-700 mb-1">{t('onboarding.location_manual_postcode_label')}</label>
+                    <label className="block text-[12px] font-medium text-ink-2 mb-1">{t('onboarding.location_manual_postcode_label')}</label>
                     <input
                       type="text"
                       value={locationPostcode}
                       onChange={(e) => setLocationPostcode(e.target.value.toUpperCase())}
                       placeholder={t('onboarding.location_manual_postcode_placeholder')}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                      className="w-full rounded-xl border border-hairline px-4 py-3 text-[15px] outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                     />
                   </div>
                 </div>
@@ -335,8 +335,8 @@ export function OnboardingPage() {
             {/* ═══ LEVEL ═══ */}
             {step === 'level' && (
               <>
-                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2 mt-6">{t('onboarding.level_title')}</h1>
-                <p className="text-[14px] text-gray-500 text-center mb-6">{t('onboarding.level_subtitle')}</p>
+                <h1 className="text-[24px] font-bold text-ink text-center mb-2 mt-6">{t('onboarding.level_title')}</h1>
+                <p className="text-[14px] text-ink-2 text-center mb-6">{t('onboarding.level_subtitle')}</p>
 
                 <div className="space-y-2">
                   {([
@@ -348,18 +348,18 @@ export function OnboardingPage() {
                       key={opt.key}
                       onClick={() => setLevelBranch(opt.key)}
                       className={`w-full rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
-                        levelBranch === opt.key ? 'border-[#009688] bg-teal-50' : 'border-gray-100 bg-white'
+                        levelBranch === opt.key ? 'border-court bg-court-50' : 'border-hairline bg-white'
                       }`}
                     >
-                      <p className="text-[14px] font-semibold text-gray-800">{opt.title}</p>
-                      <p className="text-[12px] text-gray-500 mt-0.5">{opt.desc}</p>
+                      <p className="text-[14px] font-semibold text-ink">{opt.title}</p>
+                      <p className="text-[12px] text-ink-2 mt-0.5">{opt.desc}</p>
                     </button>
                   ))}
                 </div>
 
                 {levelBranch === 'playtomic' && (
-                  <div className="mt-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-                    <label className="block text-[12px] font-medium text-gray-700 mb-2">{t('onboarding.level_playtomic_label')}</label>
+                  <div className="mt-4 rounded-2xl border border-hairline bg-surface p-4">
+                    <label className="block text-[12px] font-medium text-ink-2 mb-2">{t('onboarding.level_playtomic_label')}</label>
                     <input
                       type="number"
                       inputMode="decimal"
@@ -369,11 +369,11 @@ export function OnboardingPage() {
                       value={playtomicLevel}
                       onChange={(e) => setPlaytomicLevel(e.target.value)}
                       placeholder={t('onboarding.level_playtomic_placeholder')}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[15px] bg-white outline-none focus:border-teal-500"
+                      className="w-full rounded-xl border border-hairline px-4 py-3 text-[15px] bg-white outline-none focus:border-court"
                     />
-                    <p className="text-[11px] text-gray-400 mt-1">{t('onboarding.level_playtomic_help')}</p>
+                    <p className="text-[11px] text-ink-2 mt-1">{t('onboarding.level_playtomic_help')}</p>
                     {playtomicLevel && !isNaN(parseFloat(playtomicLevel)) && (
-                      <p className="text-[12px] text-teal-700 mt-2">
+                      <p className="text-[12px] text-court-700 mt-2">
                         {t('onboarding.level_playtomic_estimate', {
                           rating: playtomicToElo(parseFloat(playtomicLevel)),
                           level: playtomicLevel,
@@ -388,24 +388,24 @@ export function OnboardingPage() {
             {/* ═══ TOUR ═══ */}
             {step === 'tour' && (
               <>
-                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2 mt-6">{t('onboarding.tour_title')}</h1>
-                <p className="text-[14px] text-gray-500 text-center mb-5">{t('onboarding.tour_subtitle')}</p>
+                <h1 className="text-[24px] font-bold text-ink text-center mb-2 mt-6">{t('onboarding.tour_title')}</h1>
+                <p className="text-[14px] text-ink-2 text-center mb-5">{t('onboarding.tour_subtitle')}</p>
 
                 <div className="space-y-3 flex-1 overflow-y-auto">
                   {([
-                    { icon: <Calendar className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card1_title', descKey: 'onboarding.tour_card1_desc' },
-                    { icon: <TrendingUp className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card2_title', descKey: 'onboarding.tour_card2_desc' },
-                    { icon: <Users className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card3_title', descKey: 'onboarding.tour_card3_desc' },
-                    { icon: <Trophy className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card4_title', descKey: 'onboarding.tour_card4_desc' },
-                    { icon: <Heart className="h-5 w-5 text-[#009688]" />, titleKey: 'onboarding.tour_card5_title', descKey: 'onboarding.tour_card5_desc' },
+                    { icon: <Calendar className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card1_title', descKey: 'onboarding.tour_card1_desc' },
+                    { icon: <TrendingUp className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card2_title', descKey: 'onboarding.tour_card2_desc' },
+                    { icon: <Users className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card3_title', descKey: 'onboarding.tour_card3_desc' },
+                    { icon: <Trophy className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card4_title', descKey: 'onboarding.tour_card4_desc' },
+                    { icon: <Heart className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card5_title', descKey: 'onboarding.tour_card5_desc' },
                   ]).map(card => (
-                    <div key={card.titleKey} className="flex items-start gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3">
-                      <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center flex-shrink-0">
+                    <div key={card.titleKey} className="flex items-start gap-3 rounded-2xl border border-hairline bg-white px-4 py-3">
+                      <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
                         {card.icon}
                       </div>
                       <div>
-                        <p className="text-[13px] font-bold text-gray-800">{t(card.titleKey)}</p>
-                        <p className="text-[12px] text-gray-500 mt-0.5">{t(card.descKey)}</p>
+                        <p className="text-[13px] font-bold text-ink">{t(card.titleKey)}</p>
+                        <p className="text-[12px] text-ink-2 mt-0.5">{t(card.descKey)}</p>
                       </div>
                     </div>
                   ))}
@@ -417,14 +417,14 @@ export function OnboardingPage() {
             {step === 'notifications' && (
               <>
                 <div className="flex justify-center mb-6 mt-8">
-                  <div className="h-20 w-20 rounded-3xl bg-teal-50 flex items-center justify-center">
-                    <Bell className="h-10 w-10 text-[#009688]" />
+                  <div className="h-20 w-20 rounded-3xl bg-court-50 flex items-center justify-center">
+                    <Bell className="h-10 w-10 text-court" />
                   </div>
                 </div>
-                <h1 className="text-[24px] font-bold text-gray-900 text-center mb-2">
+                <h1 className="text-[24px] font-bold text-ink text-center mb-2">
                   {t('onboarding.notifications_title')}
                 </h1>
-                <p className="text-[14px] text-gray-500 text-center mb-6">
+                <p className="text-[14px] text-ink-2 text-center mb-6">
                   {t('onboarding.notifications_subtitle')}
                 </p>
                 <div className="space-y-2">
@@ -433,9 +433,9 @@ export function OnboardingPage() {
                     t('onboarding.notifications_benefit2'),
                     t('onboarding.notifications_benefit3'),
                   ].map((text) => (
-                    <div key={text} className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3">
-                      <span className="text-[#009688] text-lg">✓</span>
-                      <span className="text-[13px] text-gray-700">{text}</span>
+                    <div key={text} className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3">
+                      <span className="text-court text-lg">✓</span>
+                      <span className="text-[13px] text-ink-2">{text}</span>
                     </div>
                   ))}
                 </div>
@@ -449,11 +449,11 @@ export function OnboardingPage() {
       <div className="px-6 pb-10 space-y-3" style={{ paddingBottom: 'calc(40px + env(safe-area-inset-bottom))' }}>
         {step === 'welcome' && (
           <>
-            <button onClick={goNext} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white">
+            <button onClick={goNext} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white">
               {t('onboarding.welcome_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
-            <p className="text-[11px] text-gray-400 text-center mt-2">
+            <p className="text-[11px] text-ink-2 text-center mt-2">
               {t('onboarding.welcome_legal_prefix')}{' '}
               <Link to="/terms" className="underline hover:no-underline">
                 {t('auth.terms_link')}
@@ -468,11 +468,11 @@ export function OnboardingPage() {
 
         {step === 'language' && (
           <>
-            <button onClick={handleLanguageContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+            <button onClick={handleLanguageContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40">
               {saving ? t('onboarding.saving') : t('onboarding.language_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
-            <button onClick={goBack} className="w-full text-center text-[13px] text-gray-400 flex items-center justify-center gap-1">
+            <button onClick={goBack} className="w-full text-center text-[13px] text-ink-2 flex items-center justify-center gap-1">
               <ChevronLeft className="h-4 w-4" /> {t('onboarding.back')}
             </button>
           </>
@@ -480,14 +480,14 @@ export function OnboardingPage() {
 
         {step === 'location' && (
           <>
-            <button onClick={handleLocationContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40">
+            <button onClick={handleLocationContinue} disabled={saving} className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40">
               {saving ? t('onboarding.saving') : t('onboarding.location_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
-            <button onClick={goNext} className="w-full text-center text-[13px] text-gray-400">
+            <button onClick={goNext} className="w-full text-center text-[13px] text-ink-2">
               {t('onboarding.location_skip')}
             </button>
-            <button onClick={goBack} className="w-full text-center text-[13px] text-gray-400 flex items-center justify-center gap-1">
+            <button onClick={goBack} className="w-full text-center text-[13px] text-ink-2 flex items-center justify-center gap-1">
               <ChevronLeft className="h-4 w-4" /> {t('onboarding.back')}
             </button>
           </>
@@ -498,12 +498,12 @@ export function OnboardingPage() {
             <button
               onClick={handleLevelContinue}
               disabled={saving || !levelBranch}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40"
             >
               {saving ? t('onboarding.saving') : t('onboarding.level_continue')}
               <ChevronRight className="h-5 w-5" />
             </button>
-            <button onClick={goBack} className="w-full text-center text-[13px] text-gray-400 flex items-center justify-center gap-1">
+            <button onClick={goBack} className="w-full text-center text-[13px] text-ink-2 flex items-center justify-center gap-1">
               <ChevronLeft className="h-4 w-4" /> {t('onboarding.back')}
             </button>
           </>
@@ -523,7 +523,7 @@ export function OnboardingPage() {
               }
             }}
             disabled={saving}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40"
           >
             {saving ? t('onboarding.saving') : t('onboarding.tour_finish')}
           </button>
@@ -541,7 +541,7 @@ export function OnboardingPage() {
                 await handleFinish()
               }}
               disabled={saving}
-              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-40"
+              className="w-full flex items-center justify-center gap-2 rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-40"
             >
               {saving ? t('onboarding.saving') : t('onboarding.notifications_enable')}
             </button>
@@ -554,7 +554,7 @@ export function OnboardingPage() {
                 await handleFinish()
               }}
               disabled={saving}
-              className="w-full text-center text-[13px] text-gray-400"
+              className="w-full text-center text-[13px] text-ink-2"
             >
               {t('onboarding.notifications_skip')}
             </button>

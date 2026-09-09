@@ -73,30 +73,30 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
         const hasRanges = ranges.length > 0
 
         return (
-          <div key={date} className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div key={date} className="rounded-xl border border-hairline bg-white overflow-hidden">
             {/* Date header */}
             <button
               onClick={() => setExpandedDate(isExpanded ? null : date)}
               className="w-full flex items-center justify-between px-4 py-3"
             >
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-semibold text-gray-900">
+                <span className="text-[13px] font-semibold text-ink">
                   {formatDateLabel(date)}
                 </span>
                 {hasRanges && (
-                  <span className="text-[10px] font-bold text-teal-700 bg-teal-50 rounded-full px-2 py-0.5">
+                  <span className="text-[11px] font-bold text-court-700 bg-court-50 rounded-full px-2 py-0.5">
                     {ranges.length} range{ranges.length !== 1 ? 's' : ''}
                   </span>
                 )}
               </div>
-              <span className="text-[11px] text-gray-400">
+              <span className="text-[11px] text-ink-2">
                 {isExpanded ? 'collapse' : hasRanges ? 'edit' : 'add times'}
               </span>
             </button>
 
             {/* Expanded content */}
             {isExpanded && (
-              <div className="px-4 pb-4 space-y-3 border-t border-gray-100">
+              <div className="px-4 pb-4 space-y-3 border-t border-hairline">
                 {/* Density timeline — other voters' availability */}
                 {densityData && (
                   <div className="pt-3">
@@ -115,7 +115,7 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                     <button
                       key={preset.label}
                       onClick={() => addRange(date, { start: preset.start, end: preset.end })}
-                      className="text-[11px] font-semibold text-[#009688] bg-teal-50 border border-teal-100 rounded-lg px-2.5 py-1.5 hover:bg-teal-100 transition-colors"
+                      className="text-[11px] font-semibold text-court bg-court-50 border border-court-100 rounded-lg px-2.5 py-1.5 hover:bg-court-100 transition-colors"
                     >
                       {preset.label}
                     </button>
@@ -131,23 +131,23 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                   return (
                     <div key={idx} className={cn(
                       "flex items-center gap-2 rounded-lg border px-3 py-2",
-                      isValid ? "border-gray-200 bg-gray-50" : "border-red-200 bg-red-50"
+                      isValid ? "border-hairline bg-surface" : "border-red-200 bg-red-50"
                     )}>
                       <select
                         value={range.start}
                         onChange={e => updateRange(date, idx, 'start', e.target.value)}
-                        className="text-[13px] bg-transparent text-gray-800 font-medium outline-none"
+                        className="text-[13px] bg-transparent text-ink font-medium outline-none"
                         style={{ fontSize: '16px' }}
                       >
                         {TIME_OPTIONS.filter(t => t !== '23:59').map(t => (
                           <option key={t} value={t}>{t}</option>
                         ))}
                       </select>
-                      <span className="text-[12px] text-gray-400">to</span>
+                      <span className="text-[12px] text-ink-2">to</span>
                       <select
                         value={range.end}
                         onChange={e => updateRange(date, idx, 'end', e.target.value)}
-                        className="text-[13px] bg-transparent text-gray-800 font-medium outline-none"
+                        className="text-[13px] bg-transparent text-ink font-medium outline-none"
                         style={{ fontSize: '16px' }}
                       >
                         {TIME_OPTIONS.filter(t => t > range.start).map(t => (
@@ -156,12 +156,12 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                       </select>
                       <button
                         onClick={() => removeRange(date, idx)}
-                        className="ml-auto text-gray-400 hover:text-red-500"
+                        className="ml-auto text-ink-2 hover:text-red-500"
                       >
                         <X className="h-4 w-4" />
                       </button>
                       {!isValid && (
-                        <span className="text-[10px] text-red-500">Invalid</span>
+                        <span className="text-[11px] text-red-500">Invalid</span>
                       )}
                     </div>
                   )
@@ -170,7 +170,7 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                 {/* Add another range */}
                 <button
                   onClick={() => addRange(date, { start: '19:00', end: '21:00' })}
-                  className="flex items-center gap-1.5 text-[12px] text-[#009688] font-semibold hover:text-[#00796B]"
+                  className="flex items-center gap-1.5 text-[12px] text-court font-semibold hover:text-[#00796B]"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add another time range

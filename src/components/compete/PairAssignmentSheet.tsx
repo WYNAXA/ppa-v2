@@ -198,22 +198,22 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
         className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white z-10 px-5 pt-5 pb-3 border-b border-gray-100">
+        <div className="sticky top-0 bg-white z-10 px-5 pt-5 pb-3 border-b border-hairline">
           <div className="flex items-center justify-between">
-            <h2 className="text-[17px] font-bold text-gray-900">{t('setup_title')}</h2>
-            <button onClick={handleClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-              <X className="h-4 w-4 text-gray-500" />
+            <h2 className="text-[17px] font-bold text-ink">{t('setup_title')}</h2>
+            <button onClick={handleClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+              <X className="h-4 w-4 text-ink-2" />
             </button>
           </div>
-          <p className="text-[12px] text-gray-400 mt-0.5">{t('setup_subtitle')}</p>
+          <p className="text-[12px] text-ink-2 mt-0.5">{t('setup_subtitle')}</p>
         </div>
 
         <div className="px-5 py-4 pb-28">
           {/* Odd member info banner */}
           {isOdd && step === 'mode' && (
-            <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-4 flex items-start gap-2">
-              <AlertTriangle className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-              <p className="text-[12px] text-amber-700">
+            <div className="rounded-xl bg-warn-50 border border-warn px-3 py-2 mb-4 flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 text-warn flex-shrink-0 mt-0.5" />
+              <p className="text-[12px] text-warn">
                 {members.length} members — odd number. One player will be left unpaired and won&apos;t play until they get a partner.
               </p>
             </div>
@@ -223,30 +223,30 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
             {/* ── Step: Mode selection ── */}
             {step === 'mode' && (
               <motion.div key="mode" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-3">
-                <button onClick={handleAutoBalance} className="w-full rounded-2xl border border-gray-100 p-4 text-left hover:border-teal-200 transition-colors">
+                <button onClick={handleAutoBalance} className="w-full rounded-2xl border border-hairline p-4 text-left hover:border-court-100 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-teal-50 flex items-center justify-center"><BarChart3 className="h-5 w-5 text-teal-600" /></div>
+                    <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center"><BarChart3 className="h-5 w-5 text-court" /></div>
                     <div>
-                      <p className="text-[14px] font-semibold text-gray-900">{t('auto_balance')}</p>
-                      <p className="text-[12px] text-gray-400">{t('auto_balance_desc')}</p>
+                      <p className="text-[14px] font-semibold text-ink">{t('auto_balance')}</p>
+                      <p className="text-[12px] text-ink-2">{t('auto_balance_desc')}</p>
                     </div>
                   </div>
                 </button>
-                <button onClick={handleRandom} className="w-full rounded-2xl border border-gray-100 p-4 text-left hover:border-teal-200 transition-colors">
+                <button onClick={handleRandom} className="w-full rounded-2xl border border-hairline p-4 text-left hover:border-court-100 transition-colors">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center"><Shuffle className="h-5 w-5 text-purple-600" /></div>
                     <div>
-                      <p className="text-[14px] font-semibold text-gray-900">{t('random')}</p>
-                      <p className="text-[12px] text-gray-400">{t('random_desc')}</p>
+                      <p className="text-[14px] font-semibold text-ink">{t('random')}</p>
+                      <p className="text-[12px] text-ink-2">{t('random_desc')}</p>
                     </div>
                   </div>
                 </button>
-                <button onClick={handleManual} className="w-full rounded-2xl border border-gray-100 p-4 text-left hover:border-teal-200 transition-colors">
+                <button onClick={handleManual} className="w-full rounded-2xl border border-hairline p-4 text-left hover:border-court-100 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center"><Hand className="h-5 w-5 text-amber-600" /></div>
+                    <div className="h-10 w-10 rounded-xl bg-warn-50 flex items-center justify-center"><Hand className="h-5 w-5 text-warn" /></div>
                     <div>
-                      <p className="text-[14px] font-semibold text-gray-900">{t('manual')}</p>
-                      <p className="text-[12px] text-gray-400">{t('manual_desc')}</p>
+                      <p className="text-[14px] font-semibold text-ink">{t('manual')}</p>
+                      <p className="text-[12px] text-ink-2">{t('manual_desc')}</p>
                     </div>
                   </div>
                 </button>
@@ -265,7 +265,7 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                           player1={{ name: p.player1.name, avatarUrl: p.player1.avatar_url }}
                           player2={{ name: p.player2.name, avatarUrl: p.player2.avatar_url }}
                         />
-                        <span className="text-[12px] font-semibold text-gray-800 flex-1">{p.teamName}</span>
+                        <span className="text-[12px] font-semibold text-ink flex-1">{p.teamName}</span>
                       </div>
                     ))}
                   </div>
@@ -273,7 +273,7 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
 
                 {/* Unpaired roster */}
                 {selected && (
-                  <p className="text-[11px] font-semibold text-teal-600 mb-2">{t('tap_to_pair')}</p>
+                  <p className="text-[11px] font-semibold text-court mb-2">{t('tap_to_pair')}</p>
                 )}
                 <div className="grid grid-cols-2 gap-2">
                   {unpaired.map((m) => (
@@ -283,25 +283,25 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                       className={cn(
                         'rounded-xl border p-3 flex items-center gap-2 transition-colors text-left',
                         selected?.id === m.id
-                          ? 'border-teal-400 bg-teal-50'
-                          : 'border-gray-100 hover:border-gray-200'
+                          ? 'border-court bg-court-50'
+                          : 'border-hairline hover:border-hairline'
                       )}
                     >
                       <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="sm" />
                       <div className="min-w-0">
-                        <p className="text-[12px] font-semibold text-gray-800 truncate">{m.name}</p>
-                        <p className="text-[10px] text-gray-400">{m.internal_ranking} ELO</p>
+                        <p className="text-[12px] font-semibold text-ink truncate">{m.name}</p>
+                        <p className="text-[11px] text-ink-2">{m.internal_ranking} ELO</p>
                       </div>
                     </button>
                   ))}
                 </div>
 
                 <div className="flex gap-2 mt-4">
-                  <button onClick={() => { reset(); setStep('mode') }} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600">
+                  <button onClick={() => { reset(); setStep('mode') }} className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2">
                     {t('reset')}
                   </button>
                   {canProceedToReview() && (
-                    <button onClick={handleManualToReview} className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white">
+                    <button onClick={handleManualToReview} className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white">
                       Review
                     </button>
                   )}
@@ -312,30 +312,30 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
             {/* ── Step: Review ── */}
             {step === 'review' && (
               <motion.div key="review" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <p className="text-[13px] text-gray-500 mb-3">{t('review_subtitle')}</p>
+                <p className="text-[13px] text-ink-2 mb-3">{t('review_subtitle')}</p>
 
                 {/* Leftover member banner */}
                 {leftoverMember && (
-                  <div className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 mb-3 flex items-center gap-2">
+                  <div className="rounded-xl bg-warn-50 border border-warn px-3 py-2 mb-3 flex items-center gap-2">
                     <PlayerAvatar name={leftoverMember.name} avatarUrl={leftoverMember.avatar_url} size="sm" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[12px] font-semibold text-amber-800 truncate">{leftoverMember.name}</p>
-                      <p className="text-[10px] text-amber-600">{t('unpaired')} — awaiting partner</p>
+                      <p className="text-[12px] font-semibold text-warn truncate">{leftoverMember.name}</p>
+                      <p className="text-[11px] text-warn">{t('unpaired')} — awaiting partner</p>
                     </div>
                   </div>
                 )}
 
                 <div className="space-y-3">
                   {pairs.map((p, i) => (
-                    <div key={i} className="rounded-xl border border-gray-100 p-3">
+                    <div key={i} className="rounded-xl border border-hairline p-3">
                       <div className="flex items-center gap-2 mb-2">
                         <PairAvatar
                           player1={{ name: p.player1.name, avatarUrl: p.player1.avatar_url }}
                           player2={{ name: p.player2.name, avatarUrl: p.player2.avatar_url }}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[11px] text-gray-400">{t('pair_number', { n: i + 1 })}</p>
-                          <p className="text-[13px] font-semibold text-gray-800">
+                          <p className="text-[11px] text-ink-2">{t('pair_number', { n: i + 1 })}</p>
+                          <p className="text-[13px] font-semibold text-ink">
                             {p.player1.name} & {p.player2.name}
                           </p>
                         </div>
@@ -350,12 +350,12 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                           }}
                           onBlur={() => setEditingIdx(null)}
                           onKeyDown={(e) => { if (e.key === 'Enter') setEditingIdx(null) }}
-                          className="w-full rounded-lg border border-teal-300 px-3 py-1.5 text-[13px] text-gray-800 focus:outline-none"
+                          className="w-full rounded-lg border border-court-100 px-3 py-1.5 text-[13px] text-ink focus:outline-none"
                         />
                       ) : (
                         <button
                           onClick={() => setEditingIdx(i)}
-                          className="w-full text-left rounded-lg bg-gray-50 px-3 py-1.5 text-[13px] text-gray-600 hover:bg-gray-100 transition-colors"
+                          className="w-full text-left rounded-lg bg-surface px-3 py-1.5 text-[13px] text-ink-2 hover:bg-hairline transition-colors"
                         >
                           {p.teamName}
                         </button>
@@ -365,13 +365,13 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                 </div>
 
                 <div className="flex gap-2 mt-4">
-                  <button onClick={reset} className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600">
+                  <button onClick={reset} className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2">
                     {t('reset')}
                   </button>
                   <button
                     onClick={handleConfirm}
                     disabled={saving}
-                    className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
+                    className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
                   >
                     {saving ? t('generating_pairs') : t('confirm_pairs')}
                   </button>

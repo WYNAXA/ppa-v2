@@ -12,6 +12,8 @@ import {
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
+import { CourtsHome } from '@/components/play/CourtsHome'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
@@ -26,7 +28,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as 
 const STRIPE_APPEARANCE = {
   theme: 'stripe' as const,
   variables: {
-    colorPrimary: '#009688',
+    colorPrimary: 'var(--color-court)',
     borderRadius: '12px',
     fontFamily: 'system-ui, sans-serif',
   },
@@ -171,16 +173,16 @@ function StepIndicator({ step }: { step: BookingStep }) {
                 className={cn(
                   'h-2.5 w-2.5 rounded-full transition-all duration-300',
                   isDone
-                    ? 'bg-[#009688]'
+                    ? 'bg-court'
                     : isActive
-                      ? 'bg-[#009688] ring-2 ring-teal-200'
-                      : 'bg-gray-200',
+                      ? 'bg-court ring-2 ring-court-100'
+                      : 'bg-hairline',
                 )}
               />
               <span
                 className={cn(
-                  'text-[9px] font-medium tracking-wide',
-                  isActive ? 'text-[#009688]' : isDone ? 'text-teal-500' : 'text-gray-300',
+                  'text-[11px] font-medium tracking-wide',
+                  isActive ? 'text-court' : isDone ? 'text-court' : 'text-ink-3',
                 )}
               >
                 {s.label}
@@ -190,7 +192,7 @@ function StepIndicator({ step }: { step: BookingStep }) {
               <div
                 className={cn(
                   'h-px w-6 mb-3 transition-colors duration-300',
-                  i < stepIndex ? 'bg-[#009688]' : 'bg-gray-200',
+                  i < stepIndex ? 'bg-court' : 'bg-hairline',
                 )}
               />
             )}
@@ -261,29 +263,29 @@ function PaymentForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Summary card */}
-      <div className="rounded-2xl bg-teal-50 border border-teal-100 p-4 space-y-2">
-        <p className="text-[13px] font-bold text-teal-800">Securing your court at {venueName}</p>
-        <div className="flex items-center gap-2 text-teal-700">
-          <Calendar className="h-3.5 w-3.5 text-teal-500 flex-shrink-0" />
+      <div className="rounded-2xl bg-court-50 border border-court-100 p-4 space-y-2">
+        <p className="text-[13px] font-bold text-court-700">Securing your court at {venueName}</p>
+        <div className="flex items-center gap-2 text-court-700">
+          <Calendar className="h-3.5 w-3.5 text-court flex-shrink-0" />
           <span className="text-[13px]">{matchDate}</span>
-          <Clock className="h-3.5 w-3.5 text-teal-500 ml-1 flex-shrink-0" />
+          <Clock className="h-3.5 w-3.5 text-court ml-1 flex-shrink-0" />
           <span className="text-[13px]">{formatSlotTime(startTime)}</span>
         </div>
-        <div className="border-t border-teal-100 pt-2">
-          <p className="text-[16px] font-bold text-teal-900">
+        <div className="border-t border-court-100 pt-2">
+          <p className="text-[16px] font-bold text-court-700">
             You pay: {formatPence(depositPence)}{' '}
-            <span className="text-[12px] font-normal text-teal-600">
+            <span className="text-[12px] font-normal text-court">
               ({Math.round(depositPence / (totalPence / PLAYERS_PER_COURT))} {Math.round(depositPence / (totalPence / PLAYERS_PER_COURT)) === 1 ? 'share' : 'shares'})
             </span>
           </p>
           {totalPence - depositPence > 0 && (
-            <p className="text-[12px] text-teal-600 mt-0.5">
+            <p className="text-[12px] text-court mt-0.5">
               The remaining {formatPence(totalPence - depositPence)} is split between
               the other players. They'll be asked to pay 48 hours before the match.
             </p>
           )}
           {totalPence - depositPence === 0 && (
-            <p className="text-[12px] text-teal-600 mt-0.5">
+            <p className="text-[12px] text-court mt-0.5">
               You're covering the full court cost. No payments needed from other players.
             </p>
           )}
@@ -297,7 +299,7 @@ function PaymentForm({
       <button
         type="submit"
         disabled={loading || !stripe || !elements}
-        className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {loading ? (
           <>
@@ -322,6 +324,7 @@ function PaymentForm({
 
 export function BookCourtPage() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   const { session } = useAuth()
   const locale = useDateLocale()
   const userId = session?.user?.id ?? ''
@@ -1000,41 +1003,41 @@ export function BookCourtPage() {
       <button
         key={v.venue_id}
         onClick={() => selectVenue(v)}
-        className="w-full text-left rounded-2xl border border-gray-100 bg-white p-4 hover:border-teal-200 hover:bg-teal-50/30 transition-colors shadow-sm active:scale-[0.99]"
+        className="w-full text-left rounded-2xl border border-hairline bg-white p-4 hover:border-court-100 hover:bg-court-50/30 transition-colors shadow-sm active:scale-[0.99]"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-[14px] font-bold text-gray-900">{v.venue_name}</p>
+              <p className="text-[14px] font-bold text-ink">{v.venue_name}</p>
               {isPpa ? (
-                <span className="text-[10px] font-bold text-teal-700 bg-teal-100 rounded-full px-2 py-0.5 flex-shrink-0">
+                <span className="text-[11px] font-bold text-court-700 bg-court-100 rounded-full px-2 py-0.5 flex-shrink-0">
                   Book via PPA
                 </span>
               ) : (
-                <span className="text-[10px] font-bold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 flex-shrink-0">
+                <span className="text-[11px] font-bold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 flex-shrink-0">
                   {PLATFORM_LABELS[v.booking_platform ?? '']?.label ?? v.booking_platform ?? 'External'}
                 </span>
               )}
             </div>
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               {v.city && (
-                <span className="flex items-center gap-1 text-[12px] text-gray-500">
+                <span className="flex items-center gap-1 text-[12px] text-ink-2">
                   <MapPin className="h-3 w-3" />
                   {v.city}
                 </span>
               )}
               {dist != null && (
-                <span className="text-[12px] font-semibold text-teal-600">
+                <span className="text-[12px] font-semibold text-court">
                   {formatDistance(dist)} · ~{driveMinutes(dist)} min
                 </span>
               )}
               {v.number_of_courts != null && (
-                <span className="text-[12px] text-gray-400">{v.number_of_courts} courts</span>
+                <span className="text-[12px] text-ink-2">{v.number_of_courts} courts</span>
               )}
             </div>
-            {isPpa && <p className="text-[11px] text-teal-600 mt-0.5">3 weeks in advance</p>}
+            {isPpa && <p className="text-[11px] text-court mt-0.5">3 weeks in advance</p>}
           </div>
-          <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0 mt-1" />
+          <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0 mt-1" />
         </div>
       </button>
     )
@@ -1105,18 +1108,22 @@ export function BookCourtPage() {
   // ── Render ───────────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-surface flex flex-col">
       {/* ── Header ── */}
-      {step !== 'confirmation' && (
+      {step !== 'confirmation' && step !== 'venue' && (
         <div className="flex-shrink-0">
           <div className="flex items-center gap-3 px-5 pt-14 pb-2">
+            {/* Step 1 renders its own header (CourtsHome), so this chrome only
+                appears from step 2 on — where back always means "previous
+                step" and never points at nothing. */}
             <button
               onClick={goBack}
-              className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+              aria-label={t('common.back')}
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-pill border border-hairline bg-card"
             >
-              <ChevronLeft className="h-5 w-5 text-gray-600" />
+              <ChevronLeft className="h-5 w-5 text-ink-2" />
             </button>
-            <h1 className="text-[18px] font-bold text-gray-900">{stepTitles[step]}</h1>
+            <h1 className="text-[18px] font-bold text-ink">{stepTitles[step]}</h1>
           </div>
           <StepIndicator step={step} />
         </div>
@@ -1134,35 +1141,22 @@ export function BookCourtPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -24 }}
               transition={{ duration: 0.22 }}
-              className="px-5 pt-2 space-y-4"
+              className="px-5 pt-14 space-y-5"
             >
-              {/* Search input */}
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <input
-                  autoFocus
-                  type="text"
-                  value={venueQuery}
-                  onChange={(e) => {
-                    setVenueQuery(e.target.value)
-                    setNonPpaVenue(null)
-                  }}
-                  placeholder="Search venues by name or city…"
-                  className="w-full rounded-2xl border border-gray-200 bg-gray-50 pl-10 pr-10 py-3 text-[15px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all"
-                />
-                {venueQuery.length > 0 && (
-                  <button
-                    onClick={() => {
-                      setVenueQuery('')
-                      setVenueResults([])
-                      setNonPpaVenue(null)
-                    }}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    <X className="h-4 w-4 text-gray-400" />
-                  </button>
-                )}
-              </div>
+              <CourtsHome
+                lat={coords?.lat ?? null}
+                lng={coords?.lng ?? null}
+                query={venueQuery}
+                onQueryChange={(v) => { setVenueQuery(v); setNonPpaVenue(null) }}
+                onUseLocation={requestLocation}
+                onPickVenue={(venueId) => {
+                  const v = [...venueResults, ...nearbyVenues].find(
+                    (c) => (c.venues_id ?? c.venue_id) === venueId,
+                  )
+                  if (v) selectVenue(v)
+                  else navigate(`/venues/${venueId}`)
+                }}
+              />
 
               {/* Non-PPA venue notice */}
               <AnimatePresence>
@@ -1252,7 +1246,7 @@ export function BookCourtPage() {
               </AnimatePresence>
 
               {venueQuery.length >= 2 && venueResults.length === 0 && !nonPpaVenue && (
-                <p className="text-center text-[13px] text-gray-400 py-6">
+                <p className="text-center text-[13px] text-ink-2 py-6">
                   No venues found for "{venueQuery}"
                 </p>
               )}
@@ -1262,12 +1256,12 @@ export function BookCourtPage() {
                   {coords ? (
                     <>
                       <div className="flex items-center justify-between">
-                        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">Padel venues near you</p>
-                        {nearbyLoading && <span className="text-[11px] text-gray-300">Finding…</span>}
+                        <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">Padel venues near you</p>
+                        {nearbyLoading && <span className="text-[11px] text-ink-3">Finding…</span>}
                       </div>
                       {nearbyLoading && nearbyVenues.length === 0 ? (
                         <div className="flex items-center justify-center py-10">
-                          <svg className="h-5 w-5 animate-spin text-[#009688]" viewBox="0 0 24 24" fill="none">
+                          <svg className="h-5 w-5 animate-spin text-court" viewBox="0 0 24 24" fill="none">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                           </svg>
@@ -1277,24 +1271,24 @@ export function BookCourtPage() {
                           {nearbyVenues.map((v) => renderVenueButton(v, v._distanceMiles ?? venueDistance(v)))}
                         </div>
                       ) : (
-                        <p className="text-center text-[13px] text-gray-400 py-6">
+                        <p className="text-center text-[13px] text-ink-2 py-6">
                           No padel venues within 75 miles — try searching by name or city.
                         </p>
                       )}
                     </>
                   ) : (
                     <div className="flex flex-col items-center gap-3 py-10 text-center">
-                      <div className="h-14 w-14 rounded-full bg-teal-50 flex items-center justify-center">
-                        <MapPin className="h-7 w-7 text-[#009688]" />
+                      <div className="h-14 w-14 rounded-full bg-court-50 flex items-center justify-center">
+                        <MapPin className="h-7 w-7 text-court" />
                       </div>
-                      <p className="text-[14px] font-semibold text-gray-700">Find your court</p>
-                      <p className="text-[13px] text-gray-400 max-w-xs">
+                      <p className="text-[14px] font-semibold text-ink-2">Find your court</p>
+                      <p className="text-[13px] text-ink-2 max-w-xs">
                         See padel venues near you, or search by name or city. PPA-bookable venues can be reserved directly in the app — up to 3 weeks in advance.
                       </p>
                       <button
                         onClick={requestLocation}
                         disabled={locating}
-                        className="mt-1 inline-flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
+                        className="mt-1 inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
                       >
                         {locating ? (
                           <>
@@ -1330,30 +1324,30 @@ export function BookCourtPage() {
             >
               {/* Selected venue chip */}
               {selectedVenue && (
-                <div className="flex items-center gap-2 rounded-2xl border border-teal-100 bg-teal-50 px-4 py-2.5">
-                  <MapPin className="h-4 w-4 text-teal-500 flex-shrink-0" />
-                  <p className="text-[13px] font-semibold text-teal-800 flex-1 min-w-0 truncate">
+                <div className="flex items-center gap-2 rounded-2xl border border-court-100 bg-court-50 px-4 py-2.5">
+                  <MapPin className="h-4 w-4 text-court flex-shrink-0" />
+                  <p className="text-[13px] font-semibold text-court-700 flex-1 min-w-0 truncate">
                     {selectedVenue.venue_name}
                   </p>
                   {selectedVenue.city && (
-                    <span className="text-[12px] text-teal-500 flex-shrink-0">{selectedVenue.city}</span>
+                    <span className="text-[12px] text-court flex-shrink-0">{selectedVenue.city}</span>
                   )}
                 </div>
               )}
 
               {/* PPA advantage banner */}
-              <div className="rounded-2xl border border-teal-100 bg-gradient-to-r from-teal-50 to-emerald-50 px-4 py-3">
-                <p className="text-[12px] font-bold text-teal-700">
+              <div className="rounded-2xl border border-court-100 bg-gradient-to-r from-court-50 to-emerald-50 px-4 py-3">
+                <p className="text-[12px] font-bold text-court-700">
                   PPA Advantage: Book up to 3 weeks in advance
                 </p>
-                <p className="text-[11px] text-teal-600 mt-0.5">
+                <p className="text-[11px] text-court mt-0.5">
                   vs. 2 weeks on Playtomic — days 15–21 are PPA exclusive
                 </p>
               </div>
 
               {/* Duration tabs */}
               <div>
-                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+                <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-2">
                   Duration
                 </p>
                 <div className="flex gap-2">
@@ -1364,8 +1358,8 @@ export function BookCourtPage() {
                       className={cn(
                         'flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors',
                         selectedDuration === dur
-                          ? 'bg-[#009688] text-white border-[#009688]'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-teal-300',
+                          ? 'bg-court text-white border-court'
+                          : 'bg-white text-ink-2 border-hairline hover:border-court-100',
                       )}
                     >
                       {dur} min
@@ -1376,10 +1370,10 @@ export function BookCourtPage() {
 
               {/* Date calendar grid */}
               <div>
-                <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">Select date</p>
+                <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-2">Select date</p>
                 <div className="grid grid-cols-7 gap-1 text-center mb-1">
                   {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-                    <span key={d} className="text-[10px] font-semibold text-gray-400">{d}</span>
+                    <span key={d} className="text-[11px] font-semibold text-ink-2">{d}</span>
                   ))}
                 </div>
                 <div className="grid grid-cols-7 gap-1">
@@ -1397,13 +1391,13 @@ export function BookCourtPage() {
                           onClick={() => setSelectedDate(date)}
                           className={cn(
                             'h-10 w-full rounded-xl text-[13px] font-semibold transition-all relative',
-                            isSelected ? 'bg-[#009688] text-white' : 'bg-white text-gray-800 hover:bg-gray-50',
-                            isPpaExclusive && !isSelected && 'bg-teal-50/60',
+                            isSelected ? 'bg-court text-white' : 'bg-white text-ink hover:bg-surface',
+                            isPpaExclusive && !isSelected && 'bg-court-50/60',
                           )}
                         >
                           {d.getDate()}
                           {isPpaExclusive && !isSelected && (
-                            <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-teal-400" />
+                            <span className="absolute top-0.5 right-0.5 h-1.5 w-1.5 rounded-full bg-court" />
                           )}
                         </button>
                       )
@@ -1412,7 +1406,7 @@ export function BookCourtPage() {
                   })()}
                 </div>
                 {selectedDate && (
-                  <p className="text-[12px] text-[#009688] font-semibold mt-2">
+                  <p className="text-[12px] text-court font-semibold mt-2">
                     {format(new Date(selectedDate + 'T12:00:00'), 'EEEE d MMMM yyyy', { locale })}
                     {dateRange.find(d => d.date === selectedDate)?.isPpaExclusive && ' · PPA exclusive'}
                   </p>
@@ -1422,14 +1416,14 @@ export function BookCourtPage() {
               {/* Slots */}
               {selectedDate && (
                 <div>
-                  <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+                  <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-2">
                     Available Times
                   </p>
 
                   {loadingSlots && (
                     <div className="flex items-center justify-center py-10 gap-2">
                       <svg
-                        className="h-5 w-5 animate-spin text-[#009688]"
+                        className="h-5 w-5 animate-spin text-court"
                         viewBox="0 0 24 24"
                         fill="none"
                       >
@@ -1447,7 +1441,7 @@ export function BookCourtPage() {
                           d="M4 12a8 8 0 018-8v8H4z"
                         />
                       </svg>
-                      <span className="text-[13px] text-gray-400">Checking availability…</span>
+                      <span className="text-[13px] text-ink-2">Checking availability…</span>
                     </div>
                   )}
 
@@ -1456,9 +1450,9 @@ export function BookCourtPage() {
                   )}
 
                   {!loadingSlots && !slotsError && slots.length === 0 && (
-                    <div className="rounded-2xl border border-gray-100 bg-gray-50 py-8 text-center">
-                      <Clock className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                      <p className="text-[13px] text-gray-400">
+                    <div className="rounded-2xl border border-hairline bg-surface py-8 text-center">
+                      <Clock className="h-8 w-8 text-ink-3 mx-auto mb-2" />
+                      <p className="text-[13px] text-ink-2">
                         No availability for this date — try another day
                       </p>
                     </div>
@@ -1480,12 +1474,12 @@ export function BookCourtPage() {
                             onClick={() => setTimePeriod(p.id)}
                             className={cn(
                               'flex-shrink-0 flex flex-col items-center rounded-xl border-2 px-4 py-2 transition-all min-w-[80px]',
-                              timePeriod === p.id ? 'border-[#009688] bg-teal-50 text-[#009688]' : 'border-gray-100 bg-white text-gray-600',
+                              timePeriod === p.id ? 'border-court bg-court-50 text-court' : 'border-hairline bg-white text-ink-2',
                             )}
                           >
                             <span className="text-[18px]">{p.emoji}</span>
                             <span className="text-[12px] font-semibold mt-0.5">{p.label}</span>
-                            <span className="text-[10px] opacity-70">{count} slots</span>
+                            <span className="text-[11px] opacity-70">{count} slots</span>
                           </button>
                         )
                       })}
@@ -1528,55 +1522,55 @@ export function BookCourtPage() {
                               'rounded-2xl border p-3 text-left transition-all active:scale-[0.98]',
                               slot.available
                                 ? isSelected
-                                  ? 'border-[#009688] bg-teal-50 shadow-sm'
-                                  : 'border-gray-200 bg-white hover:border-teal-300'
+                                  ? 'border-court bg-court-50 shadow-sm'
+                                  : 'border-hairline bg-white hover:border-court-100'
                                 : onWaitlist
-                                  ? 'border-teal-200 bg-teal-50/50'
-                                  : 'border-gray-200 bg-gray-50 hover:border-amber-300',
+                                  ? 'border-court-100 bg-court-50/50'
+                                  : 'border-hairline bg-surface hover:border-warn',
                             )}
                           >
                             <div className="flex items-start justify-between">
                               <p
                                 className={cn(
                                   'text-[17px] font-bold',
-                                  isSelected ? 'text-[#009688]' : slot.available ? 'text-gray-800' : 'text-gray-400',
+                                  isSelected ? 'text-court' : slot.available ? 'text-ink' : 'text-ink-2',
                                 )}
                               >
                                 {formatSlotTime(slot.start_time)}
                               </p>
                               {isSelected && (
-                                <CheckCircle className="h-4 w-4 text-[#009688] flex-shrink-0" />
+                                <CheckCircle className="h-4 w-4 text-court flex-shrink-0" />
                               )}
                             </div>
                             <div className="flex items-center gap-1 mt-0.5">
-                              <span className="text-[11px] text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">
+                              <span className="text-[11px] text-ink-2 bg-hairline rounded-full px-1.5 py-0.5">
                                 {selectedDuration} min
                               </span>
                               {slot.available && (slot.courts?.length ?? 0) > 0 && (
-                                <span className="text-[11px] text-gray-400">
+                                <span className="text-[11px] text-ink-2">
                                   {slot.courts!.length} {slot.courts!.length === 1 ? 'court' : 'courts'} free
                                 </span>
                               )}
                             </div>
                             {slot.available ? (
-                              <p className="text-[12px] font-semibold text-[#009688] mt-1">
+                              <p className="text-[12px] font-semibold text-court mt-1">
                                 {formatPence(priceP)} · {formatPence(pricePerPlayer)}/player
                               </p>
                             ) : onWaitlist ? (
-                              <p className="text-[10px] font-semibold text-[#009688] mt-1 flex items-center gap-1">
+                              <p className="text-[11px] font-semibold text-court mt-1 flex items-center gap-1">
                                 <CheckCircle className="h-3 w-3" /> On the waitlist · tap to leave
                               </p>
                             ) : (
-                              <p className="text-[10px] font-semibold text-amber-600 mt-1">Full · tap to get notified</p>
+                              <p className="text-[11px] font-semibold text-warn mt-1">Full · tap to get notified</p>
                             )}
                           </button>
                         )
                       })}
                     </div>
                     ) : (
-                      <div className="rounded-2xl border border-gray-100 bg-gray-50 py-6 text-center">
-                        <p className="text-[13px] text-gray-400">No slots for this time period</p>
-                        <p className="text-[11px] text-gray-300 mt-1">Try another time of day</p>
+                      <div className="rounded-2xl border border-hairline bg-surface py-6 text-center">
+                        <p className="text-[13px] text-ink-2">No slots for this time period</p>
+                        <p className="text-[11px] text-ink-3 mt-1">Try another time of day</p>
                       </div>
                     )
                   })()}
@@ -1591,7 +1585,7 @@ export function BookCourtPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
                   >
-                    <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">
+                    <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-2">
                       Choose a court
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -1604,12 +1598,12 @@ export function BookCourtPage() {
                             className={cn(
                               'flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.98]',
                               isSelected
-                                ? 'border-[#009688] bg-teal-50 text-[#009688]'
-                                : 'border-gray-200 bg-white text-gray-600 hover:border-teal-300',
+                                ? 'border-court bg-court-50 text-court'
+                                : 'border-hairline bg-white text-ink-2 hover:border-court-100',
                             )}
                           >
                             {c.name}
-                            {isSelected && <CheckCircle className="h-3.5 w-3.5 text-[#009688]" />}
+                            {isSelected && <CheckCircle className="h-3.5 w-3.5 text-court" />}
                           </button>
                         )
                       })}
@@ -1620,9 +1614,9 @@ export function BookCourtPage() {
 
               {/* Member price indicator */}
               {selectedSlot && memberDiscountPct > 0 && (
-                <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-teal-50 border border-teal-100 py-2.5">
+                <div className="flex items-center justify-center gap-1.5 rounded-2xl bg-court-50 border border-court-100 py-2.5">
                   <span className="text-[13px]">🎉</span>
-                  <p className="text-[12px] font-semibold text-teal-700">
+                  <p className="text-[12px] font-semibold text-court-700">
                     Member price — {memberDiscountPct}% off applied
                   </p>
                 </div>
@@ -1635,7 +1629,7 @@ export function BookCourtPage() {
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     onClick={() => setStep('players')}
-                    className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+                    className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
                   >
                     Continue with {formatSlotTime(selectedSlot.start_time)}
                     {selectedSlot.courts?.find(c => c.id === selectedCourtId)?.name
@@ -1660,13 +1654,13 @@ export function BookCourtPage() {
             >
               {/* Booking summary chip */}
               {selectedVenue && selectedSlot && (
-                <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 flex items-center gap-3">
-                  <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                <div className="rounded-2xl border border-hairline bg-surface px-4 py-3 flex items-center gap-3">
+                  <MapPin className="h-4 w-4 text-ink-2 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-800 truncate">
+                    <p className="text-[13px] font-semibold text-ink truncate">
                       {selectedVenue.venue_name}
                     </p>
-                    <p className="text-[12px] text-gray-500">
+                    <p className="text-[12px] text-ink-2">
                       {selectedDate} · {formatSlotTime(selectedSlot.start_time)} · {selectedDuration} min
                     </p>
                   </div>
@@ -1674,12 +1668,12 @@ export function BookCourtPage() {
               )}
 
               {matchId ? (
-                <div className="rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3">
-                  <p className="text-[13px] text-teal-900 font-medium">Players locked from your match</p>
-                  <p className="text-[12px] text-teal-800 mt-0.5">To change players, edit them on the match. Updates sync automatically.</p>
+                <div className="rounded-2xl bg-court-50 border border-court-100 px-4 py-3">
+                  <p className="text-[13px] text-court-700 font-medium">Players locked from your match</p>
+                  <p className="text-[12px] text-court-700 mt-0.5">To change players, edit them on the match. Updates sync automatically.</p>
                 </div>
               ) : (
-                <p className="text-[13px] text-gray-500">
+                <p className="text-[13px] text-ink-2">
                   Fill all 4 player slots, or continue with fewer — open spots can be filled later.
                 </p>
               )}
@@ -1698,7 +1692,7 @@ export function BookCourtPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         className={cn(
                           'flex items-center gap-3 rounded-2xl border px-4 py-3',
-                          isBooker ? 'border-teal-100 bg-teal-50/60' : 'border-gray-100 bg-white',
+                          isBooker ? 'border-court-100 bg-court-50/60' : 'border-hairline bg-white',
                         )}
                       >
                         <PlayerAvatar
@@ -1708,22 +1702,22 @@ export function BookCourtPage() {
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-[14px] font-semibold text-gray-800 truncate">
+                            <p className="text-[14px] font-semibold text-ink truncate">
                               {player.name}
                             </p>
                             {isBooker && (
-                              <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                              <span className="text-[11px] font-bold text-court bg-court-100 rounded-full px-1.5 py-0.5 flex-shrink-0">
                                 You
                               </span>
                             )}
                             {player.type === 'guest' && (
-                              <span className="text-[10px] font-bold text-orange-600 bg-orange-50 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                              <span className="text-[11px] font-bold text-warn bg-warn-50 rounded-full px-1.5 py-0.5 flex-shrink-0">
                                 Guest
                               </span>
                             )}
                           </div>
                           {player.type === 'guest' && (player.phone || player.email) && (
-                            <p className="text-[12px] text-gray-400 truncate">
+                            <p className="text-[12px] text-ink-2 truncate">
                               {player.phone || player.email}
                             </p>
                           )}
@@ -1733,9 +1727,9 @@ export function BookCourtPage() {
                             onClick={() =>
                               setSelectedPlayers((prev) => prev.filter((_, idx) => idx !== i))
                             }
-                            className="h-7 w-7 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+                            className="h-7 w-7 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
                           >
-                            <X className="h-3.5 w-3.5 text-gray-500" />
+                            <X className="h-3.5 w-3.5 text-ink-2" />
                           </button>
                         )}
                       </motion.div>
@@ -1751,29 +1745,29 @@ export function BookCourtPage() {
                         setAddingPlayerSlot(i)
                         setAddMode(null)
                       }}
-                      className="w-full flex items-center gap-3 rounded-2xl border border-dashed border-gray-200 px-4 py-3 hover:border-teal-300 hover:bg-teal-50/30 transition-colors"
+                      className="w-full flex items-center gap-3 rounded-2xl border border-dashed border-hairline px-4 py-3 hover:border-court-100 hover:bg-court-50/30 transition-colors"
                     >
-                      <div className="h-9 w-9 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center flex-shrink-0">
-                        <Plus className="h-4 w-4 text-gray-400" />
+                      <div className="h-9 w-9 rounded-full border-2 border-dashed border-hairline flex items-center justify-center flex-shrink-0">
+                        <Plus className="h-4 w-4 text-ink-2" />
                       </div>
-                      <p className="text-[14px] text-gray-400 font-medium">Add player {i + 1}</p>
+                      <p className="text-[14px] text-ink-2 font-medium">Add player {i + 1}</p>
                     </button>
                   )
                 })}
               </div>
 
               {/* Price summary */}
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <div className="rounded-2xl border border-hairline bg-surface px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-[14px] font-bold text-gray-800">
+                    <p className="text-[14px] font-bold text-ink">
                       Total: {formatPence(totalPence)}
                     </p>
-                    <p className="text-[12px] text-gray-500">
+                    <p className="text-[12px] text-ink-2">
                       You pay {formatPence(perPlayerPence)} now as your deposit
                     </p>
                   </div>
-                  <Users className="h-5 w-5 text-gray-300" />
+                  <Users className="h-5 w-5 text-ink-3" />
                 </div>
               </div>
 
@@ -1789,7 +1783,7 @@ export function BookCourtPage() {
                   }
                 }}
                 disabled={!pricingAvailable}
-                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {matchId ? 'Continue to payment' : 'Next'}
                 <ChevronRight className="h-4 w-4" />
@@ -1806,29 +1800,29 @@ export function BookCourtPage() {
               exit={{ opacity: 0, x: -40 }}
               className="px-5 pt-2 space-y-4"
             >
-              <p className="text-[13px] text-gray-500 text-center">This booking will create a match so it appears in your match history and rankings.</p>
+              <p className="text-[13px] text-ink-2 text-center">This booking will create a match so it appears in your match history and rankings.</p>
 
               {/* Group selector */}
               {userGroups.length > 0 && (
                 <div>
-                  <label className="text-[13px] font-semibold text-gray-700 block mb-2">Is this match part of a group?</label>
+                  <label className="text-[13px] font-semibold text-ink-2 block mb-2">Is this match part of a group?</label>
                   <select
                     value={selectedGroupId ?? ''}
                     onChange={(e) => setSelectedGroupId(e.target.value || null)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-[14px] text-gray-800 bg-white focus:outline-none focus:border-teal-500"
+                    className="w-full rounded-xl border border-hairline px-4 py-3 text-[14px] text-ink bg-white focus:outline-none focus:border-court"
                   >
                     <option value="">None — standalone match</option>
                     {userGroups.map((g) => (
                       <option key={g.id} value={g.id}>{g.name}</option>
                     ))}
                   </select>
-                  <p className="text-[11px] text-gray-400 mt-1">Group matches count toward your group's league points and standings.</p>
+                  <p className="text-[11px] text-ink-2 mt-1">Group matches count toward your group's league points and standings.</p>
                 </div>
               )}
 
               {/* Match type */}
               <div>
-                <label className="text-[13px] font-semibold text-gray-700 block mb-2">Match type</label>
+                <label className="text-[13px] font-semibold text-ink-2 block mb-2">Match type</label>
                 <div className="flex gap-2">
                   {([
                     { value: 'casual' as const, label: 'Casual' },
@@ -1841,15 +1835,15 @@ export function BookCourtPage() {
                       className={cn(
                         'flex-1 rounded-xl py-3 text-[13px] font-semibold border-2 transition-colors',
                         matchType === opt.value
-                          ? 'bg-teal-50 border-[#009688] text-[#009688]'
-                          : 'border-gray-100 text-gray-500'
+                          ? 'bg-court-50 border-court text-court'
+                          : 'border-hairline text-ink-2'
                       )}
                     >
                       {opt.label}
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-gray-400 mt-1">Affects how this match impacts your ranking.</p>
+                <p className="text-[11px] text-ink-2 mt-1">Affects how this match impacts your ranking.</p>
               </div>
 
               {!pricingAvailable && (
@@ -1858,7 +1852,7 @@ export function BookCourtPage() {
               <button
                 onClick={() => setStep('payment')}
                 disabled={!pricingAvailable}
-                className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
+                className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 Continue to payment
                 <ChevronRight className="h-4 w-4" />
@@ -1878,26 +1872,26 @@ export function BookCourtPage() {
             >
               {/* Cover additional players */}
               {otherPlayers.length > 0 && !clientSecret && !fetchingPayment && (
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 space-y-3">
-                  <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">
+                <div className="rounded-2xl border border-hairline bg-white p-4 space-y-3">
+                  <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">
                     Cover additional players?
                   </p>
                   <div className="space-y-2">
                     {/* Booker — locked */}
-                    <div className="flex items-center gap-3 p-3 rounded-xl border border-teal-100 bg-teal-50/60">
+                    <div className="flex items-center gap-3 p-3 rounded-xl border border-court-100 bg-court-50/60">
                       <input
                         type="checkbox"
                         checked
                         disabled
-                        className="w-4 h-4 rounded border-gray-300 text-[#009688] disabled:opacity-70"
+                        className="w-4 h-4 rounded border-hairline text-court disabled:opacity-70"
                       />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-semibold text-gray-900 truncate">
+                        <p className="text-[14px] font-semibold text-ink truncate">
                           {myProfile?.name ?? 'You'}
-                          <span className="text-[11px] text-gray-400 font-normal ml-1.5">(you)</span>
+                          <span className="text-[11px] text-ink-2 font-normal ml-1.5">(you)</span>
                         </p>
                       </div>
-                      <span className="text-[12px] font-semibold text-teal-600">{formatPence(perPlayerPence)}</span>
+                      <span className="text-[12px] font-semibold text-court">{formatPence(perPlayerPence)}</span>
                     </div>
                     {/* Other players */}
                     {otherPlayers.map((p) => (
@@ -1905,33 +1899,33 @@ export function BookCourtPage() {
                         key={p.id}
                         className={cn(
                           'flex items-center gap-3 p-3 rounded-xl border transition-colors cursor-pointer',
-                          coveredIds.has(p.id) ? 'border-teal-200 bg-teal-50/40' : 'border-gray-100',
+                          coveredIds.has(p.id) ? 'border-court-100 bg-court-50/40' : 'border-hairline',
                         )}
                       >
                         <input
                           type="checkbox"
                           checked={coveredIds.has(p.id)}
                           onChange={() => toggleCoveredPlayer(p.id)}
-                          className="w-4 h-4 rounded border-gray-300 text-[#009688] focus:ring-[#009688]"
+                          className="w-4 h-4 rounded border-hairline text-court focus:ring-court"
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-[14px] font-semibold text-gray-900 truncate">
+                          <p className="text-[14px] font-semibold text-ink truncate">
                             {p.name}
                           </p>
                           {p.type === 'guest' && (
-                            <p className="text-[11px] text-gray-400">Guest</p>
+                            <p className="text-[11px] text-ink-2">Guest</p>
                           )}
                         </div>
-                        <span className="text-[12px] font-semibold text-gray-400">{formatPence(perPlayerPence)}</span>
+                        <span className="text-[12px] font-semibold text-ink-2">{formatPence(perPlayerPence)}</span>
                       </label>
                     ))}
                   </div>
                   {/* Running total */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <p className="text-[13px] font-semibold text-gray-700">
+                  <div className="flex items-center justify-between pt-2 border-t border-hairline">
+                    <p className="text-[13px] font-semibold text-ink-2">
                       Paying {coveredCount} {coveredCount === 1 ? 'share' : 'shares'}
                     </p>
-                    <p className="text-[20px] font-black text-[#009688]">{formatPence(depositPence)}</p>
+                    <p className="text-[20px] font-black text-court">{formatPence(depositPence)}</p>
                   </div>
                 </div>
               )}
@@ -1940,7 +1934,7 @@ export function BookCourtPage() {
               {!clientSecret && !fetchingPayment && !paymentError && (
                 <button
                   onClick={initPayment}
-                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
+                  className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
                 >
                   <CreditCard className="h-4 w-4" />
                   Proceed to pay {formatPence(depositPence)}
@@ -1950,7 +1944,7 @@ export function BookCourtPage() {
               {fetchingPayment && (
                 <div className="flex items-center justify-center py-16 gap-2">
                   <svg
-                    className="h-5 w-5 animate-spin text-[#009688]"
+                    className="h-5 w-5 animate-spin text-court"
                     viewBox="0 0 24 24"
                     fill="none"
                   >
@@ -1968,7 +1962,7 @@ export function BookCourtPage() {
                       d="M4 12a8 8 0 018-8v8H4z"
                     />
                   </svg>
-                  <span className="text-[13px] text-gray-400">Preparing payment…</span>
+                  <span className="text-[13px] text-ink-2">Preparing payment…</span>
                 </div>
               )}
 
@@ -1977,7 +1971,7 @@ export function BookCourtPage() {
                   <p className="text-[13px] text-red-600">{paymentError}</p>
                   <button
                     onClick={initPayment}
-                    className="rounded-xl bg-[#009688] px-5 py-2.5 text-[13px] font-bold text-white"
+                    className="rounded-xl bg-court px-5 py-2.5 text-[13px] font-bold text-white"
                   >
                     Try again
                   </button>
@@ -2022,30 +2016,30 @@ export function BookCourtPage() {
                   initial={{ scale: 0.5, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.1, type: 'spring', stiffness: 220, damping: 18 }}
-                  className="h-20 w-20 rounded-full bg-teal-50 flex items-center justify-center"
+                  className="h-20 w-20 rounded-full bg-court-50 flex items-center justify-center"
                 >
-                  <CheckCircle className="h-10 w-10 text-[#009688]" />
+                  <CheckCircle className="h-10 w-10 text-court" />
                 </motion.div>
-                <h1 className="text-[26px] font-bold text-gray-900">
+                <h1 className="text-[26px] font-bold text-ink">
                   {coveredIds.size >= PLAYERS_PER_COURT ? 'Court secured! 🎾' : 'Court held 🎾'}
                 </h1>
                 {coveredIds.size < PLAYERS_PER_COURT && (
-                  <p className="text-[14px] text-gray-500">Pay all 4 shares before the deadline to lock it in.</p>
+                  <p className="text-[14px] text-ink-2">Pay all 4 shares before the deadline to lock it in.</p>
                 )}
                 {selectedVenue && (
-                  <p className="text-[16px] font-semibold text-gray-700">{selectedVenue.venue_name}</p>
+                  <p className="text-[16px] font-semibold text-ink-2">{selectedVenue.venue_name}</p>
                 )}
                 {selectedDate && selectedSlot && (
-                  <p className="text-[14px] text-gray-500">
+                  <p className="text-[14px] text-ink-2">
                     {selectedDate} · {formatSlotTime(selectedSlot.start_time)} · {selectedDuration} min
                   </p>
                 )}
                 {createdBooking?.booking_reference && (
-                  <div className="rounded-xl border border-gray-100 bg-gray-50 px-5 py-2.5">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-0.5">
+                  <div className="rounded-xl border border-hairline bg-surface px-5 py-2.5">
+                    <p className="text-[11px] text-ink-2 uppercase tracking-wide mb-0.5">
                       Booking reference
                     </p>
-                    <p className="text-[15px] font-bold text-gray-800 font-mono">
+                    <p className="text-[15px] font-bold text-ink font-mono">
                       {createdBooking.booking_reference}
                     </p>
                   </div>
@@ -2053,13 +2047,13 @@ export function BookCourtPage() {
               </div>
 
               {/* Player payment status */}
-              <div className="rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+              <div className="rounded-2xl border border-hairline overflow-hidden">
+                <div className="px-4 py-2.5 bg-surface border-b border-hairline">
+                  <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">
                     Player payments {'\u2014'} {coveredIds.size} of {PLAYERS_PER_COURT} paid
                   </p>
                 </div>
-                <div className="divide-y divide-gray-50">
+                <div className="divide-y divide-hairline">
                   {selectedPlayers.map((player) => {
                     const isCovered = coveredIds.has(player.id)
                     const isBooker = player.id === userId
@@ -2072,11 +2066,11 @@ export function BookCourtPage() {
                         />
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <p className="text-[13px] font-semibold text-gray-800 truncate">
+                            <p className="text-[13px] font-semibold text-ink truncate">
                               {player.name}
                             </p>
                             {isBooker && (
-                              <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-1.5 py-0.5 flex-shrink-0">
+                              <span className="text-[11px] font-bold text-court bg-court-100 rounded-full px-1.5 py-0.5 flex-shrink-0">
                                 You
                               </span>
                             )}
@@ -2084,7 +2078,7 @@ export function BookCourtPage() {
                           <p
                             className={cn(
                               'text-[12px]',
-                              isCovered ? 'text-teal-600 font-medium' : 'text-gray-400',
+                              isCovered ? 'text-court font-medium' : 'text-ink-2',
                             )}
                           >
                             {isCovered
@@ -2093,7 +2087,7 @@ export function BookCourtPage() {
                           </p>
                         </div>
                         {isCovered && (
-                          <CheckCircle className="h-4 w-4 text-teal-500 flex-shrink-0" />
+                          <CheckCircle className="h-4 w-4 text-court flex-shrink-0" />
                         )}
                       </div>
                     )
@@ -2104,19 +2098,19 @@ export function BookCourtPage() {
                         key={`empty-${i}`}
                         className="flex items-center gap-3 px-4 py-3 opacity-40"
                       >
-                        <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center flex-shrink-0">
-                          <Plus className="h-3 w-3 text-gray-300" />
+                        <div className="h-7 w-7 rounded-full border-2 border-dashed border-hairline flex items-center justify-center flex-shrink-0">
+                          <Plus className="h-3 w-3 text-ink-3" />
                         </div>
-                        <p className="text-[13px] text-gray-400">Open spot</p>
+                        <p className="text-[13px] text-ink-2">Open spot</p>
                       </div>
                     ))}
                 </div>
               </div>
 
               {/* Payment info */}
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 flex gap-3">
-                <Clock className="h-4 w-4 text-amber-500 flex-shrink-0 mt-0.5" />
-                <p className="text-[12px] text-amber-700">
+              <div className="rounded-2xl border border-warn-100 bg-warn-50 px-4 py-3 flex gap-3">
+                <Clock className="h-4 w-4 text-warn flex-shrink-0 mt-0.5" />
+                <p className="text-[12px] text-warn">
                   Share the payment links below {'\u2014'} each player pays their own {formatPence(perPlayerPence)} share before the deadline.
                 </p>
               </div>
@@ -2124,7 +2118,7 @@ export function BookCourtPage() {
               {/* Share payment links */}
               {createdBooking && selectedPlayers.filter((p) => !coveredIds.has(p.id)).length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide">
+                  <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">
                     Share payment links
                   </p>
                   {selectedPlayers
@@ -2132,14 +2126,14 @@ export function BookCourtPage() {
                     .map((player) => (
                       <div
                         key={player.id}
-                        className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white px-4 py-3"
+                        className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3"
                       >
                         <PlayerAvatar
                           name={player.name}
                           avatarUrl={player.type === 'user' ? player.avatar_url : null}
                           size="sm"
                         />
-                        <p className="flex-1 text-[13px] font-medium text-gray-700 truncate min-w-0">
+                        <p className="flex-1 text-[13px] font-medium text-ink-2 truncate min-w-0">
                           {player.name}
                         </p>
                         <a
@@ -2152,12 +2146,12 @@ export function BookCourtPage() {
                         </a>
                         <button
                           onClick={() => copyPayLink(player)}
-                          className="h-8 w-8 rounded-xl border border-gray-200 bg-white flex items-center justify-center flex-shrink-0"
+                          className="h-8 w-8 rounded-xl border border-hairline bg-white flex items-center justify-center flex-shrink-0"
                         >
                           {copiedId === player.id ? (
-                            <CheckCircle className="h-3.5 w-3.5 text-teal-500" />
+                            <CheckCircle className="h-3.5 w-3.5 text-court" />
                           ) : (
-                            <Copy className="h-3.5 w-3.5 text-gray-400" />
+                            <Copy className="h-3.5 w-3.5 text-ink-2" />
                           )}
                         </button>
                       </div>
@@ -2168,7 +2162,7 @@ export function BookCourtPage() {
               {/* Action buttons */}
               <button
                 onClick={shareBooking}
-                className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688] flex items-center justify-center gap-2"
+                className="w-full rounded-2xl border-2 border-court py-3.5 text-[14px] font-bold text-court flex items-center justify-center gap-2"
               >
                 <Share2 className="h-4 w-4" />
                 Share booking
@@ -2177,7 +2171,7 @@ export function BookCourtPage() {
               {createdBooking && (
                 <button
                   onClick={() => navigate(`/booking/${createdBooking.id}`)}
-                  className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white"
+                  className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white"
                 >
                   Manage booking
                 </button>
@@ -2186,7 +2180,7 @@ export function BookCourtPage() {
               {(matchId || createdMatchId) && (
                 <button
                   onClick={() => navigate(`/matches/${matchId || createdMatchId}`)}
-                  className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688]"
+                  className="w-full rounded-2xl border-2 border-court py-3.5 text-[14px] font-bold text-court"
                 >
                   View match
                 </button>
@@ -2197,8 +2191,8 @@ export function BookCourtPage() {
                 className={cn(
                   'w-full rounded-2xl py-4 text-[15px] font-bold',
                   matchId || createdMatchId
-                    ? 'border-2 border-gray-200 text-gray-600'
-                    : 'bg-[#009688] text-white'
+                    ? 'border-2 border-hairline text-ink-2'
+                    : 'bg-court text-white'
                 )}
               >
                 Back to Play
@@ -2233,14 +2227,14 @@ export function BookCourtPage() {
             >
               {/* Handle + title */}
               <div className="flex-shrink-0 px-5 pt-4 pb-3">
-                <div className="w-10 h-1 rounded-full bg-gray-200 mx-auto mb-4" />
+                <div className="w-10 h-1 rounded-full bg-hairline mx-auto mb-4" />
                 <div className="flex items-center justify-between">
-                  <p className="text-[17px] font-bold text-gray-900">Add Player</p>
+                  <p className="text-[17px] font-bold text-ink">Add Player</p>
                   <button
                     onClick={closeModal}
-                    className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center"
+                    className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center"
                   >
-                    <X className="h-4 w-4 text-gray-500" />
+                    <X className="h-4 w-4 text-ink-2" />
                   </button>
                 </div>
               </div>
@@ -2250,47 +2244,47 @@ export function BookCourtPage() {
                 <div className="px-5 pb-8 space-y-2 overflow-y-auto">
                   <button
                     onClick={() => setAddMode('search')}
-                    className="w-full flex items-center gap-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 hover:border-teal-200 hover:bg-teal-50/30 transition-colors"
+                    className="w-full flex items-center gap-4 rounded-2xl border border-hairline bg-surface px-4 py-4 hover:border-court-100 hover:bg-court-50/30 transition-colors"
                   >
-                    <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center flex-shrink-0">
-                      <Search className="h-5 w-5 text-teal-600" />
+                    <div className="h-10 w-10 rounded-full bg-court-100 flex items-center justify-center flex-shrink-0">
+                      <Search className="h-5 w-5 text-court" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="text-[14px] font-semibold text-gray-800">Search PPA users</p>
-                      <p className="text-[12px] text-gray-400">Find players already on PPA</p>
+                      <p className="text-[14px] font-semibold text-ink">Search PPA users</p>
+                      <p className="text-[12px] text-ink-2">Find players already on PPA</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
                   </button>
 
                   <button
                     onClick={() => setAddMode('guest')}
-                    className="w-full flex items-center gap-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 hover:border-teal-200 hover:bg-teal-50/30 transition-colors"
+                    className="w-full flex items-center gap-4 rounded-2xl border border-hairline bg-surface px-4 py-4 hover:border-court-100 hover:bg-court-50/30 transition-colors"
                   >
-                    <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                      <Users className="h-5 w-5 text-orange-500" />
+                    <div className="h-10 w-10 rounded-full bg-warn-100 flex items-center justify-center flex-shrink-0">
+                      <Users className="h-5 w-5 text-warn" />
                     </div>
                     <div className="text-left flex-1">
-                      <p className="text-[14px] font-semibold text-gray-800">Add guest</p>
-                      <p className="text-[12px] text-gray-400">Someone not on PPA yet</p>
+                      <p className="text-[14px] font-semibold text-ink">Add guest</p>
+                      <p className="text-[12px] text-ink-2">Someone not on PPA yet</p>
                     </div>
-                    <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                    <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
                   </button>
 
                   {matchId && matchProfiles.length > 0 && (
                     <button
                       onClick={() => setAddMode('match')}
-                      className="w-full flex items-center gap-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 hover:border-teal-200 hover:bg-teal-50/30 transition-colors"
+                      className="w-full flex items-center gap-4 rounded-2xl border border-hairline bg-surface px-4 py-4 hover:border-court-100 hover:bg-court-50/30 transition-colors"
                     >
                       <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                         <Calendar className="h-5 w-5 text-blue-500" />
                       </div>
                       <div className="text-left flex-1">
-                        <p className="text-[14px] font-semibold text-gray-800">Match players</p>
-                        <p className="text-[12px] text-gray-400">
+                        <p className="text-[14px] font-semibold text-ink">Match players</p>
+                        <p className="text-[12px] text-ink-2">
                           {matchProfiles.length} players in this match
                         </p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 flex-shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
                     </button>
                   )}
                 </div>
@@ -2301,20 +2295,20 @@ export function BookCourtPage() {
                 <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-3">
                   <button
                     onClick={() => { setAddMode(null); setUserSearch('') }}
-                    className="flex items-center gap-1 text-[13px] text-gray-400 hover:text-gray-600"
+                    className="flex items-center gap-1 text-[13px] text-ink-2 hover:text-ink-2"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Back
                   </button>
                   <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
                     <input
                       autoFocus
                       type="text"
                       value={userSearch}
                       onChange={(e) => setUserSearch(e.target.value)}
                       placeholder="Search by name…"
-                      className="w-full rounded-xl border border-gray-200 bg-gray-50 pl-10 pr-4 py-2.5 text-[14px] outline-none focus:border-teal-500"
+                      className="w-full rounded-xl border border-hairline bg-surface pl-10 pr-4 py-2.5 text-[14px] outline-none focus:border-court"
                     />
                   </div>
                   <div className="space-y-1">
@@ -2331,24 +2325,24 @@ export function BookCourtPage() {
                               avatar_url: u.avatar_url ?? null,
                             })
                           }
-                          className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 px-4 py-3 hover:border-teal-200 hover:bg-teal-50/30 transition-colors"
+                          className="w-full flex items-center gap-3 rounded-2xl border border-hairline px-4 py-3 hover:border-court-100 hover:bg-court-50/30 transition-colors"
                         >
                           <PlayerAvatar name={u.name} avatarUrl={u.avatar_url} size="md" />
-                          <p className="flex-1 text-left text-[14px] font-semibold text-gray-800">
+                          <p className="flex-1 text-left text-[14px] font-semibold text-ink">
                             {u.name}
                           </p>
-                          <Plus className="h-4 w-4 text-gray-300" />
+                          <Plus className="h-4 w-4 text-ink-3" />
                         </button>
                       ))}
                     {userSearch.length >= 2 &&
                       userResults.filter((u) => !selectedPlayers.some((p) => p.id === u.id))
                         .length === 0 && (
-                        <p className="text-center text-[13px] text-gray-400 py-4">
+                        <p className="text-center text-[13px] text-ink-2 py-4">
                           {userResults.length === 0 ? 'No users found' : 'All matching users already added'}
                         </p>
                       )}
                     {userSearch.length < 2 && (
-                      <p className="text-center text-[13px] text-gray-400 py-4">
+                      <p className="text-center text-[13px] text-ink-2 py-4">
                         Type at least 2 characters to search
                       </p>
                     )}
@@ -2361,13 +2355,13 @@ export function BookCourtPage() {
                 <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-4">
                   <button
                     onClick={() => setAddMode(null)}
-                    className="flex items-center gap-1 text-[13px] text-gray-400 hover:text-gray-600"
+                    className="flex items-center gap-1 text-[13px] text-ink-2 hover:text-ink-2"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Back
                   </button>
                   <div>
-                    <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
+                    <label className="block text-[12px] font-semibold text-ink-2 mb-1.5">
                       Name <span className="text-red-400">*</span>
                     </label>
                     <input
@@ -2376,11 +2370,11 @@ export function BookCourtPage() {
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="Guest's full name"
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-[14px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                      className="w-full rounded-xl border border-hairline px-4 py-2.5 text-[14px] outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                     />
                   </div>
                   <div>
-                    <label className="block text-[12px] font-semibold text-gray-600 mb-1.5">
+                    <label className="block text-[12px] font-semibold text-ink-2 mb-1.5">
                       Phone or email <span className="text-red-400">*</span>
                     </label>
                     <input
@@ -2388,7 +2382,7 @@ export function BookCourtPage() {
                       value={guestContact}
                       onChange={(e) => setGuestContact(e.target.value)}
                       placeholder="+44 7700 900000 or guest@email.com"
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-[14px] outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                      className="w-full rounded-xl border border-hairline px-4 py-2.5 text-[14px] outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                     />
                   </div>
                   <button
@@ -2404,7 +2398,7 @@ export function BookCourtPage() {
                           : { phone: guestContact.trim() }),
                       })
                     }}
-                    className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
+                    className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40 transition-opacity"
                   >
                     Add guest
                   </button>
@@ -2416,12 +2410,12 @@ export function BookCourtPage() {
                 <div className="flex-1 overflow-y-auto px-5 pb-6 space-y-3">
                   <button
                     onClick={() => setAddMode(null)}
-                    className="flex items-center gap-1 text-[13px] text-gray-400 hover:text-gray-600"
+                    className="flex items-center gap-1 text-[13px] text-ink-2 hover:text-ink-2"
                   >
                     <ChevronLeft className="h-4 w-4" />
                     Back
                   </button>
-                  <p className="text-[13px] text-gray-500">Tap a player to add them</p>
+                  <p className="text-[13px] text-ink-2">Tap a player to add them</p>
                   <div className="space-y-1">
                     {matchProfiles
                       .filter(
@@ -2438,19 +2432,19 @@ export function BookCourtPage() {
                               avatar_url: p.avatar_url ?? null,
                             })
                           }
-                          className="w-full flex items-center gap-3 rounded-2xl border border-gray-100 px-4 py-3 hover:border-teal-200 hover:bg-teal-50/30 transition-colors"
+                          className="w-full flex items-center gap-3 rounded-2xl border border-hairline px-4 py-3 hover:border-court-100 hover:bg-court-50/30 transition-colors"
                         >
                           <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="md" />
-                          <p className="flex-1 text-left text-[14px] font-semibold text-gray-800">
+                          <p className="flex-1 text-left text-[14px] font-semibold text-ink">
                             {p.name}
                           </p>
-                          <Plus className="h-4 w-4 text-gray-300" />
+                          <Plus className="h-4 w-4 text-ink-3" />
                         </button>
                       ))}
                     {matchProfiles.filter(
                       (p) => p.id !== userId && !selectedPlayers.some((sp) => sp.id === p.id),
                     ).length === 0 && (
-                      <p className="text-center text-[13px] text-gray-400 py-4">
+                      <p className="text-center text-[13px] text-ink-2 py-4">
                         All match players already added
                       </p>
                     )}

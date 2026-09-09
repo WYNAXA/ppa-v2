@@ -4,9 +4,9 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { motion } from 'framer-motion'
 import {
-  TrendingUp, TrendingDown, Minus,
-  Calendar, MapPin, ChevronRight, Plus,
+  Calendar, Plus,
   Clock, Users, Trophy, BarChart3, Search, Bell,
+  Check, UserPlus,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns'
@@ -26,14 +26,16 @@ function todayStr() {
   return new Date().toISOString().split('T')[0]
 }
 
-function getCountdown(matchDate: string, matchTime: string | null, t: (key: string, opts?: Record<string, unknown>) => string): string {
+/** Short relative label for the hero pill — "Today", "Tomorrow", "2 days". */
+function getShortCountdown(matchDate: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
   try {
     const diff = differenceInCalendarDays(parseISO(matchDate), new Date())
-    if (diff === 0) return matchTime ? t('home.today_at', { time: matchTime.slice(0, 5) }) : t('home.today')
-    if (diff === 1) return matchTime ? t('home.tomorrow_at', { time: matchTime.slice(0, 5) }) : t('home.tomorrow')
-    if (diff > 1)  return t('home.in_days', { count: diff })
-  } catch { /* fall through */ }
-  return matchDate
+    if (diff <= 0) return t('home.today')
+    if (diff === 1) return t('home.tomorrow')
+    return t('home.in_days_short', { count: diff })
+  } catch {
+    return matchDate
+  }
 }
 
 function timeAgo(dateStr: string, t: (key: string, opts?: Record<string, unknown>) => string): string {
@@ -58,24 +60,12 @@ interface NextMatch {
   status: string
   player_ids: string[]
   booked_venue_name: string | null
+  booked_court_number: number | null
   players: Array<{ id: string; name: string; avatar_url: string | null }>
   has_result: boolean
 }
 
-interface ActivePoll {
-  id: string
-  title: string
-  group_id: string
-  responseCount: number
-  memberCount: number
-  userHasResponded: boolean
-}
 
-interface QuickStats {
-  weekMatches: number
-  winRate: number
-  streak: number
-}
 
 interface ActivityItem {
   id: string
@@ -86,10 +76,6 @@ interface ActivityItem {
   related_id: string | null
 }
 
-interface HomeRanking {
-  rank: number
-  trend: number
-}
 
 // ── Data hooks ────────────────────────────────────────────────────────────────
 
@@ -100,7 +86,7 @@ function useNextMatch(userId: string) {
     queryFn: async () => {
       const { data: match } = await supabase
         .from('matches')
-        .select('id, match_date, match_time, match_type, status, player_ids, booked_venue_name')
+        .select('id, match_date, match_time, match_type, status, player_ids, booked_venue_name, booked_court_number')
         .contains('player_ids', [userId])
         .gte('match_date', todayStr())
         .not('status', 'in', '("completed","cancelled")')
@@ -130,139 +116,6 @@ function useNextMatch(userId: string) {
       // card shows them instead of a blank avatar.
       const guestsByMatch = await guestPseudoProfilesForMatches([match.id])
       return { ...match, players: [...players, ...(guestsByMatch[match.id] ?? [])], has_result: (resultCount ?? 0) > 0 }
-    },
-  })
-}
-
-function useHomeRanking(userId: string, currentRanking: number | undefined) {
-  return useQuery<HomeRanking>({
-    queryKey: ['home-ranking', userId, currentRanking],
-    enabled: !!userId,
-    queryFn: async () => {
-      const [rankResult, trendData] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('id', { count: 'exact', head: true })
-          .gt('internal_ranking', currentRanking ?? 0),
-        supabase
-          .from('ranking_changes')
-          .select('points_change')
-          .eq('player_id', userId)
-          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-      ])
-      const rank  = (rankResult.count ?? 0) + 1
-      const trend = (trendData.data ?? []).reduce((a, c) => a + (c.points_change as number), 0)
-      return { rank, trend }
-    },
-  })
-}
-
-function useActivePoll(userId: string) {
-  return useQuery<ActivePoll | null>({
-    queryKey: ['polls', 'mine', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data: memberships } = await supabase
-        .from('group_members')
-        .select('group_id')
-        .eq('user_id', userId)
-        .eq('status', 'approved')
-
-      const groupIds = (memberships ?? []).map((m) => m.group_id)
-      if (groupIds.length === 0) return null
-
-      const { data: polls } = await supabase
-        .from('polls')
-        .select('id, title, group_id')
-        .in('group_id', groupIds)
-        .eq('status', 'open')
-        .order('created_at', { ascending: false })
-        .limit(1)
-
-      const poll = polls?.[0]
-      if (!poll) return null
-
-      const [{ count: responseCount }, { count: memberCount }, { data: myResponse }] = await Promise.all([
-        supabase
-          .from('poll_responses')
-          .select('id', { count: 'exact', head: true })
-          .eq('poll_id', poll.id),
-        supabase
-          .from('group_members')
-          .select('id', { count: 'exact', head: true })
-          .eq('group_id', poll.group_id)
-          .eq('status', 'approved'),
-        supabase
-          .from('poll_responses')
-          .select('id')
-          .eq('poll_id', poll.id)
-          .eq('user_id', userId)
-          .maybeSingle(),
-      ])
-
-      return {
-        id:               poll.id,
-        title:            poll.title,
-        group_id:         poll.group_id,
-        responseCount:    responseCount ?? 0,
-        memberCount:      memberCount ?? 0,
-        userHasResponded: !!myResponse,
-      }
-    },
-  })
-}
-
-function useQuickStats(userId: string) {
-  return useQuery<QuickStats>({
-    queryKey: ['home-quick-stats', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-
-      const { data: results } = await supabase
-        .from('match_results')
-        .select('result_type, team1_players, team2_players, created_at')
-        .or(`team1_players.cs.{${userId}},team2_players.cs.{${userId}}`)
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      const all = results ?? []
-
-      // Week stats
-      const weekResults = all.filter((r) => r.created_at >= sevenDaysAgo)
-      let weekWins = 0
-      for (const r of weekResults) {
-        const inTeam1 = (r.team1_players as string[]).includes(userId)
-        if (
-          (inTeam1 && r.result_type === 'team1_win') ||
-          (!inTeam1 && r.result_type === 'team2_win')
-        ) weekWins++
-      }
-
-      // Current streak (from most recent backwards)
-      let streak = 0
-      for (const r of all) {
-        const inTeam1 = (r.team1_players as string[]).includes(userId)
-        const isWin =
-          (inTeam1 && r.result_type === 'team1_win') ||
-          (!inTeam1 && r.result_type === 'team2_win')
-        if (isWin) streak++
-        else break
-      }
-
-      const winRate = all.length > 0
-        ? Math.round((all.filter((r) => {
-            const inTeam1 = (r.team1_players as string[]).includes(userId)
-            return (inTeam1 && r.result_type === 'team1_win') ||
-                   (!inTeam1 && r.result_type === 'team2_win')
-          }).length / all.length) * 100)
-        : 0
-
-      return {
-        weekMatches: weekResults.length,
-        winRate,
-        streak,
-      }
     },
   })
 }
@@ -339,11 +192,288 @@ function useSetupProgress(userId: string) {
 
 // ── Sub-components ────────────────────────────────────────────────────────────
 
-const TYPE_BADGE: Record<string, { key: string; className: string }> = {
-  competitive: { key: 'home.type_competitive', className: 'bg-orange-400/20 text-orange-100 border-orange-300/20' },
-  friendly:    { key: 'home.type_friendly',    className: 'bg-blue-400/20 text-blue-100 border-blue-300/20'     },
-  casual:      { key: 'home.type_casual',      className: 'bg-white/20 text-white/80 border-white/20'           },
-  group:       { key: 'home.type_group',       className: 'bg-white/20 text-white/80 border-white/20'           },
+
+// ── NEEDS YOU ─────────────────────────────────────────────────────────────────
+// The signed-off Today screen leads with a triage stack, not a dashboard. Three
+// sources feed it — a result waiting on your confirmation, a match in your
+// group short of players, an availability poll you have not answered — and each
+// row carries the action inline so the screen is answerable without leaving it.
+// This is what replaced the ranking / poll / stats tiles: those are Me's job.
+
+export type NeedsYouItem = {
+  id: string
+  tone: 'court' | 'alert'
+  icon: 'check' | 'user-plus' | 'calendar'
+  title: string
+  detail: string
+  cta: string
+  /** Dark CTA reads as "commit"; court reads as "confirm". Matches the board. */
+  ctaTone: 'court' | 'ink'
+  to: string
+}
+
+function useNeedsYou(userId: string, t: (k: string, o?: Record<string, unknown>) => string) {
+  return useQuery<NeedsYouItem[]>({
+    queryKey: ['home-needs-you', userId],
+    enabled: !!userId,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const items: NeedsYouItem[] = []
+      const today = todayStr()
+
+      // (a) Results submitted by someone else, still awaiting verification.
+      const { data: pending } = await supabase
+        .from('match_results')
+        .select('id, match_id, verification_status, submitted_by, team1_score, team2_score, created_at')
+        .neq('verification_status', 'verified')
+        .neq('submitted_by', userId)
+        .order('created_at', { ascending: false })
+        .limit(12)
+
+      if (pending && pending.length > 0) {
+        const ids = pending.map((r) => r.match_id)
+        const { data: mine } = await supabase
+          .from('matches')
+          .select('id, player_ids, match_date')
+          .in('id', ids)
+        const mineSet = new Set(
+          (mine ?? [])
+            .filter((m) => ((m.player_ids as string[]) ?? []).includes(userId))
+            .map((m) => m.id),
+        )
+        for (const r of pending) {
+          if (!mineSet.has(r.match_id)) continue
+          const score = r.team1_score != null && r.team2_score != null
+            ? `${r.team1_score}–${r.team2_score}`
+            : ''
+          items.push({
+            id: `result-${r.id}`,
+            tone: 'court',
+            icon: 'check',
+            title: t('home.needs_confirm_result'),
+            detail: [score, r.verification_status === 'disputed' ? t('home.needs_disputed') : '']
+              .filter(Boolean).join(' · '),
+            cta: r.verification_status === 'disputed' ? t('home.needs_review') : t('home.needs_confirm'),
+            ctaTone: 'court',
+            to: `/matches/${r.match_id}`,
+          })
+          if (items.length >= 2) break
+        }
+      }
+
+      // (b) A match in one of your groups that is short of players.
+      const { data: memberships } = await supabase
+        .from('group_members').select('group_id').eq('user_id', userId).eq('status', 'approved')
+      const groupIds = (memberships ?? []).map((m) => m.group_id)
+
+      if (groupIds.length > 0) {
+        const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd', { locale: getDateLocale() })
+        const { data: matches } = await supabase
+          .from('matches')
+          .select('id, match_date, match_time, booked_venue_name, player_ids')
+          .in('group_id', groupIds)
+          .gte('match_date', today).lte('match_date', weekEnd)
+          .not('status', 'in', '(cancelled,completed)')
+          .order('match_date', { ascending: true })
+          .limit(10)
+        const short = (matches ?? []).filter(
+          (m) => !((m.player_ids as string[]) ?? []).includes(userId)
+            && ((m.player_ids as string[]) ?? []).length < 4,
+        )
+        for (const m of short.slice(0, 2)) {
+          const spots = 4 - ((m.player_ids as string[]) ?? []).length
+          const day = (() => {
+            try { return format(parseISO(m.match_date), 'EEEE', { locale: getDateLocale() }) }
+            catch { return m.match_date }
+          })()
+          items.push({
+            id: `spot-${m.id}`,
+            tone: 'alert',
+            icon: 'user-plus',
+            title: t('home.needs_spots', { day, count: spots }),
+            detail: [m.match_time?.slice(0, 5), m.booked_venue_name].filter(Boolean).join(' · '),
+            cta: t('home.needs_im_in'),
+            ctaTone: 'ink',
+            to: `/matches/${m.id}`,
+          })
+        }
+
+        // (c) An open availability poll you have not answered.
+        const { data: polls } = await supabase
+          .from('polls')
+          .select('id, title, group_id')
+          .in('group_id', groupIds)
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(3)
+        for (const poll of polls ?? []) {
+          const [{ data: mineResp }, { count: responded }, { count: members }] = await Promise.all([
+            supabase.from('poll_responses').select('id').eq('poll_id', poll.id).eq('user_id', userId).maybeSingle(),
+            supabase.from('poll_responses').select('id', { count: 'exact', head: true }).eq('poll_id', poll.id),
+            supabase.from('group_members').select('id', { count: 'exact', head: true }).eq('group_id', poll.group_id).eq('status', 'approved'),
+          ])
+          if (mineResp) continue
+          items.push({
+            id: `poll-${poll.id}`,
+            tone: 'court',
+            icon: 'calendar',
+            title: t('home.needs_availability'),
+            detail: `${poll.title} · ${t('home.responded', { count: responded ?? 0, total: members ?? 0 })}`,
+            cta: t('home.needs_add'),
+            ctaTone: 'ink',
+            to: `/play/availability/${poll.id}`,
+          })
+          break
+        }
+      }
+
+      return items.slice(0, 4)
+    },
+  })
+}
+
+const NEEDS_ICON = { check: Check, 'user-plus': UserPlus, calendar: Calendar } as const
+
+function NeedsYouSection({ items }: { items: NeedsYouItem[] }) {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  if (items.length === 0) return null
+
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center gap-2">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+          {t('home.needs_you')}
+        </h2>
+        <span className="num rounded-pill bg-ball px-[7px] py-0.5 text-[11px] font-bold leading-[14px] text-ink">
+          {items.length}
+        </span>
+      </div>
+
+      {items.map((item, i) => {
+        const Icon = NEEDS_ICON[item.icon]
+        return (
+          <motion.button
+            key={item.id}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.04 }}
+            onClick={() => navigate(item.to)}
+            className="flex items-center gap-3 rounded-[14px] border border-hairline bg-card px-3.5 py-3 text-left transition-transform active:scale-[0.99]"
+          >
+            <span
+              className={cn(
+                'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-control',
+                item.tone === 'alert' ? 'bg-alert-50' : 'bg-court-50',
+              )}
+            >
+              <Icon
+                className={cn('h-[18px] w-[18px]', item.tone === 'alert' ? 'text-alert' : 'text-court')}
+                strokeWidth={2.2}
+              />
+            </span>
+            <span className="flex min-w-0 flex-grow flex-col gap-px">
+              <span className="line-clamp-2 text-[15px] font-semibold leading-5 text-ink">{item.title}</span>
+              {item.detail && (
+                <span className="num truncate text-[13px] leading-[18px] text-ink-2">{item.detail}</span>
+              )}
+            </span>
+            <span
+              className={cn(
+                'flex-shrink-0 rounded-control px-3.5 py-2.5 text-[13px] font-semibold leading-4 text-white',
+                item.ctaTone === 'ink' ? 'bg-ink' : 'bg-court',
+              )}
+            >
+              {item.cta}
+            </span>
+          </motion.button>
+        )
+      })}
+    </section>
+  )
+}
+
+// ── YOUR WEEK ─────────────────────────────────────────────────────────────────
+// Five days at a glance. A dot per day, today filled. It is the cheapest way to
+// answer "am I playing this week" without opening a calendar.
+
+function useYourWeek(userId: string) {
+  return useQuery<Record<string, number>>({
+    queryKey: ['home-your-week', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      const from = todayStr()
+      const to = format(addDays(new Date(), 4), 'yyyy-MM-dd', { locale: getDateLocale() })
+      const { data } = await supabase
+        .from('matches')
+        .select('match_date, player_ids')
+        .gte('match_date', from).lte('match_date', to)
+        .not('status', 'in', '(cancelled)')
+      const counts: Record<string, number> = {}
+      for (const m of data ?? []) {
+        if (!((m.player_ids as string[]) ?? []).includes(userId)) continue
+        counts[m.match_date] = (counts[m.match_date] ?? 0) + 1
+      }
+      return counts
+    },
+  })
+}
+
+function YourWeekStrip({ counts }: { counts: Record<string, number> }) {
+  const navigate = useNavigate()
+  const { t } = useTranslation()
+  const locale = useDateLocale()
+  const today = new Date()
+
+  return (
+    <section className="flex flex-col gap-2.5">
+      <div className="flex items-center justify-between">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+          {t('home.your_week')}
+        </h2>
+        <button onClick={() => navigate('/play')} className="text-[13px] font-semibold text-court">
+          {t('home.see_all')}
+        </button>
+      </div>
+      <div className="grid grid-cols-5 gap-1.5">
+        {Array.from({ length: 5 }, (_, i) => {
+          const d = addDays(today, i)
+          const key = format(d, 'yyyy-MM-dd', { locale: getDateLocale() })
+          const label = (() => {
+            try { return format(d, 'EEE', { locale }) } catch { return '' }
+          })()
+          const has = (counts[key] ?? 0) > 0
+          const isToday = i === 0
+          return (
+            <button
+              key={key}
+              onClick={() => navigate('/play')}
+              className={cn(
+                'flex min-h-[44px] flex-col items-center justify-center gap-1.5 rounded-card border py-2.5',
+                isToday ? 'border-ink bg-ink' : 'border-hairline bg-card',
+              )}
+            >
+              <span
+                className={cn(
+                  'text-[11px] font-semibold leading-[13px]',
+                  isToday ? 'text-white' : 'text-ink-2',
+                )}
+              >
+                {label}
+              </span>
+              <span
+                className={cn(
+                  'h-1.5 w-1.5 rounded-pill',
+                  isToday ? (has ? 'bg-ball' : 'bg-white/25') : has ? 'bg-line' : 'bg-hairline',
+                )}
+              />
+            </button>
+          )
+        })}
+      </div>
+    </section>
+  )
 }
 
 function NextMatchCard({
@@ -356,86 +486,81 @@ function NextMatchCard({
   const navigate   = useNavigate()
   const { t } = useTranslation()
   const locale = useDateLocale()
-  const countdown  = getCountdown(match.match_date, match.match_time, t)
+  const countdown  = getShortCountdown(match.match_date, t)
   const matchStart = match.match_time
     ? new Date(`${match.match_date}T${match.match_time}`)
     : new Date(`${match.match_date}T00:00:00`)
   const now = new Date()
-  const isPastMatchTime = now > matchStart
-  const withinWindow = now < new Date(matchStart.getTime() + 24 * 60 * 60 * 1000)
-  const canRecord  = isPastMatchTime && withinWindow && match.status === 'scheduled' && match.player_ids.length === 4 && !match.has_result
-  const typeStyle  = TYPE_BADGE[match.match_type ?? 'group'] ?? TYPE_BADGE.group
+  const canRecord = now > matchStart
+    && now < new Date(matchStart.getTime() + 24 * 60 * 60 * 1000)
+    && match.status === 'scheduled'
+    && match.player_ids.length === 4
+    && !match.has_result
+
+  const dateLine = (() => {
+    try { return format(parseISO(match.match_date), 'EEE d MMM', { locale }) }
+    catch { return match.match_date }
+  })()
+  const venueLine = [
+    match.booked_venue_name,
+    match.booked_court_number != null ? t('home.court_n', { n: match.booked_court_number }) : null,
+  ].filter(Boolean).join(' · ')
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #009688 0%, #004d44 100%)' }}
+      className="flex flex-col gap-3.5 rounded-panel bg-court p-[18px]"
     >
-      <div className="p-5">
-        {/* Countdown badge */}
-        <div className="flex items-center justify-between mb-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1 text-[11px] font-bold text-white">
-            <Clock className="h-3 w-3" />
-            {countdown}
-          </span>
-          {match.match_type && (
-            <span className={cn(
-              'inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold capitalize',
-              typeStyle.className
-            )}>
-              {t(typeStyle.key)}
-            </span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-[3px]">
+          <p className="num text-[24px] font-extrabold leading-[26px] tracking-[-0.01em] text-white">
+            {dateLine}
+            {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
+          </p>
+          {venueLine && (
+            <p className="truncate text-[13px] font-medium leading-[18px] text-court-100">{venueLine}</p>
           )}
         </div>
+        {/* The one ball-yellow element on Today. */}
+        <span className="flex-shrink-0 whitespace-nowrap rounded-pill bg-ball px-[9px] py-[5px] text-[11px] font-bold leading-[14px] text-ink">
+          {countdown}
+        </span>
+      </div>
 
-        {/* Date */}
-        <p className="text-white font-bold text-[18px] leading-tight mb-1">
-          {(() => { try { return format(parseISO(match.match_date), 'EEEE, d MMMM', { locale }) } catch { return match.match_date } })()}
-          {match.match_time ? ` · ${match.match_time.slice(0, 5)}` : ''}
-        </p>
-
-        {/* Venue */}
-        {match.booked_venue_name && (
-          <div className="flex items-center gap-1.5 mb-3">
-            <MapPin className="h-3.5 w-3.5 text-teal-200 flex-shrink-0" />
-            <p className="text-teal-100 text-[13px] truncate">{match.booked_venue_name}</p>
+      {match.players.length > 0 && (
+        <div className="flex items-center gap-2">
+          <div className="flex">
+            {match.players.map((p, i) => (
+              <span key={p.id} className={cn('rounded-pill ring-2 ring-court', i > 0 && '-ml-2')}>
+                <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+              </span>
+            ))}
           </div>
-        )}
+          <p className="truncate text-[13px] font-medium leading-[18px] text-court-100">
+            {match.players.length >= 4
+              ? t('home.match_full')
+              : t('home.match_of_four', { count: match.players.length })}
+          </p>
+        </div>
+      )}
 
-        {/* Players */}
-        {match.players.length > 0 && (
-          <div className="flex items-center gap-2 mb-4">
-            <div className="flex -space-x-1.5">
-              {match.players.map((p) => (
-                <PlayerAvatar key={p.id} name={p.name} avatarUrl={p.avatar_url} size="sm" />
-              ))}
-            </div>
-            <p className="text-teal-100 text-[13px]">
-              {match.players.map((p) => p.name.split(' ')[0]).join(' & ')}
-            </p>
-          </div>
-        )}
-
-        {/* Action buttons */}
-        <div className={cn('grid gap-2', canRecord ? 'grid-cols-2' : 'grid-cols-1')}>
+      <div className="flex gap-2">
+        <button
+          onClick={() => navigate(`/matches/${match.id}`)}
+          className="min-h-[44px] flex-grow rounded-card bg-white py-[13px] text-center text-[15px] font-semibold leading-[18px] text-ink"
+        >
+          {t('home.match_details')}
+        </button>
+        {canRecord && (
           <button
-            onClick={() => navigate(`/matches/${match.id}`)}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-white py-2.5 text-[13px] font-bold text-[#009688]"
+            onClick={onRecordResult}
+            aria-label={t('home.record_result')}
+            className="flex min-h-[44px] w-12 items-center justify-center rounded-card bg-white/[0.14]"
           >
-            {t('home.view_match')} <ChevronRight className="h-4 w-4" />
+            <Trophy className="h-5 w-5 text-white" strokeWidth={2} />
           </button>
-          {canRecord && (
-            <button
-              onClick={onRecordResult}
-              className="flex items-center justify-center gap-1.5 rounded-xl bg-white/20 py-2.5 text-[13px] font-bold text-white border border-white/30"
-            >
-              <Trophy className="h-3.5 w-3.5" />
-              {t('home.record_result')}
-            </button>
-          )}
-        </div>
+        )}
       </div>
     </motion.div>
   )
@@ -451,19 +576,19 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-white p-4"
+      className="rounded-2xl border border-court-100 bg-gradient-to-br from-court-50 to-white p-4"
     >
       <div className="flex items-center gap-2 mb-3">
         <span className="text-[16px]">🎾</span>
-        <p className="text-[14px] font-bold text-gray-800">Getting started</p>
-        <span className="ml-auto text-[11px] font-semibold text-gray-400">{stepsComplete} of 3</span>
+        <p className="text-[14px] font-bold text-ink">Getting started</p>
+        <span className="ml-auto text-[11px] font-semibold text-ink-2">{stepsComplete} of 3</span>
       </div>
 
       <div className="space-y-2.5">
         {/* Step 1: Profile — always done */}
         <div className="flex items-center gap-3">
           <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
-          <p className="text-[13px] text-gray-500 line-through">You're all set up</p>
+          <p className="text-[13px] text-ink-2 line-through">You're all set up</p>
         </div>
 
         {/* Step 2: Group */}
@@ -471,26 +596,26 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
           {groupDone ? (
             <>
               <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
-              <p className="text-[13px] text-gray-500 line-through">Create a group & invite friends</p>
+              <p className="text-[13px] text-ink-2 line-through">Create a group & invite friends</p>
             </>
           ) : (
             <>
-              <span className="h-6 w-6 rounded-full bg-teal-100 flex items-center justify-center text-[12px] text-teal-700 font-bold shrink-0">2</span>
+              <span className="h-6 w-6 rounded-full bg-court-100 flex items-center justify-center text-[12px] text-court-700 font-bold shrink-0">2</span>
               <div className="flex-1 min-w-0">
                 {progress.groupState === 'none' ? (
                   <>
-                    <p className="text-[13px] font-semibold text-gray-800">Create a group & invite friends</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">Groups let you find times to play and schedule matches</p>
+                    <p className="text-[13px] font-semibold text-ink">Create a group & invite friends</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">Groups let you find times to play and schedule matches</p>
                     <div className="flex gap-2 mt-2">
                       <button
                         onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
-                        className="rounded-lg bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white"
+                        className="rounded-lg bg-court px-3 py-1.5 text-[12px] font-bold text-white"
                       >
                         Create a group
                       </button>
                       <button
                         onClick={() => navigate('/community')}
-                        className="rounded-lg border border-gray-200 px-3 py-1.5 text-[12px] font-semibold text-gray-600"
+                        className="rounded-lg border border-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2"
                       >
                         Browse groups
                       </button>
@@ -499,11 +624,11 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                 ) : (
                   /* solo group — in progress */
                   <>
-                    <p className="text-[13px] font-semibold text-amber-700">Group created — invite a friend to get started</p>
-                    <p className="text-[11px] text-gray-400 mt-0.5">You need at least one other member to schedule matches</p>
+                    <p className="text-[13px] font-semibold text-warn">Group created — invite a friend to get started</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">You need at least one other member to schedule matches</p>
                     <button
                       onClick={() => navigate('/community')}
-                      className="mt-2 rounded-lg bg-amber-500 px-3 py-1.5 text-[12px] font-bold text-white"
+                      className="mt-2 rounded-lg bg-warn px-3 py-1.5 text-[12px] font-bold text-white"
                     >
                       Invite friends
                     </button>
@@ -519,26 +644,26 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
           {playDone ? (
             <>
               <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
-              <p className="text-[13px] text-gray-500 line-through">Find a time to play</p>
+              <p className="text-[13px] text-ink-2 line-through">Find a time to play</p>
             </>
           ) : (
             <>
-              <span className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[12px] text-gray-400 font-bold shrink-0">3</span>
+              <span className="h-6 w-6 rounded-full bg-hairline flex items-center justify-center text-[12px] text-ink-2 font-bold shrink-0">3</span>
               <div className="flex-1 min-w-0">
-                <p className={cn('text-[13px] font-semibold', groupDone ? 'text-gray-800' : 'text-gray-400')}>Find a time to play</p>
+                <p className={cn('text-[13px] font-semibold', groupDone ? 'text-ink' : 'text-ink-2')}>Find a time to play</p>
                 {groupDone && (
                   <>
-                    <p className="text-[11px] text-gray-400 mt-0.5">Share your availability so your group can find a time</p>
+                    <p className="text-[11px] text-ink-2 mt-0.5">Share your availability so your group can find a time</p>
                     <button
                       onClick={() => navigate('/play/availability')}
-                      className="mt-2 rounded-lg border border-[#009688] px-3 py-1.5 text-[12px] font-bold text-[#009688]"
+                      className="mt-2 rounded-lg border border-court px-3 py-1.5 text-[12px] font-bold text-court"
                     >
                       Check availability
                     </button>
                   </>
                 )}
                 {!groupDone && (
-                  <p className="text-[11px] text-gray-400 mt-0.5">Complete step 2 first</p>
+                  <p className="text-[11px] text-ink-2 mt-0.5">Complete step 2 first</p>
                 )}
               </div>
             </>
@@ -556,26 +681,26 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-dashed border-gray-200 p-6 text-center"
+      className="rounded-2xl border border-dashed border-hairline p-6 text-center"
     >
-      <div className="h-12 w-12 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto mb-3">
-        <Calendar className="h-6 w-6 text-gray-400" />
+      <div className="h-12 w-12 rounded-2xl bg-hairline flex items-center justify-center mx-auto mb-3">
+        <Calendar className="h-6 w-6 text-ink-2" />
       </div>
-      <p className="text-[14px] font-bold text-gray-700 mb-1">{t('home.no_matches')}</p>
-      <p className="text-[12px] text-gray-400 mb-4">
+      <p className="text-[14px] font-bold text-ink-2 mb-1">{t('home.no_matches')}</p>
+      <p className="text-[12px] text-ink-2 mb-4">
         {hasUsableGroup ? t('home.no_matches_sub') : 'Create or join a group to start scheduling matches'}
       </p>
       {hasUsableGroup ? (
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => navigate('/play/availability')}
-            className="rounded-xl border border-[#009688] py-2.5 text-[13px] font-bold text-[#009688]"
+            className="rounded-xl border border-court py-2.5 text-[13px] font-bold text-court"
           >
             {t('home.find_my_game')}
           </button>
           <button
             onClick={onCreateMatch}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white"
           >
             <Plus className="h-3.5 w-3.5" />
             {t('home.create_match')}
@@ -585,111 +710,20 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
-            className="flex items-center justify-center gap-1.5 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white"
+            className="flex items-center justify-center gap-1.5 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white"
           >
             <Users className="h-3.5 w-3.5" />
             Create a group
           </button>
           <button
             onClick={() => navigate('/community')}
-            className="rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+            className="rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
           >
             Browse groups
           </button>
         </div>
       )}
     </motion.div>
-  )
-}
-
-function RankingCard({
-  profile,
-  ranking,
-  isLoading,
-}: {
-  profile: { internal_ranking?: number | null } | null
-  ranking: HomeRanking | undefined
-  isLoading: boolean
-}) {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  const elo      = profile?.internal_ranking
-
-  return (
-    <motion.button
-      onClick={() => navigate('/compete')}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.05 }}
-      whileTap={{ scale: 0.97 }}
-      className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
-    >
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.ranking')}</p>
-      <p className="text-[26px] font-black text-[#009688] leading-none">{elo != null ? elo.toLocaleString() : '—'}</p>
-      <p className="text-[11px] text-gray-500 mt-0.5 font-medium">ELO</p>
-
-      {!isLoading && ranking && (
-        <div className="mt-2.5 flex items-center gap-1.5">
-          <p className="text-[11px] text-gray-500">
-            {t('home.ranked_globally', { rank: ranking.rank })}
-          </p>
-          {ranking.trend > 0 ? (
-            <TrendingUp className="h-3 w-3 text-green-500" />
-          ) : ranking.trend < 0 ? (
-            <TrendingDown className="h-3 w-3 text-red-400" />
-          ) : (
-            <Minus className="h-3 w-3 text-gray-300" />
-          )}
-        </div>
-      )}
-      <ChevronRight className="h-3.5 w-3.5 text-gray-300 mt-2" />
-    </motion.button>
-  )
-}
-
-function PollCard({ poll }: { poll: ActivePoll | null }) {
-  const navigate = useNavigate()
-  const { t } = useTranslation()
-  return (
-    <motion.button
-      onClick={() => navigate(poll ? `/play/availability/${poll.id}` : '/play/availability')}
-      initial={{ opacity: 0, y: 6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.08 }}
-      whileTap={{ scale: 0.97 }}
-      className="flex-1 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-left"
-    >
-      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.availability')}</p>
-      {poll ? (
-        <>
-          <p className="text-[13px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1.5">
-            {poll.title}
-          </p>
-          <div className="flex items-center gap-1.5 mb-2">
-            <Users className="h-3 w-3 text-gray-400" />
-            <p className="text-[11px] text-gray-500">
-              {t('home.responded', { count: poll.responseCount, total: poll.memberCount })}
-            </p>
-          </div>
-          {poll.userHasResponded ? (
-            <span className="inline-flex items-center rounded-xl bg-teal-50 border border-teal-200 px-2.5 py-1 text-[11px] font-bold text-[#009688]">
-              {t('home.you_responded')}
-            </span>
-          ) : (
-            <span className="inline-flex items-center rounded-xl bg-[#009688] px-2.5 py-1 text-[11px] font-bold text-white">
-              {t('home.add_yours')}
-            </span>
-          )}
-        </>
-      ) : (
-        <>
-          <p className="text-[12px] text-gray-500 mb-2">{t('home.no_polls')}</p>
-          <span className="inline-flex items-center gap-1 text-[12px] font-semibold text-[#009688]">
-            {t('home.check_availability')} <ChevronRight className="h-3.5 w-3.5" />
-          </span>
-        </>
-      )}
-    </motion.button>
   )
 }
 
@@ -724,22 +758,22 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
             initial={{ opacity: 0, x: -8 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.04 }}
-            className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left"
+            className="w-full flex items-start gap-3 px-3 py-2.5 rounded-xl hover:bg-surface transition-colors text-left"
           >
             <div className={cn(
               'h-7 w-7 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5',
-              item.read ? 'bg-gray-100' : 'bg-teal-50'
+              item.read ? 'bg-hairline' : 'bg-court-50'
             )}>
-              <Icon className={cn('h-3.5 w-3.5', item.read ? 'text-gray-400' : 'text-[#009688]')} />
+              <Icon className={cn('h-3.5 w-3.5', item.read ? 'text-ink-2' : 'text-court')} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className={cn('text-[13px] leading-snug', item.read ? 'text-gray-600' : 'font-semibold text-gray-800')}>
+              <p className={cn('text-[13px] leading-snug', item.read ? 'text-ink-2' : 'font-semibold text-ink')}>
                 {item.message}
               </p>
-              <p className="text-[11px] text-gray-400 mt-0.5">{timeAgo(item.created_at, t)}</p>
+              <p className="text-[11px] text-ink-2 mt-0.5">{timeAgo(item.created_at, t)}</p>
             </div>
             {!item.read && (
-              <div className="h-2 w-2 rounded-full bg-[#009688] flex-shrink-0 mt-2" />
+              <div className="h-2 w-2 rounded-full bg-court flex-shrink-0 mt-2" />
             )}
           </motion.button>
         )
@@ -747,92 +781,6 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
     </div>
   )
 }
-
-function QuickStatsRow({ stats }: { stats: QuickStats | undefined }) {
-  const { t } = useTranslation()
-  const items = [
-    {
-      value:    stats ? `${stats.weekMatches}` : '—',
-      label:    t('home.matches_this_week'),
-      subtitle: t('home.this_week'),
-    },
-    {
-      value:    stats ? `${stats.winRate}%` : '—',
-      label:    t('home.win_rate'),
-      subtitle: t('home.all_time'),
-    },
-    {
-      value:    stats ? `${stats.streak}` : '—',
-      label:    t('home.win_streak'),
-      subtitle: t('home.last_5'),
-    },
-  ]
-  return (
-    <div className="flex gap-2">
-      {items.map(({ value, label, subtitle }, i) => (
-        <motion.div
-          key={label}
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 + i * 0.04 }}
-          className="flex-1 rounded-xl bg-gray-50 border border-gray-100 px-3 py-2.5 text-center"
-        >
-          <p className="text-[15px] font-bold text-gray-800 leading-none">{value}</p>
-          <p className="text-[11px] font-semibold text-gray-600 mt-0.5">{label}</p>
-          <p className="text-[9px] text-gray-400 leading-tight">{subtitle}</p>
-        </motion.div>
-      ))}
-    </div>
-  )
-}
-
-// ── Group opportunities (matches user is NOT in) ────────────────────────────
-
-function useGroupOpportunities(userId: string) {
-  return useQuery<Array<{ id: string; match_date: string; match_time: string | null; booked_venue_name: string | null; player_ids: string[]; group_name: string | null; spots: number }>>({
-    queryKey: ['home-group-opps', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data: memberships } = await supabase
-        .from('group_members').select('group_id').eq('user_id', userId).eq('status', 'approved')
-      if (!memberships || memberships.length === 0) return []
-      const groupIds = memberships.map((m) => m.group_id)
-      const today = format(new Date(), 'yyyy-MM-dd', { locale: getDateLocale() })
-      const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd', { locale: getDateLocale() })
-      const { data: matches } = await supabase
-        .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, player_ids, group_id')
-        .in('group_id', groupIds)
-        .gte('match_date', today).lte('match_date', weekEnd)
-        .not('status', 'in', '(cancelled,completed)')
-        .order('match_date', { ascending: true })
-        .limit(10)
-      if (!matches) return []
-      // Only matches user is NOT in and has open slots
-      const opps = matches
-        .filter((m) => !(m.player_ids as string[]).includes(userId) && (m.player_ids as string[]).length < 4)
-        .slice(0, 3)
-      if (opps.length === 0) return []
-      const gIds = [...new Set(opps.map((m) => m.group_id).filter(Boolean))]
-      const { data: groups } = gIds.length > 0
-        ? await supabase.from('groups').select('id, name').in('id', gIds)
-        : { data: [] }
-      const gMap = Object.fromEntries((groups ?? []).map((g) => [g.id, g]))
-      return opps.map((m) => ({
-        id: m.id,
-        match_date: m.match_date,
-        match_time: m.match_time,
-        booked_venue_name: m.booked_venue_name,
-        player_ids: (m.player_ids as string[]) ?? [],
-        group_name: m.group_id ? gMap[m.group_id]?.name ?? null : null,
-        spots: 4 - ((m.player_ids as string[]) ?? []).length,
-      }))
-    },
-    staleTime: 5 * 60 * 1000,
-  })
-}
-
-// ── Page ──────────────────────────────────────────────────────────────────────
 
 export function HomePage() {
   const { profile } = useAuth()
@@ -847,171 +795,108 @@ export function HomePage() {
   useUserMatchesSubscription(userId)
   useNotificationsSubscription(userId)
 
-  const { data: nextMatch,  isLoading: loadingMatch    } = useNextMatch(userId)
-  const { data: ranking,    isLoading: loadingRanking  } = useHomeRanking(userId, profile?.internal_ranking)
-  const { data: activePoll, isLoading: loadingPoll     } = useActivePoll(userId)
-  const { data: quickStats                             } = useQuickStats(userId)
-  const { data: activity = []                          } = useRecentActivity(userId)
-  const { data: groupOpps = [] } = useGroupOpportunities(userId)
-  const { data: setupProgress } = useSetupProgress(userId)
+  const { data: nextMatch, isLoading: loadingMatch } = useNextMatch(userId)
+  const { data: needsYou = [] }   = useNeedsYou(userId, t)
+  const { data: week = {} }       = useYourWeek(userId)
+  const { data: activity = [] }   = useRecentActivity(userId)
+  const { data: setupProgress }   = useSetupProgress(userId)
 
   const setupComplete = setupProgress
     ? setupProgress.groupState === 'usable' && setupProgress.hasPollOrMatch
     : true // hide card while loading (avoids flash)
 
   const today = new Date()
-  const dateLabel = (() => {
-    try { return format(today, 'EEEE, d MMMM', { locale }) } catch { return '' }
+  const weekday = (() => { try { return format(today, 'EEEE', { locale }) } catch { return '' } })()
+  const dayLine = (() => {
+    try { return format(today, 'd MMMM', { locale }) } catch { return '' }
   })()
+  const place = (profile as { city?: string | null } | null)?.city ?? null
 
   return (
-    <div className="min-h-full bg-white pb-32">
-      {/* Header */}
-      <div className="flex items-start justify-between px-5 pt-14 pb-5 sticky top-0 bg-white/95 backdrop-blur-sm z-10 border-b border-gray-50">
-        <div>
-          <h1 className="text-[22px] font-bold text-gray-900 leading-tight">
-            {profile?.name
-              ? (() => {
-                  const h = new Date().getHours()
-                  const key = h < 12 ? 'home.greeting_morning' : h < 17 ? 'home.greeting_afternoon' : 'home.greeting_evening'
-                  return `${t(key)}, ${profile.name.split(' ')[0]}`
-                })()
-              : t('home.greeting_morning')}
+    <div className="min-h-full bg-surface pb-32">
+      {/* ── Header ────────────────────────────────────────────────────────
+          The day is the headline. A greeting tells the player nothing they
+          did not already know; the weekday is what they are orienting by. */}
+      <div className="flex flex-col gap-0.5 px-5 pb-4 pt-14">
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
+            {weekday}
           </h1>
-          <p className="text-[13px] text-gray-400 mt-0.5">{dateLabel}</p>
+          <div className="flex flex-shrink-0 gap-2">
+            <button
+              onClick={() => navigate('/search')}
+              aria-label={t('common.search')}
+              className="flex h-11 w-11 items-center justify-center rounded-pill border border-hairline bg-card"
+            >
+              <Search className="h-5 w-5 text-ink-2" strokeWidth={2} />
+            </button>
+            <NotificationBell />
+          </div>
         </div>
-        <div className="flex items-center gap-2 mt-1">
-          <button
-            onClick={() => navigate('/search')}
-            className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
-          >
-            <Search className="h-5 w-5 text-gray-600" />
-          </button>
-          <NotificationBell />
-        </div>
+        <p className="text-[15px] font-medium leading-[22px] text-ink-3">
+          {[dayLine, place].filter(Boolean).join(' · ')}
+        </p>
       </div>
 
-      <div className="px-5 space-y-5">
+      <div className="flex flex-col gap-6 px-5">
 
-        {/* ── Search (prominent, so venues are easy to find) ── */}
-        <button
-          onClick={() => navigate('/search')}
-          className="w-full flex items-center gap-2.5 rounded-2xl border border-gray-200 bg-gray-50 px-4 h-11 text-left active:scale-[0.99] transition-transform"
-        >
-          <Search className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <span className="text-[13px] text-gray-400">{t('home.search_placeholder')}</span>
-        </button>
+        {/* Onboarding, only while setup is incomplete. */}
+        {!setupComplete && setupProgress && <GettingStartedCard progress={setupProgress} />}
 
-        {/* ── Getting Started (self-dismissing) ── */}
-        {!setupComplete && setupProgress && (
-          <section>
-            <GettingStartedCard progress={setupProgress} />
-          </section>
-        )}
+        {/* ── Needs you ── */}
+        <NeedsYouSection items={needsYou} />
 
-        {/* ── Next Match ── */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.next_match')}</h2>
-            <button
-              onClick={() => navigate('/matches')}
-              className="text-[12px] text-[#009688] font-semibold"
-            >
-              {t('home.all_matches')}
-            </button>
-          </div>
-
+        {/* ── Next match ── */}
+        <section className="flex flex-col gap-2.5">
+          <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+            {t('home.next_match')}
+          </h2>
           {loadingMatch ? (
-            <div className="h-44 rounded-2xl bg-gray-100 animate-pulse" />
+            <div className="h-44 animate-pulse rounded-panel bg-hairline/60" />
           ) : nextMatch ? (
             <NextMatchCard
               match={nextMatch}
               onRecordResult={() => navigate(`/matches/${nextMatch.id}`)}
             />
           ) : (
-            <EmptyMatchCard onCreateMatch={() => setCreateMatchOpen(true)} hasUsableGroup={setupProgress?.groupState === 'usable'} />
+            <EmptyMatchCard
+              onCreateMatch={() => setCreateMatchOpen(true)}
+              hasUsableGroup={setupProgress?.groupState === 'usable'}
+            />
           )}
         </section>
 
-        {/* ── Ranking + Poll (side by side) ── */}
-        <div className="flex gap-3">
-          <RankingCard
-            profile={profile}
-            ranking={ranking}
-            isLoading={loadingRanking}
-          />
-          {loadingPoll ? (
-            <div className="flex-1 h-32 rounded-2xl bg-gray-100 animate-pulse" />
-          ) : (
-            <PollCard poll={activePoll ?? null} />
-          )}
-        </div>
+        {/* ── Your week ── */}
+        <YourWeekStrip counts={week} />
 
-        {/* ── Quick Stats ── */}
-        <QuickStatsRow stats={quickStats} />
-
-        {/* ── Group opportunities ── */}
-        {groupOpps.length > 0 && (
-          <section>
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('home.in_your_groups_week')}</h2>
-            <div className="space-y-2">
-              {groupOpps.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => navigate(`/matches/${m.id}`)}
-                  className="w-full text-left rounded-2xl border border-orange-100 bg-orange-50/50 px-4 py-3 active:scale-[0.98] transition-transform"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-semibold text-gray-800">
-                        {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
-                        {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
-                      </p>
-                      {m.booked_venue_name && (
-                        <p className="text-[11px] text-gray-500 mt-0.5 truncate">{m.booked_venue_name}</p>
-                      )}
-                      <div className="flex items-center gap-1.5 mt-1">
-                        {m.group_name && (
-                          <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 rounded-full px-1.5 py-0.5">{m.group_name}</span>
-                        )}
-                        <span className="text-[10px] font-bold text-orange-600">{m.spots === 1 ? t('home.spots_open_one', { count: 1 }) : t('home.spots_open', { count: m.spots })}</span>
-                      </div>
-                    </div>
-                    <span className="rounded-xl bg-[#009688] px-3 py-1.5 text-[11px] font-bold text-white flex-shrink-0">
-                      {t('home.join')}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── Recent Activity ── */}
-        <section>
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-[13px] font-bold text-gray-400 uppercase tracking-wide">{t('home.recent_activity')}</h2>
+        {/* ── Recent activity ── */}
+        <section className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
+              {t('home.recent_activity')}
+            </h2>
             <button
               onClick={() => navigate('/notifications')}
-              className="text-[12px] text-[#009688] font-semibold"
+              className="text-[13px] font-semibold text-court"
             >
               {t('home.see_all')}
             </button>
           </div>
 
           {activity.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-400">{t('home.no_activity')}</p>
-              <p className="text-[12px] text-gray-300 mt-1">{t('home.no_activity_sub')}</p>
+            <div className="rounded-panel border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">{t('home.no_activity')}</p>
+              <p className="mt-1 text-[13px] text-ink-3">{t('home.no_activity_sub')}</p>
             </div>
           ) : (
             <ActivityFeed items={activity} />
           )}
         </section>
 
+        <div className="h-2" />
       </div>
 
-      <CreateMatchSheet
+<CreateMatchSheet
         open={createMatchOpen}
         onClose={() => setCreateMatchOpen(false)}
       />

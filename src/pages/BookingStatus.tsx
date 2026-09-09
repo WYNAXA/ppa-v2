@@ -70,16 +70,16 @@ function formatCountdown(ms: number): string {
 }
 
 const RESERVATION_CONFIG: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle }> = {
-  active:    { label: 'Court booked',  color: 'text-teal-700',   bg: 'bg-teal-50 border-teal-200',    icon: CheckCircle },
-  cancelled: { label: 'Cancelled',     color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200',    icon: XCircle },
-  completed: { label: 'Played',        color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200',    icon: CheckCircle },
+  active:    { label: 'Court booked',  color: 'text-court-700',   bg: 'bg-court-50 border-court-100',    icon: CheckCircle },
+  cancelled: { label: 'Cancelled',     color: 'text-ink-2',   bg: 'bg-surface border-hairline',    icon: XCircle },
+  completed: { label: 'Played',        color: 'text-ink-2',   bg: 'bg-surface border-hairline',    icon: CheckCircle },
 }
 
 const PAYMENT_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  held:     { label: 'held',                color: 'text-amber-700',  bg: 'bg-amber-50 border-amber-200' },
-  paid:     { label: 'Fully paid',          color: 'text-teal-700',   bg: 'bg-teal-50 border-teal-200' },
-  released: { label: 'Released \u2014 refunded', color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200' },
-  refunded: { label: 'Refunded',            color: 'text-gray-500',   bg: 'bg-gray-50 border-gray-200' },
+  held:     { label: 'held',                color: 'text-warn',  bg: 'bg-warn-50 border-warn' },
+  paid:     { label: 'Fully paid',          color: 'text-court-700',   bg: 'bg-court-50 border-court-100' },
+  released: { label: 'Released \u2014 refunded', color: 'text-ink-2',   bg: 'bg-surface border-hairline' },
+  refunded: { label: 'Refunded',            color: 'text-ink-2',   bg: 'bg-surface border-hairline' },
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -251,8 +251,8 @@ export function BookingStatusPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-[#009688] animate-spin" />
-        <p className="text-[13px] text-gray-400">Loading booking\u2026</p>
+        <div className="h-10 w-10 rounded-full border-4 border-hairline border-t-court animate-spin" />
+        <p className="text-[13px] text-ink-2">Loading booking\u2026</p>
       </div>
     )
   }
@@ -261,9 +261,9 @@ export function BookingStatusPage() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
         <div className="text-[48px] mb-4">{'\u26A0\uFE0F'}</div>
-        <h1 className="text-[20px] font-bold text-gray-900 mb-2">Oops</h1>
-        <p className="text-[14px] text-gray-500">{error ?? 'Something went wrong.'}</p>
-        <button onClick={() => navigate(-1)} className="mt-6 text-[14px] font-semibold text-[#009688]">Go back</button>
+        <h1 className="text-[20px] font-bold text-ink mb-2">Oops</h1>
+        <p className="text-[14px] text-ink-2">{error ?? 'Something went wrong.'}</p>
+        <button onClick={() => navigate(-1)} className="mt-6 text-[14px] font-semibold text-court">Go back</button>
       </div>
     )
   }
@@ -283,17 +283,17 @@ export function BookingStatusPage() {
   // ── Render ──────────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 pt-14 pb-4">
+      <div className="bg-white border-b border-hairline px-5 pt-14 pb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-ink-2" />
           </button>
-          <h1 className="text-[18px] font-bold text-gray-900">Booking</h1>
+          <h1 className="text-[18px] font-bold text-ink">Booking</h1>
         </div>
       </div>
 
@@ -315,38 +315,38 @@ export function BookingStatusPage() {
         )}
 
         {/* Venue / date / time */}
-        <div className="rounded-2xl bg-white border border-gray-100 p-4 space-y-2.5">
+        <div className="rounded-2xl bg-white border border-hairline p-4 space-y-2.5">
           <div className="flex items-center gap-2.5">
-            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+            <MapPin className="h-4 w-4 text-ink-2 flex-shrink-0" />
             <div>
-              <p className="text-[14px] font-semibold text-gray-900">{venueName}</p>
-              {courtName && <p className="text-[12px] text-gray-400">{courtName}</p>}
+              <p className="text-[14px] font-semibold text-ink">{venueName}</p>
+              {courtName && <p className="text-[12px] text-ink-2">{courtName}</p>}
             </div>
           </div>
           <div className="flex items-center gap-2.5">
-            <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700">{dateFormatted}</p>
+            <Calendar className="h-4 w-4 text-ink-2 flex-shrink-0" />
+            <p className="text-[13px] text-ink-2">{dateFormatted}</p>
           </div>
           <div className="flex items-center gap-2.5">
-            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700">{timeFormatted} {'\u2013'} {endTimeFormatted}</p>
+            <Clock className="h-4 w-4 text-ink-2 flex-shrink-0" />
+            <p className="text-[13px] text-ink-2">{timeFormatted} {'\u2013'} {endTimeFormatted}</p>
           </div>
         </div>
 
         {/* Countdown timers (active + held payment only) */}
         {resState === 'active' && payState === 'held' && (
-          <div className="rounded-2xl bg-white border border-gray-100 p-4 space-y-3">
+          <div className="rounded-2xl bg-white border border-hairline p-4 space-y-3">
             {deadlineMs > 0 && (
               <div className="flex items-center justify-between">
-                <p className="text-[12px] font-semibold text-gray-500">Payment due in</p>
-                <p className={cn('text-[14px] font-bold', deadlineRemaining > 0 ? 'text-amber-600' : 'text-red-500')}>
+                <p className="text-[12px] font-semibold text-ink-2">Payment due in</p>
+                <p className={cn('text-[14px] font-bold', deadlineRemaining > 0 ? 'text-warn' : 'text-red-500')}>
                   {formatCountdown(deadlineRemaining)}
                 </p>
               </div>
             )}
             <div className="flex items-center justify-between">
-              <p className="text-[12px] font-semibold text-gray-500">Free cancellation until</p>
-              <p className="text-[13px] font-semibold text-gray-700">
+              <p className="text-[12px] font-semibold text-ink-2">Free cancellation until</p>
+              <p className="text-[13px] font-semibold text-ink-2">
                 {(() => { try { const iso = new Date(cutoffMs).toISOString(); const d = format(parseISO(iso.slice(0, 10)), 'EEE d MMM', { locale: getDateLocale() }); return `${d}, ${iso.slice(11, 16)}` } catch { return '\u2014' } })()}
               </p>
             </div>
@@ -354,36 +354,36 @@ export function BookingStatusPage() {
         )}
 
         {/* Player payment status */}
-        <div className="rounded-2xl border border-gray-100 overflow-hidden bg-white">
-          <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+        <div className="rounded-2xl border border-hairline overflow-hidden bg-white">
+          <div className="px-4 py-2.5 bg-surface border-b border-hairline">
+            <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">
               Player payments {'\u2014'} {paidCount} of {PLAYERS_PER_COURT} paid
             </p>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-hairline">
             {players.map((p) => (
               <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                 <PlayerAvatar name={p.name} avatarUrl={p.avatarUrl} size="sm" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-[13px] font-semibold text-gray-800 truncate">{p.name}</p>
+                    <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
                     {p.id === userId && (
-                      <span className="text-[10px] font-bold text-teal-600 bg-teal-100 rounded-full px-1.5 py-0.5 flex-shrink-0">You</span>
+                      <span className="text-[11px] font-bold text-court bg-court-100 rounded-full px-1.5 py-0.5 flex-shrink-0">You</span>
                     )}
                     {p.isGuest && (
-                      <span className="text-[10px] font-bold text-orange-600 bg-orange-50 rounded-full px-1.5 py-0.5 flex-shrink-0">Guest</span>
+                      <span className="text-[11px] font-bold text-warn bg-warn-50 rounded-full px-1.5 py-0.5 flex-shrink-0">Guest</span>
                     )}
                   </div>
-                  <p className={cn('text-[12px]', p.isPaid ? 'text-teal-600 font-medium' : 'text-gray-400')}>
+                  <p className={cn('text-[12px]', p.isPaid ? 'text-court font-medium' : 'text-ink-2')}>
                     {p.isPaid ? `${formatPence(perPlayer)} paid` : '\u23F3 Payment pending'}
                   </p>
                 </div>
                 {p.isPaid ? (
-                  <CheckCircle className="h-4 w-4 text-teal-500 flex-shrink-0" />
+                  <CheckCircle className="h-4 w-4 text-court flex-shrink-0" />
                 ) : resState === 'active' ? (
                   <button
                     onClick={() => navigate(`/pay/booking/${bookingId}/player/${p.id}`)}
-                    className="flex items-center gap-1 rounded-xl bg-[#009688] px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"
+                    className="flex items-center gap-1 rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"
                   >
                     <CreditCard className="h-3 w-3" />
                     Pay share
@@ -394,10 +394,10 @@ export function BookingStatusPage() {
             {players.length < PLAYERS_PER_COURT &&
               Array.from({ length: PLAYERS_PER_COURT - players.length }, (_, i) => (
                 <div key={`empty-${i}`} className="flex items-center gap-3 px-4 py-3 opacity-40">
-                  <div className="h-7 w-7 rounded-full border-2 border-dashed border-gray-200 flex items-center justify-center flex-shrink-0">
-                    <Plus className="h-3 w-3 text-gray-300" />
+                  <div className="h-7 w-7 rounded-full border-2 border-dashed border-hairline flex items-center justify-center flex-shrink-0">
+                    <Plus className="h-3 w-3 text-ink-3" />
                   </div>
-                  <p className="text-[13px] text-gray-400">Open spot</p>
+                  <p className="text-[13px] text-ink-2">Open spot</p>
                 </div>
               ))}
           </div>
@@ -407,7 +407,7 @@ export function BookingStatusPage() {
         {booking.match_id && (
           <button
             onClick={() => navigate(`/matches/${booking.match_id}`)}
-            className="w-full rounded-2xl border-2 border-[#009688] py-3.5 text-[14px] font-bold text-[#009688] flex items-center justify-center gap-2"
+            className="w-full rounded-2xl border-2 border-court py-3.5 text-[14px] font-bold text-court flex items-center justify-center gap-2"
           >
             <Users className="h-4 w-4" />
             Manage players on match
@@ -447,7 +447,7 @@ export function BookingStatusPage() {
                   <button
                     onClick={() => { setShowCancelConfirm(false); setCancelError(null) }}
                     disabled={cancelling}
-                    className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+                    className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
                   >
                     Keep booking
                   </button>

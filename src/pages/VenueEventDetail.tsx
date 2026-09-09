@@ -28,7 +28,7 @@ import { useTranslation } from 'react-i18next'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string)
-const STRIPE_APPEARANCE = { theme: 'stripe' as const, variables: { colorPrimary: '#009688' } }
+const STRIPE_APPEARANCE = { theme: 'stripe' as const, variables: { colorPrimary: 'var(--color-court)' } }
 
 // ── Main page ────────────────────────────────────────────────────────────────
 
@@ -149,7 +149,7 @@ export function VenueEventDetailPage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -157,8 +157,8 @@ export function VenueEventDetailPage() {
   if (!detail) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-        <p className="text-[14px] font-semibold text-gray-500">{t('play.ve_not_found')}</p>
-        <button onClick={() => goBack(navigate, '/play')} className="mt-4 text-[13px] text-teal-600 font-semibold">
+        <p className="text-[14px] font-semibold text-ink-2">{t('play.ve_not_found')}</p>
+        <button onClick={() => goBack(navigate, '/play')} className="mt-4 text-[13px] text-court font-semibold">
           {t('play.ve_go_back')}
         </button>
       </div>
@@ -237,18 +237,18 @@ export function VenueEventDetailPage() {
         <div className="flex items-center gap-3 px-5 pt-14 pb-4">
           <button
             onClick={() => setPaymentState(null)}
-            className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+            className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className="h-5 w-5 text-ink-2" />
           </button>
-          <h1 className="text-[18px] font-bold text-gray-900">{t('play.ve_pay_title')}</h1>
+          <h1 className="text-[18px] font-bold text-ink">{t('play.ve_pay_title')}</h1>
         </div>
         <div className="px-5 pb-10">
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4 mb-5">
-            <p className="text-[14px] font-bold text-gray-900">{event.name}</p>
-            <p className="text-[13px] text-gray-500 mt-1">{venue.venue_name}</p>
-            <p className="text-[13px] text-gray-500">{formattedDate} · {formattedTime}</p>
-            <p className="text-[16px] font-bold text-[#009688] mt-2">
+          <div className="rounded-2xl border border-hairline bg-surface p-4 mb-5">
+            <p className="text-[14px] font-bold text-ink">{event.name}</p>
+            <p className="text-[13px] text-ink-2 mt-1">{venue.venue_name}</p>
+            <p className="text-[13px] text-ink-2">{formattedDate} · {formattedTime}</p>
+            <p className="text-[16px] font-bold text-court mt-2">
               {priceDisplay}
             </p>
           </div>
@@ -283,18 +283,18 @@ export function VenueEventDetailPage() {
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
           onClick={() => goBack(navigate, '/play')}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
+          <ChevronLeft className="h-5 w-5 text-ink-2" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[18px] font-bold text-gray-900 leading-tight truncate">{event.name}</h1>
+          <h1 className="text-[18px] font-bold text-ink leading-tight truncate">{event.name}</h1>
         </div>
         <button
           onClick={handleShare}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
-          <Share2 className="h-4 w-4 text-gray-600" />
+          <Share2 className="h-4 w-4 text-ink-2" />
         </button>
       </div>
 
@@ -302,36 +302,36 @@ export function VenueEventDetailPage() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mx-5 mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-2.5"
+        className="mx-5 mb-4 rounded-2xl border border-hairline bg-surface p-4 space-y-2.5"
       >
         <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <p className="text-[13px] text-gray-700 font-medium">{formattedDate}</p>
+          <Calendar className="h-4 w-4 text-ink-2 flex-shrink-0" />
+          <p className="text-[13px] text-ink-2 font-medium">{formattedDate}</p>
         </div>
         {formattedTime && (
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700">
+            <Clock className="h-4 w-4 text-ink-2 flex-shrink-0" />
+            <p className="text-[13px] text-ink-2">
               {formattedTime}{formattedEnd ? ` – ${formattedEnd}` : ''}
             </p>
           </div>
         )}
         <div className="flex items-center gap-2">
-          <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <p className="text-[13px] text-gray-700 truncate">
+          <MapPin className="h-4 w-4 text-ink-2 flex-shrink-0" />
+          <p className="text-[13px] text-ink-2 truncate">
             {venue.venue_name}
             {venue.full_address ? ` · ${venue.full_address}` : ''}
             {distMiles != null && ` · ${formatDistance(distMiles)}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <p className="text-[13px] text-gray-700">
+          <Users className="h-4 w-4 text-ink-2 flex-shrink-0" />
+          <p className="text-[13px] text-ink-2">
             {capacity != null
               ? `${occurrence.spots_taken}/${capacity} ${t('play.ve_spots_filled')}`
               : `${occurrence.spots_taken} ${t('play.ve_going')}`}
             {spotsLeft != null && spotsLeft > 0 && (
-              <span className="text-[#009688] font-semibold ml-1">
+              <span className="text-court font-semibold ml-1">
                 · {t('play.ve_spots_left', { count: spotsLeft })}
               </span>
             )}
@@ -340,19 +340,19 @@ export function VenueEventDetailPage() {
         </div>
         <div className="flex items-center gap-3 pt-1">
           {levelLabel && (
-            <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700">
+            <span className="inline-flex items-center rounded-full bg-court-50 border border-court-100 px-2.5 py-0.5 text-[11px] font-semibold text-court-700">
               {levelLabel}
             </span>
           )}
           {event.type && (
-            <span className="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-[11px] font-semibold text-gray-600 capitalize">
+            <span className="inline-flex items-center rounded-full bg-hairline px-2.5 py-0.5 text-[11px] font-semibold text-ink-2 capitalize">
               {event.type}
             </span>
           )}
-          <span className="text-[13px] font-bold text-gray-700">
+          <span className="text-[13px] font-bold text-ink-2">
             {priceDisplay}
             {!isFree && isPayAtVenue && (
-              <span className="text-[11px] font-normal text-gray-400 ml-1">{t('play.ve_pay_at_venue')}</span>
+              <span className="text-[11px] font-normal text-ink-2 ml-1">{t('play.ve_pay_at_venue')}</span>
             )}
           </span>
         </div>
@@ -360,22 +360,22 @@ export function VenueEventDetailPage() {
 
       {/* Description */}
       {event.description && (
-        <div className="mx-5 mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">{t('play.ve_about')}</p>
-          <p className="text-[13px] text-gray-700 leading-relaxed whitespace-pre-line">{event.description}</p>
+        <div className="mx-5 mb-4 rounded-2xl border border-hairline bg-surface p-4">
+          <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-2">{t('play.ve_about')}</p>
+          <p className="text-[13px] text-ink-2 leading-relaxed whitespace-pre-line">{event.description}</p>
         </div>
       )}
 
       {/* Who's going — connections first */}
       <div className="mx-5 mb-4">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">{t('play.ve_whos_going')}</p>
+        <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-3">{t('play.ve_whos_going')}</p>
 
         {connectionSummary && (
-          <p className="text-[13px] text-[#009688] font-semibold mb-3">{connectionSummary}</p>
+          <p className="text-[13px] text-court font-semibold mb-3">{connectionSummary}</p>
         )}
 
         {joinedParticipants.length === 0 ? (
-          <p className="text-[13px] text-gray-400">{t('play.ve_no_attendees')}</p>
+          <p className="text-[13px] text-ink-2">{t('play.ve_no_attendees')}</p>
         ) : (
           <div className="space-y-2">
             {/* Connected attendees first */}
@@ -389,7 +389,7 @@ export function VenueEventDetailPage() {
           </div>
         )}
         {otherAttendees.length > 0 && connectedAttendees.length > 0 && (
-          <p className="text-[12px] text-gray-400 mt-2">
+          <p className="text-[12px] text-ink-2 mt-2">
             +{otherAttendees.length} {otherAttendees.length === 1 ? 'other' : 'others'}
           </p>
         )}
@@ -399,8 +399,8 @@ export function VenueEventDetailPage() {
       <div className="mx-5 mt-6">
         {myParticipation ? (
           <div className="space-y-3">
-            <div className="rounded-2xl bg-teal-50 border border-teal-100 p-4 text-center">
-              <p className="text-[14px] font-bold text-[#009688]">{t('play.ve_youre_going')}</p>
+            <div className="rounded-2xl bg-court-50 border border-court-100 p-4 text-center">
+              <p className="text-[14px] font-bold text-court">{t('play.ve_youre_going')}</p>
             </div>
             <button
               onClick={() => leaveMutation.mutate()}
@@ -411,14 +411,14 @@ export function VenueEventDetailPage() {
             </button>
           </div>
         ) : isFull ? (
-          <div className="rounded-2xl bg-gray-100 p-4 text-center">
-            <p className="text-[14px] font-bold text-gray-500">{t('play.ve_full')}</p>
+          <div className="rounded-2xl bg-hairline p-4 text-center">
+            <p className="text-[14px] font-bold text-ink-2">{t('play.ve_full')}</p>
           </div>
         ) : isPayAtVenue ? (
           <button
             onClick={() => joinMutation.mutate()}
             disabled={joinMutation.isPending}
-            className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             {joinMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -430,7 +430,7 @@ export function VenueEventDetailPage() {
         ) : (
           <button
             onClick={initiatePayment}
-            className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] flex items-center justify-center gap-2"
           >
             <CreditCard className="h-4 w-4" />
             {t('play.ve_join_pay_now', { price: priceDisplay })}
@@ -453,13 +453,13 @@ function AttendeeRow({ name, avatarUrl, isConnection }: {
       {avatarUrl ? (
         <img src={avatarUrl} alt="" className="h-8 w-8 rounded-full object-cover flex-shrink-0" />
       ) : (
-        <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[12px] font-bold text-gray-500 flex-shrink-0">
+        <div className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center text-[12px] font-bold text-ink-2 flex-shrink-0">
           {(name ?? '?').charAt(0).toUpperCase()}
         </div>
       )}
-      <span className="text-[13px] text-gray-700 flex-1">{name ?? 'Unknown'}</span>
+      <span className="text-[13px] text-ink-2 flex-1">{name ?? 'Unknown'}</span>
       {isConnection && (
-        <span className="text-[11px] font-semibold text-[#009688]">Connected</span>
+        <span className="text-[11px] font-semibold text-court">Connected</span>
       )}
     </div>
   )
@@ -522,7 +522,7 @@ function EventPaymentForm({ clientSecret, paymentIntentId, orderItemId, occurren
       <button
         type="submit"
         disabled={!stripe || processing}
-        className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
+        className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
       >
         {processing ? (
           <Loader2 className="h-4 w-4 animate-spin" />

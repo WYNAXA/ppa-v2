@@ -180,13 +180,13 @@ export function CreatePollPage() {
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
           onClick={() => navigate(-1)}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
+          <ChevronLeft className="h-5 w-5 text-ink-2" />
         </button>
         <div>
-          <h1 className="text-[18px] font-bold text-gray-900">Create Availability Check</h1>
-          <p className="text-[12px] text-gray-400">Ask your group when they can play</p>
+          <h1 className="text-[18px] font-bold text-ink">Create Availability Check</h1>
+          <p className="text-[12px] text-ink-2">Ask your group when they can play</p>
         </div>
       </div>
 
@@ -194,43 +194,43 @@ export function CreatePollPage() {
 
         {/* Title */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">Title</label>
+          <label className="block text-[13px] font-semibold text-ink-2 mb-1.5">Title</label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. This week's game"
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688] focus:ring-2 focus:ring-[#009688]/20"
+            className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
           />
         </div>
 
         {/* Group */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">Group</label>
+          <label className="block text-[13px] font-semibold text-ink-2 mb-1.5">Group</label>
           {groupsLoading ? (
-            <div className="h-10 rounded-xl bg-gray-100 animate-pulse" />
+            <div className="h-10 rounded-xl bg-hairline animate-pulse" />
           ) : groups.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-gray-200 p-5 text-center">
-              <p className="text-[13px] font-semibold text-gray-600 mb-1">No groups yet</p>
-              <p className="text-[12px] text-gray-400 mb-3">Go to Community to join or create a group first.</p>
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2 mb-1">No groups yet</p>
+              <p className="text-[12px] text-ink-2 mb-3">Go to Community to join or create a group first.</p>
               <button
                 onClick={() => navigate('/community')}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#009688] px-4 py-2.5 text-[13px] font-bold text-white"
+                className="inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 Go to Community
               </button>
             </div>
           ) : groups.length === 1 ? (
-            <div className="rounded-xl border border-teal-200 bg-teal-50 px-3 py-2.5">
-              <p className="text-[13px] font-semibold text-teal-800">{groups[0].name}</p>
+            <div className="rounded-xl border border-court-100 bg-court-50 px-3 py-2.5">
+              <p className="text-[13px] font-semibold text-court-700">{groups[0].name}</p>
             </div>
           ) : (
             <select
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
               style={{ fontSize: '16px' }}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688] bg-white"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court bg-white"
             >
               <option value="">Select a group…</option>
               {groups.map((g) => (
@@ -242,7 +242,7 @@ export function CreatePollPage() {
 
         {/* Poll type */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-2">Match type</label>
+          <label className="block text-[13px] font-semibold text-ink-2 mb-2">Match type</label>
           <div className="flex gap-2">
             {(['competitive', 'friendly'] as const).map((type) => (
               <button
@@ -251,8 +251,8 @@ export function CreatePollPage() {
                 className={cn(
                   'flex-1 rounded-xl border-2 py-2.5 text-[13px] font-semibold capitalize transition-all',
                   pollType === type
-                    ? 'border-[#009688] bg-[#009688] text-white'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    ? 'border-court bg-court text-white'
+                    : 'border-hairline text-ink-2 hover:border-hairline'
                 )}
               >
                 {type}
@@ -263,8 +263,8 @@ export function CreatePollPage() {
 
         {/* Week start date */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">
-            <Calendar className="inline h-3.5 w-3.5 mr-1 text-gray-400" />
+          <label className="block text-[13px] font-semibold text-ink-2 mb-1.5">
+            <Calendar className="inline h-3.5 w-3.5 mr-1 text-ink-2" />
             Week (pick the Monday)
           </label>
           <input
@@ -272,22 +272,22 @@ export function CreatePollPage() {
             value={weekStartDate}
             onChange={(e) => setWeekStartDate(e.target.value)}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688] bg-white"
+            className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court bg-white"
           />
-          <p className="text-[11px] text-gray-400 mt-1">Select the Monday of the target week</p>
+          <p className="text-[11px] text-ink-2 mt-1">Select the Monday of the target week</p>
         </div>
 
         {/* Availability mode toggle */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-2">Availability format</label>
+          <label className="block text-[13px] font-semibold text-ink-2 mb-2">Availability format</label>
           <div className="flex gap-2">
             <button
               onClick={() => setPollMode('ranges')}
               className={cn(
                 "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
                 pollMode === 'ranges'
-                  ? "bg-[#009688] text-white border-[#009688]"
-                  : "bg-white text-gray-600 border-gray-200"
+                  ? "bg-court text-white border-court"
+                  : "bg-white text-ink-2 border-hairline"
               )}
             >
               Time ranges
@@ -297,14 +297,14 @@ export function CreatePollPage() {
               className={cn(
                 "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
                 pollMode === 'slots'
-                  ? "bg-[#009688] text-white border-[#009688]"
-                  : "bg-white text-gray-600 border-gray-200"
+                  ? "bg-court text-white border-court"
+                  : "bg-white text-ink-2 border-hairline"
               )}
             >
               Fixed slots
             </button>
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">
+          <p className="text-[11px] text-ink-2 mt-1">
             {pollMode === 'ranges'
               ? 'Players set when they can play each day. The engine finds the best times.'
               : 'Classic mode: you define specific time slots for players to vote on.'}
@@ -314,7 +314,7 @@ export function CreatePollPage() {
         {/* Range-mode: date picker */}
         {pollMode === 'ranges' && (
           <div>
-            <label className="block text-[13px] font-semibold text-gray-700 mb-2">
+            <label className="block text-[13px] font-semibold text-ink-2 mb-2">
               Which days?
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -331,12 +331,12 @@ export function CreatePollPage() {
                     className={cn(
                       "rounded-xl px-3 py-2 text-[12px] font-semibold border transition-colors",
                       isSelected
-                        ? "bg-[#009688] text-white border-[#009688]"
-                        : "bg-white text-gray-600 border-gray-200"
+                        ? "bg-court text-white border-court"
+                        : "bg-white text-ink-2 border-hairline"
                     )}
                   >
                     <div>{day.slice(0, 3)}</div>
-                    <div className="text-[10px] opacity-75">{format(d, 'd MMM')}</div>
+                    <div className="text-[11px] opacity-75">{format(d, 'd MMM')}</div>
                   </button>
                 )
               })}
@@ -356,7 +356,7 @@ export function CreatePollPage() {
                     })
                     setSelectedDates(dates)
                   }}
-                  className="rounded-full border border-gray-200 px-3 py-1 text-[11px] font-semibold text-gray-600 active:bg-gray-100"
+                  className="rounded-full border border-hairline px-3 py-1 text-[11px] font-semibold text-ink-2 active:bg-hairline"
                 >
                   {preset.label}
                 </button>
@@ -369,14 +369,14 @@ export function CreatePollPage() {
         {pollMode === 'slots' && (
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label className="text-[13px] font-semibold text-gray-700">
+            <label className="text-[13px] font-semibold text-ink-2">
               Time slots
-              <span className="ml-1.5 text-[11px] text-gray-400 font-normal">up to 7</span>
+              <span className="ml-1.5 text-[11px] text-ink-2 font-normal">up to 7</span>
             </label>
             {slots.length < 7 && (
               <button
                 onClick={addSlot}
-                className="flex items-center gap-1 text-[12px] font-semibold text-[#009688]"
+                className="flex items-center gap-1 text-[12px] font-semibold text-court"
               >
                 <Plus className="h-3.5 w-3.5" />
                 Add slot
@@ -393,7 +393,7 @@ export function CreatePollPage() {
               <button
                 key={preset.label}
                 onClick={() => quickFill(preset.days)}
-                className="rounded-full border border-gray-200 px-3 py-1 text-[11px] font-semibold text-gray-600 active:bg-gray-100 transition-colors"
+                className="rounded-full border border-hairline px-3 py-1 text-[11px] font-semibold text-ink-2 active:bg-hairline transition-colors"
               >
                 {preset.label}
               </button>
@@ -408,40 +408,40 @@ export function CreatePollPage() {
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="rounded-2xl border border-gray-100 bg-gray-50/60 p-3"
+                  className="rounded-2xl border border-hairline bg-surface/60 p-3"
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wide">Slot {i + 1}</span>
+                    <span className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">Slot {i + 1}</span>
                     {slots.length > 1 && (
                       <button onClick={() => removeSlot(slot.id)}>
-                        <X className="h-4 w-4 text-gray-400 hover:text-red-400" />
+                        <X className="h-4 w-4 text-ink-2 hover:text-red-400" />
                       </button>
                     )}
                   </div>
                   <div className="mb-2">
-                    <label className="block text-[11px] text-gray-500 mb-1">Day</label>
+                    <label className="block text-[11px] text-ink-2 mb-1">Day</label>
                     <select value={slot.day} onChange={(e) => updateSlot(slot.id, 'day', e.target.value)}
                       style={{ fontSize: '16px' }}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
+                      className="w-full rounded-xl border border-hairline px-3 py-2 bg-white outline-none focus:border-court"
                     >
                       {DAYS.map((d) => (<option key={d} value={d}>{d}</option>))}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <label className="block text-[11px] text-gray-500 mb-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Start</label>
+                      <label className="block text-[11px] text-ink-2 mb-1 flex items-center gap-1"><Clock className="h-3 w-3" /> Start</label>
                       <input type="time" value={slot.start_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'start_time', e.target.value)}
                         style={{ fontSize: '16px' }}
-                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
+                        className="w-full rounded-xl border border-hairline px-3 py-2 bg-white outline-none focus:border-court"
                       />
                     </div>
                     <div>
-                      <label className="block text-[11px] text-gray-500 mb-1 flex items-center gap-1"><Clock className="h-3 w-3" /> End</label>
+                      <label className="block text-[11px] text-ink-2 mb-1 flex items-center gap-1"><Clock className="h-3 w-3" /> End</label>
                       <input type="time" value={slot.end_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'end_time', e.target.value)}
                         style={{ fontSize: '16px' }}
-                        className="w-full rounded-xl border border-gray-200 px-3 py-2 bg-white outline-none focus:border-[#009688]"
+                        className="w-full rounded-xl border border-hairline px-3 py-2 bg-white outline-none focus:border-court"
                       />
                     </div>
                   </div>
@@ -454,14 +454,14 @@ export function CreatePollPage() {
 
         {/* Additional options */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-2">Additional options</label>
-          <p className="text-[11px] text-gray-400 mb-2">Players can tick these when they respond</p>
+          <label className="block text-[13px] font-semibold text-ink-2 mb-2">Additional options</label>
+          <p className="text-[11px] text-ink-2 mb-2">Players can tick these when they respond</p>
           <div className="space-y-2 mb-3">
             {additionalOptions.map((opt, i) => (
-              <div key={i} className="flex items-center justify-between rounded-xl border border-gray-100 bg-gray-50 px-3 py-2.5">
-                <span className="text-[13px] text-gray-700">{opt}</span>
+              <div key={i} className="flex items-center justify-between rounded-xl border border-hairline bg-surface px-3 py-2.5">
+                <span className="text-[13px] text-ink-2">{opt}</span>
                 <button onClick={() => removeAdditionalOption(i)}>
-                  <X className="h-4 w-4 text-gray-400 hover:text-red-400" />
+                  <X className="h-4 w-4 text-ink-2 hover:text-red-400" />
                 </button>
               </div>
             ))}
@@ -474,12 +474,12 @@ export function CreatePollPage() {
               onKeyDown={(e) => e.key === 'Enter' && addAdditionalOption()}
               placeholder="Add custom option…"
               style={{ fontSize: '16px' }}
-              className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-[13px] outline-none focus:border-[#009688]"
+              className="flex-1 rounded-xl border border-hairline px-3 py-2 text-[13px] outline-none focus:border-court"
             />
             <button
               onClick={addAdditionalOption}
               disabled={!customOption.trim()}
-              className="rounded-xl bg-[#009688] px-3 py-2 text-white disabled:opacity-40"
+              className="rounded-xl bg-court px-3 py-2 text-white disabled:opacity-40"
             >
               <Plus className="h-4 w-4" />
             </button>
@@ -488,20 +488,20 @@ export function CreatePollPage() {
 
         {/* Closes at */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-1.5">Poll closes at</label>
+          <label className="block text-[13px] font-semibold text-ink-2 mb-1.5">Poll closes at</label>
           <input
             type="datetime-local"
             value={closesAt}
             min={format(new Date(), "yyyy-MM-dd'T'HH:mm", { locale: getDateLocale() })}
             onChange={(e) => setClosesAt(e.target.value)}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-[#009688]"
+            className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court"
           />
         </div>
 
         {/* Recurrence */}
         <div>
-          <label className="block text-[13px] font-semibold text-gray-700 mb-2">Recurrence</label>
+          <label className="block text-[13px] font-semibold text-ink-2 mb-2">Recurrence</label>
           <div className="flex gap-2">
             {(['never', 'weekly'] as const).map((r) => (
               <button
@@ -510,8 +510,8 @@ export function CreatePollPage() {
                 className={cn(
                   'flex-1 rounded-xl border-2 py-2.5 text-[13px] font-semibold capitalize transition-all',
                   recurrence === r
-                    ? 'border-[#009688] bg-[#009688] text-white'
-                    : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    ? 'border-court bg-court text-white'
+                    : 'border-hairline text-ink-2 hover:border-hairline'
                 )}
               >
                 {r === 'never' ? 'One-off' : 'Weekly'}
@@ -523,7 +523,7 @@ export function CreatePollPage() {
 
       {/* Fixed footer */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-5 pt-4"
+        className="fixed bottom-0 left-0 right-0 bg-white border-t border-hairline px-5 pt-4"
         style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
       >
         {createMutation.isError && (
@@ -534,7 +534,7 @@ export function CreatePollPage() {
         <button
           onClick={() => createMutation.mutate()}
           disabled={!canSubmit || createMutation.isPending || groupsLoading}
-          className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
+          className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-40"
         >
           {createMutation.isPending ? 'Creating…' : 'Create & Add My Availability →'}
         </button>

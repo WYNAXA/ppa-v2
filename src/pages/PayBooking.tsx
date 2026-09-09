@@ -154,7 +154,7 @@ function PaymentForm({
       <button
         type="submit"
         disabled={!stripe || !elements || submitting}
-        className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
+        className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
       >
         {submitting ? 'Processing\u2026' : `Pay \u00a3${amountGBP}`}
       </button>
@@ -168,18 +168,18 @@ function SuccessScreen() {
   return (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
       <div className="text-[64px] mb-4">🎾</div>
-      <h1 className="text-[24px] font-black text-gray-900 mb-2">Payment confirmed!</h1>
-      <p className="text-[15px] text-gray-500 mb-10">See you on court</p>
+      <h1 className="text-[24px] font-black text-ink mb-2">Payment confirmed!</h1>
+      <p className="text-[15px] text-ink-2 mb-10">See you on court</p>
 
-      <div className="w-full max-w-sm rounded-2xl border border-gray-100 bg-gray-50 p-5">
-        <p className="text-[13px] font-bold text-gray-700 mb-2">Want to track your stats?</p>
-        <p className="text-[12px] text-gray-500 mb-4">Download PPA to log your matches, track your ELO and find games near you.</p>
+      <div className="w-full max-w-sm rounded-2xl border border-hairline bg-surface p-5">
+        <p className="text-[13px] font-bold text-ink-2 mb-2">Want to track your stats?</p>
+        <p className="text-[12px] text-ink-2 mb-4">Download PPA to log your matches, track your ELO and find games near you.</p>
         <div className="flex flex-col gap-2">
           <a
             href={APP_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full rounded-xl bg-gray-900 py-3 text-[13px] font-bold text-white text-center"
+            className="w-full rounded-xl bg-ink py-3 text-[13px] font-bold text-white text-center"
           >
             Download on the App Store
           </a>
@@ -187,7 +187,7 @@ function SuccessScreen() {
             href={PLAY_STORE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="w-full rounded-xl border border-gray-200 py-3 text-[13px] font-bold text-gray-700 text-center"
+            className="w-full rounded-xl border border-hairline py-3 text-[13px] font-bold text-ink-2 text-center"
           >
             Get it on Google Play
           </a>
@@ -414,8 +414,8 @@ export function PayBookingPage() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
         <div className="text-[56px] mb-4">{'\u2713'}</div>
-        <h1 className="text-[22px] font-black text-gray-900 mb-2">Already paid</h1>
-        <p className="text-[14px] text-gray-500">Your share has already been paid for this booking.</p>
+        <h1 className="text-[22px] font-black text-ink mb-2">Already paid</h1>
+        <p className="text-[14px] text-ink-2">Your share has already been paid for this booking.</p>
       </div>
     )
   }
@@ -429,8 +429,8 @@ export function PayBookingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
-        <div className="h-10 w-10 rounded-full border-4 border-gray-200 border-t-[#009688] animate-spin" />
-        <p className="text-[13px] text-gray-400">Loading booking\u2026</p>
+        <div className="h-10 w-10 rounded-full border-4 border-hairline border-t-court animate-spin" />
+        <p className="text-[13px] text-ink-2">Loading booking\u2026</p>
       </div>
     )
   }
@@ -440,8 +440,8 @@ export function PayBookingPage() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
         <div className="text-[48px] mb-4">{'\u26A0\uFE0F'}</div>
-        <h1 className="text-[20px] font-bold text-gray-900 mb-2">Oops</h1>
-        <p className="text-[14px] text-gray-500">{error}</p>
+        <h1 className="text-[20px] font-bold text-ink mb-2">Oops</h1>
+        <p className="text-[14px] text-ink-2">{error}</p>
       </div>
     )
   }
@@ -454,49 +454,49 @@ export function PayBookingPage() {
   })()
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-surface">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-5 pt-14 pb-4">
-        <p className="text-[12px] font-semibold text-[#009688] uppercase tracking-wide mb-0.5">Court Booking</p>
-        <h1 className="text-[22px] font-black text-gray-900">Split Payment</h1>
+      <div className="bg-white border-b border-hairline px-5 pt-14 pb-4">
+        <p className="text-[12px] font-semibold text-court uppercase tracking-wide mb-0.5">Court Booking</p>
+        <h1 className="text-[22px] font-black text-ink">Split Payment</h1>
       </div>
 
       <div className="px-5 py-5 space-y-4 max-w-lg mx-auto">
         {/* Booking details card */}
-        <div className="rounded-2xl bg-white border border-gray-100 p-4 space-y-3">
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">Booking Details</p>
+        <div className="rounded-2xl bg-white border border-hairline p-4 space-y-3">
+          <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">Booking Details</p>
 
           <div className="space-y-2">
             {venue && (
               <div className="flex items-start justify-between gap-3">
-                <span className="text-[13px] text-gray-500 flex-shrink-0">Venue</span>
-                <span className="text-[13px] font-semibold text-gray-900 text-right">{venue.venue_name}</span>
+                <span className="text-[13px] text-ink-2 flex-shrink-0">Venue</span>
+                <span className="text-[13px] font-semibold text-ink text-right">{venue.venue_name}</span>
               </div>
             )}
             <div className="flex items-start justify-between gap-3">
-              <span className="text-[13px] text-gray-500 flex-shrink-0">Date</span>
-              <span className="text-[13px] font-semibold text-gray-900 text-right">{dateFormatted}</span>
+              <span className="text-[13px] text-ink-2 flex-shrink-0">Date</span>
+              <span className="text-[13px] font-semibold text-ink text-right">{dateFormatted}</span>
             </div>
             <div className="flex items-start justify-between gap-3">
-              <span className="text-[13px] text-gray-500 flex-shrink-0">Time</span>
-              <span className="text-[13px] font-semibold text-gray-900">{booking.start_time}</span>
+              <span className="text-[13px] text-ink-2 flex-shrink-0">Time</span>
+              <span className="text-[13px] font-semibold text-ink">{booking.start_time}</span>
             </div>
             {booking.booking_reference && (
               <div className="flex items-start justify-between gap-3">
-                <span className="text-[13px] text-gray-500 flex-shrink-0">Ref</span>
-                <span className="text-[13px] font-semibold text-gray-900">{booking.booking_reference}</span>
+                <span className="text-[13px] text-ink-2 flex-shrink-0">Ref</span>
+                <span className="text-[13px] font-semibold text-ink">{booking.booking_reference}</span>
               </div>
             )}
           </div>
         </div>
 
         {/* Player selection card */}
-        <div className="rounded-2xl bg-white border border-gray-100 p-4 space-y-3">
+        <div className="rounded-2xl bg-white border border-hairline p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide">
+            <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">
               {unpaidPlayers.length > 1 ? 'Cover additional players?' : 'Paying for'}
             </p>
-            <p className="text-[12px] font-semibold text-gray-400">
+            <p className="text-[12px] font-semibold text-ink-2">
               {'\u00a3'}{perShareGBP} / player
             </p>
           </div>
@@ -507,8 +507,8 @@ export function PayBookingPage() {
                 key={p.id}
                 className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
                   selectedIds.has(p.id)
-                    ? 'border-[#009688]/30 bg-[#009688]/5'
-                    : 'border-gray-100'
+                    ? 'border-court/30 bg-court/5'
+                    : 'border-hairline'
                 } ${p.isCurrent ? 'cursor-default' : 'cursor-pointer'}`}
               >
                 <input
@@ -516,15 +516,15 @@ export function PayBookingPage() {
                   checked={selectedIds.has(p.id)}
                   disabled={p.isCurrent}
                   onChange={() => togglePlayer(p.id)}
-                  className="w-4 h-4 rounded border-gray-300 text-[#009688] focus:ring-[#009688] disabled:opacity-70"
+                  className="w-4 h-4 rounded border-hairline text-court focus:ring-court disabled:opacity-70"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[14px] font-semibold text-gray-900 truncate">
+                  <p className="text-[14px] font-semibold text-ink truncate">
                     {p.name}
-                    {p.isCurrent && <span className="text-[11px] text-gray-400 font-normal ml-1.5">(you)</span>}
+                    {p.isCurrent && <span className="text-[11px] text-ink-2 font-normal ml-1.5">(you)</span>}
                   </p>
                   {p.isGuest && (
-                    <p className="text-[11px] text-gray-400">Guest</p>
+                    <p className="text-[11px] text-ink-2">Guest</p>
                   )}
                 </div>
               </label>
@@ -532,11 +532,11 @@ export function PayBookingPage() {
           </div>
 
           {/* Total */}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-            <p className="text-[13px] font-semibold text-gray-700">
+          <div className="flex items-center justify-between pt-2 border-t border-hairline">
+            <p className="text-[13px] font-semibold text-ink-2">
               Paying {shareCount} {shareCount === 1 ? 'share' : 'shares'}
             </p>
-            <p className="text-[22px] font-black text-[#009688]">{'\u00a3'}{totalGBP}</p>
+            <p className="text-[22px] font-black text-court">{'\u00a3'}{totalGBP}</p>
           </div>
         </div>
 
@@ -547,8 +547,8 @@ export function PayBookingPage() {
 
         {/* Payment form or proceed button */}
         {clientSecret ? (
-          <div className="rounded-2xl bg-white border border-gray-100 p-4">
-            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wide mb-4">Payment</p>
+          <div className="rounded-2xl bg-white border border-hairline p-4">
+            <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-4">Payment</p>
             <Elements
               stripe={stripePromise}
               options={{
@@ -556,7 +556,7 @@ export function PayBookingPage() {
                 appearance: {
                   theme: 'stripe',
                   variables: {
-                    colorPrimary: '#009688',
+                    colorPrimary: 'var(--color-court)',
                     borderRadius: '12px',
                     fontFamily: 'system-ui, sans-serif',
                   },
@@ -576,13 +576,13 @@ export function PayBookingPage() {
           <button
             onClick={createPaymentIntent}
             disabled={creatingIntent}
-            className="w-full rounded-2xl bg-[#009688] py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
+            className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
           >
             {creatingIntent ? 'Setting up payment\u2026' : `Proceed to pay \u00a3${totalGBP}`}
           </button>
         )}
 
-        <p className="text-[11px] text-gray-400 text-center pb-8">
+        <p className="text-[11px] text-ink-2 text-center pb-8">
           Payments are processed securely by Stripe. PPA never stores your card details.
         </p>
       </div>

@@ -95,20 +95,20 @@ const RSVP_OPTIONS: { label: string; value: RsvpStatus; activeClass: string; ina
   {
     label: 'Going',
     value: 'going',
-    activeClass: 'bg-[#009688] text-white border-[#009688]',
-    inactiveClass: 'bg-white text-gray-600 border border-gray-200',
+    activeClass: 'bg-court text-white border-court',
+    inactiveClass: 'bg-white text-ink-2 border border-hairline',
   },
   {
     label: 'Interested',
     value: 'interested',
     activeClass: 'bg-blue-500 text-white border-blue-500',
-    inactiveClass: 'bg-white text-gray-600 border border-gray-200',
+    inactiveClass: 'bg-white text-ink-2 border border-hairline',
   },
   {
     label: "Can't make it",
     value: 'not_going',
-    activeClass: 'bg-gray-500 text-white border-gray-500',
-    inactiveClass: 'bg-white text-gray-600 border border-gray-200',
+    activeClass: 'bg-court text-white border-court',
+    inactiveClass: 'bg-white text-ink-2 border border-hairline',
   },
 ]
 
@@ -145,7 +145,7 @@ export function EventDetailPage() {
   if (isLoading) {
     return (
       <div className="flex h-full items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
       </div>
     )
   }
@@ -153,8 +153,8 @@ export function EventDetailPage() {
   if (!event) {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
-        <p className="text-[14px] font-semibold text-gray-500">Event not found</p>
-        <button onClick={() => goBack(navigate, '/community')} className="mt-4 text-[13px] text-teal-600 font-semibold">Go back</button>
+        <p className="text-[14px] font-semibold text-ink-2">Event not found</p>
+        <button onClick={() => goBack(navigate, '/community')} className="mt-4 text-[13px] text-court font-semibold">Go back</button>
       </div>
     )
   }
@@ -211,26 +211,26 @@ export function EventDetailPage() {
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
           onClick={() => goBack(navigate, '/community')}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
-          <ChevronLeft className="h-5 w-5 text-gray-600" />
+          <ChevronLeft className="h-5 w-5 text-ink-2" />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[18px] font-bold text-gray-900 leading-tight truncate">{event.title}</h1>
+          <h1 className="text-[18px] font-bold text-ink leading-tight truncate">{event.title}</h1>
         </div>
         <button
           onClick={() => setShowCalendar(true)}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           title="Add to calendar"
         >
-          <Calendar className="h-4 w-4 text-gray-600" />
+          <Calendar className="h-4 w-4 text-ink-2" />
         </button>
         <button
           onClick={handleShare}
-          className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0"
+          className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           title="Share event"
         >
-          <Share2 className="h-4 w-4 text-gray-600" />
+          <Share2 className="h-4 w-4 text-ink-2" />
         </button>
         {event.created_by === userId && (
           <button
@@ -248,28 +248,28 @@ export function EventDetailPage() {
       <motion.div
         initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mx-5 mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4 space-y-2.5"
+        className="mx-5 mb-4 rounded-2xl border border-hairline bg-surface p-4 space-y-2.5"
       >
         <div className="flex items-center gap-2">
-          <Calendar className="h-4 w-4 text-gray-400 flex-shrink-0" />
-          <p className="text-[13px] text-gray-700 font-medium">{formattedStart}</p>
+          <Calendar className="h-4 w-4 text-ink-2 flex-shrink-0" />
+          <p className="text-[13px] text-ink-2 font-medium">{formattedStart}</p>
         </div>
         {formattedTime && (
           <div className="flex items-center gap-2">
-            <Clock className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700">
+            <Clock className="h-4 w-4 text-ink-2 flex-shrink-0" />
+            <p className="text-[13px] text-ink-2">
               {formattedTime}{formattedEnd ? ` – ${formattedEnd}` : ''}
             </p>
           </div>
         )}
         {event.location && (
           <div className="flex items-center gap-2">
-            <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-            <p className="text-[13px] text-gray-700 truncate">{event.location}</p>
+            <MapPin className="h-4 w-4 text-ink-2 flex-shrink-0" />
+            <p className="text-[13px] text-ink-2 truncate">{event.location}</p>
           </div>
         )}
         {event.event_type && (
-          <span className="inline-flex items-center rounded-full bg-teal-50 border border-teal-100 px-2.5 py-0.5 text-[11px] font-semibold text-teal-700 capitalize">
+          <span className="inline-flex items-center rounded-full bg-court-50 border border-court-100 px-2.5 py-0.5 text-[11px] font-semibold text-court-700 capitalize">
             {event.event_type}
           </span>
         )}
@@ -277,17 +277,17 @@ export function EventDetailPage() {
 
       {/* Description */}
       {event.description && (
-        <div className="mx-5 mb-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-2">About</p>
-          <p className="text-[13px] text-gray-700 leading-relaxed">{event.description}</p>
+        <div className="mx-5 mb-4 rounded-2xl border border-hairline bg-surface p-4">
+          <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-2">About</p>
+          <p className="text-[13px] text-ink-2 leading-relaxed">{event.description}</p>
         </div>
       )}
 
       {/* RSVP */}
       <div className="mx-5">
-        <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">Your response</p>
+        <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-3">Your response</p>
         {myRsvp && (
-          <p className="text-[12px] text-teal-600 font-medium mb-2">
+          <p className="text-[12px] text-court font-medium mb-2">
             You responded · tap to change
           </p>
         )}
@@ -314,15 +314,15 @@ export function EventDetailPage() {
       {/* Attendees */}
       {attendees.length > 0 && (
         <div className="mx-5 mt-5">
-          <p className="text-[12px] font-bold text-gray-400 uppercase tracking-wide mb-3">
+          <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-3">
             Who's coming
           </p>
           <div className="flex gap-4 mb-3">
-            <span className="text-[13px] text-gray-700">
-              <span className="font-bold text-[#009688]">{goingCount}</span> going
+            <span className="text-[13px] text-ink-2">
+              <span className="font-bold text-court">{goingCount}</span> going
             </span>
             {interestedCount > 0 && (
-              <span className="text-[13px] text-gray-700">
+              <span className="text-[13px] text-ink-2">
                 <span className="font-bold text-blue-500">{interestedCount}</span> interested
               </span>
             )}
@@ -330,11 +330,11 @@ export function EventDetailPage() {
           <div className="space-y-2">
             {attendees.filter((a) => a.status !== 'not_going').map((a) => (
               <div key={a.user_id} className="flex items-center gap-3">
-                <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-[12px] font-bold text-gray-500 flex-shrink-0">
+                <div className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center text-[12px] font-bold text-ink-2 flex-shrink-0">
                   {(a.profile?.name ?? '?').charAt(0).toUpperCase()}
                 </div>
-                <span className="text-[13px] text-gray-700 flex-1">{a.profile?.name ?? 'Unknown'}</span>
-                <span className={`text-[11px] font-semibold ${a.status === 'going' ? 'text-[#009688]' : 'text-blue-500'}`}>
+                <span className="text-[13px] text-ink-2 flex-1">{a.profile?.name ?? 'Unknown'}</span>
+                <span className={`text-[11px] font-semibold ${a.status === 'going' ? 'text-court' : 'text-blue-500'}`}>
                   {a.status === 'going' ? 'Going' : 'Interested'}
                 </span>
               </div>

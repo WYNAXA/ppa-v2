@@ -149,13 +149,13 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
             <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-gray-200" />
+              <div className="h-1 w-10 rounded-full bg-hairline" />
             </div>
             <div className="flex items-center justify-between px-5 py-3">
-              <button onClick={onClose} className="h-9 w-9 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-600" />
+              <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-gray-900">{t('invite.title')}</h2>
+              <h2 className="text-[15px] font-bold text-ink">{t('invite.title')}</h2>
               <div className="w-9" />
             </div>
 
@@ -164,20 +164,20 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
               style={{ paddingBottom: 'calc(48px + env(safe-area-inset-bottom))', maxHeight: '75vh' }}
             >
               <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
                 <input
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={t('invite.search_placeholder')}
                   autoFocus
-                  className="w-full rounded-xl border border-gray-200 pl-9 pr-4 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                  className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
               </div>
 
               {searching && (
                 <div className="flex justify-center py-6">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-[#009688] border-t-transparent" />
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
                 </div>
               )}
 
@@ -192,13 +192,13 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                       key={player.id}
                       onClick={() => inviteMutation.mutate(player)}
                       disabled={inviteMutation.isPending}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-left disabled:opacity-50"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-surface transition-colors text-left disabled:opacity-50"
                     >
                       <PlayerAvatar name={player.name} avatarUrl={player.avatar_url} size="sm" />
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-gray-800 truncate">{player.name}</p>
+                        <p className="text-[13px] font-semibold text-ink truncate">{player.name}</p>
                       </div>
-                      <UserPlus className="h-4 w-4 text-[#009688] flex-shrink-0" />
+                      <UserPlus className="h-4 w-4 text-court flex-shrink-0" />
                     </button>
                   ))}
                 </div>
@@ -206,13 +206,13 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
 
               {!searching && debouncedQuery.length >= 2 && results.length === 0 && (
                 <div className="py-10 text-center">
-                  <p className="text-[13px] text-gray-400">{t('invite.no_results', { query: debouncedQuery })}</p>
+                  <p className="text-[13px] text-ink-2">{t('invite.no_results', { query: debouncedQuery })}</p>
                 </div>
               )}
 
               {query.length < 2 && !searching && !showGuestForm && (
                 <div className="py-10 text-center">
-                  <p className="text-[13px] text-gray-400">{t('invite.type_to_search')}</p>
+                  <p className="text-[13px] text-ink-2">{t('invite.type_to_search')}</p>
                 </div>
               )}
 
@@ -220,24 +220,24 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
               {!showGuestForm ? (
                 <button
                   onClick={() => setShowGuestForm(true)}
-                  className="w-full flex items-center gap-3 px-3 py-3 mt-2 rounded-xl border border-dashed border-gray-200 hover:border-teal-300 hover:bg-teal-50/30 transition-colors text-left"
+                  className="w-full flex items-center gap-3 px-3 py-3 mt-2 rounded-xl border border-dashed border-hairline hover:border-court-100 hover:bg-court-50/30 transition-colors text-left"
                 >
-                  <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
-                    <UserPlus className="h-4 w-4 text-gray-400" />
+                  <div className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center flex-shrink-0">
+                    <UserPlus className="h-4 w-4 text-ink-2" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-gray-600">{t('invite.add_guest')}</p>
-                    <p className="text-[11px] text-gray-400">{t('invite.guest_description')}</p>
+                    <p className="text-[13px] font-semibold text-ink-2">{t('invite.add_guest')}</p>
+                    <p className="text-[11px] text-ink-2">{t('invite.guest_description')}</p>
                   </div>
                 </button>
               ) : (
-                <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                  <p className="text-[13px] font-bold text-gray-700">{t('invite.add_guest_title')}</p>
+                <div className="mt-2 rounded-xl border border-hairline bg-surface p-4 space-y-3">
+                  <p className="text-[13px] font-bold text-ink-2">{t('invite.add_guest_title')}</p>
                   {isContactPickerSupported() && (
                     <button
                       type="button"
                       onClick={chooseFromContacts}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-teal-200 bg-white py-2.5 text-[13px] font-semibold text-teal-700"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-court-100 bg-white py-2.5 text-[13px] font-semibold text-court-700"
                     >
                       <UserRound className="h-4 w-4" /> {t('invite.from_contacts', 'Choose from contacts')}
                     </button>
@@ -248,30 +248,30 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                     onChange={(e) => setGuestName(e.target.value)}
                     placeholder={t('invite.guest_name_placeholder')}
                     autoFocus
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                   />
                   <input
                     type="text"
                     value={guestContact}
                     onChange={(e) => setGuestContact(e.target.value)}
                     placeholder={t('invite.guest_contact_optional', 'Phone or email (optional)')}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20"
+                    className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                   />
-                  <p className="text-[11px] text-gray-400 leading-snug">{t('invite.guest_share_hint', "We'll create an invite link — the share sheet opens so you can send it via WhatsApp or Messages. No number needed.")}</p>
+                  <p className="text-[11px] text-ink-2 leading-snug">{t('invite.guest_share_hint', "We'll create an invite link — the share sheet opens so you can send it via WhatsApp or Messages. No number needed.")}</p>
                   {guestMutation.isError && (
                     <p className="text-[12px] text-red-500">{t('invite.add_guest_failed')}</p>
                   )}
                   <div className="flex gap-2">
                     <button
                       onClick={() => { setShowGuestForm(false); setGuestName(''); setGuestContact('') }}
-                      className="flex-1 rounded-xl border border-gray-200 py-2.5 text-[13px] font-semibold text-gray-600"
+                      className="flex-1 rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
                     >
                       {t('match.cancel')}
                     </button>
                     <button
                       onClick={() => guestMutation.mutate()}
                       disabled={!guestName.trim() || guestMutation.isPending}
-                      className="flex-1 rounded-xl bg-[#009688] py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
+                      className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white disabled:opacity-40"
                     >
                       {guestMutation.isPending ? t('invite.adding_guest') : t('invite.invite_and_share', 'Invite & share link')}
                     </button>

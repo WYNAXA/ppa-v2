@@ -111,36 +111,36 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
-            <div className="flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-gray-200" /></div>
+            <div className="flex justify-center pt-3 pb-1"><div className="h-1 w-10 rounded-full bg-hairline" /></div>
             <div className="flex items-center justify-between px-5 py-3">
-              <h2 className="text-[15px] font-bold text-gray-900">{t('open_matches.push_sheet_title')}</h2>
-              <button onClick={onClose} className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
-                <X className="h-4 w-4 text-gray-500" />
+              <h2 className="text-[15px] font-bold text-ink">{t('open_matches.push_sheet_title')}</h2>
+              <button onClick={onClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
+                <X className="h-4 w-4 text-ink-2" />
               </button>
             </div>
             <div className="px-5 pb-6" style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
-              <p className="text-[12px] text-gray-400 mb-5">{t('open_matches.push_sheet_subtitle')}</p>
+              <p className="text-[12px] text-ink-2 mb-5">{t('open_matches.push_sheet_subtitle')}</p>
 
               <div className="space-y-4 mb-5">
                 <div>
-                  <label className="text-[12px] font-semibold text-gray-700 mb-1 block">{t('open_matches.push_elo_min')}</label>
+                  <label className="text-[12px] font-semibold text-ink-2 mb-1 block">{t('open_matches.push_elo_min')}</label>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setEloMin(Math.max(600, min - 50))} className="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 font-bold">-</button>
-                    <span className="text-[16px] font-bold text-gray-800 w-16 text-center">{min}</span>
-                    <button onClick={() => setEloMin(Math.min(max - 50, min + 50))} className="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 font-bold">+</button>
+                    <button onClick={() => setEloMin(Math.max(600, min - 50))} className="h-8 w-8 rounded-lg border border-hairline text-ink-2 font-bold">-</button>
+                    <span className="text-[16px] font-bold text-ink w-16 text-center">{min}</span>
+                    <button onClick={() => setEloMin(Math.min(max - 50, min + 50))} className="h-8 w-8 rounded-lg border border-hairline text-ink-2 font-bold">+</button>
                   </div>
                 </div>
                 <div>
-                  <label className="text-[12px] font-semibold text-gray-700 mb-1 block">{t('open_matches.push_elo_max')}</label>
+                  <label className="text-[12px] font-semibold text-ink-2 mb-1 block">{t('open_matches.push_elo_max')}</label>
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setEloMax(Math.max(min + 50, max - 50))} className="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 font-bold">-</button>
-                    <span className="text-[16px] font-bold text-gray-800 w-16 text-center">{max}</span>
-                    <button onClick={() => setEloMax(Math.min(2500, max + 50))} className="h-8 w-8 rounded-lg border border-gray-200 text-gray-500 font-bold">+</button>
+                    <button onClick={() => setEloMax(Math.max(min + 50, max - 50))} className="h-8 w-8 rounded-lg border border-hairline text-ink-2 font-bold">-</button>
+                    <span className="text-[16px] font-bold text-ink w-16 text-center">{max}</span>
+                    <button onClick={() => setEloMax(Math.min(2500, max + 50))} className="h-8 w-8 rounded-lg border border-hairline text-ink-2 font-bold">+</button>
                   </div>
                 </div>
               </div>
 
-              <p className="text-[12px] text-gray-500 mb-4">
+              <p className="text-[12px] text-ink-2 mb-4">
                 {hasGeo && audienceCount != null
                   ? t('open_matches.push_audience', { count: audienceCount })
                   : !hasGeo
@@ -149,13 +149,13 @@ export function PushToOpenSheet({ open, onClose, matchId, currentPlayerIds, onSe
               </p>
 
               {tooLateToOpen && (
-                <p className="text-[12px] text-amber-600 text-center mb-3">This match starts in less than 2 hours — not enough time for someone to find and join it.</p>
+                <p className="text-[12px] text-warn text-center mb-3">This match starts in less than 2 hours — not enough time for someone to find and join it.</p>
               )}
 
               <button
                 onClick={() => pushMutation.mutate()}
                 disabled={pushMutation.isPending || min >= max || tooLateToOpen}
-                className="w-full rounded-2xl bg-[#009688] py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
+                className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50"
               >
                 {pushMutation.isPending ? 'Saving\u2026' : isEditing ? 'Update ELO range' : t('open_matches.push_confirm')}
               </button>

@@ -10,7 +10,14 @@
 // ────────────────────────────────────────────────────────────────────────────
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
-import { processTeamElo, classifyMatch } from '../_shared/elo.ts'
+import {
+  processTeamElo,
+  classifyMatch,
+  classifySet,
+  calculateExpected,
+  calculateKFactor,
+  applyMultipliers,
+} from '../_shared/elo.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -278,6 +285,181 @@ Deno.serve(async (req) => {
     }))
     .sort((a, b) => Math.abs(b.mp_delta) - Math.abs(a.mp_delta))
 
+  // ── 5b. League standings replay ──────────────────────────────────────────
+  // Rebuilds wins/losses/draws/matches_played/ranking_points AND season_elo for
+  // every league, from the same chronologically ordered match list used above.
+  //
+  // WHY THIS LIVES HERE AND NOT IN SQL: the per-set season-ELO maths is the same
+  // maths as career ELO. Porting it into rebuild_league_standings() would create a
+  // FOURTH hand-maintained copy of the rule that _shared/elo.ts already warns is
+  // drifting. Here it reuses classifySet / calculateExpected / calculateKFactor /
+  // applyMultipliers directly, so there is exactly one definition.
+  //
+  // Mirrors process-elo's league branch exactly:
+  //   - set-as-match leagues (match_type 'individual' + format 'round_robin') get
+  //     per-set season ELO and per-set W/L/D
+  //   - every other league gets one match-level W/L/D update and no season ELO
+  //   - ghost-player matches are skipped, as process-elo skips them before it
+  //     reaches the league branch (currently 0 league matches are affected)
+  //   - season ELO seeds at 1230, matching reset_league_season() and the
+  //     league_standings column default
+  const SEASON_ELO_SEED = 1230
+  const POINTS_WIN = 3
+  const POINTS_DRAW = 1
+
+  const { data: leagueRows } = await supabase
+    .from('leagues')
+    .select('id, name, match_type, format')
+
+  const { data: standingRows } = await supabase
+    .from('league_standings')
+    .select('league_id, user_id, wins, losses, draws, matches_played, ranking_points, season_elo')
+
+  const { data: leagueMatchRows } = await supabase
+    .from('matches')
+    .select('id, league_id')
+    .not('league_id', 'is', null)
+
+  const leagueIdForMatch: Record<string, string> = {}
+  for (const m of leagueMatchRows ?? []) leagueIdForMatch[m.id] = m.league_id
+
+  interface StandingState {
+    wins: number; losses: number; draws: number
+    matches_played: number; ranking_points: number; season_elo: number
+  }
+
+  const rebuiltStandings: Record<string, Record<string, StandingState>> = {}
+  const currentStandings: Record<string, Record<string, StandingState>> = {}
+
+  for (const s of standingRows ?? []) {
+    ;(currentStandings[s.league_id] ||= {})[s.user_id] = {
+      wins: s.wins ?? 0, losses: s.losses ?? 0, draws: s.draws ?? 0,
+      matches_played: s.matches_played ?? 0,
+      ranking_points: Number(s.ranking_points ?? 0),
+      season_elo: Number(s.season_elo ?? SEASON_ELO_SEED),
+    }
+    ;(rebuiltStandings[s.league_id] ||= {})[s.user_id] = {
+      wins: 0, losses: 0, draws: 0,
+      matches_played: 0, ranking_points: 0, season_elo: SEASON_ELO_SEED,
+    }
+  }
+
+  function applyOutcome(
+    leagueId: string, winners: string[], losers: string[], isDraw: boolean,
+  ) {
+    const table = rebuiltStandings[leagueId]
+    if (!table) return
+    if (isDraw) {
+      for (const uid of [...winners, ...losers]) {
+        const row = table[uid]
+        if (!row) continue
+        row.draws++; row.matches_played++; row.ranking_points += POINTS_DRAW
+      }
+      return
+    }
+    for (const uid of winners) {
+      const row = table[uid]
+      if (!row) continue
+      row.wins++; row.matches_played++; row.ranking_points += POINTS_WIN
+    }
+    for (const uid of losers) {
+      const row = table[uid]
+      if (!row) continue
+      row.losses++; row.matches_played++
+    }
+  }
+
+  let leagueMatchesReplayed = 0
+  let leagueSetsReplayed = 0
+
+  for (const mr of matchResults) {
+    const leagueId = leagueIdForMatch[mr.match_id]
+    if (!leagueId) continue
+    if (mr.is_friendly) continue
+
+    const team1 = (mr.team1_players ?? []) as string[]
+    const team2 = (mr.team2_players ?? []) as string[]
+    if (team1.length === 0 || team2.length === 0) continue
+
+    const allPlayers = [...team1, ...team2]
+    if (allPlayers.some((pid) => !profileIds.has(pid))) continue // ghost — as process-elo
+
+    const league = (leagueRows ?? []).find((l) => l.id === leagueId)
+    if (!league) continue
+    const table = rebuiltStandings[leagueId]
+    if (!table) continue
+
+    const usesSeasonElo =
+      league.match_type === 'individual' && league.format === 'round_robin'
+
+    if (usesSeasonElo) {
+      const memberIdsInMatch = allPlayers.filter((pid) => pid in table)
+
+      for (const set of (mr.sets_data as any[]) ?? []) {
+        const g1 = (set.team1_score ?? set.team1 ?? 0) as number
+        const g2 = (set.team2_score ?? set.team2 ?? 0) as number
+
+        const setClass = classifySet(g1, g2)
+        if (setClass === null) continue // void set
+
+        const { team1Score: setT1, team2Score: setT2,
+                isDraw: setDraw, isDominant: setDominant } = setClass
+
+        for (const uid of memberIdsInMatch) {
+          const onTeam1 = team1.includes(uid)
+          const oppIds = onTeam1 ? team2 : team1
+          const oppAvgSeason =
+            oppIds.reduce((sum, oid) => sum + (table[oid]?.season_elo ?? SEASON_ELO_SEED), 0) /
+            oppIds.length
+          const row = table[uid]
+          const expected = calculateExpected(row.season_elo, oppAvgSeason)
+          const actual = onTeam1 ? setT1 : setT2
+          const seasonK = calculateKFactor(row.matches_played)
+          const rawChange = seasonK * (actual - expected)
+          const change = applyMultipliers(rawChange, expected, setDominant, actual === 1)
+          row.season_elo = Math.max(0, Math.min(3000, row.season_elo + change))
+        }
+
+        const isCompleted = setT1 === 1 || setT1 === 0
+        const winners = setDraw ? [...team1, ...team2]
+          : isCompleted ? (setT1 === 1 ? team1 : team2) : (g1 > g2 ? team1 : team2)
+        const losers = setDraw ? []
+          : isCompleted ? (setT1 === 1 ? team2 : team1) : (g1 > g2 ? team2 : team1)
+
+        applyOutcome(leagueId, winners, losers, setDraw)
+        leagueSetsReplayed++
+      }
+    } else {
+      const classification = classifyMatch(mr.result_type, (mr.sets_data as any[]) ?? [])
+      if (classification === null) continue // void
+      const { team1Score, team2Score, recordAsDraw } = classification
+      const winners = recordAsDraw ? [...team1, ...team2]
+        : team1Score > team2Score ? team1 : team2
+      const losers = recordAsDraw ? []
+        : team1Score > team2Score ? team2 : team1
+      applyOutcome(leagueId, winners, losers, recordAsDraw)
+      leagueSetsReplayed++
+    }
+
+    leagueMatchesReplayed++
+  }
+
+  const leagueComparison = (leagueRows ?? []).map((l) => {
+    const cur = currentStandings[l.id] ?? {}
+    const reb = rebuiltStandings[l.id] ?? {}
+    return {
+      league_id: l.id,
+      name: l.name,
+      uses_season_elo: l.match_type === 'individual' && l.format === 'round_robin',
+      players: Object.keys(reb).map((uid) => ({
+        user_id: uid,
+        name: nameMap[uid] ?? 'Unknown',
+        current: cur[uid] ?? null,
+        rebuilt: reb[uid],
+      })).sort((a, b) => b.rebuilt.ranking_points - a.rebuilt.ranking_points),
+    }
+  })
+
   // ── 6. DRY_RUN: return comparison without writing ──
   if (mode === 'dry_run') {
     return new Response(JSON.stringify({
@@ -289,13 +471,16 @@ Deno.serve(async (req) => {
       rating_history_rows: ratingHistoryRows.length,
       ranking_changes_rows: rankingChangesRows.length,
       players: playerComparison,
+      league_matches_replayed: leagueMatchesReplayed,
+      league_sets_replayed: leagueSetsReplayed,
+      leagues: leagueComparison,
     }, null, 2), { headers: corsHeaders })
   }
 
   // ── 6b. EMIT_SQL: output atomic SQL script ──
   if (mode === 'emit_sql') {
     let sql = `-- ══════════════════════════════════════════════════════════════════════════\n`
-    sql += `-- REBUILD ALL RATINGS — atomic transaction\n`
+    sql += `-- REBUILD ALL RATINGS + LEAGUE STANDINGS — atomic transaction\n`
     sql += `-- Generated by rebuild-ratings at ${new Date().toISOString()}\n`
     const totalSkipped = matchesSkippedFriendly + matchesSkippedVoid + matchesSkippedGhost + matchesSkippedEmpty
     sql += `-- Matches: ${matchResults.length} total, ${matchesProcessed} processed, ${totalSkipped} skipped\n`
@@ -303,6 +488,7 @@ Deno.serve(async (req) => {
     sql += `-- Rating history rows: ${ratingHistoryRows.length}\n`
     sql += `-- Ranking changes rows: ${rankingChangesRows.length}\n`
     sql += `-- Players affected: ${playerComparison.length}\n`
+    sql += `-- League matches replayed: ${leagueMatchesReplayed} (${leagueSetsReplayed} scoring units)\n`
     sql += `-- ══════════════════════════════════════════════════════════════════════════\n\n`
     sql += `BEGIN;\n\n`
     sql += `-- Suppress giant_slayer badge trigger during rebuild\n`
@@ -366,6 +552,43 @@ Deno.serve(async (req) => {
     sql += `-- Mark ALL verified match_results as elo_processed (matches process-elo behaviour)\n`
     sql += `UPDATE match_results SET elo_processed = true\n`
     sql += `WHERE verification_status = 'verified' AND elo_processed IS NOT TRUE;\n\n`
+
+    // 8. Rebuild league_standings — W/L/D/points AND season_elo, every row.
+    // Rows for players with no completed sets are reset to 0 / seed, so a stale
+    // row can never survive a rebuild.
+    const standingTuples: string[] = []
+    for (const [leagueId, table] of Object.entries(rebuiltStandings)) {
+      for (const [userId, s] of Object.entries(table)) {
+        standingTuples.push(
+          `  ('${leagueId}'::uuid, '${userId}'::uuid, ${s.wins}, ${s.losses}, ${s.draws}, ` +
+          `${s.matches_played}, ${s.ranking_points}, ${Math.round(s.season_elo)})`
+        )
+      }
+    }
+
+    if (standingTuples.length > 0) {
+      sql += `-- League standings (${standingTuples.length} rows across ${Object.keys(rebuiltStandings).length} leagues)\n`
+      sql += `-- ${leagueMatchesReplayed} league matches / ${leagueSetsReplayed} scoring units replayed\n`
+      sql += `UPDATE league_standings AS ls SET\n`
+      sql += `  wins = v.wins,\n`
+      sql += `  losses = v.losses,\n`
+      sql += `  draws = v.draws,\n`
+      sql += `  matches_played = v.matches_played,\n`
+      sql += `  ranking_points = v.ranking_points,\n`
+      sql += `  season_elo = v.season_elo,\n`
+      sql += `  updated_at = now()\n`
+      sql += `FROM (VALUES\n`
+      sql += standingTuples.join(',\n')
+      sql += `\n) AS v(league_id, user_id, wins, losses, draws, matches_played, ranking_points, season_elo)\n`
+      sql += `WHERE ls.league_id = v.league_id AND ls.user_id = v.user_id;\n\n`
+
+      sql += `-- Clear the per-result guard so the league branch can never double-apply\n`
+      sql += `UPDATE match_results mr SET league_standings_processed = true\n`
+      sql += `FROM matches m\n`
+      sql += `WHERE m.id = mr.match_id AND m.league_id IS NOT NULL\n`
+      sql += `  AND mr.verification_status = 'verified'\n`
+      sql += `  AND mr.league_standings_processed IS NOT TRUE;\n\n`
+    }
 
     sql += `COMMIT;\n`
 

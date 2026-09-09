@@ -25,3 +25,4 @@ dist-ssr
 *.sln
 *.sw?
 supabase/migrations/*_placeholder.sql
+REBUILD_RATINGS_*.sql

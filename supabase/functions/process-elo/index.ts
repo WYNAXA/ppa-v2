@@ -1,3 +1,7 @@
+// Deploy: supabase functions deploy process-elo --no-verify-jwt
+// Guarded by the x-webhook-secret header (Vault secret 'elo_webhook_secret',
+// sent by the dispatch_match_result_to_elo trigger).
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import {
   calculateExpected,
@@ -19,6 +23,18 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
+  }
+
+  // Invoked by the database trigger dispatch_match_result_to_elo, which sends a
+  // shared secret held in Vault. verify_jwt is disabled at the gateway because
+  // legacy service_role JWTs are no longer accepted by Supabase, so THIS CHECK
+  // is the only thing between the public internet and the ELO writer.
+  // Fails closed: a missing env var or missing header returns 401.
+  if (req.headers.get('x-webhook-secret') !== Deno.env.get('ELO_WEBHOOK_SECRET')) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: corsHeaders,
+    })
   }
 
   const supabase = createClient(

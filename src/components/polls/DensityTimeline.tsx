@@ -128,7 +128,7 @@ export function DensityTimeline({ otherRanges, voterRanges, totalOtherVoters }: 
                     className="absolute inset-0"
                     style={{
                       backgroundColor: count > 0
-                        ? `rgba(0, 150, 136, ${0.12 + intensity * 0.48})`  // #009688 at varying opacity
+                        ? `color-mix(in srgb, var(--color-court) ${Math.round((0.12 + intensity * 0.48) * 100)}%, transparent)`
                         : 'transparent',
                     }}
                   />
@@ -137,10 +137,10 @@ export function DensityTimeline({ otherRanges, voterRanges, totalOtherVoters }: 
                     <div
                       className="absolute inset-x-0 top-0 bottom-0"
                       style={{
-                        borderTop: '2.5px solid #009688',
-                        borderBottom: '2.5px solid #009688',
-                        borderLeft: i === 0 || !voterBlocks[i - 1] ? '2px solid #009688' : 'none',
-                        borderRight: i === BLOCKS.length - 1 || !voterBlocks[i + 1] ? '2px solid #009688' : 'none',
+                        borderTop: '2.5px solid var(--color-court)',
+                        borderBottom: '2.5px solid var(--color-court)',
+                        borderLeft: i === 0 || !voterBlocks[i - 1] ? '2px solid var(--color-court)' : 'none',
+                        borderRight: i === BLOCKS.length - 1 || !voterBlocks[i + 1] ? '2px solid var(--color-court)' : 'none',
                       }}
                     />
                   )}

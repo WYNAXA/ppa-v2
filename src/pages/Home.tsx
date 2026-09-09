@@ -371,7 +371,7 @@ function NextMatchCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, #009688 0%, #004d44 100%)' }}
+      style={{ background: 'linear-gradient(135deg, var(--color-court) 0%, #004d44 100%)' }}
     >
       <div className="p-5">
         {/* Countdown badge */}

@@ -1151,7 +1151,7 @@ export function CommunityPage() {
 
       <div className="px-5 space-y-6">
         {/* Hero card */}
-        <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #009688 0%, #00796B 100%)' }}>
+        <div className="rounded-2xl overflow-hidden" style={{ background: 'linear-gradient(135deg, var(--color-court) 0%, #00796B 100%)' }}>
           <div className="px-5 py-5 text-white">
             <div className="flex items-start justify-between mb-4">
               <div>

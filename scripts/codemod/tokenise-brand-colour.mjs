@@ -115,11 +115,13 @@ for (const file of files) {
     perRule.set(rule.name, (perRule.get(rule.name) ?? 0) + matches.length)
   }
 
-  // Anything still holding the literal needs a human — report, never guess.
-  const remaining = after.match(/#009688/gi)
-  if (remaining) {
+  // Anything still holding the colour needs a human — report, never guess.
+  // Includes rgb()/rgba() spellings of the same value, which no textual rule
+  // can safely rewrite because the alpha channel carries design intent.
+  const BRAND_OTHER = /#009688|rgba?\(\s*0\s*,\s*150\s*,\s*136/i
+  if (BRAND_OTHER.test(after)) {
     for (const line of after.split('\n')) {
-      if (/#009688/i.test(line)) {
+      if (BRAND_OTHER.test(line)) {
         leftovers.push(`${relative(ROOT, file)}: ${line.trim().slice(0, 110)}`)
       }
     }

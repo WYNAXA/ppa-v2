@@ -282,7 +282,7 @@ export function PlayPage() {
             <button
               onClick={() => navigate('/play/availability')}
               className="w-full rounded-2xl overflow-hidden relative"
-              style={{ background: 'linear-gradient(135deg, #007d74 0%, #009688 55%, #00a896 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #007d74 0%, var(--color-court) 55%, #00a896 100%)' }}
             >
               {/* Court SVG overlay */}
               <div className="absolute inset-0 opacity-[0.08] pointer-events-none">

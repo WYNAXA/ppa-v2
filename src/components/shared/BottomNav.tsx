@@ -24,7 +24,7 @@ function PadelBallIcon({ className, strokeWidth = 1.8 }: { className?: string; s
 }
 
 const ACTIVE = 'var(--color-court)'
-const ACTIVE_BG = 'rgba(0,150,136,0.09)'
+const ACTIVE_BG = 'color-mix(in srgb, var(--color-court) 9%, transparent)'
 
 const NAV_ITEMS = [
   { icon: Home,          key: 'home',      path: '/home',      activePaths: ['/home'] },

@@ -35,7 +35,7 @@
      urgent and primary-action states only, never as a surface. */
   --color-court-50:  #EAF5F3;
   --color-court-100: #CDE7E2;
-  --color-court:     #0F5D54;
+  --color-court:     #009688; /* TEMP — flipped to #0F5D54 next commit */
   --color-court-700: #0A473F;
   --color-line:      #12A594;
   --color-ball:      #E4FF57;

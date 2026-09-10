@@ -792,7 +792,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       </div>
 
       {/* ── Filter bar ── */}
-      <div className="px-5 pt-2 pb-1 overflow-x-auto no-scrollbar">
+      <div className="px-5 pt-2 pb-1 overflow-x-auto scrollbar-none">
         <div className="flex gap-2 min-w-max">
           <button
             onClick={() => setNeedsRingersOnly(v => !v)}

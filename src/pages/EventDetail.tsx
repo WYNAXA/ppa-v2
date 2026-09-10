@@ -154,7 +154,7 @@ export function EventDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
         <p className="text-[14px] font-semibold text-ink-2">Event not found</p>
-        <button onClick={() => goBack(navigate, '/community')} className="mt-4 text-[13px] text-court font-semibold">Go back</button>
+        <button onClick={() => goBack(navigate, '/people')} className="mt-4 text-[13px] text-court font-semibold">Go back</button>
       </div>
     )
   }
@@ -165,7 +165,7 @@ export function EventDetailPage() {
   const ev = event
 
   async function handleShare() {
-    const url = `${window.location.origin}/community/events/${id}`
+    const url = `${window.location.origin}/people/events/${id}`
     if (navigator.share) {
       try { await navigator.share({ title: ev.title, url }) } catch { /* cancelled */ }
     } else {
@@ -175,7 +175,7 @@ export function EventDetailPage() {
 
   async function handleDelete() {
     if (!await confirmDialog({
-      title: t('community.delete_event_confirm_title', { title: ev.title }),
+      title: t('people.delete_event_confirm_title', { title: ev.title }),
       message: t('common.cannot_be_undone'),
       destructive: true,
       confirmLabel: t('common.delete'),
@@ -185,7 +185,7 @@ export function EventDetailPage() {
     setDeleting(false)
     if (error) { toast.error(error.message ?? 'Failed to delete event'); return }
     toast.success('Event deleted')
-    goBack(navigate, '/community')
+    goBack(navigate, '/people')
   }
 
   const calendarEvent = event ? {
@@ -210,7 +210,7 @@ export function EventDetailPage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
-          onClick={() => goBack(navigate, '/community')}
+          onClick={() => goBack(navigate, '/people')}
           className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5 text-ink-2" />

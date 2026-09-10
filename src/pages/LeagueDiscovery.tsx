@@ -338,7 +338,7 @@ export function LeagueDiscoveryPage() {
           <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">Open Leagues</h2>
 
           {/* Filter chips */}
-          <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3 pb-0.5">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3 pb-0.5">
             {LEAGUE_FILTERS.map(f => (
               <button
                 key={f.id}

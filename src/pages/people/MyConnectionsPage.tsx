@@ -5,10 +5,10 @@ import { ChevronLeft, Calendar, Users } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { ConnectionCard } from '@/components/community/ConnectionCard'
-import { ConnectionRequestCard } from '@/components/community/ConnectionRequestCard'
-import { InviteToMatchSheet } from '@/components/community/InviteToMatchSheet'
-import { InviteToGroupSheet } from '@/components/community/InviteToGroupSheet'
+import { ConnectionCard } from '@/components/people/ConnectionCard'
+import { ConnectionRequestCard } from '@/components/people/ConnectionRequestCard'
+import { InviteToMatchSheet } from '@/components/people/InviteToMatchSheet'
+import { InviteToGroupSheet } from '@/components/people/InviteToGroupSheet'
 
 interface ConnectionProfile {
   user_id: string; name: string; avatar_url?: string | null; city?: string | null; internal_ranking?: number | null
@@ -66,17 +66,17 @@ export function MyConnectionsPage() {
     <div className="min-h-full bg-card pb-32">
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+          <button onClick={() => navigate('/people')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink">{t('community.my_connections')}</h1>
+          <h1 className="text-xl font-bold text-ink">{t('people.my_connections')}</h1>
           {accepted.length > 0 && <span className="text-[12px] text-ink-2 ml-auto">{accepted.length}</span>}
         </div>
       </div>
       <div className="px-5 pt-4 space-y-5">
         {incoming.length > 0 && (
           <div>
-            <p className="text-[12px] font-bold text-ink-2 mb-2">{t('community.requests_count', { count: incoming.length })}</p>
+            <p className="text-[12px] font-bold text-ink-2 mb-2">{t('people.requests_count', { count: incoming.length })}</p>
             <div className="space-y-2">
               {incoming.map(r => <ConnectionRequestCard key={r.user_id} request={r} />)}
             </div>
@@ -85,7 +85,7 @@ export function MyConnectionsPage() {
 
         {isError ? (
           <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-            <p className="text-[13px] font-semibold text-ink-2">{t('community.players_load_failed')}</p>
+            <p className="text-[13px] font-semibold text-ink-2">{t('people.players_load_failed')}</p>
           </div>
         ) : accepted.length > 0 ? (
           <div className="space-y-2">
@@ -104,8 +104,8 @@ export function MyConnectionsPage() {
           </div>
         ) : incoming.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-            <p className="text-[13px] font-semibold text-ink-2">{t('community.no_connections_yet')}</p>
-            <p className="text-[12px] text-ink-2 mt-1">{t('community.find_players_to_connect')}</p>
+            <p className="text-[13px] font-semibold text-ink-2">{t('people.no_connections_yet')}</p>
+            <p className="text-[12px] text-ink-2 mt-1">{t('people.find_players_to_connect')}</p>
           </div>
         ) : null}
       </div>

@@ -1685,7 +1685,7 @@ export function YouPage() {
             {adminGroups.map(({ group_id, groups }) => groups && (
               <button
                 key={group_id}
-                onClick={() => navigate(`/community/groups/${group_id}`)}
+                onClick={() => navigate(`/people/groups/${group_id}`)}
                 className="w-full flex items-center justify-between px-4 py-3.5"
               >
                 <span className="text-[13px] font-medium text-ink-2">{groups.name}</span>

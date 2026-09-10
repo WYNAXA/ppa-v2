@@ -86,12 +86,12 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
     // down Community instead, so the same control did two different things with
     // nothing to tell them apart. Groups and Players already had fuller pages
     // than their inline sections; Events needed one built.
-    { key: 'groups',  icon: Users,          to: '/community/groups' },
-    { key: 'players', icon: UserPlus,       to: '/community/players' },
+    { key: 'groups',  icon: Users,          to: '/people/groups' },
+    { key: 'players', icon: UserPlus,       to: '/people/players' },
     { key: 'coaches', icon: GraduationCap,  to: '/coaches' },
     // Courts is a whole tab — the tile is a shortcut to it, not a scroll.
     { key: 'venues',  icon: MapPin,         to: '/play/book-court' },
-    { key: 'events',  icon: CalendarDays,   to: '/community/events' },
+    { key: 'events',  icon: CalendarDays,   to: '/people/events' },
   ]
 
   const fmt = new Intl.NumberFormat()
@@ -103,7 +103,7 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
         className="flex h-12 w-full items-center gap-2.5 rounded-control border border-hairline bg-card px-4 text-left transition-transform active:scale-[0.99]"
       >
         <Search className="h-4 w-4 flex-shrink-0 text-ink-2" strokeWidth={2} />
-        <span className="truncate text-[13px] text-ink-2">{t('community.search_all')}</span>
+        <span className="truncate text-[13px] text-ink-2">{t('people.search_all')}</span>
       </button>
 
       <div className="grid grid-cols-3 gap-2">
@@ -132,7 +132,7 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
                   <span className="num text-[17px] font-extrabold leading-5 text-ink">{fmt.format(n)}</span>
                 )}
                 <span className="truncate text-[12px] font-semibold leading-4 text-ink-2">
-                  {t(`community.nav_${tile.key}`)}
+                  {t(`people.nav_${tile.key}`)}
                 </span>
               </span>
             </button>

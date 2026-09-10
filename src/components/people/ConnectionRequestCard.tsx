@@ -27,14 +27,14 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
       sendNotification({
         user_id: request.user_id,
         type: 'connection_accepted',
-        title: t('community.notif_connection_accepted'),
+        title: t('people.notif_connection_accepted'),
         message: `${profile?.name ?? 'A player'} accepted your connection request.`,
         related_id: userId,
       })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
-      toast.success(t('community.toast_connection_accepted'))
+      toast.success(t('people.toast_connection_accepted'))
     },
   })
 
@@ -50,7 +50,7 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
-      toast.success(t('community.toast_connection_declined'))
+      toast.success(t('people.toast_connection_declined'))
     },
   })
 
@@ -63,14 +63,14 @@ export function ConnectionRequestCard({ request }: ConnectionRequestCardProps) {
         disabled={busy}
         className="rounded-lg bg-court px-3 py-1.5 text-[11px] font-bold text-white disabled:opacity-50"
       >
-        {t('community.accept')}
+        {t('people.accept')}
       </button>
       <button
         onClick={() => declineMutation.mutate()}
         disabled={busy}
         className="rounded-lg border border-hairline px-3 py-1.5 text-[11px] font-bold text-ink-2 disabled:opacity-50"
       >
-        {t('community.decline')}
+        {t('people.decline')}
       </button>
     </ConnectionCard>
   )

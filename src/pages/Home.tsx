@@ -652,13 +652,13 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                     <p className="text-[11px] text-ink-2 mt-0.5">Groups let you find times to play and schedule matches</p>
                     <div className="flex gap-2 mt-2">
                       <button
-                        onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
+                        onClick={() => navigate('/people', { state: { openCreateGroup: true } })}
                         className="rounded-lg bg-court px-3 py-1.5 text-[12px] font-bold text-white"
                       >
                         Create a group
                       </button>
                       <button
-                        onClick={() => navigate('/community')}
+                        onClick={() => navigate('/people')}
                         className="rounded-lg border border-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2"
                       >
                         Browse groups
@@ -671,7 +671,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                     <p className="text-[13px] font-semibold text-warn">Group created — invite a friend to get started</p>
                     <p className="text-[11px] text-ink-2 mt-0.5">You need at least one other member to schedule matches</p>
                     <button
-                      onClick={() => navigate('/community')}
+                      onClick={() => navigate('/people')}
                       className="mt-2 rounded-lg bg-warn px-3 py-1.5 text-[12px] font-bold text-white"
                     >
                       Invite friends
@@ -753,14 +753,14 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
       ) : (
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => navigate('/community', { state: { openCreateGroup: true } })}
+            onClick={() => navigate('/people', { state: { openCreateGroup: true } })}
             className="flex items-center justify-center gap-1.5 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white"
           >
             <Users className="h-3.5 w-3.5" />
             Create a group
           </button>
           <button
-            onClick={() => navigate('/community')}
+            onClick={() => navigate('/people')}
             className="rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
           >
             Browse groups
@@ -787,7 +787,7 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
     if (!item.related_id) return
     if (item.type.includes('match')) navigate(`/matches/${item.related_id}`)
     else if (item.type.includes('league')) navigate(`/compete/leagues/${item.related_id}`)
-    else if (item.type.includes('group')) navigate(`/community/groups/${item.related_id}`)
+    else if (item.type.includes('group')) navigate(`/people/groups/${item.related_id}`)
     else if (item.type.includes('poll')) navigate(`/play/availability/${item.related_id}`)
   }
 

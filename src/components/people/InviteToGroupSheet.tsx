@@ -61,12 +61,12 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
       })
     },
     onSuccess: (_data, group) => {
-      toast.success(t('community.invite_sent', { player: playerName.split(' ')[0], group: group.name }))
+      toast.success(t('people.invite_sent', { player: playerName.split(' ')[0], group: group.name }))
       queryClient.invalidateQueries({ queryKey: ['notifications'] })
       onClose()
     },
     onError: () => {
-      toast.error(t('community.invite_failed'))
+      toast.error(t('people.invite_failed'))
     },
   })
 

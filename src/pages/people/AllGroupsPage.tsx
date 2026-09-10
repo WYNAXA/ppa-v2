@@ -98,17 +98,17 @@ export function AllGroupsPage() {
     },
     onSuccess: (data) => {
       const msg = data?.autoApprove
-        ? t('community.joined_group_name', { name: data.groupName ?? '' })
-        : t('community.request_sent')
+        ? t('people.joined_group_name', { name: data.groupName ?? '' })
+        : t('people.request_sent')
       toast.success(msg)
       queryClient.invalidateQueries({ queryKey: ['all-groups'] })
       queryClient.invalidateQueries({ queryKey: ['my-groups'] })
     },
     onError: (err: Error) => {
       if (err.message === 'duplicate') {
-        toast.error(t('community.join_declined_contact_admin'))
+        toast.error(t('people.join_declined_contact_admin'))
       } else {
-        toast.error(err.message || t('community.join_error'))
+        toast.error(err.message || t('people.join_error'))
       }
     },
   })
@@ -126,15 +126,15 @@ export function AllGroupsPage() {
       return group?.name
     },
     onSuccess: (name, groupId) => {
-      toast.success(t('community.ringer_offer_sent', { name: name ?? '' }))
+      toast.success(t('people.ringer_offer_sent', { name: name ?? '' }))
       queryClient.invalidateQueries({ queryKey: ['all-groups'] })
       setPreviewGroup(prev => prev?.id === groupId ? { ...prev, membershipStatus: 'pending_ringer' } : prev)
     },
     onError: (err: Error) => {
       if (err.message === 'duplicate') {
-        toast.error(t('community.join_declined_contact_admin'))
+        toast.error(t('people.join_declined_contact_admin'))
       } else {
-        toast.error(err.message || t('community.join_error'))
+        toast.error(err.message || t('people.join_error'))
       }
     },
   })
@@ -146,10 +146,10 @@ export function AllGroupsPage() {
     <div className="min-h-full bg-card pb-32">
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+          <button onClick={() => navigate('/people')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink">{t('community.find_groups')}</h1>
+          <h1 className="text-xl font-bold text-ink">{t('people.find_groups')}</h1>
         </div>
       </div>
       <div className="px-5 pt-4 space-y-3">
@@ -159,15 +159,15 @@ export function AllGroupsPage() {
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20" />
         </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
-          {[{ key: 'near_me', label: t('community.filter_near_me') }, { key: 'open_to_join', label: t('community.filter_open_to_join') }, { key: 'welcomes_ringers', label: t('community.filter_welcomes_ringers') }].map(({ key, label }) => (
+        <div className="flex gap-2 overflow-x-auto scrollbar-none pb-0.5">
+          {[{ key: 'near_me', label: t('people.filter_near_me') }, { key: 'open_to_join', label: t('people.filter_open_to_join') }, { key: 'welcomes_ringers', label: t('people.filter_welcomes_ringers') }].map(({ key, label }) => (
             <button key={key} onClick={() => setActiveFilter(activeFilter === key ? null : key)}
               className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${activeFilter === key ? 'bg-court text-white border-court' : 'bg-card text-ink-2 border-hairline'}`}>
               {label}
             </button>
           ))}
           <span className="text-ink-3 self-center">|</span>
-          {[{ key: 'newest', label: t('community.filter_newest') }, { key: 'most_members', label: t('community.filter_most_members') }].map(({ key, label }) => (
+          {[{ key: 'newest', label: t('people.filter_newest') }, { key: 'most_members', label: t('people.filter_most_members') }].map(({ key, label }) => (
             <button key={key} onClick={() => setSortBy(key)}
               className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium border transition-colors ${sortBy === key ? 'bg-court text-white border-court' : 'bg-card text-ink-2 border-hairline'}`}>
               {label}
@@ -178,7 +178,7 @@ export function AllGroupsPage() {
           <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />)}</div>
         ) : groups.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-            <p className="text-[13px] font-semibold text-ink-2">{t('community.no_groups_found')}</p>
+            <p className="text-[13px] font-semibold text-ink-2">{t('people.no_groups_found')}</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -192,24 +192,24 @@ export function AllGroupsPage() {
                     {g.city && <div className="flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3 text-ink-2" /><p className="text-[12px] text-ink-2">{g.city}</p></div>}
                     <div className="flex items-center gap-2 mt-1 flex-wrap">
                       <span className="inline-flex items-center gap-1 text-[12px] text-ink-2">
-                        <Users className="h-3 w-3 text-ink-2" /> {g.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: g.memberCount })}
+                        <Users className="h-3 w-3 text-ink-2" /> {g.memberCount === 1 ? t('people.member', { count: 1 }) : t('people.members', { count: g.memberCount })}
                       </span>
                       {g.visibility === 'private' && (
                         <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-1.5 py-0.5">
-                          <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
+                          <Lock className="h-2.5 w-2.5" /> {t('people.group_private')}
                         </span>
                       )}
                     </div>
                     {g.description && <p className="text-[12px] text-ink-2 mt-1 line-clamp-2">{g.description}</p>}
                   </div>
                   {g.membershipStatus === 'pending' ? (
-                    <span className="rounded-xl bg-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2 flex-shrink-0">{t('community.group_requested')}</span>
+                    <span className="rounded-xl bg-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2 flex-shrink-0">{t('people.group_requested')}</span>
                   ) : (() => {
                     const isAutoJoin = g.visibility === 'open' || g.visibility === 'public' || g.auto_approve === true
                     return (
                       <button onClick={(e) => { e.stopPropagation(); joinMutation.mutate(g.id) }} disabled={joinMutation.isPending && joinMutation.variables === g.id}
                         className="rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">
-                        {joinMutation.isPending && joinMutation.variables === g.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+                        {joinMutation.isPending && joinMutation.variables === g.id ? t('people.joining') : isAutoJoin ? t('people.join_btn') : t('people.request_to_join')}
                       </button>
                     )
                   })()}
@@ -258,19 +258,19 @@ export function AllGroupsPage() {
                 <div className="flex items-center gap-2 mt-3 flex-wrap">
                   {previewGroup.visibility === 'private' ? (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-2.5 py-1">
-                      <Lock className="h-3 w-3" /> {t('community.group_private')}
+                      <Lock className="h-3 w-3" /> {t('people.group_private')}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-court-700 bg-court-50 rounded-full px-2.5 py-1">
-                      <Globe className="h-3 w-3" /> {previewGroup.visibility === 'public' ? 'Public' : t('community.group_open')}
+                      <Globe className="h-3 w-3" /> {previewGroup.visibility === 'public' ? 'Public' : t('people.group_open')}
                     </span>
                   )}
                   <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-2.5 py-1">
-                    <Users className="h-3 w-3" /> {previewGroup.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: previewGroup.memberCount })}
+                    <Users className="h-3 w-3" /> {previewGroup.memberCount === 1 ? t('people.member', { count: 1 }) : t('people.members', { count: previewGroup.memberCount })}
                   </span>
                   {previewGroup.allow_ringers && (
                     <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-warn bg-warn-50 rounded-full px-2.5 py-1">
-                      <UserCheck className="h-3 w-3" /> {t('community.welcomes_ringers')}
+                      <UserCheck className="h-3 w-3" /> {t('people.welcomes_ringers')}
                     </span>
                   )}
                 </div>
@@ -280,15 +280,15 @@ export function AllGroupsPage() {
                 <div className="mt-6 mb-4 space-y-3">
                   {previewGroup.membershipStatus === 'pending' ? (
                     <div className="w-full rounded-2xl bg-hairline py-3.5 text-center text-[14px] font-semibold text-ink-2">
-                      {t('community.group_requested')}
+                      {t('people.group_requested')}
                     </div>
                   ) : previewGroup.membershipStatus === 'pending_ringer' ? (
                     <div className="w-full rounded-2xl bg-warn-50 border border-warn py-3.5 text-center text-[14px] font-semibold text-warn">
-                      {t('community.ringer_offer_pending')}
+                      {t('people.ringer_offer_pending')}
                     </div>
                   ) : previewGroup.membershipStatus === 'ringer' ? (
                     <div className="w-full rounded-2xl bg-warn-50 border border-warn py-3.5 text-center text-[14px] font-semibold text-warn">
-                      {t('community.already_ringer')}
+                      {t('people.already_ringer')}
                     </div>
                   ) : (() => {
                     const isAutoJoin = previewGroup.visibility === 'open' || previewGroup.visibility === 'public' || previewGroup.auto_approve === true
@@ -300,7 +300,7 @@ export function AllGroupsPage() {
                           disabled={joiningId === previewGroup.id}
                           className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
                         >
-                          {joiningId === previewGroup.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
+                          {joiningId === previewGroup.id ? t('people.joining') : isAutoJoin ? t('people.join_btn') : t('people.request_to_join')}
                         </button>
                         {canOfferRinger && (
                           <button
@@ -309,7 +309,7 @@ export function AllGroupsPage() {
                             className="w-full rounded-2xl border border-warn bg-warn-50 py-3 text-[13px] font-semibold text-warn active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
                           >
                             <UserCheck className="h-4 w-4" />
-                            {ringerOfferMutation.isPending ? t('community.offering') : t('community.offer_ringer')}
+                            {ringerOfferMutation.isPending ? t('people.offering') : t('people.offer_ringer')}
                             <button type="button" onClick={(e) => { e.stopPropagation(); setShowRingerInfo(!showRingerInfo) }} className="ml-1">
                               <Info className="h-3.5 w-3.5 text-warn" />
                             </button>
@@ -317,7 +317,7 @@ export function AllGroupsPage() {
                         )}
                         {showRingerInfo && (
                           <p className="text-[11px] text-ink-2 leading-relaxed px-1">
-                            {t('community.ringer_info')}
+                            {t('people.ringer_info')}
                           </p>
                         )}
                       </>

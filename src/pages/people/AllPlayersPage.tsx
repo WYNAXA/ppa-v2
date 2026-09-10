@@ -57,15 +57,15 @@ export function AllPlayersPage() {
       const { error } = await supabase.from('player_connections').insert({ user_id: userId, connected_user_id: targetId, status: 'pending' })
       if (error) throw error
       sendNotification({
-        user_id: targetId, type: 'connection_request', title: t('community.notif_connection_request'),
+        user_id: targetId, type: 'connection_request', title: t('people.notif_connection_request'),
         message: `${profile?.name ?? 'A player'} wants to connect with you.`, related_id: userId,
       })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] })
-      toast.success(t('community.toast_connection_sent'))
+      toast.success(t('people.toast_connection_sent'))
     },
-    onError: () => toast.error(t('community.toast_connection_failed')),
+    onError: () => toast.error(t('people.toast_connection_failed')),
   })
 
   const acceptMutation = useMutation({
@@ -73,15 +73,15 @@ export function AllPlayersPage() {
       const { error } = await supabase.rpc('accept_connection_request', { p_requester_id: requesterId })
       if (error) throw error
       sendNotification({
-        user_id: requesterId, type: 'connection_accepted', title: t('community.notif_connection_accepted'),
+        user_id: requesterId, type: 'connection_accepted', title: t('people.notif_connection_accepted'),
         message: `${profile?.name ?? 'A player'} accepted your connection request.`, related_id: userId,
       })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-connections-status', userId] })
-      toast.success(t('community.toast_connection_accepted'))
+      toast.success(t('people.toast_connection_accepted'))
     },
-    onError: () => toast.error(t('community.toast_connection_failed')),
+    onError: () => toast.error(t('people.toast_connection_failed')),
   })
 
   function getState(pid: string) {
@@ -95,32 +95,32 @@ export function AllPlayersPage() {
     <div className="min-h-full bg-card pb-32">
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+          <button onClick={() => navigate('/people')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink">{t('community.find_players')}</h1>
+          <h1 className="text-xl font-bold text-ink">{t('people.find_players')}</h1>
         </div>
       </div>
       <div className="px-5 pt-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('community.search_players')}
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('people.search_players')}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20" />
         </div>
         {profile?.city && (
           <button onClick={() => setCityFilterOverride(!cityFilter)}
             className={`rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${cityFilter ? 'bg-court text-white border-court' : 'bg-card text-ink-2 border-hairline'}`}>
-            {t('community.near_me_city', { city: profile.city })}
+            {t('people.near_me_city', { city: profile.city })}
           </button>
         )}
         <div className="space-y-2">
           {isError ? (
-            <p className="text-center text-[13px] text-ink-2 py-8">{t('community.players_load_failed')}</p>
+            <p className="text-center text-[13px] text-ink-2 py-8">{t('people.players_load_failed')}</p>
           ) : isLoading ? (
             <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
           ) : players.length === 0 ? (
-            <p className="text-center text-[13px] text-ink-2 py-8">{t('community.no_players_found')}</p>
+            <p className="text-center text-[13px] text-ink-2 py-8">{t('people.no_players_found')}</p>
           ) : players.map(p => {
             const state = getState(p.id)
             return (
@@ -138,23 +138,23 @@ export function AllPlayersPage() {
                 {state === 'none' && (
                   <button onClick={() => connectMutation.mutate(p.id)} disabled={connectMutation.isPending}
                     className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
-                    <UserPlus className="h-3 w-3" /> {t('community.connect')}
+                    <UserPlus className="h-3 w-3" /> {t('people.connect')}
                   </button>
                 )}
                 {state === 'pending_out' && (
                   <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
-                    <Clock className="h-3 w-3" /> {t('community.pending')}
+                    <Clock className="h-3 w-3" /> {t('people.pending')}
                   </span>
                 )}
                 {state === 'pending_in' && (
                   <button onClick={() => acceptMutation.mutate(p.id)} disabled={acceptMutation.isPending}
                     className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
-                    <Check className="h-3 w-3" /> {t('community.accept')}
+                    <Check className="h-3 w-3" /> {t('people.accept')}
                   </button>
                 )}
                 {state === 'accepted' && (
                   <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
-                    <Check className="h-3 w-3" /> {t('community.connected')}
+                    <Check className="h-3 w-3" /> {t('people.connected')}
                   </span>
                 )}
               </div>

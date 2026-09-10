@@ -26,7 +26,7 @@ const STAGE_COPY: Record<EloStage, {
     headline: 'You\'re climbing!',
     body: 'Up {delta} ELO over your last {window} rated matches — great momentum. Consider coaching to keep the streak going.',
     cta: 'Find coaching',
-    route: '/community',
+    route: '/people',
   },
   steady: {
     headline: 'Holding steady',
@@ -38,7 +38,7 @@ const STAGE_COPY: Record<EloStage, {
     headline: 'Time to regroup',
     body: 'You\'ve dipped {delta_abs} ELO over the last {window} rated matches. A session with a coach can help turn it around.',
     cta: 'Find coaching',
-    route: '/community',
+    route: '/people',
   },
 }
 

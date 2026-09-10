@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -7,6 +7,9 @@ import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
+
+// Leaflet is ~150KB and most sessions never open the map, so it loads on demand.
+const VenueMap = lazy(() => import('@/components/VenueMap'))
 
 /**
  * Courts — the landing state of the booking flow, built to `Courts.dc.html`.
@@ -33,6 +36,11 @@ type Venue = {
   name: string
   city: string | null
   indoor: boolean
+  /** Has at least one court that is not indoor. Not simply !indoor — a venue
+      can have both, and the filters have to let it match either chip. */
+  outdoor: boolean
+  lat: number | null
+  lng: number | null
   courts: number | null
   distanceMiles: number | null
   pricePence: number | null
@@ -124,6 +132,9 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
           name: (v.venue_name as string) ?? '—',
           city: (v.city as string) ?? null,
           indoor: ((v.indoor_courts as number) ?? 0) > 0,
+          outdoor: ((v.number_of_courts as number) ?? 0) > ((v.indoor_courts as number) ?? 0),
+          lat: vLat,
+          lng: vLng,
           courts: (v.number_of_courts as number) ?? null,
           distanceMiles:
             lat != null && lng != null && vLat != null && vLng != null
@@ -138,14 +149,20 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
       const byDistance = (a: Venue, b: Venue) =>
         (a.distanceMiles ?? Number.POSITIVE_INFINITY) - (b.distanceMiles ?? Number.POSITIVE_INFINITY)
 
+      // Sorted but NOT sliced. The caller filters first and slices after —
+      // slicing here would mean the indoor filter only ever searched the three
+      // rows that happened to be nearest, which is a filter that lies.
       return {
-        partner: (bookable ?? []).map(shape).sort(byDistance).slice(0, 3),
-        others: (nearby ?? []).map(shape).sort(byDistance).slice(0, 4),
+        partner: (bookable ?? []).map(shape).sort(byDistance),
+        others: (nearby ?? []).map(shape).sort(byDistance),
         total: count ?? 0,
       }
     },
   })
 }
+
+/** Stable empty list — see the note where it is used. */
+const NO_VENUES: Venue[] = []
 
 export interface CourtsHomeProps {
   /** Player's coordinates, when the profile has them. */
@@ -154,22 +171,61 @@ export interface CourtsHomeProps {
   query: string
   onQueryChange: (v: string) => void
   onUseLocation: () => void
+  /** True while the browser is resolving the player's position. The duplicate
+      list this component absorbed had a spinner for this; the location button
+      here had none, so a tap looked like nothing happening. */
+  locating?: boolean
   onPickVenue: (venueId: string) => void
   /** Times the venue has free today, if the caller has already loaded them. */
   slotsByVenue?: Record<string, Array<{ time: string; available: boolean }>>
 }
 
 export function CourtsHome({
-  lat, lng, query, onQueryChange, onUseLocation, onPickVenue, slotsByVenue = {},
+  lat, lng, query, onQueryChange, onUseLocation, locating = false, onPickVenue, slotsByVenue = {},
 }: CourtsHomeProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const [asking, setAsking] = useState<Venue | null>(null)
+  const [view, setView] = useState<'list' | 'map'>('list')
+  const [filters, setFilters] = useState({ indoor: false, outdoor: false, bookable: false })
+  const toggleFilter = (k: keyof typeof filters) => setFilters((f) => ({ ...f, [k]: !f[k] }))
+  const clearFilters = () => setFilters({ indoor: false, outdoor: false, bookable: false })
+  const anyFilter = filters.indoor || filters.outdoor || filters.bookable
+
   const { data } = useVenuesNearby(lat, lng)
 
-  const partner = data?.partner ?? []
-  const others = data?.others ?? []
+  // NO_VENUES is a module-level constant, not a fresh []. A new empty array on
+  // every render changes the identity of every memo below it, so the filtering
+  // would re-run on each keystroke in the search box for no reason.
+  const allPartner = data?.partner ?? NO_VENUES
+  const allOthers = data?.others ?? NO_VENUES
   const total = data?.total ?? 0
+
+  // Filter the whole sorted list, then take the top few. The other order — the
+  // one this code used to have implicitly — filters a three-row window and
+  // calls the empty result "no courts match".
+  const match = useCallback(
+    (v: Venue) => {
+      if (filters.bookable && !v.bookable) return false
+      if (filters.indoor || filters.outdoor) {
+        if (!((filters.indoor && v.indoor) || (filters.outdoor && v.outdoor))) return false
+      }
+      return true
+    },
+    [filters],
+  )
+  const partner = useMemo(() => allPartner.filter(match).slice(0, 3), [allPartner, match])
+  const others  = useMemo(() => allOthers.filter(match).slice(0, 4),  [allOthers, match])
+
+  // The map shows everything that survived the filters, not just the rows the
+  // list had room for — that is the reason to open a map at all.
+  const mapVenues = useMemo(
+    () => [...allPartner, ...allOthers].filter(match).filter((v) => v.lat != null && v.lng != null),
+    [allPartner, allOthers, match],
+  )
+
+  const hasAnyVenue = allPartner.length + allOthers.length > 0
+  const nothingMatches = hasAnyVenue && partner.length === 0 && others.length === 0
 
   const money = useMemo(
     () => new Intl.NumberFormat(undefined, { style: 'currency', currency: 'GBP', maximumFractionDigits: 0 }),
@@ -201,16 +257,113 @@ export function CourtsHome({
           />
           <button
             onClick={onUseLocation}
+            disabled={locating}
             aria-label={t('courts.use_my_location')}
-            className="flex-shrink-0"
+            aria-busy={locating}
+            className="flex-shrink-0 disabled:opacity-60"
           >
-            <MapPin className="h-[18px] w-[18px] text-court" strokeWidth={2} />
+            {locating ? (
+              <span className="block h-[18px] w-[18px] animate-spin rounded-full border-2 border-court border-t-transparent" />
+            ) : (
+              <MapPin className="h-[18px] w-[18px] text-court" strokeWidth={2} />
+            )}
           </button>
         </div>
       </div>
 
+      {/* ── Filters and view, one row ──
+          Ported from the duplicate that lived on the Community tab. Chips left
+          because they are used often; the view toggle right because it is used
+          once. Both hidden while searching by name: a text query already IS the
+          filter, and a map of one result is not a map.
+
+          The row WRAPS rather than scrolls. As a horizontal scroller it cut the
+          third chip in half at 390px, which reads as a broken layout rather
+          than as something you can swipe — and the longer translations
+          ("Reservar en la app") make that worse, not better. */}
+      {!query.trim() && hasAnyVenue && (
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {([
+              { key: 'indoor',   label: t('courts.filter_indoor') },
+              { key: 'outdoor',  label: t('courts.filter_outdoor') },
+              { key: 'bookable', label: t('courts.filter_bookable') },
+            ] as const).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => toggleFilter(key)}
+                aria-pressed={filters[key]}
+                className={cn(
+                  'min-h-[32px] flex-shrink-0 rounded-pill border px-3 py-1 text-[12px] font-semibold transition-colors active:scale-95',
+                  filters[key] ? 'border-court bg-court text-on-brand' : 'border-hairline bg-card text-ink-2',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {lat != null && lng != null && (
+            <div className="ml-auto flex flex-shrink-0 rounded-pill bg-hairline p-0.5">
+              {(['list', 'map'] as const).map((v) => (
+                <button
+                  key={v}
+                  onClick={() => setView(v)}
+                  aria-pressed={view === v}
+                  className={cn(
+                    'rounded-pill px-2.5 py-1 text-[11px] font-bold transition-colors',
+                    view === v ? 'bg-card text-ink shadow-sm' : 'text-ink-2',
+                  )}
+                >
+                  {v === 'list' ? t('courts.view_list') : t('courts.view_map')}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Nothing left after filtering. Says so, and offers the way back. */}
+      {!query.trim() && nothingMatches && (
+        <div className="rounded-card border border-dashed border-hairline bg-surface px-4 py-6 text-center">
+          <p className="text-[13px] font-semibold text-ink-2">{t('courts.filter_none_match')}</p>
+          {anyFilter && (
+            <button
+              onClick={clearFilters}
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-pill bg-court px-4 py-2 text-[13px] font-semibold text-on-brand active:scale-95"
+            >
+              {t('courts.filter_clear')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* ── Map ── */}
+      {!query.trim() && view === 'map' && lat != null && lng != null && mapVenues.length > 0 && (
+        <Suspense
+          fallback={
+            <div className="flex h-[360px] w-full items-center justify-center rounded-card border border-hairline bg-surface">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
+            </div>
+          }
+        >
+          <VenueMap
+            venues={mapVenues.map((v) => ({
+              venue_id: v.id,
+              venue_name: v.name,
+              city: v.city,
+              latitude: v.lat,
+              longitude: v.lng,
+              distance_miles: v.distanceMiles,
+            }))}
+            center={{ lat, lng }}
+            onSelect={(id) => navigate(`/venues/${id}`)}
+          />
+        </Suspense>
+      )}
+
       {/* ── Book instantly — the venues that pay ── */}
-      {!query.trim() && partner.length > 0 && (
+      {!query.trim() && view === 'list' && partner.length > 0 && (
         <section className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
@@ -281,7 +434,7 @@ export function CourtsHome({
       )}
 
       {/* ── Also near you — the directory, as an acquisition loop ── */}
-      {!query.trim() && others.length > 0 && (
+      {!query.trim() && view === 'list' && others.length > 0 && (
         <section className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">

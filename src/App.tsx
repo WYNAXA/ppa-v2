@@ -28,7 +28,7 @@ import { ForVenuesPage } from '@/pages/ForVenues'
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
 const CompetePage = lazy(() => import('@/pages/Compete').then(m => ({ default: m.CompetePage })))
-const CommunityPage = lazy(() => import('@/pages/Community').then(m => ({ default: m.CommunityPage })))
+const PeoplePage = lazy(() => import('@/pages/People').then(m => ({ default: m.PeoplePage })))
 const GroupDetailPage = lazy(() => import('@/pages/GroupDetail').then(m => ({ default: m.GroupDetailPage })))
 const EventDetailPage = lazy(() => import('@/pages/EventDetail').then(m => ({ default: m.EventDetailPage })))
 const YouPage = lazy(() => import('@/pages/You').then(m => ({ default: m.YouPage })))
@@ -47,10 +47,10 @@ const BookingStatusPage = lazy(() => import('@/pages/BookingStatus').then(m => (
 const VenueDetailPage = lazy(() => import('@/pages/VenueDetail').then(m => ({ default: m.VenueDetailPage })))
 const TournamentModePage = lazy(() => import('@/pages/TournamentMode').then(m => ({ default: m.TournamentModePage })))
 const LeagueDiscoveryPage = lazy(() => import('@/pages/LeagueDiscovery').then(m => ({ default: m.LeagueDiscoveryPage })))
-const AllGroupsPage = lazy(() => import('@/pages/community/AllGroupsPage').then(m => ({ default: m.AllGroupsPage })))
-const AllPlayersPage = lazy(() => import('@/pages/community/AllPlayersPage').then(m => ({ default: m.AllPlayersPage })))
-const AllEventsPage = lazy(() => import('@/pages/community/AllEventsPage').then(m => ({ default: m.AllEventsPage })))
-const MyConnectionsPage = lazy(() => import('@/pages/community/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
+const AllGroupsPage = lazy(() => import('@/pages/people/AllGroupsPage').then(m => ({ default: m.AllGroupsPage })))
+const AllPlayersPage = lazy(() => import('@/pages/people/AllPlayersPage').then(m => ({ default: m.AllPlayersPage })))
+const AllEventsPage = lazy(() => import('@/pages/people/AllEventsPage').then(m => ({ default: m.AllEventsPage })))
+const MyConnectionsPage = lazy(() => import('@/pages/people/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
 const OpenMatchesPage = lazy(() => import('@/pages/OpenMatches').then(m => ({ default: m.OpenMatchesPage })))
 const VenueEventDetailPage = lazy(() => import('@/pages/VenueEventDetail').then(m => ({ default: m.VenueEventDetailPage })))
 const JoinMatchPage = lazy(() => import('@/pages/JoinMatch').then(m => ({ default: m.JoinMatchPage })))
@@ -78,6 +78,21 @@ function Guard({ children }: { children: React.ReactNode }) {
   const next = encodeURIComponent(location.pathname + location.search)
   return <Navigate to={`/auth?next=${next}`} replace />
 }
+
+/**
+ * /community/... -> /people/...
+ *
+ * A splat route gives us `*` as the remainder, but not the search or hash, so
+ * both are read off `useLocation` and reattached. Dropping them would turn
+ * /community#connections — the destination of every connection-request push
+ * notification ever sent — into a link that lands on the wrong part of the page.
+ */
+function RedirectCommunity() {
+  const location = useLocation()
+  const rest = location.pathname.replace(/^\/community/, '')
+  return <Navigate to={`/people${rest}${location.search}${location.hash}`} replace />
+}
+
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
   const { session, profile, loading } = useAuth()
@@ -258,14 +273,24 @@ function AppShell() {
             <Route path="/home"      element={<Guard><HomePage /></Guard>} />
             <Route path="/play"      element={<Guard><PlayPage /></Guard>} />
             <Route path="/compete"   element={<Guard><CompetePage /></Guard>} />
-            <Route path="/community"             element={<Guard><CommunityPage /></Guard>} />
-            <Route path="/community/groups"      element={<Guard><AllGroupsPage /></Guard>} />
-            <Route path="/community/players"     element={<Guard><AllPlayersPage /></Guard>} />
-            <Route path="/community/events"      element={<Guard><AllEventsPage /></Guard>} />
-            <Route path="/community/connections"  element={<Guard><MyConnectionsPage /></Guard>} />
-            <Route path="/community/groups/:id"  element={<Guard><GroupDetailPage /></Guard>} />
-            <Route path="/community/events/:id"  element={<Guard><EventDetailPage /></Guard>} />
+            <Route path="/people"             element={<Guard><PeoplePage /></Guard>} />
+            <Route path="/people/groups"      element={<Guard><AllGroupsPage /></Guard>} />
+            <Route path="/people/players"     element={<Guard><AllPlayersPage /></Guard>} />
+            <Route path="/people/events"      element={<Guard><AllEventsPage /></Guard>} />
+            <Route path="/people/connections"  element={<Guard><MyConnectionsPage /></Guard>} />
+            <Route path="/people/groups/:id"  element={<Guard><GroupDetailPage /></Guard>} />
+            <Route path="/people/events/:id"  element={<Guard><EventDetailPage /></Guard>} />
             <Route path="/you"       element={<Guard><YouPage /></Guard>} />
+
+            {/* The tab was called Community until September 2026. These URLs are
+                in people's bookmarks, in shared group links and in push
+                notifications already delivered, so they redirect rather than
+                404. `RedirectCommunity` preserves the rest of the path, the
+                query string and the hash — a shared link to
+                /community/groups/<id> has to land on that group, not on the
+                tab. */}
+            <Route path="/community/*" element={<RedirectCommunity />} />
+            <Route path="/community"   element={<RedirectCommunity />} />
 
             {/* Open matches */}
             <Route path="/open-matches" element={<Guard><OpenMatchesPage /></Guard>} />

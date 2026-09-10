@@ -113,7 +113,7 @@ export function EmbedVenueBookingPage() {
       ) : (
         <div className="flex-1 overflow-y-auto">
           {/* Date strip */}
-          <div className="flex gap-2 overflow-x-auto px-4 py-3 no-scrollbar">
+          <div className="flex gap-2 overflow-x-auto px-4 py-3 scrollbar-none">
             {dates.map((d) => {
               const ds = format(d, 'yyyy-MM-dd')
               const active = ds === date

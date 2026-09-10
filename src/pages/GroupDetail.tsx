@@ -17,7 +17,7 @@ import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { Toggle } from '@/components/shared/Toggle'
-import { CreateEventSheet } from '@/components/community/CreateEventSheet'
+import { CreateEventSheet } from '@/components/people/CreateEventSheet'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -485,7 +485,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
   })
 
   async function shareOrCopyInvite() {
-    const url = `${window.location.origin}/community/groups/${groupId}`
+    const url = `${window.location.origin}/people/groups/${groupId}`
     if (navigator.share) {
       try { await navigator.share({ title: t('group_detail.share_title'), url }) } catch { /* cancelled */ }
       return
@@ -709,7 +709,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
 
       {/* Upcoming filter chips */}
       {view === 'upcoming' && upcoming.length > 0 && (
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar mb-3">
+        <div className="flex gap-1.5 overflow-x-auto scrollbar-none mb-3">
           {([
             { key: 'this_week' as const, label: t('group_detail.chip_this_week') },
             { key: 'next_week' as const, label: t('group_detail.chip_next_week') },
@@ -740,7 +740,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
       {/* Past filter pills */}
       {view === 'past' && past.length > 0 && (
         <>
-          <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3">
             {([
               { id: 'all' as PastFilter, label: t('group_detail.chip_all') },
               { id: 'competitive' as PastFilter, label: t('group_detail.chip_competitive') },
@@ -913,7 +913,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
           {events.map((event) => (
             <button
               key={event.id}
-              onClick={() => navigate(`/community/events/${event.id}`)}
+              onClick={() => navigate(`/people/events/${event.id}`)}
               className="w-full text-left rounded-xl border border-hairline bg-surface px-4 py-3 hover:border-court-100 transition-colors"
             >
               <p className="text-[13px] font-semibold text-ink">{event.title}</p>
@@ -1109,7 +1109,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       const { error } = await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', currentUserId)
       if (error) throw error
       queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
-      navigate('/community')
+      navigate('/people')
     } catch {
       toast.error('Failed to leave group')
     } finally {
@@ -1595,7 +1595,7 @@ function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: 
       queryClient.invalidateQueries({ queryKey: ['my-groups'] })
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
       queryClient.invalidateQueries({ queryKey: ['user-membership', groupId, userId] })
-      navigate('/community')
+      navigate('/people')
     },
     onError: () => toast.error(t('group_detail.leave_failed')),
   })
@@ -1735,7 +1735,7 @@ export function GroupDetailPage() {
     },
     onError: (err: Error) => {
       if (err.message === 'rejected') {
-        toast.error(t('community.join_declined_contact_admin'))
+        toast.error(t('people.join_declined_contact_admin'))
       } else {
         toast.error(t('group_detail.accept_invite_failed'))
       }
@@ -1862,8 +1862,8 @@ export function GroupDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
         <p className="text-[14px] font-semibold text-ink-2">{t('group_detail.group_not_found')}</p>
-        <button onClick={() => navigate('/community')} className="mt-4 text-[13px] text-court font-semibold">
-          {t('group_detail.back_to_community')}
+        <button onClick={() => navigate('/people')} className="mt-4 text-[13px] text-court font-semibold">
+          {t('group_detail.back_to_people')}
         </button>
       </div>
     )
@@ -1882,7 +1882,7 @@ export function GroupDetailPage() {
       <div className={`px-5 pb-4 ${group.banner_url ? 'pt-4' : 'pt-14'}`}>
         <div className="flex items-center gap-3 mb-4">
           <button
-            onClick={() => navigate('/community')}
+            onClick={() => navigate('/people')}
             className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
             <ChevronLeft className="h-5 w-5 text-ink-2" />
@@ -1901,7 +1901,7 @@ export function GroupDetailPage() {
               )}
               {group.visibility === 'private' && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-hairline px-2 py-0.5 text-[11px] font-bold text-ink-2">
-                  <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
+                  <Lock className="h-2.5 w-2.5" /> {t('people.group_private')}
                 </span>
               )}
               {isAdmin && (
@@ -1911,7 +1911,7 @@ export function GroupDetailPage() {
               )}
               {isRinger && !isAdmin && (
                 <span className="rounded-full bg-warn-50 border border-warn-100 px-2 py-0.5 text-[11px] font-bold text-warn">
-                  {t('community.badge_ringer')}
+                  {t('people.badge_ringer')}
                 </span>
               )}
             </div>
@@ -2011,7 +2011,7 @@ export function GroupDetailPage() {
 
       {/* Tabs */}
       <div className="relative px-5 border-b border-hairline">
-        <div className="flex gap-5 overflow-x-auto no-scrollbar">
+        <div className="flex gap-5 overflow-x-auto scrollbar-none">
           {TABS.map((tab) => {
             const active = activeTab === tab.id
             return (

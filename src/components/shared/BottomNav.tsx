@@ -20,7 +20,7 @@ const ICON = {
       <path d="M5 9.5V21h14V9.5" />
     </>
   ),
-  community: (
+  people: (
     <>
       <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
       <circle cx="10" cy="8" r="3.5" />
@@ -81,7 +81,7 @@ type NavItem = {
 
 const LEFT: NavItem[] = [
   { key: 'today', path: '/home',      activePaths: ['/home'] },
-  { key: 'community', path: '/community', activePaths: ['/community', '/players'] },
+  { key: 'people', path: '/people', activePaths: ['/people', '/players'] },
 ]
 
 const RIGHT: NavItem[] = [

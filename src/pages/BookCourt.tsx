@@ -593,25 +593,34 @@ export function BookCourtPage() {
   // Nearest padel venues, so the player sees courts near them before typing.
   // venues_near returns the closest set + distance; we hydrate the full booking
   // fields (anchor id, booking_url, etc.) so a tap flows straight into booking.
-  const { data: nearbyVenues = [], isFetching: nearbyLoading } = useQuery<Venue[]>({
-    queryKey: ['bookcourt-nearby', coords?.lat, coords?.lng],
-    enabled: !!coords,
-    queryFn: async () => {
-      const { data: near } = await supabase.rpc('venues_near', {
-        p_lat: coords!.lat, p_lng: coords!.lng, p_radius_miles: 75, p_limit: 12,
-      })
-      const list = (near ?? []) as { venue_id: string; distance_miles: number }[]
-      if (!list.length) return []
-      const distById = new Map(list.map((v) => [v.venue_id, v.distance_miles]))
-      const { data: full } = await supabase
-        .from('padel_venues')
-        .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone')
-        .in('venue_id', list.map((v) => v.venue_id))
-      return ((full ?? []) as Venue[])
-        .map((v) => ({ ...v, _distanceMiles: distById.get(v.venue_id) ?? null }))
-        .sort((a, b) => (a._distanceMiles ?? Infinity) - (b._distanceMiles ?? Infinity))
-    },
-  })
+  /**
+   * Resolve a venue the player tapped in CourtsHome into the full row the
+   * booking wizard needs.
+   *
+   * This used to be a speculative 12-row `venues_near` prefetch on every visit
+   * to the tab, whose only remaining job — once the duplicate "Padel venues
+   * near you" list below CourtsHome was deleted — was to act as a lookup table.
+   * CourtsHome already fetches these venues for itself, so that was the same
+   * data pulled twice. One row, on tap, is the honest version.
+   *
+   * CourtsHome hands back `venues_id ?? venue_id`, so both are tried.
+   */
+  async function resolveAndSelectVenue(venueId: string) {
+    const local = venueResults.find((c) => (c.venues_id ?? c.venue_id) === venueId)
+    if (local) { selectVenue(local); return }
+
+    const { data } = await supabase
+      .from('padel_venues')
+      .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone')
+      .or(`venues_id.eq.${venueId},venue_id.eq.${venueId}`)
+      .limit(1)
+      .maybeSingle()
+
+    // Falling back to the venue page is the right failure: it is a real
+    // destination with its own booking route, not an error state.
+    if (data) selectVenue(data as Venue)
+    else navigate(`/venues/${venueId}`)
+  }
 
   const { data: myProfile } = useQuery<Profile | null>({
     queryKey: ['my-profile-bookcourt', userId],
@@ -1270,13 +1279,8 @@ export function BookCourtPage() {
                 query={venueQuery}
                 onQueryChange={(v) => { setVenueQuery(v); setNonPpaVenue(null) }}
                 onUseLocation={requestLocation}
-                onPickVenue={(venueId) => {
-                  const v = [...venueResults, ...nearbyVenues].find(
-                    (c) => (c.venues_id ?? c.venue_id) === venueId,
-                  )
-                  if (v) selectVenue(v)
-                  else navigate(`/venues/${venueId}`)
-                }}
+                locating={locating}
+                onPickVenue={(venueId) => { void resolveAndSelectVenue(venueId) }}
               />
 
               {/* Venue results */}
@@ -1299,64 +1303,6 @@ export function BookCourtPage() {
                 </p>
               )}
 
-              {venueQuery.length < 2 && (
-                <div className="space-y-3">
-                  {coords ? (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">Padel venues near you</p>
-                        {nearbyLoading && <span className="text-[11px] text-ink-3">Finding…</span>}
-                      </div>
-                      {nearbyLoading && nearbyVenues.length === 0 ? (
-                        <div className="flex items-center justify-center py-10">
-                          <svg className="h-5 w-5 animate-spin text-court" viewBox="0 0 24 24" fill="none">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                          </svg>
-                        </div>
-                      ) : nearbyVenues.length > 0 ? (
-                        <div className="space-y-2">
-                          {nearbyVenues.map((v) => renderVenueButton(v, v._distanceMiles ?? venueDistance(v)))}
-                        </div>
-                      ) : (
-                        <p className="text-center text-[13px] text-ink-2 py-6">
-                          No padel venues within 75 miles — try searching by name or city.
-                        </p>
-                      )}
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center gap-3 py-10 text-center">
-                      <div className="h-14 w-14 rounded-full bg-court-50 flex items-center justify-center">
-                        <MapPin className="h-7 w-7 text-court" />
-                      </div>
-                      <p className="text-[14px] font-semibold text-ink-2">Find your court</p>
-                      <p className="text-[13px] text-ink-2 max-w-xs">
-                        See padel venues near you, or search by name or city. PPA-bookable venues can be reserved directly in the app — up to 3 weeks in advance.
-                      </p>
-                      <button
-                        onClick={requestLocation}
-                        disabled={locating}
-                        className="mt-1 inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white disabled:opacity-60"
-                      >
-                        {locating ? (
-                          <>
-                            <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                            </svg>
-                            Locating…
-                          </>
-                        ) : (
-                          <>
-                            <MapPin className="h-4 w-4" />
-                            See venues near me
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
             </motion.div>
           )}
 
@@ -1508,7 +1454,7 @@ export function BookCourtPage() {
 
                   {/* Time period filter */}
                   {!loadingSlots && slots.length > 0 && (
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar mb-3">
+                    <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3">
                       {[
                         { id: 'morning', label: 'Morning', emoji: '🌅', from: 6, to: 12 },
                         { id: 'afternoon', label: 'Afternoon', emoji: '☀️', from: 12, to: 17 },

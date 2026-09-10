@@ -218,15 +218,15 @@ export function PlayerProfilePage() {
       const { error } = await supabase.from('player_connections').insert({ user_id: currentUserId, connected_user_id: playerId, status: 'pending' })
       if (error) throw error
       sendNotification({
-        user_id: playerId!, type: 'connection_request', title: t('community.notif_connection_request'),
+        user_id: playerId!, type: 'connection_request', title: t('people.notif_connection_request'),
         message: `${profile?.name ?? 'A player'} wants to connect with you.`, related_id: currentUserId,
       })
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['connection-status', currentUserId, playerId] })
-      toast.success(t('community.toast_connection_sent'))
+      toast.success(t('people.toast_connection_sent'))
     },
-    onError: () => toast.error(t('community.toast_connection_failed')),
+    onError: () => toast.error(t('people.toast_connection_failed')),
   })
 
   if (isLoading) {
@@ -241,7 +241,7 @@ export function PlayerProfilePage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
         <p className="text-[14px] text-ink-2">{t('player_profile.not_found')}</p>
-        <button onClick={() => goBack(navigate, '/community')} className="text-[13px] text-court font-semibold">{t('common.go_back')}</button>
+        <button onClick={() => goBack(navigate, '/people')} className="text-[13px] text-court font-semibold">{t('common.go_back')}</button>
       </div>
     )
   }
@@ -256,7 +256,7 @@ export function PlayerProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
-          onClick={() => goBack(navigate, '/community')}
+          onClick={() => goBack(navigate, '/people')}
           className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5 text-ink-2" />
@@ -410,7 +410,7 @@ export function PlayerProfilePage() {
               className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-court px-4 py-2 text-[12px] font-semibold text-white disabled:opacity-50"
             >
               <UserPlus className="h-3.5 w-3.5" />
-              {connectMutation.isPending ? t('community.sending') : t('community.connect')}
+              {connectMutation.isPending ? t('people.sending') : t('people.connect')}
             </button>
           </div>
         )}

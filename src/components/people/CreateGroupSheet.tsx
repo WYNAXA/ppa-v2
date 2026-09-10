@@ -99,7 +99,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
     onSuccess: (group) => {
       reset()
       onClose()
-      navigate(`/community/groups/${group.id}`)
+      navigate(`/people/groups/${group.id}`)
     },
     onError: (err: Error) => {
       toast.error(err.message || 'Failed to create group — please try again')

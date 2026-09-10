@@ -217,7 +217,7 @@ export function ClubThisWeek({ groups, userId }: ClubThisWeekProps) {
       {/* ── Header: title, and which group the week below belongs to ── */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
-          {t('nav.community')}
+          {t('nav.people')}
         </h1>
         {group && (
           <button

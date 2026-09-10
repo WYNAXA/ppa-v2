@@ -215,7 +215,7 @@ export function CreatePollPage() {
               <p className="text-[13px] font-semibold text-ink-2 mb-1">No groups yet</p>
               <p className="text-[12px] text-ink-2 mb-3">Go to Community to join or create a group first.</p>
               <button
-                onClick={() => navigate('/community')}
+                onClick={() => navigate('/people')}
                 className="inline-flex items-center gap-2 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
               >
                 Go to Community

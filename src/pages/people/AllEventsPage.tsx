@@ -108,13 +108,13 @@ export function AllEventsPage() {
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/community')}
+            onClick={() => navigate('/people')}
             aria-label={t('common.back')}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1"
           >
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink">{t('community.upcoming_events')}</h1>
+          <h1 className="text-xl font-bold text-ink">{t('people.upcoming_events')}</h1>
           {rows.length > 0 && (
             <span className="num ml-auto text-[12px] text-ink-2">{rows.length}</span>
           )}
@@ -129,7 +129,7 @@ export function AllEventsPage() {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={t('community.search_events')}
+            placeholder={t('people.search_events')}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
           />
@@ -140,15 +140,15 @@ export function AllEventsPage() {
             <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
           ) : rows.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
-              <p className="text-[13px] font-semibold text-ink-2">{t('community.no_upcoming_events')}</p>
-              <p className="text-[12px] text-ink-2 mt-1">{t('community.events_empty_hint')}</p>
+              <p className="text-[13px] font-semibold text-ink-2">{t('people.no_upcoming_events')}</p>
+              <p className="text-[12px] text-ink-2 mt-1">{t('people.events_empty_hint')}</p>
             </div>
           ) : (
             rows.map((r) => (
               <button
                 key={`${r.kind}-${r.id}`}
                 onClick={() =>
-                  navigate(r.kind === 'group' ? `/community/events/${r.id}` : `/play/events/${r.id}`)
+                  navigate(r.kind === 'group' ? `/people/events/${r.id}` : `/play/events/${r.id}`)
                 }
                 className={cn(
                   'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
@@ -160,12 +160,12 @@ export function AllEventsPage() {
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {r.kind === 'group' && r.official && (
                     <span className="text-[11px] font-bold text-court bg-court-50 rounded-full px-2 py-0.5">
-                      {t('community.badge_official')}
+                      {t('people.badge_official')}
                     </span>
                   )}
                   {r.kind === 'venue' && (
                     <span className="text-[11px] font-bold text-court-700 bg-court-100 rounded-full px-2 py-0.5">
-                      {t('community.badge_at_a_venue')}
+                      {t('people.badge_at_a_venue')}
                     </span>
                   )}
                   {r.kind === 'group' ? (
@@ -174,12 +174,12 @@ export function AllEventsPage() {
                         £{((r.pricePence ?? 0) / 100).toFixed(2)}
                       </span>
                     ) : (
-                      <span className="text-[11px] font-semibold text-court">{t('community.badge_free')}</span>
+                      <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>
                     )
                   ) : r.priceLabel ? (
                     <span className="num text-[11px] font-semibold text-ink-2">{r.priceLabel}</span>
                   ) : (
-                    <span className="text-[11px] font-semibold text-court">{t('community.badge_free')}</span>
+                    <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>
                   )}
                 </div>
 

@@ -38,12 +38,12 @@ const STOPS: TourStop[] = [
     altKey: 'tour.compete_alt',
   },
   {
-    id: 'community',
-    labelKey: 'tour.community_label',
-    headingKey: 'tour.community_heading',
-    bodyKey: 'tour.community_body',
+    id: 'people',
+    labelKey: 'tour.people_label',
+    headingKey: 'tour.people_heading',
+    bodyKey: 'tour.people_body',
     screenshot: '/screenshots/community.png',
-    altKey: 'tour.community_alt',
+    altKey: 'tour.people_alt',
   },
   {
     id: 'you',

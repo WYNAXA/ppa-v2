@@ -2688,7 +2688,7 @@ export function LeagueDetailPage() {
                 return (
                   <>
                     {/* View toggle */}
-                    <div className="flex bg-hairline rounded-xl p-1 gap-0.5 mb-3 overflow-x-auto no-scrollbar">
+                    <div className="flex bg-hairline rounded-xl p-1 gap-0.5 mb-3 overflow-x-auto scrollbar-none">
                       {([
                         { id: 'form' as const, label: t('league.tab_form') },
                         { id: 'points' as const, label: t('league.tab_pts') },

@@ -953,3 +953,94 @@ rendered side by side in all four states and diffed at 3× device scale:
 The only behavioural addition is `role="switch"` and `aria-checked`, which no
 copy had. A screen reader previously announced every one of these as an
 unlabelled button with no state.
+
+### Three courts-near-you, and now one
+
+The Community tab was going to be renamed. Checking what it actually held first
+turned up something bigger: **"padel courts near you" existed three times**, and
+two of them rendered on the same screen.
+
+| Where | What it was |
+| --- | --- |
+| `CourtsHome` | The designed one, built to `Courts.dc.html` — partner venues first under the ball-yellow chip, real slots, the per-player split, "Ask them" acquisition rows |
+| `BookCourt.tsx` step 1 | A second "Padel venues near you" list rendered **directly underneath CourtsHome** whenever the search box was empty and location was on |
+| `Community.tsx` `NearbyVenuesSection` | A third — its own geolocation, its own filters, its own map |
+
+Different data paths too: CourtsHome selected `padel_venues` directly; the other
+two called the `venues_near` RPC. Open the Courts tab with location on and you
+saw two nearby-venue lists stacked.
+
+**Kept the designed one, took what the others had that it lacked.** Community's
+version was the only one with a **map** and **indoor / outdoor / book-in-app
+filters**, so those moved into `CourtsHome` rather than dying with it. The other
+two are gone.
+
+**A bug the move exposed.** `useVenuesNearby` sliced to 3 partner and 4 other
+venues *inside the query*. Filtering after that would have searched a
+seven-row window and called the empty result "no courts match these filters" —
+a filter that lies. The slice moved to the render, after filtering. It shows in
+the screenshots: with **Indoor** on, Bath Padel Centre at 11.9 miles appears,
+and under the old order it could not have.
+
+**The prefetch it replaced.** `BookCourt` ran a speculative 12-row `venues_near`
+query on every visit. Once the duplicate list below CourtsHome was deleted, its
+only remaining job was to act as a lookup table for a tapped venue — data
+CourtsHome had already fetched. It is now a single-row fetch on tap.
+
+**A layout defect caught by screenshotting rather than by reasoning.** The three
+filter chips and the List/Map toggle did not fit at 390px, and the horizontal
+scroller cut "Book in-app" in half — which reads as broken, not swipeable, and
+the longer translations make it worse. The row wraps now.
+
+**A dead class, fixed at the root.** `no-scrollbar` was used in **12 places
+across 9 files** and defined nowhere. The utility that exists is
+`scrollbar-none`. All 12 now use the real one, and 12 carousels that were
+supposed to hide their scrollbar finally do.
+
+### Community became People
+
+Not a rename of a word — the tab was holding two unrelated jobs. With courts
+gone it holds only people: groups, connections, open matches, events, and the
+directory.
+
+**Why not "Players", which was the first answer.** Checking the route table
+killed it: **`/players/:playerId` already exists** as the player profile, so
+`/players/groups` would have sat directly beside it — and the tab's own
+directory tile is called *Players*, giving a tab named Players containing a tile
+named Players.
+
+**People collides with neither**, and it is concrete in the way the other three
+tabs are: `Today` is a day, `Courts` are courts, `Me` is you. "Community" was
+the one abstraction in the set — a label that tells a player nothing about what
+is behind it.
+
+**It also retires a translation defect.** `समुदाय` (Hindi) and `المجتمع`
+(Arabic) both read as *society* — formal, sociological, and in Indian usage
+carrying caste and religious-group weight. Wrong register for a padel app.
+`लोग` and `الناس` are everyday words. The eight labels are People, Gente,
+Pessoas, Personnes, Persone, Personer, الناس, लोग.
+
+**Old URLs still work, and that is not negotiable.** `/community/*` redirects to
+`/people/*` preserving path, query string **and hash** — `/community#connections`
+is the destination of every connection-request push notification ever sent, and
+dropping the hash to tidy a route table is not a trade worth making. Proved with
+five cases rendered through the real route, not asserted.
+
+**The codemod is anchored, not global.** "community" is also an ordinary English
+word — `Landing.tsx` uses it three times in prose. Every rule keys off a
+prefix that only appears in code, so marketing copy is untouchable by
+construction.
+
+**Six cases the codemod missed, found by re-scanning rather than by trusting
+it.** The route rule required a quote immediately before `/community`, so it
+skipped the two **share links** that interpolate
+(`${window.location.origin}/community/groups/${id}`), the notification target
+`/community#connections` (ends in `#`, not `/`), a dynamic translation key, and
+two internal keys. A codemod you do not grep after is a codemod that quietly
+half-worked.
+
+**Dead keys removed, and the rest named rather than swept.** The 14
+courts-section strings and three unused title keys are gone from all eight
+locales. **31 further orphaned keys** in that namespace were left: they were
+orphaned by earlier work, and deleting them belongs in its own commit where the
+check is visible, not buried inside a rename.

@@ -699,3 +699,49 @@ walker needs proving against something you already know the answer to.
 values for `court`, `line` and `warn`, which need re-picking rather than
 inverting — `court` at `#0F5D54` is nearly black on a dark ground. That is the
 job; it is no longer a rewrite.
+
+### Disputed results were a dead end for everyone
+
+UAT: *"when i see disputed i cant do anything - but this is months old."* True,
+and it went further than that.
+
+The app has a working dispute flow — `pending` → `submitter_review` →
+`opponent_review` → `admin_review` — and each of those states has actions. The
+two states at the *end* had none:
+
+- **`disputed`** rendered a grey box whose copy read, literally, *"Legacy
+  dispute — pending cleanup"*. No action for anyone, including the group admin.
+- **`admin_review`** said *"an admin will resolve this"*. **No code anywhere
+  could.** There is no admin resolution UI and never was.
+
+Four results have been sitting in those states since March–May. ELO is applied by
+the `dispatch_match_result_to_elo` trigger, which fires only on the transition to
+`verification_status = 'verified'` — so **not one of them ever counted**. Four
+matches are permanently missing from the ratings of everyone who played them,
+and would have stayed missing.
+
+Both states now offer the same resolution, because they are the same situation:
+two people disagree and nobody can break the tie. The settle buttons write the
+chosen score and set `verified`, which is exactly the write the ordinary accept
+path makes — so the existing trigger applies the rating. **No second ELO path**,
+which is what would have drifted.
+
+**Two things this needed that were not obvious:**
+
+1. **RLS would have refused it.** The only UPDATE policy on `match_results`
+   requires `auth.uid()` to be in the match or on one of the teams. A group admin
+   who did not play fails that — precisely the person the flow is for. The button
+   would have failed for its intended user and looked like another silent save
+   failure, which is the exact bug class fixed earlier the same day.
+   `20260910000003` adds a narrow policy: the admin of the group the match
+   belongs to, nothing else, with `WITH CHECK` repeating the condition so a
+   result cannot be moved out of its group on the way through.
+2. **Two of the four have no group at all**, so there is no admin to appeal to.
+   Restricting settlement to group admins would have left those two stuck
+   forever. Where a match has no group, a participant can settle it — the
+   alternative is a permanent dead end, and the existing "Players can update
+   match results" policy already allows the write.
+
+None of the four carries a proposed score — they predate the proposal fields —
+so only "Keep the submitted score" renders for them. That is handled, not
+assumed: the second button is conditional on a proposal existing.

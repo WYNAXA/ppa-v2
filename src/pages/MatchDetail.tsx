@@ -173,11 +173,13 @@ async function fetchMatchDetail(id: string): Promise<{
       }
     }
 
-    // Legacy disputed status
+    // Legacy disputed status. It also loads the proposal, not just the name and
+    // the reason: an admin settling this needs the two candidate scores in front
+    // of them, and older disputes often carry one.
     if (status === 'disputed') {
       const { data: disputeVote } = await supabase
         .from('match_result_votes')
-        .select('voter_id, dispute_reason')
+        .select('voter_id, dispute_reason, proposed_sets_data, proposed_team1_score, proposed_team2_score, proposed_result_type')
         .eq('match_result_id', result.id)
         .eq('vote', 'dispute')
         .order('created_at', { ascending: false })
@@ -188,6 +190,17 @@ async function fetchMatchDetail(id: string): Promise<{
         disputeInfo = {
           voterName: voter?.name ?? 'A player',
           reason: disputeVote.dispute_reason ?? null,
+        }
+        if (disputeVote.proposed_team1_score != null || disputeVote.proposed_sets_data != null) {
+          disputeProposal = {
+            sets_data: disputeVote.proposed_sets_data,
+            team1_score: disputeVote.proposed_team1_score,
+            team2_score: disputeVote.proposed_team2_score,
+            result_type: disputeVote.proposed_result_type,
+            voter_id: disputeVote.voter_id,
+            voterName: voter?.name ?? 'A player',
+            reason: disputeVote.dispute_reason ?? null,
+          }
         }
       }
     }
@@ -580,6 +593,63 @@ export function MatchDetailPage() {
       toast.success(t('match.response_sent'))
     },
     onError: (err: Error) => {
+      toast.error(err.message || t('match.something_went_wrong'))
+    },
+  })
+
+  /**
+   * A group admin settling a dispute nobody else can.
+   *
+   * It writes the chosen score and sets `verification_status = 'verified'`,
+   * which is the same write the ordinary accept path makes. That matters: the
+   * `dispatch_match_result_to_elo` trigger fires on exactly that transition, so
+   * the rating is applied by the existing machinery rather than by a second
+   * code path that would drift from it. Nothing here calls ELO directly.
+   */
+  const settleDispute = useMutation({
+    mutationFn: async (choice: 'submitted' | 'proposed') => {
+      const result = data?.result
+      if (!result) throw new Error('No result to settle')
+
+      const proposal = data?.disputeProposal
+      const patch: Record<string, unknown> = {
+        verification_status: 'verified',
+        review_deadline: null,
+        last_proposal_by: null,
+      }
+      if (choice === 'proposed') {
+        if (!proposal || proposal.team1_score == null) throw new Error('No proposed score to take')
+        patch.team1_score = proposal.team1_score
+        patch.team2_score = proposal.team2_score
+        patch.result_type = proposal.result_type
+        patch.sets_data = proposal.sets_data
+      }
+
+      const { error } = await supabase.from('match_results').update(patch).eq('id', result.id)
+      if (error) throw error
+
+      // Tell everyone who played, including whoever raised it.
+      const involved = [
+        ...((result.team1_players as string[]) ?? []),
+        ...((result.team2_players as string[]) ?? []),
+      ].filter((v, i, a) => v && a.indexOf(v) === i)
+      for (const uid of involved) {
+        sendNotification({
+          user_id: uid,
+          type: 'result_verified',
+          title: t('match.dispute_settled_title'),
+          message: t('match.dispute_settled_message'),
+          related_id: result.match_id as string,
+        })
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['match', id] })
+      queryClient.invalidateQueries({ queryKey: ['matches'] })
+      toast.success(t('match.dispute_settled_title'))
+    },
+    onError: (err: Error) => {
+      console.warn('[Dispute] settle error:', err)
       toast.error(err.message || t('match.something_went_wrong'))
     },
   })
@@ -1597,31 +1667,85 @@ export function MatchDetailPage() {
         }
 
         // ── LEGACY DISPUTED ──
-        if (vStatus === 'disputed') {
+        /**
+         * Both terminal dispute states used to be dead ends.
+         *
+         * UAT: *"when i see disputed i cant do anything - but this is months
+         * old."* Correct, and it went further than that: `admin_review` said an
+         * admin would resolve it, and no code anywhere could. Four results have
+         * been stuck since March–May, and because ELO is applied by a trigger
+         * that fires only on `verification_status = 'verified'`, not one of them
+         * ever counted. Four matches are permanently missing from the ratings of
+         * everyone who played them.
+         *
+         * The fix is the same for both states, because they are the same
+         * situation: two people disagree and nobody can break the tie. A group
+         * admin can now settle it — keep the submitted score, or take the
+         * proposed one — and the existing trigger applies the ELO on the way
+         * out. No parallel resolution path, no manual ELO call.
+         */
+        if (vStatus === 'disputed' || vStatus === 'admin_review') {
+          const legacy = vStatus === 'disputed'
+          const canSettle = isGroupAdmin || (!match.group_id && isParticipant)
           return (
             <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-hairline bg-surface p-3">
-                <p className="text-[13px] font-semibold text-ink-2 text-center">{t('match.legacy_dispute_pending')}</p>
+              <div className="rounded-2xl border border-warn bg-warn-50 p-4">
+                <p className="text-[13px] font-bold text-warn text-center">
+                  {legacy ? t('match.dispute_unresolved') : t('match.escalated_to_group_admin')}
+                </p>
+
                 {disputeInfo && (isParticipant || isGroupAdmin) && (
-                  <div className="mt-2 pt-2 border-t border-hairline">
-                    <p className="text-[12px] text-ink-2">
-                      <span className="font-semibold">{disputeInfo.voterName}</span>
-                      {disputeInfo.reason ? `: "${disputeInfo.reason}"` : ` ${t('match.x_disputed_result')}`}
+                  <p className="text-[12px] text-ink-2 mt-2 text-center">
+                    <span className="font-semibold">{disputeInfo.voterName}</span>
+                    {disputeInfo.reason ? `: "${disputeInfo.reason}"` : ` ${t('match.x_disputed_result')}`}
+                  </p>
+                )}
+
+                {/* A group admin settles it. Where the match has no group there
+                    is nobody to appeal to, so a participant can — otherwise
+                    those results are stuck forever, which is the state two of
+                    the four found in production were already in. RLS allows
+                    both: the group-admin policy added in 20260910000003, and
+                    the existing "Players can update match results". */}
+                {canSettle ? (
+                  <div className="mt-3 pt-3 border-t border-warn-100">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-ink-2 text-center mb-2">
+                      {isGroupAdmin ? t('match.admin_settle_title') : t('match.no_admin_settle_title')}
+                    </p>
+
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => settleDispute.mutate('submitted')}
+                        disabled={settleDispute.isPending}
+                        className="flex-1 rounded-xl bg-card border border-court-100 py-2.5 text-[13px] font-semibold text-court disabled:opacity-40"
+                      >
+                        {t('match.admin_keep_submitted', {
+                          score: `${result.team1_score}–${result.team2_score}`,
+                        })}
+                      </button>
+
+                      {disputeProposal && (disputeProposal.team1_score != null) && (
+                        <button
+                          onClick={() => settleDispute.mutate('proposed')}
+                          disabled={settleDispute.isPending}
+                          className="flex-1 rounded-xl bg-card border border-court-100 py-2.5 text-[13px] font-semibold text-court disabled:opacity-40"
+                        >
+                          {t('match.admin_take_proposed', {
+                            score: `${disputeProposal.team1_score}–${disputeProposal.team2_score}`,
+                          })}
+                        </button>
+                      )}
+                    </div>
+
+                    <p className="text-[11px] text-ink-2 mt-2 text-center">
+                      {t('match.admin_settle_note')}
                     </p>
                   </div>
+                ) : (
+                  <p className="text-[11px] text-ink-2 mt-2 text-center">
+                    {t('match.admin_will_resolve')}
+                  </p>
                 )}
-              </div>
-            </div>
-          )
-        }
-
-        // ── ADMIN REVIEW ──
-        if (vStatus === 'admin_review') {
-          return (
-            <div className="px-5 mb-4">
-              <div className="rounded-2xl border border-warn bg-warn-50 p-3 text-center">
-                <p className="text-[13px] font-semibold text-warn">{t('match.escalated_to_group_admin')}</p>
-                <p className="text-[11px] text-ink-2 mt-1">{t('match.admin_will_resolve')}</p>
               </div>
             </div>
           )

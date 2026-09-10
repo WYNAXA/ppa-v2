@@ -1573,7 +1573,7 @@ export default {
     "reset_pairs_confirm": "¿Restablecer todas las parejas? Esto elimina las asignaciones de parejas actuales. Solo puedes hacerlo antes de que se juegue ningún partido.",
     "reset_pairs": "Restablecer parejas",
     "danger_zone": "Zona de peligro",
-    "delete_league_confirm": "¿Eliminar esta liga? Se perderán todos los enfrentamientos y clasificaciones.",
+    "delete_league_confirm": "¿Eliminar esta liga? Se eliminan las clasificaciones. Los partidos ya jugados permanecen en el historial de cada jugador.",
     "delete_league_failed": "No se pudo eliminar la liga. Puede que no tengas permiso.",
     "delete_league": "Eliminar liga",
     "tab_standings": "Clasificación",

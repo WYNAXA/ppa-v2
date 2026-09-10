@@ -1573,7 +1573,7 @@ export default {
     "reset_pairs_confirm": "Repor todos os pares? Isto elimina as atribuições de pares atuais. Só podes fazer isto antes de qualquer jogo ser disputado.",
     "reset_pairs": "Repor pares",
     "danger_zone": "Zona de perigo",
-    "delete_league_confirm": "Eliminar esta liga? Todos os jogos e classificações serão perdidos.",
+    "delete_league_confirm": "Eliminar esta liga? As classificações são removidas. Os jogos já disputados permanecem no histórico de cada jogador.",
     "delete_league_failed": "Falha ao eliminar a liga. Podes não ter permissão.",
     "delete_league": "Eliminar liga",
     "tab_standings": "Classificação",

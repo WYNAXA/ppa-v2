@@ -1497,7 +1497,7 @@ export default {
     reset_pairs_confirm: 'Reset all pairs? This deletes the current pair assignments. You can only do this before any matches are played.',
     reset_pairs: 'Reset Pairs',
     danger_zone: 'Danger Zone',
-    delete_league_confirm: 'Delete this league? All fixtures and standings will be lost.',
+    delete_league_confirm: 'Delete this league? Standings are removed. Matches already played stay in everyone\'s history.',
     delete_league_failed: 'Failed to delete league. You may not have permission.',
     delete_league: 'Delete League',
     tab_standings: 'Standings',

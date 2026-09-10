@@ -441,3 +441,43 @@ in eight languages went with it.
 Group ringer counts at the time of the fix, for whoever reads this next: BS3
 Padel Players 3, PPAT 1, the other six groups none. A group with no ringers gets
 the sheet's own empty state, which offers the network instead.
+
+### Deleting a league used to delete the games
+
+Found while producing the impact report for the test-data cleanup, before
+anything was deleted.
+
+`matches.league_id` was `ON DELETE CASCADE`, and `LeagueDetail` has a
+**Delete league** button in its Danger Zone whose RLS policy is
+`created_by = auth.uid()`. So whoever set a league up could, in two taps, delete
+every match played in it. The cascade did not stop at matches — it reached
+`match_results`, and from there `ranking_changes`, `match_result_votes`,
+`chat_channels`, `match_comments`, `match_peer_votes`, `post_match_votes`,
+`match_travel` and `ringer_requests`.
+
+Worse, it left a mess behind. `rating_history.match_result_id` is
+`ON DELETE SET NULL`, not cascade, so the rating rows survived as orphans: every
+affected player would keep their ELO and keep a Rating History chart full of
+movements with no match behind any of them.
+
+Measured on the league then called *Summer Padel League Test*: one click would
+have taken **27 matches, 25 results and 88 rating-history rows belonging to 19
+real players**, across five weeks of play. None of them was a test account; all
+19 had played elsewhere. The name was the only thing about it that was a test.
+
+`20260910000001_league_delete_keeps_matches.sql` changes the rule to
+`SET NULL`. A league is an organising layer over matches, not their owner — the
+match happened, four people were there, it moved their ratings, and removing the
+table it was scored in does not un-play it. Every other league-scoped child
+(standings, members, invitations, teams, adjustments, jersey history) has no
+meaning without the league and correctly stays `CASCADE`.
+
+The confirmation copy said *"All fixtures and standings will be lost"* — true
+about the schedule, silent about the played matches. It now says standings go
+and played matches stay, in all eight languages, which is both accurate and much
+less frightening.
+
+**Still open:** fixtures a league generated but nobody played now survive as
+unattached scheduled matches. That is the right default — a destructive default
+is never the safe one — but the deletion flow should offer to clear unplayed
+fixtures at the same time. App work, not schema work.

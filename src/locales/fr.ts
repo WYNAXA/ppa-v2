@@ -1573,7 +1573,7 @@ export default {
     "reset_pairs_confirm": "Réinitialiser toutes les paires ? Cela supprime les attributions de paires actuelles. Vous ne pouvez le faire qu'avant qu'un match soit joué.",
     "reset_pairs": "Réinitialiser les paires",
     "danger_zone": "Zone de danger",
-    "delete_league_confirm": "Supprimer cette ligue ? Toutes les rencontres et tous les classements seront perdus.",
+    "delete_league_confirm": "Supprimer cette ligue ? Les classements sont supprimés. Les matchs déjà joués restent dans l'historique de chacun.",
     "delete_league_failed": "Échec de la suppression de la ligue. Vous n'avez peut-être pas les droits.",
     "delete_league": "Supprimer la ligue",
     "tab_standings": "Classement",

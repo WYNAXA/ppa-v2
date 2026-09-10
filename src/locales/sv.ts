@@ -1573,7 +1573,7 @@ export default {
     "reset_pairs_confirm": "Återställ alla par? Detta raderar de nuvarande paruppställningarna. Du kan bara göra detta innan några matcher har spelats.",
     "reset_pairs": "Återställ par",
     "danger_zone": "Farozon",
-    "delete_league_confirm": "Ta bort denna liga? Alla matcher och ställningar går förlorade.",
+    "delete_league_confirm": "Ta bort denna liga? Ställningarna tas bort. Matcher som redan spelats finns kvar i allas historik.",
     "delete_league_failed": "Kunde inte ta bort ligan. Du kanske saknar behörighet.",
     "delete_league": "Ta bort liga",
     "tab_standings": "Ställning",

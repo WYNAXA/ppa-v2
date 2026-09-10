@@ -1573,7 +1573,7 @@ export default {
     "reset_pairs_confirm": "Reimpostare tutte le coppie? Questo elimina gli abbinamenti attuali. Puoi farlo solo prima che venga giocata qualsiasi partita.",
     "reset_pairs": "Reimposta coppie",
     "danger_zone": "Zona pericolosa",
-    "delete_league_confirm": "Eliminare questa lega? Tutti gli incontri e le classifiche andranno persi.",
+    "delete_league_confirm": "Eliminare questa lega? Le classifiche vengono rimosse. Le partite già giocate restano nello storico di tutti.",
     "delete_league_failed": "Impossibile eliminare la lega. Potresti non avere i permessi.",
     "delete_league": "Elimina lega",
     "tab_standings": "Classifica",

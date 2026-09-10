@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { Toggle as SharedToggle } from '@/components/shared/Toggle'
 
 type Visibility = 'open' | 'private'
 
@@ -20,17 +21,15 @@ interface CreateGroupSheetProps {
   onClose: () => void
 }
 
+// A labelled row wrapping the shared switch. The switch markup itself lives in
+// components/shared/Toggle; this only owns the row layout around it.
+// The knob was bg-white here and is bg-card in the shared component - the same
+// #FFFFFF, so this is a token correction, not a colour change.
 function Toggle({ enabled, onChange, label }: { enabled: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
     <div className="flex items-center justify-between">
       <span className="text-[13px] text-ink-2">{label}</span>
-      <button
-        type="button"
-        onClick={() => onChange(!enabled)}
-        className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', enabled ? 'bg-court' : 'bg-hairline')}
-      >
-        <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition-transform', enabled ? 'translate-x-6' : 'translate-x-1')} />
-      </button>
+      <SharedToggle checked={enabled} label={label} onChange={() => onChange(!enabled)} />
     </div>
   )
 }

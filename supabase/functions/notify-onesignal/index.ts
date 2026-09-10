@@ -69,20 +69,29 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ skipped: true, reason: 'no title or message' }), { status: 200, headers: corsHeaders })
   }
 
-  // Check push_opted_out — single source of truth for all push channels
+  // Does this player want this kind of push? `wants_push` is the single gate:
+  // it combines the master switch (profiles.push_opted_out) with the matching
+  // notification_preferences category, so the two cannot be checked in one
+  // place and skipped in another. Absent rows mean yes.
+  //
+  // This is the ONLY push path. There used to be a second trigger
+  // (trg_dispatch_push -> send-push) that never fired because its GUC was
+  // unset; it was dropped in 20260910000008 rather than taught the same rule
+  // twice.
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   )
-  const { data: userProfile } = await supabase
-    .from('profiles')
-    .select('push_opted_out')
-    .eq('id', userId)
-    .single()
+  const { data: wantsPush, error: wantsPushError } = await supabase
+    .rpc('wants_push', { p_user_id: userId, p_type: record?.type ?? null })
 
-  if (userProfile?.push_opted_out) {
-    console.log(`[notify-onesignal] user ${userId} opted out, skipping`)
-    return new Response(JSON.stringify({ skipped: true, reason: 'opted_out' }), { status: 200, headers: corsHeaders })
+  if (wantsPushError) {
+    // Fail open. A push the player did not want is recoverable; a lookup
+    // failure that silently swallows every notification is not.
+    console.error(`[notify-onesignal] wants_push failed for user=${userId}, sending anyway`, wantsPushError)
+  } else if (wantsPush === false) {
+    console.log(`[notify-onesignal] user ${userId} has ${record?.type ?? 'this type'} muted, skipping`)
+    return new Response(JSON.stringify({ skipped: true, reason: 'muted' }), { status: 200, headers: corsHeaders })
   }
 
   const resolvedNavUrl = navUrl || '/notifications'

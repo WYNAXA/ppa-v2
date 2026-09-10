@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useIsGroupAdmin } from '@/hooks/useIsGroupAdmin'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { Toggle } from '@/components/shared/Toggle'
 import { CreateEventSheet } from '@/components/community/CreateEventSheet'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 
@@ -1429,24 +1430,20 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">Join Requests</p>
                   <div className="flex items-center justify-between">
                     <span className="text-[13px] text-ink-2">Allow join requests</span>
-                    <button
-                      type="button"
-                      onClick={() => setAllowJoinRequests(v => !v)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowJoinRequests ? 'bg-court' : 'bg-hairline'}`}
-                    >
-                      <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${allowJoinRequests ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                    <Toggle
+                      checked={allowJoinRequests}
+                      label="Allow join requests"
+                      onChange={() => setAllowJoinRequests(v => !v)}
+                    />
                   </div>
                   {allowJoinRequests && (
                     <div className="flex items-center justify-between">
                       <span className="text-[13px] text-ink-2">Auto-approve requests</span>
-                      <button
-                        type="button"
-                        onClick={() => setAutoApprove(v => !v)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoApprove ? 'bg-court' : 'bg-hairline'}`}
-                      >
-                        <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${autoApprove ? 'translate-x-6' : 'translate-x-1'}`} />
-                      </button>
+                      <Toggle
+                        checked={autoApprove}
+                        label="Auto-approve requests"
+                        onChange={() => setAutoApprove(v => !v)}
+                      />
                     </div>
                   )}
                 </div>
@@ -1457,13 +1454,11 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">Ringer / Guest Policy</p>
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] text-ink-2">Allow ringers</span>
-                  <button
-                    type="button"
-                    onClick={() => setAllowRingers(v => !v)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowRingers ? 'bg-court' : 'bg-hairline'}`}
-                  >
-                    <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${allowRingers ? 'translate-x-6' : 'translate-x-1'}`} />
-                  </button>
+                  <Toggle
+                    checked={allowRingers}
+                    label="Allow ringers"
+                    onChange={() => setAllowRingers(v => !v)}
+                  />
                 </div>
                 {allowRingers && (
                   <div>
@@ -1494,13 +1489,11 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-[13px] text-ink-2">Auto-generate matches</span>
-                    <button
-                      type="button"
-                      onClick={() => setAutoMatchEnabled(v => !v)}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoMatchEnabled ? 'bg-court' : 'bg-hairline'}`}
-                    >
-                      <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${autoMatchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                    <Toggle
+                      checked={autoMatchEnabled}
+                      label="Auto-generate matches"
+                      onChange={() => setAutoMatchEnabled(v => !v)}
+                    />
                   </div>
                   <p className="text-[11px] text-ink-2 mt-1">When voting closes, create the matches automatically. Turn this off if you'd rather review and generate them yourself.</p>
                   {!autoMatchEnabled && members.filter(m => m.role === 'admin').length < 2 && (

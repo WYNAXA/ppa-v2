@@ -23,6 +23,8 @@ import { EloHistoryChart } from '@/components/compete/EloHistoryChart'
 import { classifyKernel } from '@/lib/setClassification'
 import { fetchSetStats } from '@/lib/setStats'
 import { EloStageCard } from '@/components/compete/EloStageCard'
+import { Toggle } from '@/components/shared/Toggle'
+import { NotificationSettings } from '@/components/you/NotificationSettings'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -721,13 +723,11 @@ function EditProfileSheet({
 
                 <div className="flex items-center justify-between">
                   <span className="text-[13px] text-ink-2">{t('you.i_have_a_car')}</span>
-                  <button
-                    type="button"
-                    onClick={() => setCanDrive((v) => !v)}
-                    className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', canDrive ? 'bg-court' : 'bg-hairline')}
-                  >
-                    <span className={cn('inline-block h-4 w-4 rounded-full bg-card shadow transition-transform', canDrive ? 'translate-x-6' : 'translate-x-1')} />
-                  </button>
+                  <Toggle
+                    checked={canDrive}
+                    label={t('you.i_have_a_car')}
+                    onChange={() => setCanDrive((v) => !v)}
+                  />
                 </div>
 
                 {canDrive && (
@@ -1392,9 +1392,11 @@ export function YouPage() {
             {/* Push notifications toggle */}
             <div className="flex items-center justify-between px-4 py-3.5">
               <span className="text-[13px] font-medium text-ink-2">{t('you.push_notifications')}</span>
-              <button
+              <Toggle
+                checked={notifEnabled}
                 disabled={savingPush}
-                onClick={async () => {
+                label={t('you.toggle_notifications_aria')}
+                onChange={async () => {
                   const prev = notifEnabled
                   setSavingPush(true)
                   try {
@@ -1421,17 +1423,7 @@ export function YouPage() {
                     setSavingPush(false)
                   }
                 }}
-                className={cn(
-                  'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                  notifEnabled ? 'bg-court' : 'bg-hairline'
-                )}
-                aria-label={t('you.toggle_notifications_aria')}
-              >
-                <span className={cn(
-                  'inline-block h-4 w-4 rounded-full bg-card shadow transition-transform',
-                  notifEnabled ? 'translate-x-6' : 'translate-x-1'
-                )} />
-              </button>
+              />
             </div>
             {iosHint && (
               <div className="px-4 pb-3">
@@ -1440,6 +1432,10 @@ export function YouPage() {
                 </p>
               </div>
             )}
+
+            {/* What you get a push for. The master switch above wins in
+                wants_push(), so these are disabled while it is off. */}
+            <NotificationSettings userId={userId} pushEnabled={notifEnabled} />
 
             {/* Language */}
             <div className="px-4 py-3.5">
@@ -1484,9 +1480,11 @@ export function YouPage() {
               return (
                 <div key={key} className="flex items-center justify-between px-4 py-3.5">
                   <span className="text-[13px] font-medium text-ink-2">{label}</span>
-                  <button
+                  <Toggle
+                    checked={currentVal}
                     disabled={savingPrivacy === key}
-                    onClick={async () => {
+                    label={label}
+                    onChange={async () => {
                       setSavingPrivacy(key)
                       const { error } = await supabase.from('profiles').update({ [key]: !currentVal }).eq('id', userId)
                       setSavingPrivacy(null)
@@ -1496,18 +1494,7 @@ export function YouPage() {
                       }
                       queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                     }}
-                    className={cn(
-                      'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-                      currentVal ? 'bg-court' : 'bg-hairline',
-                      savingPrivacy === key && 'opacity-50'
-                    )}
-                    aria-label={label}
-                  >
-                    <span className={cn(
-                      'inline-block h-4 w-4 rounded-full bg-card shadow transition-transform',
-                      currentVal ? 'translate-x-6' : 'translate-x-1'
-                    )} />
-                  </button>
+                  />
                 </div>
               )
             })}

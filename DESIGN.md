@@ -860,3 +860,96 @@ the push was skipped for that one user only.
 switches work now, but a player cannot reach them. That is the next piece, and
 until it is built every value stays at its default of `true` — which is exactly
 today's behaviour.
+
+### The switches were still lying, and here is what was actually wrong
+
+The migration before this one taught `dispatch_push_notification` to read
+`notification_preferences`. **That function has never sent a push.** It reads
+`app.settings.service_role_key`, which is not set on this database, so it returns
+before it reaches `http_post` — for everybody, on every notification, muted or
+not.
+
+The live path is `dispatch_notification_to_onesignal` → the `notify-onesignal`
+edge function → OneSignal, and that path checked only `profiles.push_opted_out`.
+
+**My verification was worthless and worth naming.** I watched the dead
+dispatcher return early and called that "push suppressed for that user". It
+returns early either way. I checked the mechanism and never checked the outcome,
+which is the exact failure the fix-class rules exist to catch.
+
+**One gate.** `wants_push(user_id, type)` asks both questions at once — the
+master switch and the category — so they cannot be checked in one path and
+skipped in another. The edge function calls it in place of its own
+`push_opted_out` lookup: one round trip where there were about to be two.
+Absent rows mean yes, and unmapped types still push, because over-delivery is
+recoverable where a silently dropped push is invisible.
+
+**The dead dispatcher is dropped, not repaired.** Two AFTER INSERT triggers on
+`notifications` both trying to send the same push, one quiet only because a
+setting is missing, is a latent double-send: set that GUC in a future migration
+or restore a backup that has it and every player gets two of everything. Blast
+radius checked first — `dispatch_push_notification` is referenced by no other
+function body, nothing in `src/`, nothing in `supabase/functions/`, and it is
+the only thing in the database that calls the `send-push` endpoint. Every other
+path inserts into `notifications`.
+
+**Proof this time, end to end.** Two real notifications inserted, and the HTTP
+response the database got back from the edge function read off
+`net._http_response`:
+
+| `open_matches` | Response |
+| --- | --- |
+| muted | `{"skipped":true,"reason":"muted"}` |
+| on | `{"ok":true}` — real push delivered |
+
+**A mistake made and caught in the same minute.** The deploy tool defaults
+`verify_jwt` to true and I did not pass it. `notify-onesignal` is called by a
+database trigger carrying an `x-webhook-secret` header and no JWT, so for **40
+seconds** every push would have been rejected at the gateway. Redeployed with it
+off, then checked rather than assumed: **zero notifications were inserted in that
+window**, so nothing was lost. Luck, not care.
+
+### A settings screen the switches can actually be reached from
+
+Six categories under the push toggle in You → Settings, ordered loudest first —
+`open_matches` reaches every accepted connection at once, so it is the one a
+player comes here to find.
+
+Each row says what actually arrives rather than naming a database column:
+*"Someone is free for a game — when a connection puts a game out there, or an
+open match needs a player."* Written in all eight languages, not English with
+seven gaps.
+
+**They are disabled while push is off.** The master switch wins inside
+`wants_push`, so with push off these change nothing. Six live-looking switches
+that have no effect is the same class of lie this entire piece of work exists to
+remove. They stay visible so a player can see what they get back, and stay
+inert so they cannot be fiddled with pointlessly.
+
+Writes are optimistic — a switch that waits for a round trip feels broken — and
+roll back to exactly what the server last returned on failure. The write is an
+**upsert**, not an update: the row is created by a signup trigger, but a player
+predating that trigger has none, and an update would affect zero rows and report
+success.
+
+### One switch, not eight
+
+The toggle markup existed in **eight** hand-written copies across `You`,
+`GroupDetail` and `CreateGroupSheet` — same pill, same knob, same
+`translate-x-6`, all typed out separately. Eight copies is eight chances to
+drift and is exactly where a token change quietly misses a screen. It is now one
+component in `components/shared/Toggle.tsx`.
+
+**Proved identical rather than eyeballed.** Old markup and new component
+rendered side by side in all four states and diffed at 3× device scale:
+
+| state | differing pixels |
+| --- | --- |
+| on | **0** |
+| off | **0** |
+| on, disabled | **0** |
+| off, disabled | **0** |
+
+The only behavioural addition is `role="switch"` and `aria-checked`, which no
+copy had. A screen reader previously announced every one of these as an
+unlabelled button with no state.

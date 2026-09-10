@@ -580,3 +580,39 @@ Upcoming Events and Find a Coach are all still list sections for tiles that
 already exist in the grid above them. The same argument applies to each; it was
 left alone here because reordering is cheap and deleting four sections is a
 product call, not a cleanup.
+
+### "It did not save" — it did
+
+UAT: *"it may have asked Phil to confirm who was on Kierans team (kieran entered
+the results) and when it did it did not save. he does not need to confirm - just
+see it was entered."*
+
+Chased this as a save failure in the core loop. It is not one. The 9 September
+match, checked end to end in production:
+
+- Kieran submitted at 20:35:33 and his own confirm was recorded in the same second.
+- **Only the opposing pair were notified.** Kier Cox and Adrian Newton got
+  "Confirm match result". Phil, on Kieran's team, was never asked — which is
+  exactly the behaviour the note asks for.
+- Adrian confirmed at 22:08. The result verified, ELO updated, all four were told.
+
+RLS on `match_result_votes` would have allowed Phil's vote had he cast one
+(`with_check` is only `auth.uid() = voter_id`), so nothing was refused. There is
+no missing row and no failed write.
+
+**What Phil actually saw** is the finding. A teammate of the submitter opens the
+match and gets the card that reads *"You submitted this result / Awaiting
+verification from opposing team"*. Phil did not submit it. The copy was shown to
+everyone on the submitting *team*, so one of the four players was told he had
+done something he had not — and that is a very reasonable thing to report as
+"it did not save".
+
+Fix class: root-cause, but the cause was in the words rather than the code. The
+card now names the submitter when the viewer is not them, using the
+`submitterName` already computed six lines above it. Nothing about the flow
+changed, because nothing about the flow was wrong.
+
+Worth keeping in mind for the next report of this shape: three surfaces already
+gate this correctly — `MatchDetail` splits on `isOnSubmittingTeam`,
+`WeekMatchView` uses `isOnOpposingTeam && !hasVoted`, and Today's Needs You
+skips anything the viewer's own side submitted. The logic was never the problem.

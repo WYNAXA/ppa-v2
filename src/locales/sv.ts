@@ -241,6 +241,7 @@ export default {
     "scores_updated": "Resultat uppdaterat",
     "save": "Spara",
     "you_submitted_result": "Du rapporterade detta resultat",
+    "teammate_submitted_result": "{{name}} registrerade det här resultatet",
     "awaiting_verification": "Väntar på bekräftelse från motståndarlaget",
     "auto_verifies_in": "Bekräftas automatiskt om {{hours}} tim",
     "result_disputed_toast": "Resultat bestritt",

@@ -245,6 +245,7 @@ export default {
     scores_updated: 'Scores updated',
     save: 'Save',
     you_submitted_result: 'You submitted this result',
+    teammate_submitted_result: '{{name}} submitted this result',
     awaiting_verification: 'Awaiting verification from opposing team',
     auto_verifies_in: 'Auto-verifies in {{hours}}h',
     result_disputed_toast: 'Result disputed',

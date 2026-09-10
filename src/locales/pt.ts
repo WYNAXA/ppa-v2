@@ -241,6 +241,7 @@ export default {
     "scores_updated": "Resultados atualizados",
     "save": "Guardar",
     "you_submitted_result": "Submeteste este resultado",
+    "teammate_submitted_result": "{{name}} registou este resultado",
     "awaiting_verification": "A aguardar verificação da equipa adversária",
     "auto_verifies_in": "Verifica automaticamente em {{hours}}h",
     "result_disputed_toast": "Resultado contestado",

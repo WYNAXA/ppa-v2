@@ -241,6 +241,7 @@ export default {
     "scores_updated": "स्कोर अपडेट किए गए",
     "save": "सहेजें",
     "you_submitted_result": "आपने यह परिणाम प्रस्तुत किया",
+    "teammate_submitted_result": "{{name}} ने यह परिणाम दर्ज किया",
     "awaiting_verification": "विपक्षी टीम से सत्यापन का इंतज़ार",
     "auto_verifies_in": "{{hours}} घंटे में अपने आप सत्यापित होगा",
     "result_disputed_toast": "परिणाम पर विवाद किया गया",

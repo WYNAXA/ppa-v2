@@ -241,6 +241,7 @@ export default {
     "scores_updated": "Punteggi aggiornati",
     "save": "Salva",
     "you_submitted_result": "Hai inserito tu questo risultato",
+    "teammate_submitted_result": "{{name}} ha inserito questo risultato",
     "awaiting_verification": "In attesa di verifica dalla squadra avversaria",
     "auto_verifies_in": "Verifica automatica tra {{hours}}h",
     "result_disputed_toast": "Risultato contestato",

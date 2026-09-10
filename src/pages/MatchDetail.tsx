@@ -1941,7 +1941,16 @@ export function MatchDetailPage() {
                 </div>
               ) : (
                 <div className="rounded-2xl border border-court-100 bg-court-50 p-3 text-center">
-                  <p className="text-[13px] font-semibold text-court">{t('match.you_submitted_result')}</p>
+                  {/* "You submitted this result" was shown to everyone on the
+                      submitting team, so a teammate who had not touched it was
+                      told they had. UAT reported that as a save failure — the
+                      confirm flow was working correctly the whole time; the copy
+                      was telling one of the four players something untrue. */}
+                  <p className="text-[13px] font-semibold text-court">
+                    {submittedBy === currentUserId
+                      ? t('match.you_submitted_result')
+                      : t('match.teammate_submitted_result', { name: submitterName.split(' ')[0] })}
+                  </p>
                   <p className="text-[11px] text-ink-2 mt-1">{t('match.awaiting_verification')}</p>
                   {hoursUntilAutoVerify > 0 && (
                     <p className="text-[11px] text-ink-2 mt-0.5">{t('match.auto_verifies_in', { hours: hoursUntilAutoVerify })}</p>

@@ -29,7 +29,6 @@ export default {
   },
   nav: {
     me: 'Me',
-    club: 'Club',
     today: 'Today',
     courts: 'Courts',
     home: 'Home',
@@ -39,6 +38,8 @@ export default {
     you: 'You',
   },
   courts: {
+    books_via: 'books via {{platform}}',
+    books_direct: 'books direct',
     search_placeholder: 'Venue, area or postcode',
     use_my_location: 'Use my location',
     book_instantly: 'Book instantly',
@@ -67,6 +68,8 @@ export default {
     n_played: '{{count}} pl',
   },
   home: {
+    needs_last_night: 'Last night',
+    needs_disputed_title: 'A result is disputed',
     in_days_short: '{{count}} days',
     needs_you: 'Needs you',
     needs_confirm_result: 'Confirm last night\'s result',

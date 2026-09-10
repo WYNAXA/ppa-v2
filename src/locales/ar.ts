@@ -26,7 +26,6 @@ export default {
   },
   "nav": {
     "me": "\u0623\u0646\u0627",
-    "club": "\u0627\u0644\u0646\u0627\u062f\u064a",
     "today": "اليوم",
     "courts": "الملاعب",
     "home": "الرئيسية",
@@ -36,6 +35,8 @@ export default {
     "you": "أنت"
   },
   "courts": {
+    "books_via": "\u0627\u0644\u062d\u062c\u0632 \u0639\u0628\u0631 {{platform}}",
+    "books_direct": "\u062d\u062c\u0632 \u0645\u0628\u0627\u0634\u0631",
     "search_placeholder": "\u0645\u0644\u0639\u0628 \u0623\u0648 \u0645\u0646\u0637\u0642\u0629 \u0623\u0648 \u0631\u0645\u0632 \u0628\u0631\u064a\u062f\u064a",
     "use_my_location": "\u0627\u0633\u062a\u062e\u062f\u0645 \u0645\u0648\u0642\u0639\u064a",
     "book_instantly": "\u0627\u062d\u062c\u0632 \u0641\u0648\u0631\u0627\u064b",
@@ -64,6 +65,8 @@ export default {
     "n_played": "{{count}} \u0644\u0639\u0628",
   },
   "home": {
+    "needs_last_night": "\u0627\u0644\u0644\u064a\u0644\u0629 \u0627\u0644\u0645\u0627\u0636\u064a\u0629",
+    "needs_disputed_title": "\u0646\u062a\u064a\u062c\u0629 \u0645\u062a\u0646\u0627\u0632\u0639 \u0639\u0644\u064a\u0647\u0627",
     "in_days_short": "{{count}} \u0623\u064a\u0627\u0645",
     "needs_you": "\u064a\u062d\u062a\u0627\u062c\u0643",
     "needs_confirm_result": "\u0623\u0643\u062f \u0627\u0644\u0646\u062a\u064a\u062c\u0629",

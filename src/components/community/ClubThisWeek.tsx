@@ -140,15 +140,26 @@ function useClubLeague(groupId: string | null, userId: string) {
     staleTime: 60_000,
     queryFn: async () => {
       // Leagues link to groups through an array column, not a foreign key.
+      // A group can carry several active leagues — this club has two, plus a
+      // couple of test ones — so picking "newest" showed a table the player
+      // wasn't in, which is why the snapshot rendered as two strangers and no
+      // "You" row. Prefer a league the player actually competes in.
       const { data: leagues } = await supabase
         .from('leagues')
-        .select('id, name')
+        .select('id, name, created_at')
         .contains('linked_group_ids', [groupId])
         .eq('status', 'active')
         .order('created_at', { ascending: false })
-        .limit(1)
-      const league = leagues?.[0]
-      if (!league) return null
+        .limit(6)
+      if (!leagues || leagues.length === 0) return null
+
+      const { data: myLeagueRows } = await supabase
+        .from('league_standings')
+        .select('league_id')
+        .eq('user_id', userId)
+        .in('league_id', leagues.map((l) => l.id))
+      const imIn = new Set((myLeagueRows ?? []).map((r) => r.league_id as string))
+      const league = leagues.find((l) => imIn.has(l.id as string)) ?? leagues[0]
 
       const { data: rows } = await supabase
         .from('league_standings')
@@ -215,7 +226,7 @@ export function ClubThisWeek({ groups, userId, onAskRingers }: ClubThisWeekProps
       {/* ── Header: title + which club ── */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
-          {t('nav.club')}
+          {t('nav.community')}
         </h1>
         <button
           onClick={() => groups.length > 1 && setGroupIndex((i) => (i + 1) % groups.length)}

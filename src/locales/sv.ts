@@ -26,7 +26,6 @@ export default {
   },
   "nav": {
     "me": "Jag",
-    "club": "Klubb",
     "today": "Idag",
     "courts": "Banor",
     "home": "Hem",
@@ -36,6 +35,8 @@ export default {
     "you": "Du"
   },
   "courts": {
+    "books_via": "bokas via {{platform}}",
+    "books_direct": "bokas direkt",
     "search_placeholder": "Anl\u00e4ggning, omr\u00e5de eller postnr",
     "use_my_location": "Anv\u00e4nd min plats",
     "book_instantly": "Boka direkt",
@@ -64,6 +65,8 @@ export default {
     "n_played": "{{count}} sp",
   },
   "home": {
+    "needs_last_night": "I g\u00e5r kv\u00e4ll",
+    "needs_disputed_title": "Ett resultat \u00e4r bestritt",
     "in_days_short": "{{count}} dagar",
     "needs_you": "Kr\u00e4ver dig",
     "needs_confirm_result": "Bekr\u00e4fta resultatet",

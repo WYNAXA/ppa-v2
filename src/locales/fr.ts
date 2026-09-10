@@ -26,7 +26,6 @@ export default {
   },
   "nav": {
     "me": "Moi",
-    "club": "Club",
     "today": "Aujourd'hui",
     "courts": "Terrains",
     "home": "Accueil",
@@ -36,6 +35,8 @@ export default {
     "you": "Vous"
   },
   "courts": {
+    "books_via": "r\u00e9serve via {{platform}}",
+    "books_direct": "r\u00e9servation directe",
     "search_placeholder": "Club, quartier ou code postal",
     "use_my_location": "Utiliser ma position",
     "book_instantly": "R\u00e9servez imm\u00e9diatement",
@@ -64,6 +65,8 @@ export default {
     "n_played": "{{count}} j",
   },
   "home": {
+    "needs_last_night": "Hier soir",
+    "needs_disputed_title": "Un r\u00e9sultat est contest\u00e9",
     "in_days_short": "{{count}} jours",
     "needs_you": "Pour vous",
     "needs_confirm_result": "Confirmez le r\u00e9sultat",

@@ -143,9 +143,23 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 32, stiffness: 340 }}
+            /* Swipe down to dismiss. A sheet you can only close by tapping the
+               dim area behind it feels like a web modal; on iOS the grabber is
+               a promise that the sheet moves with your thumb. Elastic only
+               downward so it never lifts off the bottom edge. */
+            drag="y"
+            dragConstraints={{ top: 0, bottom: 0 }}
+            dragElastic={{ top: 0, bottom: 0.6 }}
+            onDragEnd={(_, info) => {
+              if (info.offset.y > 110 || info.velocity.y > 600) onClose()
+            }}
           >
             <div className="mx-auto flex w-full max-w-lg flex-col gap-[18px] px-5 pt-2.5">
-              <div className="h-1 w-10 self-center rounded-pill bg-[#D7DDD9]" />
+              {/* Grabber. Wider hit area than it looks, so the drag starts
+                  where the eye says it should. */}
+              <div className="-mt-2.5 flex cursor-grab justify-center py-2.5 active:cursor-grabbing">
+                <div className="h-1 w-10 rounded-pill bg-[#D7DDD9]" />
+              </div>
 
               <div className="flex flex-col gap-[3px]">
                 <h2 className="text-[24px] font-extrabold leading-7 tracking-[-0.01em] text-ink">

@@ -26,7 +26,6 @@ export default {
   },
   "nav": {
     "me": "Eu",
-    "club": "Clube",
     "today": "Hoje",
     "courts": "Campos",
     "home": "Início",
@@ -36,6 +35,8 @@ export default {
     "you": "Você"
   },
   "courts": {
+    "books_via": "reserva via {{platform}}",
+    "books_direct": "reserva direta",
     "search_placeholder": "Local, zona ou c\u00f3digo postal",
     "use_my_location": "Usar a minha localiza\u00e7\u00e3o",
     "book_instantly": "Reserve j\u00e1",
@@ -64,6 +65,8 @@ export default {
     "n_played": "{{count}} j",
   },
   "home": {
+    "needs_last_night": "Ontem \u00e0 noite",
+    "needs_disputed_title": "Um resultado est\u00e1 contestado",
     "in_days_short": "{{count}} dias",
     "needs_you": "Precisa de si",
     "needs_confirm_result": "Confirme o resultado",

@@ -23,7 +23,12 @@ import { cn } from '@/lib/utils'
  */
 
 type Venue = {
+  /** padel_venues.venue_id — the key VenueDetail resolves. */
   id: string
+  /** What the booking flow matches on; falls back to venue_id. */
+  bookingId: string
+  /** "Playtomic", "Own", … — who the venue actually books through today. */
+  platform: string | null
   name: string
   city: string | null
   indoor: boolean
@@ -53,12 +58,12 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
       const [{ data: bookable }, { data: nearby }, { count }] = await Promise.all([
         supabase
           .from('padel_venues')
-          .select('venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable')
+          .select('venue_id, venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
           .eq('ppa_bookable', true)
           .limit(20),
         supabase
           .from('padel_venues')
-          .select('venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable')
+          .select('venue_id, venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
           .not('ppa_bookable', 'is', true)
           .limit(200),
         supabase.from('padel_venues').select('venues_id', { count: 'exact', head: true }),
@@ -68,7 +73,9 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
         const vLat = v.latitude != null ? Number(v.latitude) : null
         const vLng = v.longitude != null ? Number(v.longitude) : null
         return {
-          id: v.venues_id as string,
+          id: v.venue_id as string,
+          bookingId: (v.venues_id as string) ?? (v.venue_id as string),
+          platform: (v.booking_platform as string) || null,
           name: (v.venue_name as string) ?? '—',
           city: (v.city as string) ?? null,
           indoor: ((v.indoor_courts as number) ?? 0) > 0,
@@ -173,7 +180,7 @@ export function CourtsHome({
             return (
               <button
                 key={v.id}
-                onClick={() => onPickVenue(v.id)}
+                onClick={() => onPickVenue(v.bookingId)}
                 className="flex flex-col gap-3.5 rounded-panel border-[1.5px] border-court bg-card p-4 text-left"
               >
                 <div className="flex items-start justify-between gap-2.5">
@@ -249,8 +256,14 @@ export function CourtsHome({
               >
                 <span className="truncate text-[15px] font-semibold leading-[19px] text-ink">{v.name}</span>
                 <span className="num truncate text-[12px] leading-4 text-ink-2">
-                  {[v.distanceMiles != null ? formatDistance(v.distanceMiles) : v.city, t('courts.not_on_ppa')]
-                    .filter(Boolean).join(' · ')}
+                  {[
+                    v.distanceMiles != null ? formatDistance(v.distanceMiles) : v.city,
+                    v.platform && v.platform !== 'Own'
+                      ? t('courts.books_via', { platform: v.platform })
+                      : v.platform === 'Own'
+                        ? t('courts.books_direct')
+                        : t('courts.not_on_ppa'),
+                  ].filter(Boolean).join(' · ')}
                 </span>
               </button>
               <button

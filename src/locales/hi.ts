@@ -26,7 +26,6 @@ export default {
   },
   "nav": {
     "me": "\u092e\u0948\u0902",
-    "club": "\u0915\u094d\u0932\u092c",
     "today": "आज",
     "courts": "कोर्ट",
     "home": "होम",
@@ -36,6 +35,8 @@ export default {
     "you": "आप"
   },
   "courts": {
+    "books_via": "{{platform}} \u0938\u0947 \u092c\u0941\u0915\u093f\u0902\u0917",
+    "books_direct": "\u0938\u0940\u0927\u0940 \u092c\u0941\u0915\u093f\u0902\u0917",
     "search_placeholder": "\u0935\u0947\u0928\u094d\u092f\u0942, \u0915\u094d\u0937\u0947\u0924\u094d\u0930 \u092f\u093e \u092a\u093f\u0928\u0915\u094b\u0921",
     "use_my_location": "\u092e\u0947\u0930\u093e \u0938\u094d\u0925\u093e\u0928 \u0909\u092a\u092f\u094b\u0917 \u0915\u0930\u0947\u0902",
     "book_instantly": "\u0924\u0941\u0930\u0902\u0924 \u092c\u0941\u0915 \u0915\u0930\u0947\u0902",
@@ -64,6 +65,8 @@ export default {
     "n_played": "{{count}} \u0916\u0947",
   },
   "home": {
+    "needs_last_night": "\u0915\u0932 \u0930\u093e\u0924",
+    "needs_disputed_title": "\u090f\u0915 \u092a\u0930\u093f\u0923\u093e\u092e \u0935\u093f\u0935\u093e\u0926\u093f\u0924 \u0939\u0948",
     "in_days_short": "{{count}} \u0926\u093f\u0928",
     "needs_you": "\u0906\u092a\u0915\u0940 \u091c\u093c\u0930\u0942\u0930\u0924",
     "needs_confirm_result": "\u092a\u0930\u093f\u0923\u093e\u092e \u0915\u0940 \u092a\u0941\u0937\u094d\u091f\u093f \u0915\u0930\u0947\u0902",

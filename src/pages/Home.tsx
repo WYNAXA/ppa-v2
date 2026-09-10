@@ -6,7 +6,7 @@ import { motion } from 'framer-motion'
 import {
   Calendar, Plus,
   Clock, Users, Trophy, BarChart3, Search, Bell,
-  Check, UserPlus,
+  Check, UserPlus, AlertTriangle,
 } from 'lucide-react'
 import { NotificationBell } from '@/components/shared/NotificationBell'
 import { format, parseISO, differenceInCalendarDays, addDays } from 'date-fns'
@@ -200,10 +200,13 @@ function useSetupProgress(userId: string) {
 // row carries the action inline so the screen is answerable without leaving it.
 // This is what replaced the ranking / poll / stats tiles: those are Me's job.
 
+/** How far back a result can be and still count as something to act on. */
+const RESULT_WINDOW_DAYS = 14
+
 export type NeedsYouItem = {
   id: string
   tone: 'court' | 'alert'
-  icon: 'check' | 'user-plus' | 'calendar'
+  icon: 'check' | 'user-plus' | 'calendar' | 'alert'
   title: string
   detail: string
   cta: string
@@ -221,12 +224,24 @@ function useNeedsYou(userId: string, t: (k: string, o?: Record<string, unknown>)
       const items: NeedsYouItem[] = []
       const today = todayStr()
 
-      // (a) Results submitted by someone else, still awaiting verification.
+      // (a) Results still awaiting verification.
+      //
+      // THREE RULES, ALL LEARNED THE HARD WAY IN UAT:
+      //   1. Bounded to 14 days. Without a window this surfaced disputes from
+      //      March under the words "last night's result".
+      //   2. Only the OPPOSING team is asked to confirm. A teammate submitting
+      //      the score is not something you verify — you were there, on that
+      //      side of the net. The old filter only excluded the submitter, so
+      //      your own partner's submission came back to you as a task.
+      //   3. Disputed is not pending. It is a different state, with different
+      //      words and a different button.
+      const since = format(addDays(new Date(), -RESULT_WINDOW_DAYS), 'yyyy-MM-dd', { locale: getDateLocale() })
       const { data: pending } = await supabase
         .from('match_results')
-        .select('id, match_id, verification_status, submitted_by, team1_score, team2_score, created_at')
+        .select('id, match_id, verification_status, submitted_by, team1_players, team2_players, team1_score, team2_score, created_at')
         .neq('verification_status', 'verified')
         .neq('submitted_by', userId)
+        .gte('created_at', `${since}T00:00:00Z`)
         .order('created_at', { ascending: false })
         .limit(12)
 
@@ -236,25 +251,42 @@ function useNeedsYou(userId: string, t: (k: string, o?: Record<string, unknown>)
           .from('matches')
           .select('id, player_ids, match_date')
           .in('id', ids)
-        const mineSet = new Set(
+        const matchById = new Map(
           (mine ?? [])
             .filter((m) => ((m.player_ids as string[]) ?? []).includes(userId))
-            .map((m) => m.id),
+            .map((m) => [m.id as string, m]),
         )
+
         for (const r of pending) {
-          if (!mineSet.has(r.match_id)) continue
+          const match = matchById.get(r.match_id)
+          if (!match) continue
+
+          // Rule 2 — skip anything my own side submitted.
+          const t1 = (r.team1_players as string[]) ?? []
+          const t2 = (r.team2_players as string[]) ?? []
+          const myTeam = t1.includes(userId) ? t1 : t2.includes(userId) ? t2 : null
+          if (myTeam && myTeam.includes(r.submitted_by as string)) continue
+
+          const disputed = r.verification_status === 'disputed'
           const score = r.team1_score != null && r.team2_score != null
             ? `${r.team1_score}–${r.team2_score}`
             : ''
+          const when = (() => {
+            try {
+              const d = differenceInCalendarDays(new Date(), parseISO(match.match_date as string))
+              if (d <= 1) return t('home.needs_last_night')
+              return format(parseISO(match.match_date as string), 'EEEE d MMM', { locale: getDateLocale() })
+            } catch { return '' }
+          })()
+
           items.push({
             id: `result-${r.id}`,
-            tone: 'court',
-            icon: 'check',
-            title: t('home.needs_confirm_result'),
-            detail: [score, r.verification_status === 'disputed' ? t('home.needs_disputed') : '']
-              .filter(Boolean).join(' · '),
-            cta: r.verification_status === 'disputed' ? t('home.needs_review') : t('home.needs_confirm'),
-            ctaTone: 'court',
+            tone: disputed ? 'alert' : 'court',
+            icon: disputed ? 'alert' : 'check',
+            title: disputed ? t('home.needs_disputed_title') : t('home.needs_confirm_result'),
+            detail: [when, score].filter(Boolean).join(' · '),
+            cta: disputed ? t('home.needs_review') : t('home.needs_confirm'),
+            ctaTone: disputed ? 'ink' : 'court',
             to: `/matches/${r.match_id}`,
           })
           if (items.length >= 2) break
@@ -332,7 +364,7 @@ function useNeedsYou(userId: string, t: (k: string, o?: Record<string, unknown>)
   })
 }
 
-const NEEDS_ICON = { check: Check, 'user-plus': UserPlus, calendar: Calendar } as const
+const NEEDS_ICON = { check: Check, 'user-plus': UserPlus, calendar: Calendar, alert: AlertTriangle } as const
 
 function NeedsYouSection({ items }: { items: NeedsYouItem[] }) {
   const navigate = useNavigate()
@@ -398,7 +430,7 @@ function NeedsYouSection({ items }: { items: NeedsYouItem[] }) {
 // answer "am I playing this week" without opening a calendar.
 
 function useYourWeek(userId: string) {
-  return useQuery<Record<string, number>>({
+  return useQuery<{ counts: Record<string, number>; matchByDay: Record<string, string> }>({
     queryKey: ['home-your-week', userId],
     enabled: !!userId,
     staleTime: 60_000,
@@ -407,20 +439,28 @@ function useYourWeek(userId: string) {
       const to = format(addDays(new Date(), 4), 'yyyy-MM-dd', { locale: getDateLocale() })
       const { data } = await supabase
         .from('matches')
-        .select('match_date, player_ids')
+        .select('id, match_date, player_ids')
         .gte('match_date', from).lte('match_date', to)
         .not('status', 'in', '(cancelled)')
+        .order('match_time', { ascending: true, nullsFirst: true })
       const counts: Record<string, number> = {}
+      const matchByDay: Record<string, string> = {}
       for (const m of data ?? []) {
         if (!((m.player_ids as string[]) ?? []).includes(userId)) continue
-        counts[m.match_date] = (counts[m.match_date] ?? 0) + 1
+        const day = m.match_date as string
+        counts[day] = (counts[day] ?? 0) + 1
+        if (!matchByDay[day]) matchByDay[day] = m.id as string
       }
-      return counts
+      return { counts, matchByDay }
     },
   })
 }
 
-function YourWeekStrip({ counts }: { counts: Record<string, number> }) {
+function YourWeekStrip({ counts, matchByDay }: {
+  counts: Record<string, number>
+  /** date -> match id, so a day with a game opens that game. */
+  matchByDay: Record<string, string>
+}) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const locale = useDateLocale()
@@ -445,10 +485,14 @@ function YourWeekStrip({ counts }: { counts: Record<string, number> }) {
           })()
           const has = (counts[key] ?? 0) > 0
           const isToday = i === 0
+          const matchId = matchByDay[key]
           return (
             <button
               key={key}
-              onClick={() => navigate('/play')}
+              // A day you are playing opens that match. A day you are not
+              // opens the week view, where you can add one.
+              onClick={() => navigate(matchId ? `/matches/${matchId}` : '/play')}
+              aria-label={label}
               className={cn(
                 'flex min-h-[44px] flex-col items-center justify-center gap-1.5 rounded-card border py-2.5',
                 isToday ? 'border-ink bg-ink' : 'border-hairline bg-card',
@@ -797,7 +841,7 @@ export function HomePage() {
 
   const { data: nextMatch, isLoading: loadingMatch } = useNextMatch(userId)
   const { data: needsYou = [] }   = useNeedsYou(userId, t)
-  const { data: week = {} }       = useYourWeek(userId)
+  const { data: week }            = useYourWeek(userId)
   const { data: activity = [] }   = useRecentActivity(userId)
   const { data: setupProgress }   = useSetupProgress(userId)
 
@@ -867,7 +911,7 @@ export function HomePage() {
         </section>
 
         {/* ── Your week ── */}
-        <YourWeekStrip counts={week} />
+        <YourWeekStrip counts={week?.counts ?? {}} matchByDay={week?.matchByDay ?? {}} />
 
         {/* ── Recent activity ── */}
         <section className="flex flex-col gap-2">

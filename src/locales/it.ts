@@ -26,7 +26,6 @@ export default {
   },
   "nav": {
     "me": "Io",
-    "club": "Club",
     "today": "Oggi",
     "courts": "Campi",
     "home": "Home",
@@ -36,6 +35,8 @@ export default {
     "you": "Tu"
   },
   "courts": {
+    "books_via": "prenota tramite {{platform}}",
+    "books_direct": "prenotazione diretta",
     "search_placeholder": "Circolo, zona o CAP",
     "use_my_location": "Usa la mia posizione",
     "book_instantly": "Prenota subito",
@@ -64,6 +65,8 @@ export default {
     "n_played": "{{count}} g",
   },
   "home": {
+    "needs_last_night": "Ieri sera",
+    "needs_disputed_title": "Un risultato \u00e8 contestato",
     "in_days_short": "{{count}} giorni",
     "needs_you": "Per te",
     "needs_confirm_result": "Conferma il risultato",

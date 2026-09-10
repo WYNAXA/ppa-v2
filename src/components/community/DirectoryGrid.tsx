@@ -38,6 +38,51 @@ export interface DirectoryGridProps {
   }
 }
 
+/**
+ * A padel court, in plan, to scale (20m x 10m).
+ *
+ * WHY PLAN AND NOT PERSPECTIVE
+ *   A perspective court cropped by a card edge is a handful of diagonal lines —
+ *   at 100px nobody reads it as a court. Plan view carries the two features
+ *   that identify padel specifically: the enclosed box, and the net across the
+ *   middle with service boxes either side. Drawn complete rather than cropped,
+ *   because a whole small object reads and a fragment of a large one does not.
+ *
+ *   Service lines sit 3m from each back wall, which is where they actually are.
+ */
+function CourtPlan({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 200 100"
+      fill="none"
+      aria-hidden="true"
+      preserveAspectRatio="xMidYMid meet"
+    >
+      {/* Playing surface */}
+      <rect x="2" y="2" width="196" height="96" rx="4" fill="var(--color-court-50)" />
+
+      <g stroke="var(--color-court)" strokeLinecap="round">
+        {/* Enclosure */}
+        <rect x="2" y="2" width="196" height="96" rx="4" strokeWidth="3" opacity="0.55" />
+        {/* Service lines, 3m in from each back wall */}
+        <path d="M32 2V98M168 2v96" strokeWidth="2" opacity="0.4" />
+        {/* Centre service line, between service line and net only */}
+        <path d="M32 50h68M100 50h68" strokeWidth="2" opacity="0.4" />
+        {/* Net */}
+        <path d="M100 2v96" strokeWidth="3.5" opacity="0.8" />
+      </g>
+
+      {/* Net posts, so the heavy line reads as a net and not a fold */}
+      <circle cx="100" cy="2" r="4" fill="var(--color-court)" opacity="0.8" />
+      <circle cx="100" cy="98" r="4" fill="var(--color-court)" opacity="0.8" />
+
+      {/* Ball in play */}
+      <circle cx="140" cy="32" r="6" fill="var(--color-ball)" stroke="var(--color-court)" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
 export function DirectoryGrid({ counts, refs }: DirectoryGridProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -79,14 +124,16 @@ export function DirectoryGrid({ counts, refs }: DirectoryGridProps) {
                   : tile.scrollTo?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
               }
               className={cn(
-                'flex min-h-[86px] flex-col justify-between rounded-card border border-hairline bg-card p-3 text-left transition-colors active:bg-court-50',
+                'relative flex min-h-[86px] flex-col justify-between overflow-hidden rounded-card border border-hairline bg-card p-3 text-left transition-colors active:bg-court-50',
                 wide && 'col-span-2',
               )}
             >
-              <span className="flex h-8 w-8 items-center justify-center rounded-control bg-court-50">
+              {wide && <CourtPlan className="pointer-events-none absolute right-3 top-1/2 h-[54px] w-[108px] -translate-y-1/2" />}
+
+              <span className="relative flex h-8 w-8 items-center justify-center rounded-control bg-court-50">
                 <Icon className="h-4 w-4 text-court" strokeWidth={2.1} />
               </span>
-              <span className="flex items-baseline gap-1.5">
+              <span className="relative flex items-baseline gap-1.5">
                 {n != null && (
                   <span className="num text-[17px] font-extrabold leading-5 text-ink">{fmt.format(n)}</span>
                 )}

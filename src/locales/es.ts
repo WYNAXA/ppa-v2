@@ -62,8 +62,6 @@ export default {
     "n_of_four": "{{count}} de 4",
     "ask_ringers": "Buscar refuerzos",
     "ringers_on_call": "Refuerzos disponibles",
-    "closest_elo_first": "ELO m\u00e1s cercano primero",
-    "elo_away": "a {{count}} de distancia",
     "full_table": "Tabla completa",
     "n_played": "{{count}} j",
   },

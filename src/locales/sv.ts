@@ -62,8 +62,6 @@ export default {
     "n_of_four": "{{count}} av 4",
     "ask_ringers": "Fr\u00e5ga reserver",
     "ringers_on_call": "Reserver redo",
-    "closest_elo_first": "N\u00e4rmast ELO f\u00f6rst",
-    "elo_away": "{{count}} ifr\u00e5n",
     "full_table": "Hela tabellen",
     "n_played": "{{count}} sp",
   },

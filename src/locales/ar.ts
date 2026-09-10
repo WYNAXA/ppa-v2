@@ -62,8 +62,6 @@ export default {
     "n_of_four": "{{count}} \u0645\u0646 4",
     "ask_ringers": "\u0627\u0637\u0644\u0628 \u0628\u062f\u0644\u0627\u0621",
     "ringers_on_call": "\u0628\u062f\u0644\u0627\u0621 \u062c\u0627\u0647\u0632\u0648\u0646",
-    "closest_elo_first": "\u0627\u0644\u0623\u0642\u0631\u0628 \u062a\u0635\u0646\u064a\u0641\u0627\u064b \u0623\u0648\u0644\u0627\u064b",
-    "elo_away": "\u0628\u0641\u0627\u0631\u0642 {{count}}",
     "full_table": "\u0627\u0644\u062c\u062f\u0648\u0644 \u0643\u0627\u0645\u0644\u0627\u064b",
     "n_played": "{{count}} \u0644\u0639\u0628",
   },

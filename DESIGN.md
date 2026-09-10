@@ -409,3 +409,35 @@ unclaimed, so the test is the row coming back, not the column being non-null.
 Those venues now show an **On PPA** chip and read "on Padel Players — booking
 coming soon" instead of their booking platform. Two new keys in all eight
 locales.
+
+### Ringers on call
+
+UAT: *"ringer on call is nice but for me it shows 4 names - i dont think they
+are ringers for my groups. and if so, why only 4 and what do i do with the
+names."*
+
+All three observations were right, and they were one bug.
+
+`useClubWeek` built its own ringer list from `group_members.status = 'approved'`
+— which is the *ordinary member* status. A ringer is a specific thing in this
+app, `status = 'ringer'`, and the query excluded them by construction. In BS3
+Padel Players that meant showing 4 of the 22 regular members while the group's 3
+actual ringers stayed invisible. "Only 4" was an arbitrary `.slice(0, 4)`. And
+the names did nothing, because there was no request to send from here.
+
+The deeper fault: a complete ringer system already existed — `AskRingersSheet`,
+the `ringer_requests` table, the `send_ringer_requests` RPC, per-ringer request
+status, and a cross-group pool for players in more than one club. This component
+re-implemented a worse version of it beside the real one.
+
+Fix class: root-cause. Swapping `'approved'` for `'ringer'` would have been the
+patch — it fixes the names and leaves the duplicate query, the arbitrary cap and
+the dead-end list in place. "Ask ringers" now opens the sheet that already does
+this properly, which also answers "what do i do with the names": you pick them
+and it sends a request that expires 24 hours before the match. The duplicate
+query, the `Ringer` type, the `onAskRingers` prop and two orphaned locale keys
+in eight languages went with it.
+
+Group ringer counts at the time of the fix, for whoever reads this next: BS3
+Padel Players 3, PPAT 1, the other six groups none. A group with no ringers gets
+the sheet's own empty state, which offers the network instead.

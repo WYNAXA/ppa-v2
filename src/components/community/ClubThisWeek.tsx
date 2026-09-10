@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -7,18 +6,15 @@ import { format, parseISO, addDays } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useDateLocale, getDateLocale } from '@/lib/dateLocale'
 import { cn } from '@/lib/utils'
+import { AskRingersSheet } from '@/components/match/AskRingersSheet'
 
 /**
  * Club — the group's week — built to `Club.dc.html`.
  *
  * Three questions, in the order a club organiser actually asks them:
  *   1. Which fixtures are short?         → Needs players
- *   2. Who can I call?                   → Ringers on call, closest ELO first
+ *   2. Who can I call?                   → Ask ringers, on the fixture itself
  *   3. Where are we in the table?        → League snapshot
- *
- * "Closest ELO first" is the whole point of the ringer list: the sub-line is
- * the distance from the player the ringer would be replacing, not their raw
- * rating, because the organiser is trying to keep the game even.
  */
 
 type ShortMatch = {
@@ -29,17 +25,9 @@ type ShortMatch = {
   court: number | null
   players: Array<{ id: string; name: string | null }>
   spots: number
-  /** Average rating of the players already in — the ringer target. */
+  /** Average rating of the players already in — the sheet ranks by closeness
+      to this, so it is still computed here and passed through. */
   targetElo: number | null
-}
-
-type Ringer = {
-  id: string
-  name: string | null
-  elo: number | null
-  /** Rating distance from the fixture's current average. */
-  distance: number | null
-  available: boolean
 }
 
 type Standing = {
@@ -56,8 +44,36 @@ const initials = (name?: string | null) => {
   return (p.length === 1 ? p[0][0] : p[0][0] + p[p.length - 1][0]).toUpperCase()
 }
 
+/**
+ * This week's fixtures for the group, and which of them are short.
+ *
+ * WHY THERE IS NO RINGER LIST HERE ANY MORE
+ *   UAT: *"ringer on call is nice but for me it shows 4 names - i dont think
+ *   they are ringers for my groups. and if so, why only 4 and what do i do with
+ *   the names."* All three observations were right, and they were one bug.
+ *
+ *   This hook used to build its own "ringers" list from
+ *   `group_members.status = 'approved'` — which is the *ordinary member* status.
+ *   A ringer is a specific thing in this app, `status = 'ringer'`, and the query
+ *   excluded them by construction. In BS3 Padel Players that meant showing 4 of
+ *   the 22 regular members while the group's 3 actual ringers stayed invisible.
+ *   "Only 4" was an arbitrary `.slice(0, 4)`. And the names did nothing, because
+ *   there was no request to send from here.
+ *
+ *   The deeper fault: a complete ringer system already existed —
+ *   `AskRingersSheet`, the `ringer_requests` table, the `send_ringer_requests`
+ *   RPC, per-ringer request status, and a cross-group pool for players in more
+ *   than one club. This hook re-implemented a worse version of it beside the
+ *   real one. Fix class: root-cause. Swapping `'approved'` for `'ringer'` would
+ *   have been the patch — it fixes the names and leaves the duplicate query, the
+ *   arbitrary cap and the dead-end list in place.
+ *
+ *   "Ask ringers" now opens the sheet that already does this properly, which
+ *   also answers "what do i do with the names": you pick them and it sends a
+ *   request that expires 24 hours before the match.
+ */
 function useClubWeek(groupId: string | null, userId: string) {
-  return useQuery<{ short: ShortMatch[]; ringers: Ringer[] }>({
+  return useQuery<{ short: ShortMatch[] }>({
     queryKey: ['club-week', groupId, userId],
     enabled: !!groupId,
     staleTime: 30_000,
@@ -76,8 +92,7 @@ function useClubWeek(groupId: string | null, userId: string) {
 
       const shortRaw = (matches ?? []).filter((m) => ((m.player_ids as string[]) ?? []).length < 4)
 
-      // Everyone in the group, so we can name the players in each fixture and
-      // rank the rest as ringers.
+      // Everyone in the group, so we can name the players in each fixture.
       const { data: members } = await supabase
         .from('group_members')
         .select('user_id')
@@ -107,29 +122,7 @@ function useClubWeek(groupId: string | null, userId: string) {
         }
       })
 
-      // Ringers: group members not already in the first short fixture, ordered
-      // by how close they are to that fixture's average.
-      const first = short[0]
-      const taken = new Set(first ? first.players.map((p) => p.id) : [])
-      const ringers: Ringer[] = memberIds
-        .filter((id) => !taken.has(id) && id !== userId)
-        .map((id) => {
-          const p = pmap.get(id)
-          const elo = (p?.internal_ranking as number | null) ?? null
-          return {
-            id,
-            name: (p?.name as string) ?? null,
-            elo,
-            distance: elo != null && first?.targetElo != null ? Math.abs(elo - first.targetElo) : null,
-            // Availability lives in the poll system; until a fixture is chosen
-            // we only claim "has a rating", never "is free".
-            available: elo != null,
-          }
-        })
-        .sort((a, b) => (a.distance ?? 1e9) - (b.distance ?? 1e9))
-        .slice(0, 4)
-
-      return { short, ringers }
+      return { short }
     },
   })
 }
@@ -195,22 +188,20 @@ function useClubLeague(groupId: string | null, userId: string) {
 export interface ClubThisWeekProps {
   groups: Array<{ id: string; name: string }>
   userId: string
-  onAskRingers?: (matchId: string) => void
 }
 
-export function ClubThisWeek({ groups, userId, onAskRingers }: ClubThisWeekProps) {
+export function ClubThisWeek({ groups, userId }: ClubThisWeekProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const locale = useDateLocale()
   const [groupIndex, setGroupIndex] = useState(0)
-  const [showRingers, setShowRingers] = useState(false)
+  const [asking, setAsking] = useState<ShortMatch | null>(null)
 
   const group = groups[groupIndex] ?? null
   const { data: week } = useClubWeek(group?.id ?? null, userId)
   const { data: league } = useClubLeague(group?.id ?? null, userId)
 
   const short = week?.short ?? []
-  const ringers = week?.ringers ?? []
   const first = short[0]
 
   const fixtureLine = useMemo(() => {
@@ -286,61 +277,15 @@ export function ClubThisWeek({ groups, userId, onAskRingers }: ClubThisWeekProps
               <p className="num flex-grow text-[13px] leading-[17px] text-ink-2">
                 {t('club.n_of_four', { count: first.players.length })}
               </p>
+              {/* Opens the real ringer flow. See the note on `useClubWeek`
+                  for why this no longer renders a list of its own. */}
               <button
-                onClick={() => {
-                  if (ringers.length > 0) setShowRingers((v) => !v)
-                  else if (onAskRingers) onAskRingers(first.id)
-                  else navigate(`/matches/${first.id}`)
-                }}
-                aria-expanded={ringers.length > 0 ? showRingers : undefined}
+                onClick={() => setAsking(first)}
                 className="min-h-[44px] flex-shrink-0 rounded-control bg-court px-3.5 py-2.5 text-[13px] font-semibold leading-4 text-white"
               >
                 {t('club.ask_ringers')}
               </button>
             </div>
-
-            {/* Who you could call, closest rating to this fixture first. */}
-            <AnimatePresence initial={false}>
-              {showRingers && ringers.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="border-t border-hairline pt-3">
-                    <p className="mb-1.5 text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
-                      {t('club.closest_elo_first')}
-                    </p>
-                    {ringers.map((r) => (
-                      <div key={r.id} className="flex items-center gap-2.5 py-1.5">
-                        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-pill bg-hairline text-[11px] font-bold text-ink-2">
-                          {initials(r.name)}
-                        </span>
-                        <button
-                          onClick={() => navigate(`/players/${r.id}`)}
-                          className="flex min-w-0 flex-grow flex-col text-left"
-                        >
-                          <span className="truncate text-[14px] font-semibold leading-[18px] text-ink">
-                            {r.name?.split(' ')[0] ?? '—'}
-                          </span>
-                          <span className="num truncate text-[12px] leading-[15px] text-ink-2">
-                            {[r.elo, r.distance != null ? t('club.elo_away', { count: r.distance }) : null]
-                              .filter((v) => v != null).join(' · ')}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => (onAskRingers ? onAskRingers(first.id) : navigate(`/matches/${first.id}`))}
-                          className="min-h-[44px] flex-shrink-0 rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-bold leading-[15px] text-court"
-                        >
-                          {t('club.ask')}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
           </div>
         </section>
       )}
@@ -390,6 +335,21 @@ export function ClubThisWeek({ groups, userId, onAskRingers }: ClubThisWeekProps
             })}
           </div>
         </section>
+      )}
+
+      {/* The real ringer flow: the group's actual ringers (and those of any
+          other group the player is in), ranked by closeness to this fixture's
+          average, with a request that expires 24 hours before the match. */}
+      {asking && (
+        <AskRingersSheet
+          open
+          onClose={() => setAsking(null)}
+          onSent={() => setAsking(null)}
+          matchId={asking.id}
+          groupId={group?.id ?? null}
+          matchDateTime={`${asking.match_date}T${asking.match_time ?? '19:00'}`}
+          currentPlayerIds={asking.players.map((p) => p.id)}
+        />
       )}
     </div>
   )

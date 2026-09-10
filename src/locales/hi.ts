@@ -62,8 +62,6 @@ export default {
     "n_of_four": "4 \u092e\u0947\u0902 \u0938\u0947 {{count}}",
     "ask_ringers": "\u0930\u093f\u0902\u0917\u0930 \u092c\u0941\u0932\u093e\u090f\u0902",
     "ringers_on_call": "\u0909\u092a\u0932\u092c\u094d\u0927 \u0930\u093f\u0902\u0917\u0930",
-    "closest_elo_first": "\u0928\u093f\u0915\u091f\u0924\u092e ELO \u092a\u0939\u0932\u0947",
-    "elo_away": "{{count}} \u0915\u093e \u0905\u0902\u0924\u0930",
     "full_table": "\u092a\u0942\u0930\u0940 \u0924\u093e\u0932\u093f\u0915\u093e",
     "n_played": "{{count}} \u0916\u0947",
   },

@@ -65,8 +65,6 @@ export default {
     n_of_four: '{{count}} of 4',
     ask_ringers: 'Ask ringers',
     ringers_on_call: 'Ringers on call',
-    closest_elo_first: 'Closest ELO first',
-    elo_away: '{{count}} away',
     full_table: 'Full table',
     n_played: '{{count}} pl',
   },

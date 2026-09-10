@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Calendar, Lock, X, Globe, UserCheck, Info } from 'lucide-react'
+import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Lock, X, Globe, UserCheck, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
@@ -14,9 +14,6 @@ import { CreateGroupSheet } from '@/components/community/CreateGroupSheet'
 import { DirectoryGrid } from '@/components/community/DirectoryGrid'
 import { ClubThisWeek } from '@/components/community/ClubThisWeek'
 import { ConnectionRequestCard } from '@/components/community/ConnectionRequestCard'
-import { ConnectionCard } from '@/components/community/ConnectionCard'
-import { InviteToMatchSheet } from '@/components/community/InviteToMatchSheet'
-import { InviteToGroupSheet } from '@/components/community/InviteToGroupSheet'
 import { toast } from 'sonner'
 import { sendNotification } from '@/lib/notifications'
 import { cn } from '@/lib/utils'
@@ -959,8 +956,6 @@ export function CommunityPage() {
   const [showCreateSheet, setShowCreateSheet] = useState(false)
   const [playerSearch, setPlayerSearch]       = useState('')
   const [playerCityFilter, setPlayerCityFilter] = useState(false)
-  const [inviteMatchTarget, setInviteMatchTarget] = useState<{ id: string; name: string } | null>(null)
-  const [inviteGroupTarget, setInviteGroupTarget] = useState<{ id: string; name: string } | null>(null)
   const [previewGroup, setPreviewGroup] = useState<DiscoverGroup | null>(null)
 
   useEffect(() => {
@@ -1212,6 +1207,39 @@ export function CommunityPage() {
           </div>
         </button>
 
+        {/* ── Connection requests ──
+            What was a full "Connections" section here duplicated the My
+            Connections row directly above: same four faces, same "show all",
+            same destination. The one part that was not a duplicate is this —
+            somebody is waiting on a yes or no. A task belongs near the top and
+            should disappear when there is nothing to do, so it is now a
+            conditional strip rather than a permanent heading with an empty
+            state under it. */}
+        {connections.incomingRequests.length > 0 && (
+          <section ref={connectionsRef} id="connections">
+            <p className="mb-2 text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+              {t('community.connection_requests', { count: connections.incomingRequests.length })}
+            </p>
+            <div className="space-y-2">
+              {connections.incomingRequests.map((req) => (
+                <ConnectionRequestCard key={req.user_id} request={req} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Padel courts near you ──
+            UAT: "Padel courts near you should likely be more prominent too. as
+            its a great little feature." It was the last section on the page,
+            below My Groups, Find Groups, Connections, Find Players, Events and
+            Coaches — five of which are lists of the same five things the
+            directory grid at the top already links to. This is the only section
+            on the page carrying live local content rather than a second copy of
+            the navigation, so it now sits directly under the directory. */}
+        <section ref={venuesRef as React.RefObject<HTMLElement>} id="venues" style={{ scrollMarginTop: '120px' }}>
+          <NearbyVenuesSection profile={profile} />
+        </section>
+
         {/* ── My Groups (merged: approved + ringer + pending) ── */}
         <section ref={groupsRef} id="groups" style={{ scrollMarginTop: '120px' }}>
           <div className="flex items-center justify-between mb-3">
@@ -1355,68 +1383,6 @@ export function CommunityPage() {
           )}
         </section>
 
-        {/* ── Connections ── */}
-        <section ref={connectionsRef} id="connections">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-[16px] font-bold text-ink">{t('community.connections')}</h2>
-            {connections.accepted.size > 0 && (
-              <span className="text-[12px] text-ink-2">
-                {connections.accepted.size} connection{connections.accepted.size !== 1 ? 's' : ''}
-              </span>
-            )}
-          </div>
-
-          {/* Incoming requests */}
-          {connections.incomingRequests.length > 0 && (
-            <div className="mb-4">
-              <p className="text-[12px] font-bold text-ink-2 mb-2">
-                {t('community.connection_requests', { count: connections.incomingRequests.length })}
-              </p>
-              <div className="space-y-2">
-                {connections.incomingRequests.map((req) => (
-                  <ConnectionRequestCard key={req.user_id} request={req} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* My connections */}
-          {connections.acceptedProfiles.length > 0 ? (
-            <div className="space-y-2">
-              {connections.acceptedProfiles.slice(0, 4).map((conn) => (
-                <ConnectionCard key={conn.user_id} player={conn}>
-                  <button
-                    onClick={() => setInviteMatchTarget({ id: conn.user_id, name: conn.name })}
-                    className="rounded-lg bg-court-50 border border-court-100 px-2 py-1 text-[11px] font-bold text-court-700"
-                  >
-                    <Calendar className="h-3 w-3 inline mr-0.5" />
-                    Match
-                  </button>
-                  <button
-                    onClick={() => setInviteGroupTarget({ id: conn.user_id, name: conn.name })}
-                    className="rounded-lg bg-surface border border-hairline px-2 py-1 text-[11px] font-bold text-ink-2"
-                  >
-                    <Users className="h-3 w-3 inline mr-0.5" />
-                    Group
-                  </button>
-                </ConnectionCard>
-              ))}
-              {connections.acceptedProfiles.length > 4 && (
-                <button
-                  onClick={() => navigate('/community/connections')}
-                  className="w-full text-center py-2.5 text-[13px] font-semibold text-court"
-                >
-                  {t('community.show_all_connections', { count: connections.acceptedProfiles.length })}
-                </button>
-              )}
-            </div>
-          ) : connections.incomingRequests.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-              <p className="text-[13px] font-semibold text-ink-2">{t('community.no_connections_yet')}</p>
-              <p className="text-[12px] text-ink-2 mt-1">{t('community.connect_with_players_invite')}</p>
-            </div>
-          ) : null}
-        </section>
 
         {/* ── Find Players ── */}
         <section ref={playersRef} id="players" style={{ scrollMarginTop: '120px' }}>
@@ -1528,10 +1494,6 @@ export function CommunityPage() {
           <CoachesSection userCity={profile?.city} />
         </section>
 
-        {/* ── Nearby Venues ── */}
-        <section ref={venuesRef as React.RefObject<HTMLElement>} id="venues" style={{ scrollMarginTop: '120px' }}>
-          <NearbyVenuesSection profile={profile} />
-        </section>
       </div>
 
       {/* Floating + button */}
@@ -1551,19 +1513,7 @@ export function CommunityPage() {
         }}
       />
 
-      <InviteToMatchSheet
-        open={!!inviteMatchTarget}
-        onClose={() => setInviteMatchTarget(null)}
-        playerId={inviteMatchTarget?.id ?? ''}
-        playerName={inviteMatchTarget?.name ?? ''}
-      />
 
-      <InviteToGroupSheet
-        open={!!inviteGroupTarget}
-        onClose={() => setInviteGroupTarget(null)}
-        playerId={inviteGroupTarget?.id ?? ''}
-        playerName={inviteGroupTarget?.name ?? ''}
-      />
 
       <GroupPreviewSheet
         group={previewGroup}

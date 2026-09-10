@@ -544,3 +544,39 @@ card now says what it does.
 broadcast exists — they see it in Open Matches and on the Play sheet count, but
 no push. That is the next thing to build if the feature gets used, and the thing
 to measure is what share of broadcasts get a reply.
+
+### Community, reordered
+
+Two UAT notes that turned out to be the same problem: *"Padel courts near you
+should likely be more prominent too. as its a great little feature"* and *"if we
+have my connections, do we need this below too?"*
+
+The page had a directory grid at the top — Groups, Players, Coaches, Venues,
+Events — and then, below it, long list sections for **the same five things**.
+The grid was the navigation and the sections were a second copy of it in a
+different shape. Nearby Venues sat dead last, at position seven, under five of
+those duplicates.
+
+Fix class: root-cause. Moving one section up would have been the patch and would
+have left the page still saying everything twice.
+
+- **Padel Courts Near You is now third**, directly under the directory and the
+  two link rows. It is the only section on the page carrying *live local
+  content* rather than a route you can already reach from a tile, which is
+  exactly why it earns the position.
+- **The Connections section is gone.** Its four-avatar preview and "show all"
+  were the same navigation as the My Connections row eight lines above it, to
+  the same destination. The one part that was not a duplicate — somebody waiting
+  on a yes or no — is now a conditional strip near the top that disappears when
+  there is nothing to answer, instead of a permanent heading with an empty state
+  under it.
+- The per-connection **Match** and **Group** buttons went with that block. They
+  are not lost: `/community/connections` carries both on every connection, and
+  the sheets, their state and their imports were removed from Community rather
+  than re-added, so there is one copy of that action instead of two.
+
+**Still duplicated, and worth a decision later:** Find Groups, Find Players,
+Upcoming Events and Find a Coach are all still list sections for tiles that
+already exist in the grid above them. The same argument applies to each; it was
+left alone here because reordering is cheap and deleting four sections is a
+product call, not a cleanup.

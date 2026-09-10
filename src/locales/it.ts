@@ -53,6 +53,7 @@ export default {
     "n_courts": "{{count}} campi",
   },
   "club": {
+    "ask": "Chiedi",
     "needs_players": "Servono giocatori",
     "n_spots": "{{count}} posto",
     "n_spots_other": "{{count}} posti",
@@ -581,6 +582,7 @@ export default {
     "share": "Condividi gruppo"
   },
   "community": {
+    "search_all": "Cerca gruppi, giocatori, coach, sedi\u2026",
     "title": "Comunità",
     "my_groups": "I miei gruppi",
     "discover": "Scopri gruppi",

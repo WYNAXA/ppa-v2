@@ -56,6 +56,7 @@ export default {
     n_courts: '{{count}} courts',
   },
   club: {
+    ask: 'Ask',
     needs_players: 'Needs players',
     n_spots: '{{count}} spot',
     n_spots_other: '{{count}} spots',
@@ -593,6 +594,7 @@ export default {
     share: 'Share group',
   },
   community: {
+    search_all: 'Search groups, players, coaches, venues…',
     title: 'Community',
     my_groups: 'My Groups',
     discover: 'Discover Groups',

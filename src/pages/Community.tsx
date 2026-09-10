@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -11,7 +11,7 @@ import { formatDistance } from '@/lib/travelUtils'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateGroupSheet } from '@/components/community/CreateGroupSheet'
-import { QuickLinksRow } from '@/components/community/QuickLinksRow'
+import { DirectoryGrid } from '@/components/community/DirectoryGrid'
 import { ClubThisWeek } from '@/components/community/ClubThisWeek'
 import { ConnectionRequestCard } from '@/components/community/ConnectionRequestCard'
 import { ConnectionCard } from '@/components/community/ConnectionCard'
@@ -997,13 +997,16 @@ export function CommunityPage() {
   )
 
   // Quick links config
-  const quickLinks = useMemo(() => [
-    { key: 'groups',  emoji: '👥', label: t('community.nav_groups'),  ref: groupsRef },
-    { key: 'players', emoji: '🤝', label: t('community.nav_players'), ref: playersRef },
-    { key: 'coaches', emoji: '🎾', label: t('community.nav_coaches'), ref: coachesRef },
-    { key: 'venues',  emoji: '📍', label: t('community.nav_venues'),  ref: venuesRef },
-    { key: 'events',  emoji: '📅', label: t('community.nav_events'),  ref: eventsRef },
-  ], [t])
+  const { data: venueCount = 0 } = useQuery<number>({
+    queryKey: ['community-venue-count'],
+    staleTime: 24 * 60 * 60_000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('padel_venues')
+        .select('venue_id', { count: 'exact', head: true })
+      return count ?? 0
+    },
+  })
 
   // Hash scroll for notification deep links (/community#connections)
   useEffect(() => {
@@ -1153,8 +1156,15 @@ export function CommunityPage() {
       </div>
 
       <div className="px-5 space-y-6 pt-4">
-        {/* Quick links */}
-        <QuickLinksRow sections={quickLinks} />
+        {/* Directory — the five things you come here to find. */}
+        <DirectoryGrid
+          counts={{
+            groups: allMyGroups.length || undefined,
+            players: foundPlayers.length || undefined,
+            venues: venueCount || undefined,
+          }}
+          refs={{ groups: groupsRef, players: playersRef, coaches: coachesRef, venues: venuesRef, events: eventsRef }}
+        />
 
         {/* Open Matches link */}
         <button

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -202,6 +203,7 @@ export function ClubThisWeek({ groups, userId, onAskRingers }: ClubThisWeekProps
   const { t } = useTranslation()
   const locale = useDateLocale()
   const [groupIndex, setGroupIndex] = useState(0)
+  const [showRingers, setShowRingers] = useState(false)
 
   const group = groups[groupIndex] ?? null
   const { data: week } = useClubWeek(group?.id ?? null, userId)
@@ -219,26 +221,26 @@ export function ClubThisWeek({ groups, userId, onAskRingers }: ClubThisWeekProps
     return first.match_time ? `${d} · ${first.match_time.slice(0, 5)}` : d
   }, [first, locale])
 
-  if (!group) return null
-
   return (
     <div className="flex flex-col gap-[18px]">
-      {/* ── Header: title + which club ── */}
+      {/* ── Header: title, and which group the week below belongs to ── */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
           {t('nav.community')}
         </h1>
-        <button
-          onClick={() => groups.length > 1 && setGroupIndex((i) => (i + 1) % groups.length)}
-          disabled={groups.length <= 1}
-          className="min-h-[44px] flex-shrink-0 truncate rounded-pill border border-hairline bg-card px-3.5 py-2.5 text-[13px] font-semibold leading-4 text-ink-2"
-        >
-          {group.name}
-        </button>
+        {group && (
+          <button
+            onClick={() => groups.length > 1 && setGroupIndex((i) => (i + 1) % groups.length)}
+            disabled={groups.length <= 1}
+            className="min-h-[44px] flex-shrink-0 truncate rounded-pill border border-hairline bg-card px-3.5 py-2.5 text-[13px] font-semibold leading-4 text-ink-2"
+          >
+            {group.name}
+          </button>
+        )}
       </div>
 
       {/* ── Needs players ── */}
-      {first && (
+      {group && first && (
         <section className="flex flex-col gap-2.5">
           <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
             {t('club.needs_players')}
@@ -285,61 +287,66 @@ export function ClubThisWeek({ groups, userId, onAskRingers }: ClubThisWeekProps
                 {t('club.n_of_four', { count: first.players.length })}
               </p>
               <button
-                onClick={() => (onAskRingers ? onAskRingers(first.id) : navigate(`/matches/${first.id}`))}
+                onClick={() => {
+                  if (ringers.length > 0) setShowRingers((v) => !v)
+                  else if (onAskRingers) onAskRingers(first.id)
+                  else navigate(`/matches/${first.id}`)
+                }}
+                aria-expanded={ringers.length > 0 ? showRingers : undefined}
                 className="min-h-[44px] flex-shrink-0 rounded-control bg-court px-3.5 py-2.5 text-[13px] font-semibold leading-4 text-white"
               >
                 {t('club.ask_ringers')}
               </button>
             </div>
-          </div>
-        </section>
-      )}
 
-      {/* ── Ringers on call ── */}
-      {ringers.length > 0 && (
-        <section className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
-              {t('club.ringers_on_call')}
-            </h2>
-            <p className="text-[12px] font-semibold leading-[15px] text-ink-2">
-              {t('club.closest_elo_first')}
-            </p>
-          </div>
-
-          <div className="rounded-[16px] border border-hairline bg-card px-3.5 py-1.5">
-            {ringers.map((r, i) => (
-              <div key={r.id}>
-                {i > 0 && <div className="h-px bg-hairline" />}
-                <button
-                  onClick={() => navigate(`/players/${r.id}`)}
-                  className="flex w-full items-center gap-[11px] py-2.5 text-left"
+            {/* Who you could call, closest rating to this fixture first. */}
+            <AnimatePresence initial={false}>
+              {showRingers && ringers.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="overflow-hidden"
                 >
-                  <span className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-pill bg-hairline text-[12px] font-bold text-ink-2">
-                    {initials(r.name)}
-                  </span>
-                  <span className="flex min-w-0 flex-grow flex-col">
-                    <span className="truncate text-[15px] font-semibold leading-[19px] text-ink">
-                      {r.name?.split(' ')[0] ?? '—'}
-                    </span>
-                    <span className="num truncate text-[12px] leading-[15px] text-ink-2">
-                      {[r.elo, r.distance != null ? t('club.elo_away', { count: r.distance }) : null]
-                        .filter((v) => v != null).join(' · ')}
-                    </span>
-                  </span>
-                  <span
-                    className={cn('h-2.5 w-2.5 flex-shrink-0 rounded-pill', r.available ? 'bg-line' : 'bg-hairline')}
-                    aria-hidden="true"
-                  />
-                </button>
-              </div>
-            ))}
+                  <div className="border-t border-hairline pt-3">
+                    <p className="mb-1.5 text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+                      {t('club.closest_elo_first')}
+                    </p>
+                    {ringers.map((r) => (
+                      <div key={r.id} className="flex items-center gap-2.5 py-1.5">
+                        <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-pill bg-hairline text-[11px] font-bold text-ink-2">
+                          {initials(r.name)}
+                        </span>
+                        <button
+                          onClick={() => navigate(`/players/${r.id}`)}
+                          className="flex min-w-0 flex-grow flex-col text-left"
+                        >
+                          <span className="truncate text-[14px] font-semibold leading-[18px] text-ink">
+                            {r.name?.split(' ')[0] ?? '—'}
+                          </span>
+                          <span className="num truncate text-[12px] leading-[15px] text-ink-2">
+                            {[r.elo, r.distance != null ? t('club.elo_away', { count: r.distance }) : null]
+                              .filter((v) => v != null).join(' · ')}
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => (onAskRingers ? onAskRingers(first.id) : navigate(`/matches/${first.id}`))}
+                          className="min-h-[44px] flex-shrink-0 rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-bold leading-[15px] text-court"
+                        >
+                          {t('club.ask')}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </section>
       )}
 
       {/* ── League snapshot ── */}
-      {league && (
+      {group && league && (
         <section className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="truncate text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">

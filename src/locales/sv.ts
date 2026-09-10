@@ -53,6 +53,7 @@ export default {
     "n_courts": "{{count}} banor",
   },
   "club": {
+    "ask": "Fr\u00e5ga",
     "needs_players": "Saknar spelare",
     "n_spots": "{{count}} plats",
     "n_spots_other": "{{count}} platser",
@@ -581,6 +582,7 @@ export default {
     "share": "Dela grupp"
   },
   "community": {
+    "search_all": "S\u00f6k grupper, spelare, tr\u00e4nare, anl\u00e4ggningar\u2026",
     "title": "Community",
     "my_groups": "Mina grupper",
     "discover": "Upptäck grupper",

@@ -53,6 +53,7 @@ export default {
     "n_courts": "{{count}} \u0915\u094b\u0930\u094d\u091f",
   },
   "club": {
+    "ask": "\u092a\u0942\u091b\u0947\u0902",
     "needs_players": "\u0916\u093f\u0932\u093e\u0921\u093c\u0940 \u091a\u093e\u0939\u093f\u090f",
     "n_spots": "{{count}} \u0938\u094d\u0925\u093e\u0928",
     "n_spots_other": "{{count}} \u0938\u094d\u0925\u093e\u0928",
@@ -581,6 +582,7 @@ export default {
     "share": "ग्रुप शेयर करें"
   },
   "community": {
+    "search_all": "\u0917\u094d\u0930\u0941\u092a, \u0916\u093f\u0932\u093e\u0921\u093c\u0940, \u0915\u094b\u091a, \u0935\u0947\u0928\u094d\u092f\u0942 \u0916\u094b\u091c\u0947\u0902\u2026",
     "title": "समुदाय",
     "my_groups": "मेरे ग्रुप",
     "discover": "ग्रुप खोजें",

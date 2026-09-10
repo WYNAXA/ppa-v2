@@ -53,6 +53,7 @@ export default {
     "n_courts": "{{count}} \u0645\u0644\u0627\u0639\u0628",
   },
   "club": {
+    "ask": "\u0627\u0637\u0644\u0628",
     "needs_players": "\u064a\u062d\u062a\u0627\u062c \u0644\u0627\u0639\u0628\u064a\u0646",
     "n_spots": "{{count}} \u0645\u0643\u0627\u0646",
     "n_spots_other": "{{count}} \u0623\u0645\u0627\u0643\u0646",
@@ -581,6 +582,7 @@ export default {
     "share": "مشاركة المجموعة"
   },
   "community": {
+    "search_all": "\u0627\u0628\u062d\u062b \u0639\u0646 \u0645\u062c\u0645\u0648\u0639\u0627\u062a \u0648\u0644\u0627\u0639\u0628\u064a\u0646 \u0648\u0645\u062f\u0631\u0628\u064a\u0646 \u0648\u0645\u0644\u0627\u0639\u0628\u2026",
     "title": "المجتمع",
     "my_groups": "مجموعاتي",
     "discover": "اكتشف مجموعات",

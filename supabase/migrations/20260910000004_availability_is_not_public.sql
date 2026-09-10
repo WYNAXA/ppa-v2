@@ -1,0 +1,33 @@
+-- Availability stops being readable without an account.
+--
+-- WHAT WAS WRONG
+--   `polls` and `poll_responses` each carried a SELECT policy granted to the
+--   `anon` role with `USING (true)`. The anon key ships in the public JavaScript
+--   bundle by design, so this needed no account at all: 797 rows of
+--   `selected_slots`, `availability_ranges` and `flexible_times` — when each
+--   named player is free, week by week — readable by anyone who opened the site.
+--
+--   It is the most sensitive behavioural data in the app, and the exact data
+--   class the availability work is built on top of.
+--
+-- WHY THIS IS SAFE
+--   Checked rather than assumed. Every poll route in the app sits behind
+--   `Guard`, which redirects to /auth without a session, so there is no
+--   unauthenticated poll view to break. The correctly scoped policies were
+--   already sitting beside these two and stay:
+--
+--     "Users can view polls in their groups"        — group membership
+--     "Users can view responses in their groups"    — group membership via poll
+--
+--   Those are granted to `public`, which includes authenticated users; for an
+--   anonymous reader `auth.uid()` is null so they match nothing, which is the
+--   intended outcome.
+--
+-- NOT INCLUDED HERE
+--   `investor_verification_tokens` has the same shape of problem and is
+--   deliberately left alone: nothing in this repo reads it, so it is consumed by
+--   wynaxa.com, and dropping its SELECT policy blind could break the Founding
+--   Supporters sign-in. It needs that code read first.
+
+drop policy if exists "Public can view poll responses" on public.poll_responses;
+drop policy if exists "Public can view polls" on public.polls;

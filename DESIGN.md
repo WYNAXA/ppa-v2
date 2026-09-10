@@ -745,3 +745,58 @@ which is what would have drifted.
 None of the four carries a proposed score — they predate the proposal fields —
 so only "Keep the submitted score" renders for them. That is handled, not
 assumed: the second button is conditional on a proposal existing.
+
+### Availability stopped being public
+
+Security finding 2 from the RLS audit. `polls` and `poll_responses` each carried
+a SELECT policy granted to the **`anon`** role with `USING (true)`. The anon key
+ships in the public JavaScript bundle by design, so this needed no account at
+all: **797 rows** of `selected_slots`, `availability_ranges` and `flexible_times`
+— when each named player is free, week by week — readable by anyone who opened
+the site.
+
+It is the most sensitive behavioural data in the app, and the exact data class
+the availability work was built on top of.
+
+Checked before dropping rather than after: every poll route sits behind `Guard`,
+which redirects to `/auth` without a session, so there is no unauthenticated poll
+view to break. The correctly scoped policies were already sitting beside these
+two and stay — group membership via the poll, for both tables. They are granted
+to `public`, which includes authenticated users; for an anonymous reader
+`auth.uid()` is null so they match nothing, which is the intended outcome.
+
+**`investor_verification_tokens` was deliberately left alone.** Same shape of
+problem — anyone can mint a token for any address and read it straight back — but
+nothing in this repo reads that table, so it is consumed by wynaxa.com. Dropping
+its SELECT policy blind could break the Founding Supporters sign-in. It needs
+that code read first, and it is not urgent: all 7 tokens are used and expired.
+
+### Three dormant guest tables, closed
+
+Security finding 4. `guest_players`, `guest_player_ratings` and
+`match_guest_players` each carried one policy for **ALL** commands with
+`USING (auth.uid() IS NOT NULL)` — select, insert, update *and delete*, for
+anybody with an account, on rows about people who are not users.
+
+**This is a revoke, not a rewrite, because the tables are dormant.** Checked
+rather than assumed: no reference anywhere in `src/` or `supabase/functions/`;
+no reference in the body of any database function; last write to all three was
+**2 May 2026**. The live path is `match_guest_invites`, still being written in
+August. Writing an elaborate ownership model for tables nothing reads would be
+inventing a contract nobody signed.
+
+Dropping the policy leaves RLS enabled with **no** policy, which denies every
+non-service-role request — the correct posture for a dormant table, and
+trivially reversible. `service_role` bypasses RLS, so migrations and backups are
+unaffected. Verified after applying: RLS on, zero policies, all three.
+
+**Not deleted.** 110 rows across the three, and they are the only record of who
+actually played in 35 historical matches. Nothing displays that today, but
+deleting is irreversible and closing access is not. Whether they are finished
+with is a separate, deliberate decision.
+
+**A correction to my own audit.** The RLS report described these rows as
+carrying "names, emails and phone numbers". The columns exist; every one of them
+is NULL. The personal data is names only. The write and delete exposure was
+real — the sensitivity was overstated, and the data-protection framing I put on
+it was wrong.

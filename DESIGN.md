@@ -616,3 +616,43 @@ Worth keeping in mind for the next report of this shape: three surfaces already
 gate this correctly — `MatchDetail` splits on `isOnSubmittingTeam`,
 `WeekMatchView` uses `isOnOpposingTeam && !hasVoted`, and Today's Needs You
 skips anything the viewer's own side submitted. The logic was never the problem.
+
+### Every tile navigates
+
+I proposed deleting "four duplicate sections" from Community and was wrong about
+what they were. Checking first: **the tiles did not all navigate.** Groups,
+Players and Events called `scrollIntoView` on a section further down the page;
+only Coaches and Venues went anywhere. So three of those sections *were* their
+tiles' destinations, and deleting them would have broken three of five tiles.
+
+The real defect was smaller and worse: **five tiles, two behaviours, nothing to
+tell them apart.** Tapping Coaches left the page; tapping Groups jumped you down
+it.
+
+Now all five navigate. `/community/groups` and `/community/players` already
+existed and were strict supersets of their inline sections — the same three
+filters plus sorting the inline copies never had. Events had no page, which is
+why it was the tile blocking a consistent rule, so it got one.
+
+**`AllEventsPage` is not the old section without its limit.** The Community
+section queried `events` — group and official events — only. At the time of
+writing there were **zero** upcoming rows in that table and **eleven** upcoming
+`venue_event_occurrences`. The section was empty while the app held real events
+it never showed here; venue events had a detail route and a discovery helper
+(`discoverVenueEvents`) and no way in from Community. The page lists both in one
+time-ordered stream, because a player looking for something to enter does not
+care which of our two tables it came from.
+
+**What came out with the four sections**, all of it unreferenced afterwards and
+all of it a second copy of something on the destination pages: `DiscoverCard`,
+`UpcomingEventsSection`, `CoachesSection`, `GroupPreviewSheet`,
+`useDiscoverGroups`, `useFindPlayers`, `joinMutation`, `ringerOfferMutation`,
+`connectMutation`, `acceptInlineMutation`, `getConnectState`, five pieces of
+filter state, a `setState`-in-effect, and the whole `refs` prop on
+`DirectoryGrid`. **Community.tsx: 1,557 → 800 lines.** Lint went *below*
+baseline — 303 → 301 — because the dead effect took two errors with it.
+
+The one thing that needed care: the group preview sheet was only reachable from
+the removed Find Groups cards, so `previewGroup` could never be set and both its
+mutations were unreachable. `AllGroupsPage` carries its own preview, join and
+ringer-offer. Checked before deleting, not after.

@@ -22,20 +22,14 @@ export type DirectoryCounts = Partial<Record<'groups' | 'players' | 'coaches' | 
 type Tile = {
   key: keyof DirectoryCounts
   icon: typeof Users
-  /** Where tapping goes. Sections that live on this page scroll instead. */
-  to?: string
-  scrollTo?: React.RefObject<HTMLElement | null>
+  /** Where tapping goes. Every tile navigates — three of them used to scroll
+      to a section further down Community instead, so the same control did two
+      different things with nothing to tell them apart. */
+  to: string
 }
 
 export interface DirectoryGridProps {
   counts: DirectoryCounts
-  refs: {
-    groups: React.RefObject<HTMLElement | null>
-    players: React.RefObject<HTMLElement | null>
-    coaches: React.RefObject<HTMLElement | null>
-    venues: React.RefObject<HTMLElement | null>
-    events: React.RefObject<HTMLElement | null>
-  }
 }
 
 /**
@@ -83,17 +77,21 @@ function CourtPlan({ className }: { className?: string }) {
   )
 }
 
-export function DirectoryGrid({ counts, refs }: DirectoryGridProps) {
+export function DirectoryGrid({ counts }: DirectoryGridProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
   const tiles: Tile[] = [
-    { key: 'groups',  icon: Users,          scrollTo: refs.groups },
-    { key: 'players', icon: UserPlus,       scrollTo: refs.players },
+    // Every tile navigates. Three of them used to scroll to a section further
+    // down Community instead, so the same control did two different things with
+    // nothing to tell them apart. Groups and Players already had fuller pages
+    // than their inline sections; Events needed one built.
+    { key: 'groups',  icon: Users,          to: '/community/groups' },
+    { key: 'players', icon: UserPlus,       to: '/community/players' },
     { key: 'coaches', icon: GraduationCap,  to: '/coaches' },
     // Courts is a whole tab — the tile is a shortcut to it, not a scroll.
     { key: 'venues',  icon: MapPin,         to: '/play/book-court' },
-    { key: 'events',  icon: CalendarDays,   scrollTo: refs.events },
+    { key: 'events',  icon: CalendarDays,   to: '/community/events' },
   ]
 
   const fmt = new Intl.NumberFormat()
@@ -118,11 +116,7 @@ export function DirectoryGrid({ counts, refs }: DirectoryGridProps) {
           return (
             <button
               key={tile.key}
-              onClick={() =>
-                tile.to
-                  ? navigate(tile.to)
-                  : tile.scrollTo?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-              }
+              onClick={() => navigate(tile.to)}
               className={cn(
                 'relative flex min-h-[86px] flex-col justify-between overflow-hidden rounded-card border border-hairline bg-card p-3 text-left transition-colors active:bg-court-50',
                 wide && 'col-span-2',

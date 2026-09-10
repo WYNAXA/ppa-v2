@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Search, Users, MapPin, ChevronRight, UserPlus, Check, Clock, Lock, X, Globe, UserCheck, Info } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Plus, Users, MapPin, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { format, parseISO } from 'date-fns'
-import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { useAuth } from '@/hooks/useAuth'
@@ -14,8 +12,6 @@ import { CreateGroupSheet } from '@/components/community/CreateGroupSheet'
 import { DirectoryGrid } from '@/components/community/DirectoryGrid'
 import { ClubThisWeek } from '@/components/community/ClubThisWeek'
 import { ConnectionRequestCard } from '@/components/community/ConnectionRequestCard'
-import { toast } from 'sonner'
-import { sendNotification } from '@/lib/notifications'
 import { cn } from '@/lib/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -40,10 +36,6 @@ interface MyGroup extends GroupRow {
   memberStatus: string
 }
 
-interface DiscoverGroup extends GroupRow {
-  memberCount: number
-  membershipStatus: 'none' | 'pending' | 'approved' | 'ringer' | 'pending_ringer' | 'ringer_declined'
-}
 
 interface ConnectionProfile {
   user_id: string
@@ -156,71 +148,6 @@ function usePendingRequests(userId: string) {
 
 // ── Discover Groups query ─────────────────────────────────────────────────────
 
-function useDiscoverGroups(userId: string, search: string, myGroupIds: string[], activeFilter: string | null, userCity: string | null, sortBy: string) {
-  return useQuery({
-    queryKey: ['discover-groups', userId, search, activeFilter, sortBy],
-    enabled: !!userId,
-    queryFn: async (): Promise<DiscoverGroup[]> => {
-      let query = supabase
-        .from('groups')
-        .select('id, name, description, city, visibility, admin_id, auto_approve, banner_url, allow_ringers')
-        .limit(40)
-
-      if (sortBy === 'newest') query = query.order('created_at', { ascending: false })
-      else query = query.order('name')
-
-      if (search.trim()) {
-        query = query.or(`name.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%,city.ilike.%${search.trim()}%`)
-      }
-
-      if (activeFilter === 'near_me' && userCity) {
-        const cityName = userCity.split(',')[0].split(' ')[0].trim()
-        if (cityName.length >= 3) query = query.ilike('city', `%${cityName}%`)
-      }
-      if (activeFilter === 'open_to_join') {
-        query = query.or('visibility.in.(open,public),auto_approve.eq.true')
-      }
-      if (activeFilter === 'welcomes_ringers') {
-        query = query.eq('allow_ringers', true)
-      }
-
-      const { data: groups, error } = await query
-      if (error) throw error
-      if (!groups || groups.length === 0) return []
-
-      const filtered = groups.filter((g) => !myGroupIds.includes(g.id))
-      console.warn(`[Discover] query returned ${groups.length} groups, after excluding mine: ${filtered.length}`)
-      if (filtered.length === 0) return []
-      const filteredIds = filtered.map((g) => g.id)
-
-      const { data: memberRows } = await supabase
-        .from('group_members').select('group_id')
-        .in('group_id', filteredIds).eq('status', 'approved')
-      const countMap: Record<string, number> = {}
-      for (const m of memberRows ?? []) countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
-      console.warn(`[Discover] member counts:`, Object.entries(countMap).map(([id, c]) => `${id.slice(0,8)}=${c}`).join(', ') || '(all zero)')
-
-      const { data: membershipRows } = await supabase
-        .from('group_members').select('group_id, status')
-        .in('group_id', filteredIds).eq('user_id', userId)
-      const membershipStatusMap: Record<string, string> = {}
-      for (const r of membershipRows ?? []) membershipStatusMap[r.group_id] = r.status
-
-      const visibleGroups = filtered.filter((g) => membershipStatusMap[g.id] !== 'approved' && membershipStatusMap[g.id] !== 'ringer')
-
-      const result: DiscoverGroup[] = visibleGroups.map((g) => ({
-        ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: (membershipStatusMap[g.id] ?? 'none') as DiscoverGroup['membershipStatus'],
-      }))
-
-      if (sortBy === 'most_members') {
-        result.sort((a, b) => b.memberCount - a.memberCount)
-      }
-      console.warn(`[Discover] final result: ${result.length} groups, sort=${sortBy}, counts=[${result.map(g => g.memberCount).join(',')}]`)
-
-      return result
-    },
-  })
-}
 
 // ── Bidirectional Connections query ───────────────────────────────────────────
 
@@ -277,24 +204,6 @@ function useMyConnections(userId: string) {
 
 // ── Find Players query ────────────────────────────────────────────────────────
 
-function useFindPlayers(userId: string, query: string, city: string | null) {
-  return useQuery({
-    queryKey: ['find-players', userId, query, city],
-    enabled: !!userId,
-    queryFn: async () => {
-      let q = supabase
-        .from('profiles')
-        .select('id, name, avatar_url, city, internal_ranking')
-        .neq('id', userId)
-        .order('internal_ranking', { ascending: false })
-        .limit(30)
-      if (query.trim()) q = q.ilike('name', `%${query.trim()}%`)
-      if (city && !query.trim()) q = q.ilike('city', `%${city}%`)
-      const { data } = await q
-      return data ?? []
-    },
-  })
-}
 
 // ── My Group Card ─────────────────────────────────────────────────────────────
 
@@ -359,335 +268,9 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
 
 // ── Group Preview Sheet ──────────────────────────────────────────────────────
 
-function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOfferRinger, ringerOfferPending }: {
-  group: DiscoverGroup | null
-  open: boolean
-  onClose: () => void
-  onJoin: (id: string) => void
-  joiningGroupId: string | undefined
-  onOfferRinger: (id: string) => void
-  ringerOfferPending: boolean
-}) {
-  const { t } = useTranslation()
-  const [showRingerInfo, setShowRingerInfo] = useState(false)
-  if (!group) return null
 
-  const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true
-  const isPending = group.membershipStatus === 'pending'
-  const isPendingRinger = group.membershipStatus === 'pending_ringer'
-  const isRinger = group.membershipStatus === 'ringer'
-  const isJoining = joiningGroupId === group.id
-  const showRingerOffer = group.allow_ringers && !isPending && !isPendingRinger && !isRinger && group.membershipStatus !== 'approved'
 
-  return (
-    <AnimatePresence>
-      {open && (
-        <>
-          <motion.div
-            className="fixed inset-0 z-[55] bg-scrim"
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
-            initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-          >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-1">
-              <div className="h-1 w-10 rounded-full bg-hairline" />
-            </div>
 
-            {/* Close button */}
-            <div className="flex justify-end px-5 pb-1">
-              <button onClick={onClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">
-                <X className="h-4 w-4 text-ink-2" />
-              </button>
-            </div>
-
-            <div className="px-5 overflow-y-auto" style={{ maxHeight: '75vh', paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
-              {/* Banner */}
-              {group.banner_url && (
-                <div className="relative h-32 rounded-2xl overflow-hidden mb-4">
-                  <img src={group.banner_url} alt={group.name} className="w-full h-full object-cover" />
-                </div>
-              )}
-
-              {/* Name */}
-              <h2 className="text-[18px] font-bold text-ink">{group.name}</h2>
-
-              {/* City */}
-              {group.city && (
-                <div className="flex items-center gap-1 mt-1">
-                  <MapPin className="h-3.5 w-3.5 text-ink-2" />
-                  <p className="text-[13px] text-ink-2">{group.city}</p>
-                </div>
-              )}
-
-              {/* Badges row */}
-              <div className="flex items-center gap-2 mt-3 flex-wrap">
-                {/* Visibility */}
-                {group.visibility === 'private' ? (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-2.5 py-1">
-                    <Lock className="h-3 w-3" /> {t('community.group_private')}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-court-700 bg-court-50 rounded-full px-2.5 py-1">
-                    <Globe className="h-3 w-3" /> {group.visibility === 'public' ? 'Public' : t('community.group_open')}
-                  </span>
-                )}
-
-                {/* Member count */}
-                <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-2.5 py-1">
-                  <Users className="h-3 w-3" /> {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
-                </span>
-
-                {/* Ringers */}
-                {group.allow_ringers && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-warn bg-warn-50 rounded-full px-2.5 py-1">
-                    <UserCheck className="h-3 w-3" /> {t('community.welcomes_ringers')}
-                  </span>
-                )}
-              </div>
-
-              {/* Description */}
-              {group.description && (
-                <p className="text-[13px] text-ink-2 mt-4 leading-relaxed">{group.description}</p>
-              )}
-
-              {/* Action buttons */}
-              <div className="mt-6 mb-4 space-y-3">
-                {isPending ? (
-                  <div className="w-full rounded-2xl bg-hairline py-3.5 text-center text-[14px] font-semibold text-ink-2">
-                    {t('community.group_requested')}
-                  </div>
-                ) : isPendingRinger ? (
-                  <div className="w-full rounded-2xl bg-warn-50 border border-warn py-3.5 text-center text-[14px] font-semibold text-warn">
-                    {t('community.ringer_offer_pending')}
-                  </div>
-                ) : isRinger ? (
-                  <div className="w-full rounded-2xl bg-warn-50 border border-warn py-3.5 text-center text-[14px] font-semibold text-warn">
-                    {t('community.already_ringer')}
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => onJoin(group.id)}
-                      disabled={isJoining}
-                      className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white active:scale-[0.98] transition-transform disabled:opacity-50"
-                    >
-                      {isJoining ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
-                    </button>
-                    {showRingerOffer && (
-                      <button
-                        onClick={() => onOfferRinger(group.id)}
-                        disabled={ringerOfferPending}
-                        className="w-full rounded-2xl border border-warn bg-warn-50 py-3 text-[13px] font-semibold text-warn active:scale-[0.98] transition-transform disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        {ringerOfferPending ? t('community.offering') : t('community.offer_ringer')}
-                        <button type="button" onClick={(e) => { e.stopPropagation(); setShowRingerInfo(!showRingerInfo) }} className="ml-1">
-                          <Info className="h-3.5 w-3.5 text-warn" />
-                        </button>
-                      </button>
-                    )}
-                    {showRingerInfo && (
-                      <p className="text-[11px] text-ink-2 leading-relaxed px-1">
-                        {t('community.ringer_info')}
-                      </p>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
-  )
-}
-
-// ── Discover Card ─────────────────────────────────────────────────────────────
-
-function DiscoverCard({ group, index, onJoin, joiningGroupId, onPreview }: { group: DiscoverGroup; index: number; onJoin: (id: string) => void; joiningGroupId: string | undefined; onPreview: (g: DiscoverGroup) => void }) {
-  const { t } = useTranslation()
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 }}
-      onClick={() => onPreview(group)}
-      className="bg-white rounded-2xl border border-hairline px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
-          <h3 className="text-[14px] font-bold text-ink truncate">{group.name}</h3>
-          {group.city && (
-            <div className="flex items-center gap-1 mt-0.5">
-              <MapPin className="h-3 w-3 text-ink-2" />
-              <p className="text-[12px] text-ink-2">{group.city}</p>
-            </div>
-          )}
-          <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-            <span className="inline-flex items-center gap-1 text-[12px] text-ink-2">
-              <Users className="h-3 w-3 text-ink-2" />
-              {group.memberCount === 1 ? t('community.member', { count: 1 }) : t('community.members', { count: group.memberCount })}
-            </span>
-            {group.visibility === 'private' ? (
-              <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-1.5 py-0.5">
-                <Lock className="h-2.5 w-2.5" /> {t('community.group_private')}
-              </span>
-            ) : group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true ? (
-              <span className="text-[11px] font-semibold text-court-700 bg-court-50 rounded-full px-1.5 py-0.5">{t('community.group_open')}</span>
-            ) : (
-              <span className="text-[11px] font-semibold text-warn bg-warn-50 rounded-full px-1.5 py-0.5">{t('community.group_request')}</span>
-            )}
-          </div>
-          {group.description && (
-            <p className="text-[12px] text-ink-2 mt-1 line-clamp-2">{group.description}</p>
-          )}
-        </div>
-
-        {group.membershipStatus === 'pending' ? (
-          <span className="inline-flex items-center rounded-xl bg-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2 flex-shrink-0 self-start mt-0.5">
-            {t('community.group_requested')}
-          </span>
-        ) : group.membershipStatus === 'approved' ? (
-          <span className="inline-flex items-center rounded-xl bg-court-50 border border-court-100 px-3 py-1.5 text-[12px] font-bold text-court-700 flex-shrink-0 self-start mt-0.5">
-            {t('community.member_btn')}
-          </span>
-        ) : (() => {
-          const isAutoJoin = group.visibility === 'open' || group.visibility === 'public' || group.auto_approve === true
-          return (
-            <button
-              onClick={(e) => { e.stopPropagation(); onJoin(group.id) }}
-              disabled={joiningGroupId === group.id}
-              className="inline-flex items-center rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 self-start mt-0.5 active:scale-95 transition-transform disabled:opacity-50"
-            >
-              {joiningGroupId === group.id ? t('community.joining') : isAutoJoin ? t('community.join_btn') : t('community.request_to_join')}
-            </button>
-          )
-        })()}
-      </div>
-    </motion.div>
-  )
-}
-
-// ── Upcoming Events ─────────────────────────────────────────────────────────
-
-function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userGroupIds: string[] }) {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-  const locale = useDateLocale()
-  const today = new Date().toISOString().split('T')[0]
-
-  const { data: events = [] } = useQuery({
-    queryKey: ['upcoming-events-community', userId, userGroupIds],
-    enabled: !!userId,
-    queryFn: async () => {
-      const filters = ['is_official.eq.true', `created_by.eq.${userId}`]
-      if (userGroupIds.length > 0) filters.push(`group_id.in.(${userGroupIds.join(',')})`)
-
-      const { data } = await supabase
-        .from('events')
-        .select('id, title, start_time, location, entry_fee_pence, is_official, group_id')
-        .gte('start_time', today)
-        .or(filters.join(','))
-        .order('start_time', { ascending: true })
-        .limit(6)
-      return data ?? []
-    },
-  })
-
-  return (
-    <section>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-[16px] font-bold text-ink">{t('community.upcoming_events')}</h2>
-      </div>
-      {events.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-          <p className="text-[13px] text-ink-2">{t('community.no_upcoming_events')}</p>
-        </div>
-      ) : (
-      <div className="space-y-2">
-        {events.map((e) => (
-          <button
-            key={e.id}
-            onClick={() => navigate(`/community/events/${e.id}`)}
-            className={cn(
-              'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
-              e.is_official ? 'border-court-100 bg-court-50/30' : 'border-hairline bg-white',
-            )}
-          >
-            <div className="flex items-center gap-2 mb-1">
-              {e.is_official && (
-                <span className="text-[11px] font-bold text-court bg-court-50 rounded-full px-2 py-0.5">{t('community.badge_official')}</span>
-              )}
-              {(e.entry_fee_pence ?? 0) > 0 ? (
-                <span className="text-[11px] font-semibold text-ink-2">{'\u00A3'}{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
-              ) : (
-                <span className="text-[11px] font-semibold text-court">{t('community.badge_free')}</span>
-              )}
-            </div>
-            <p className="text-[14px] font-bold text-ink">{e.title}</p>
-            <p className="text-[12px] text-ink-2 mt-0.5">
-              {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM \u00B7 HH:mm', { locale }) } catch { return e.start_time } })()}
-              {e.location && ` \u00B7 ${e.location}`}
-            </p>
-          </button>
-        ))}
-      </div>
-      )}
-    </section>
-  )
-}
-
-// ── Find a Coach ─────────────────────────────────────────────────────────────
-
-function CoachesSection({ userCity }: { userCity?: string | null }) {
-  const { t } = useTranslation()
-  const navigate = useNavigate()
-
-  const { data: coaches = [] } = useQuery({
-    queryKey: ['coaches-nearby', userCity],
-    queryFn: async () => {
-      let q = supabase
-        .from('profiles')
-        .select('id, name, avatar_url, city, internal_ranking')
-        .eq('account_type', 'coach')
-        .limit(6)
-      if (userCity) q = q.ilike('city', `%${userCity}%`)
-      const { data } = await q
-      return data ?? []
-    },
-  })
-
-  return (
-    <section>
-      <h2 className="text-[16px] font-bold text-ink mb-3">{t('community.find_a_coach')}</h2>
-      {coaches.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-          <p className="text-[13px] text-ink-2">{t('community.no_coaches_coming')}</p>
-        </div>
-      ) : (
-      <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
-        {coaches.map((c) => (
-          <button
-            key={c.id}
-            onClick={() => navigate(`/players/${c.id}`)}
-            className="flex-shrink-0 w-32 flex flex-col items-center rounded-2xl border border-hairline bg-white p-3 text-center active:scale-[0.97] transition-transform"
-          >
-            <PlayerAvatar name={c.name} avatarUrl={c.avatar_url} size="lg" />
-            <p className="text-[12px] font-bold text-ink mt-2 truncate w-full">{c.name}</p>
-            <span className="text-[11px] font-semibold text-court bg-court-50 rounded-full px-2 py-0.5 mt-1">{t('community.badge_coach')}</span>
-            {c.city && <p className="text-[11px] text-ink-2 mt-0.5">{c.city}</p>}
-          </button>
-        ))}
-      </div>
-      )}
-    </section>
-  )
-}
 
 // ── Nearby Venues ────────────────────────────────────────────────────────────
 
@@ -950,26 +533,14 @@ export function CommunityPage() {
   const location     = useLocation()
   const queryClient  = useQueryClient()
   const { t }        = useTranslation()
-  const [search, setSearch]                   = useState('')
-  const [activeFilter, setActiveFilter]       = useState<string | null>(null)
-  const [sortBy, setSortBy]                   = useState('newest')
   const [showCreateSheet, setShowCreateSheet] = useState(false)
-  const [playerSearch, setPlayerSearch]       = useState('')
-  const [playerCityFilter, setPlayerCityFilter] = useState(false)
-  const [previewGroup, setPreviewGroup] = useState<DiscoverGroup | null>(null)
 
-  useEffect(() => {
-    if (profile?.city) setPlayerCityFilter(true)
-  }, [profile?.city])
 
   const userId = profile?.id ?? ''
 
   // Section refs for QuickLinks + hash scroll
   const groupsRef = useRef<HTMLElement>(null)
-  const playersRef = useRef<HTMLElement>(null)
-  const coachesRef = useRef<HTMLElement>(null)
   const venuesRef = useRef<HTMLElement>(null)
-  const eventsRef = useRef<HTMLElement>(null)
   const connectionsRef = useRef<HTMLElement>(null)
 
   // Queries
@@ -979,19 +550,20 @@ export function CommunityPage() {
   const { data: pendingRequests = [] } = usePendingRequests(userId)
   const myGroups = allMyGroups.filter(g => g.memberStatus === 'approved')
   const ringerGroups = allMyGroups.filter(g => g.memberStatus === 'ringer')
-  const myGroupIds = allMyGroups.map((g) => g.id)
 
-  const { data: discoverGroups = [], isLoading: loadingDiscover } = useDiscoverGroups(
-    userId, search, myGroupIds, activeFilter, profile?.city ?? null, sortBy,
-  )
 
-  const { data: foundPlayers = [] } = useFindPlayers(
-    userId,
-    playerSearch,
-    playerCityFilter ? (profile?.city ?? null) : null,
-  )
 
   // Quick links config
+  const { data: playerCount = 0 } = useQuery<number>({
+    queryKey: ['community-player-count'],
+    staleTime: 10 * 60_000,
+    queryFn: async () => {
+      const { count } = await supabase
+        .from('profiles').select('id', { count: 'exact', head: true })
+      return count ?? 0
+    },
+  })
+
   const { data: venueCount = 0 } = useQuery<number>({
     queryKey: ['community-venue-count'],
     staleTime: 24 * 60 * 60_000,
@@ -1015,63 +587,7 @@ export function CommunityPage() {
 
   // ── Mutations ──────────────────────────────────────────────────────────────
 
-  const joinMutation = useMutation({
-    mutationFn: async (groupId: string) => {
-      const group = discoverGroups.find((g) => g.id === groupId)
-      const isOpen = group?.visibility === 'open' || group?.visibility === 'public'
-      const autoApprove = isOpen || group?.auto_approve === true
-      const status = autoApprove ? 'approved' : 'pending'
-      const { error } = await supabase.from('group_members').insert({
-        group_id: groupId, user_id: userId, role: 'member', status,
-      })
-      if (error) {
-        if (error.code === '23505') throw new Error('duplicate')
-        throw error
-      }
-      return { autoApprove, groupName: group?.name }
-    },
-    onSuccess: (_data, _groupId) => {
-      const msg = _data?.autoApprove
-        ? t('community.joined_group_name', { name: _data.groupName ?? '' })
-        : t('community.request_sent')
-      toast.success(msg)
-      if (_data?.autoApprove) queryClient.invalidateQueries({ queryKey: ['my-groups', userId] })
-      queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })
-    },
-    onError: (err: Error) => {
-      if (err.message === 'duplicate') {
-        toast.error(t('community.join_declined_contact_admin'))
-      } else {
-        toast.error(err.message || t('community.join_error'))
-      }
-    },
-  })
 
-  const ringerOfferMutation = useMutation({
-    mutationFn: async (groupId: string) => {
-      const group = discoverGroups.find((g) => g.id === groupId)
-      const { error } = await supabase.from('group_members').insert({
-        group_id: groupId, user_id: userId, role: 'member', status: 'pending_ringer',
-      })
-      if (error) {
-        if (error.code === '23505') throw new Error('duplicate')
-        throw error
-      }
-      return group?.name
-    },
-    onSuccess: (name, groupId) => {
-      toast.success(t('community.ringer_offer_sent', { name: name ?? '' }))
-      queryClient.invalidateQueries({ queryKey: ['discover-groups'] })
-      setPreviewGroup(prev => prev?.id === groupId ? { ...prev, membershipStatus: 'pending_ringer' } : prev)
-    },
-    onError: (err: Error) => {
-      if (err.message === 'duplicate') {
-        toast.error(t('community.join_declined_contact_admin'))
-      } else {
-        toast.error(err.message || t('community.join_error'))
-      }
-    },
-  })
 
   const cancelRequestMutation = useMutation({
     mutationFn: async (groupId: string) => {
@@ -1081,48 +597,11 @@ export function CommunityPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['pending-requests', userId] })
-      queryClient.invalidateQueries({ queryKey: ['discover-groups', userId, search] })
+      queryClient.invalidateQueries({ queryKey: ['all-groups'] })
     },
   })
 
-  const connectMutation = useMutation({
-    mutationFn: async (targetId: string) => {
-      const { error } = await supabase.from('player_connections').insert({
-        user_id: userId, connected_user_id: targetId, status: 'pending',
-      })
-      if (error) throw error
 
-      sendNotification({
-        user_id: targetId,
-        type: 'connection_request',
-        title: t('community.notif_connection_request'),
-        message: `${profile?.name ?? 'A player'} wants to connect with you.`,
-        related_id: userId,
-      })
-    },
-    onSuccess: () => {
-      toast.success(t('community.toast_connection_sent'))
-      queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
-    },
-  })
-
-  const acceptInlineMutation = useMutation({
-    mutationFn: async (requesterId: string) => {
-      const { error } = await supabase.rpc('accept_connection_request', { p_requester_id: requesterId })
-      if (error) throw error
-      sendNotification({
-        user_id: requesterId,
-        type: 'connection_accepted',
-        title: t('community.notif_connection_accepted'),
-        message: `${profile?.name ?? 'A player'} accepted your connection request.`,
-        related_id: userId,
-      })
-    },
-    onSuccess: () => {
-      toast.success(t('community.toast_connection_accepted'))
-      queryClient.invalidateQueries({ queryKey: ['my-connections', userId] })
-    },
-  })
 
   // Merged groups list: approved + ringer (with badge)
   const mergedGroups = [
@@ -1130,16 +609,7 @@ export function CommunityPage() {
     ...ringerGroups.map(g => ({ ...g, badge: t('community.badge_ringer') as string | undefined })),
   ]
 
-  // Connect button state helper
-  function getConnectState(playerId: string): 'none' | 'pending_out' | 'pending_in' | 'accepted' {
-    if (connections.accepted.has(playerId)) return 'accepted'
-    if (connections.pendingOutgoing.has(playerId)) return 'pending_out'
-    if (connections.incomingRequests.some(r => r.user_id === playerId)) return 'pending_in'
-    return 'none'
-  }
 
-  const inlineDiscoverGroups = discoverGroups.slice(0, 6)
-  const inlinePlayers = foundPlayers.slice(0, 8)
 
   return (
     <div className="min-h-full bg-surface pb-32">
@@ -1155,10 +625,9 @@ export function CommunityPage() {
         <DirectoryGrid
           counts={{
             groups: allMyGroups.length || undefined,
-            players: foundPlayers.length || undefined,
+            players: playerCount || undefined,
             venues: venueCount || undefined,
           }}
-          refs={{ groups: groupsRef, players: playersRef, coaches: coachesRef, venues: venuesRef, events: eventsRef }}
         />
 
         {/* Open Matches link.
@@ -1300,199 +769,10 @@ export function CommunityPage() {
           )}
         </section>
 
-        {/* ── Find Groups (was "Discover") ── */}
-        <section>
-          <h2 className="text-[16px] font-bold text-ink mb-3">{t('community.find_groups')}</h2>
-
-          <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t('community.search_placeholder')}
-              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
-            />
-          </div>
-
-          <div className="flex gap-2 mb-2 overflow-x-auto no-scrollbar pb-0.5">
-            {[
-              { key: 'near_me',          label: t('community.filter_near_me')       },
-              { key: 'open_to_join',     label: t('community.filter_open_to_join')  },
-              { key: 'welcomes_ringers', label: t('community.filter_welcomes_ringers') },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-                className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${
-                  activeFilter === key
-                    ? 'bg-court text-white border-court'
-                    : 'bg-white text-ink-2 border-hairline'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-            <span className="text-ink-3 self-center">|</span>
-            {[
-              { key: 'newest',       label: t('community.filter_newest')        },
-              { key: 'most_members', label: t('community.filter_most_members')  },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setSortBy(key)}
-                className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium border transition-colors ${
-                  sortBy === key
-                    ? 'bg-court text-white border-court'
-                    : 'bg-surface text-ink-2 border-hairline'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {loadingDiscover ? (
-            <div className="space-y-3">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />
-              ))}
-            </div>
-          ) : discoverGroups.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-              <p className="text-[13px] font-semibold text-ink-2">
-                {search.trim() ? t('community.no_groups_found') : t('community.no_public_groups_yet')}
-              </p>
-              <p className="text-[12px] text-ink-2 mt-1">{t('community.be_first_create_above')}</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {inlineDiscoverGroups.map((group, i) => (
-                <DiscoverCard key={group.id} group={group} index={i} onJoin={(id) => joinMutation.mutate(id)} joiningGroupId={joinMutation.isPending ? joinMutation.variables : undefined} onPreview={(g) => setPreviewGroup(g)} />
-              ))}
-              {discoverGroups.length > 6 && (
-                <button
-                  onClick={() => navigate('/community/groups')}
-                  className="w-full text-center py-2.5 text-[13px] font-semibold text-court"
-                >
-                  {t('community.show_all_groups', { count: discoverGroups.length })}
-                </button>
-              )}
-            </div>
-          )}
-        </section>
 
 
-        {/* ── Find Players ── */}
-        <section ref={playersRef} id="players" style={{ scrollMarginTop: '120px' }}>
-          <h2 className="text-[16px] font-bold text-ink mb-3">{t('community.find_players')}</h2>
-          <div className="relative mb-2">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
-            <input
-              type="text"
-              value={playerSearch}
-              onChange={(e) => setPlayerSearch(e.target.value)}
-              placeholder={t('community.search_players')}
-              style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
-            />
-          </div>
-          {profile?.city && (
-            <button
-              onClick={() => setPlayerCityFilter((v) => !v)}
-              className={`mb-3 rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${
-                playerCityFilter
-                  ? 'bg-court text-white border-court'
-                  : 'bg-white text-ink-2 border-hairline'
-              }`}
-            >
-              {t('community.near_me_city', { city: profile.city })}
-            </button>
-          )}
-          {foundPlayers.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-              <p className="text-[13px] font-semibold text-ink-2">
-                {playerSearch.trim() ? t('community.no_players_found') : t('community.no_players_yet')}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {inlinePlayers.map((p) => {
-                const state = getConnectState(p.id)
-                return (
-                  <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface border border-transparent">
-                    <button
-                      onClick={() => navigate(`/players/${p.id}`)}
-                      className="flex items-center gap-3 flex-1 min-w-0 text-left"
-                    >
-                      <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
-                        {p.city && <p className="text-[11px] text-ink-2">{p.city}</p>}
-                      </div>
-                    </button>
-                    {p.internal_ranking != null && (
-                      <span className="text-[11px] font-bold text-court-700 bg-court-50 border border-court-100 rounded-full px-2 py-0.5 flex-shrink-0">
-                        {p.internal_ranking} ELO
-                      </span>
-                    )}
-                    {p.id !== userId && (
-                      <>
-                        {state === 'none' && (
-                          <button
-                            onClick={() => connectMutation.mutate(p.id)}
-                            disabled={connectMutation.isPending}
-                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white hover:bg-court-700 transition-colors"
-                          >
-                            <UserPlus className="h-3 w-3" /> {t('community.connect')}
-                          </button>
-                        )}
-                        {state === 'pending_out' && (
-                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
-                            <Clock className="h-3 w-3" /> {t('community.pending')}
-                          </span>
-                        )}
-                        {state === 'pending_in' && (
-                          <button
-                            onClick={() => acceptInlineMutation.mutate(p.id)}
-                            disabled={acceptInlineMutation.isPending}
-                            className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white transition-colors"
-                          >
-                            <Check className="h-3 w-3" /> {t('community.accept')}
-                          </button>
-                        )}
-                        {state === 'accepted' && (
-                          <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
-                            <Check className="h-3 w-3" /> {t('community.connected')}
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )
-              })}
-              {foundPlayers.length > 8 && (
-                <button
-                  onClick={() => navigate('/community/players')}
-                  className="w-full text-center py-2.5 text-[13px] font-semibold text-court"
-                >
-                  {t('community.show_all_players', { count: foundPlayers.length })}
-                </button>
-              )}
-            </div>
-          )}
-        </section>
 
-        {/* ── Upcoming Events ── */}
-        <section ref={eventsRef} id="events" style={{ scrollMarginTop: '120px' }}>
-          <UpcomingEventsSection userId={userId} userGroupIds={allMyGroups.map(g => g.id)} />
-        </section>
 
-        {/* ── Find a Coach ── */}
-        <section ref={coachesRef as React.RefObject<HTMLElement>} id="coaches" style={{ scrollMarginTop: '120px' }}>
-          <CoachesSection userCity={profile?.city} />
-        </section>
 
       </div>
 
@@ -1515,15 +795,6 @@ export function CommunityPage() {
 
 
 
-      <GroupPreviewSheet
-        group={previewGroup}
-        open={!!previewGroup}
-        onClose={() => setPreviewGroup(null)}
-        onJoin={(id) => joinMutation.mutate(id)}
-        joiningGroupId={joinMutation.isPending ? joinMutation.variables : undefined}
-        onOfferRinger={(id) => ringerOfferMutation.mutate(id)}
-        ringerOfferPending={ringerOfferMutation.isPending}
-      />
     </div>
   )
 }

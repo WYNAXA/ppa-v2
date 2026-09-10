@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
@@ -6,6 +6,7 @@ import { Search, MapPin, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
+import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 
 /**
  * Courts — the landing state of the booking flow, built to `Courts.dc.html`.
@@ -36,6 +37,12 @@ type Venue = {
   distanceMiles: number | null
   pricePence: number | null
   bookable: boolean
+  /**
+   * Already with Padel Players — claimed, onboarded, or live. Distinct from
+   * `bookable`, which only says whether you can book *through the app today*.
+   * See `useVenuesNearby` for why the two are not the same question.
+   */
+  onPpa: boolean
 }
 
 const KM_PER_MILE = 1.609344
@@ -50,6 +57,30 @@ function haversineMiles(aLat: number, aLng: number, bLat: number, bLng: number) 
   return 2 * R * Math.asin(Math.sqrt(s))
 }
 
+/**
+ * Venues near the player, split into partners and the rest.
+ *
+ * WHY "CLAIMED" IS ITS OWN QUESTION
+ *   UAT: *"make sure if it is claimed then it does not show."* Correct, and it
+ *   was happening: three venues with active managers — Preggio Padel, Roshni's
+ *   Padel Venue and Bristol Padel Test — sat in "Also near you" with an
+ *   "Ask them" button, inviting their own managers to join a platform they are
+ *   already on. Two more (Bandeja Padel Club, Filton Padel) are onboarded with a
+ *   plan tier and were doing the same.
+ *
+ *   Root cause: the list knew one fact, `ppa_bookable`, and used it to answer
+ *   two questions. `ppa_bookable` means *you can book here in the app today*. It
+ *   does not mean *this venue is with us* — a venue is claimed and onboarded
+ *   well before its booking goes live, and all five above are exactly that.
+ *
+ *   The signal is the presence of a `venues` row: that table is the Hub side of
+ *   a venue and only exists once one has been onboarded. Deliberately NOT
+ *   `venue_users` — its RLS lets a player read only their own rows, so querying
+ *   it from the app returns empty for everyone and every venue would silently
+ *   look unclaimed. `venues` is `Public can read venues`. A `venues_id` that
+ *   points at nothing is treated as unclaimed, so the check is the row coming
+ *   back rather than the column being non-null.
+ */
 function useVenuesNearby(lat: number | null, lng: number | null) {
   return useQuery<{ partner: Venue[]; others: Venue[]; total: number }>({
     queryKey: ['courts-home', lat, lng],
@@ -69,6 +100,20 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
         supabase.from('padel_venues').select('venues_id', { count: 'exact', head: true }),
       ])
 
+      // Which of these are already on Padel Players. Only a handful of the
+      // 6,099 directory rows carry a `venues_id` at all, so this is one small
+      // `in` rather than a join across the directory.
+      const linkedIds = [...new Set(
+        [...(bookable ?? []), ...(nearby ?? [])]
+          .map((v) => (v as Record<string, unknown>).venues_id as string | null)
+          .filter((id): id is string => !!id),
+      )]
+      const onPpaIds = new Set<string>()
+      if (linkedIds.length > 0) {
+        const { data: hubVenues } = await supabase.from('venues').select('id').in('id', linkedIds)
+        for (const row of hubVenues ?? []) onPpaIds.add(row.id as string)
+      }
+
       const shape = (v: Record<string, unknown>): Venue => {
         const vLat = v.latitude != null ? Number(v.latitude) : null
         const vLng = v.longitude != null ? Number(v.longitude) : null
@@ -86,6 +131,7 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
               : null,
           pricePence: (v.price_pence as number) ?? ((v.price_per_hour as number) ?? null),
           bookable: v.ppa_bookable === true,
+          onPpa: v.ppa_bookable === true || (!!v.venues_id && onPpaIds.has(v.venues_id as string)),
         }
       }
 
@@ -118,6 +164,7 @@ export function CourtsHome({
 }: CourtsHomeProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
+  const [asking, setAsking] = useState<Venue | null>(null)
   const { data } = useVenuesNearby(lat, lng)
 
   const partner = data?.partner ?? []
@@ -258,24 +305,44 @@ export function CourtsHome({
                 <span className="num truncate text-[12px] leading-4 text-ink-2">
                   {[
                     v.distanceMiles != null ? formatDistance(v.distanceMiles) : v.city,
-                    v.platform && v.platform !== 'Own'
-                      ? t('courts.books_via', { platform: v.platform })
-                      : v.platform === 'Own'
-                        ? t('courts.books_direct')
-                        : t('courts.not_on_ppa'),
+                    v.onPpa
+                      ? t('courts.booking_coming_soon')
+                      : v.platform && v.platform !== 'Own'
+                        ? t('courts.books_via', { platform: v.platform })
+                        : v.platform === 'Own'
+                          ? t('courts.books_direct')
+                          : t('courts.not_on_ppa'),
                   ].filter(Boolean).join(' · ')}
                 </span>
               </button>
-              <button
-                onClick={() => navigate(`/venues/${v.id}`)}
-                className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold leading-[15px] text-ink-2"
-              >
-                {t('courts.ask_them')}
-              </button>
+              {/* "Ask them" used to call the same `navigate` as the row beside
+                  it — a control that named an action and performed a
+                  navigation. It now opens the message, and it is not offered at
+                  all to a venue that is already with us: asking a club's own
+                  manager to join is worse than showing nothing. */}
+              {v.onPpa ? (
+                <span className="flex-shrink-0 whitespace-nowrap rounded-pill bg-court-100 px-2.5 py-1 text-[11px] font-bold leading-[14px] text-court-700">
+                  {t('courts.on_ppa')}
+                </span>
+              ) : (
+                <button
+                  onClick={() => setAsking(v)}
+                  className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold leading-[15px] text-ink-2"
+                >
+                  {t('courts.ask_them')}
+                </button>
+              )}
             </div>
           ))}
         </section>
       )}
+
+      <AskVenueSheet
+        open={!!asking}
+        onClose={() => setAsking(null)}
+        venueName={asking?.name ?? ''}
+        city={asking?.city ?? null}
+      />
     </div>
   )
 }

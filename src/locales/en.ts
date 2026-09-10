@@ -50,6 +50,8 @@ export default {
     also_near_you: 'Also near you',
     n_venues: '{{count}} venues',
     not_on_ppa: 'not on Padel Players yet',
+    on_ppa: 'On PPA',
+    booking_coming_soon: 'on Padel Players — booking coming soon',
     ask_them: 'Ask them',
     indoor: 'Indoor',
     outdoor: 'Outdoor',

@@ -47,6 +47,8 @@ export default {
     "also_near_you": "Tamb\u00e9m perto de si",
     "n_venues": "{{count}} locais",
     "not_on_ppa": "ainda n\u00e3o est\u00e1 no Padel Players",
+    "on_ppa": "No PPA",
+    "booking_coming_soon": "no Padel Players — reservas em breve",
     "ask_them": "Perguntar",
     "indoor": "Interior",
     "outdoor": "Exterior",

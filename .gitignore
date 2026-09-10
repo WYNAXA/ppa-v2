@@ -42,3 +42,7 @@ pages.html
 home.html
 stake.html
 invite.html
+ask.html
+
+# Screenshot rig scratch
+shoot*.tmp.mjs

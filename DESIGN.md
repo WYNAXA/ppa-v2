@@ -345,3 +345,67 @@ different amount depending on which door you came through, and none of the four
 matched the artboard. There is now a `--color-scrim` token — `ink` at 84%, the
 Play artboard's value, warmer than pure black and dark enough that the sheet
 reads as the only live surface — used as `bg-scrim` in all 48 places.
+
+### Ask them
+
+UAT: *"the same happens when you click on Ask them - what does this do and would
+it show a qr code or a pop up with a ready made message to forward to the
+venue."*
+
+The honest answer to "what does this do" was: nothing the venue's name didn't
+already do. `Ask them` called the same `navigate('/venues/:id')` as the row
+beside it. The defect was a control whose label described an action it never
+performed, so pointing it at a different page would have been the patch.
+
+It now opens `AskVenueSheet` with the message in full — who is asking, what the
+app is, and a link to the ForVenues page — and hands it to the player's own
+share sheet, with WhatsApp, email and copy beside it. The message is shown
+*before* anything is sent: a player is about to put their own name on a message
+to their own club, and a share sheet that fires with unseen text is how you get
+someone to never press it twice. Nothing is ever sent on their behalf — that is
+their relationship with their club, and a message arriving from the app rather
+than from them is spam.
+
+**On the QR code**, also asked: a QR only works while you are standing at the
+desk with your phone out, and a player who has just noticed their local club is
+missing is usually at home. A forwardable message reaches the club either way,
+and if they *are* at the desk they can hold up the phone and let the manager
+read it. QR is a venue-desk optimisation worth revisiting if the message route
+turns out not to convert; it is not the primary answer.
+
+### Ask them — the QR, and not asking a club that is already with us
+
+Both from review of the sheet above.
+
+**The QR is a second mode, not a second sheet.** Away from the club you forward
+a message; standing at the desk you hold up a code and let them scan it. Same
+ask, two deliveries, so it is a tab inside `AskVenueSheet` rather than another
+entry point. Message stays the default — the player who has just noticed their
+club is missing is usually not at the club — and the QR view carries a link back
+to it. The code is drawn on white with a wide quiet zone whatever the theme: a
+scanner needs the contrast, and `surface` is warm enough to cost reads on a dim
+phone at a desk.
+
+**A claimed venue is no longer asked.** Five venues were being shown "Ask them"
+while already on Padel Players — Preggio Padel, Roshni's Padel Venue and Bristol
+Padel Test have active managers; Bandeja Padel Club and Filton Padel are
+onboarded with a plan tier. Every one of them was inviting its own manager to
+join a platform they are already on.
+
+Root cause: the list knew one fact, `ppa_bookable`, and used it to answer two
+questions. `ppa_bookable` means *you can book here in the app today*. It does not
+mean *this venue is with us* — a venue is claimed and onboarded well before its
+booking goes live, and all five are exactly that. Fix class: root-cause;
+special-casing the five names would have been the patch.
+
+The signal is the presence of a row in `venues`, the Hub side of a venue, which
+only exists once one has been onboarded. Deliberately **not** `venue_users`: its
+RLS lets a player read only their own rows, so querying it from the app returns
+empty for everyone and every venue would silently look unclaimed — the same
+class of bug as the league snapshot reading a column that does not exist.
+`venues` is `Public can read venues`. A `venues_id` pointing at nothing counts as
+unclaimed, so the test is the row coming back, not the column being non-null.
+
+Those venues now show an **On PPA** chip and read "on Padel Players — booking
+coming soon" instead of their booking platform. Two new keys in all eight
+locales.

@@ -47,6 +47,8 @@ export default {
     "also_near_you": "\u00c4ven n\u00e4ra dig",
     "n_venues": "{{count}} anl\u00e4ggningar",
     "not_on_ppa": "inte p\u00e5 Padel Players \u00e4n",
+    "on_ppa": "P\u00e5 PPA",
+    "booking_coming_soon": "p\u00e5 Padel Players — bokning kommer snart",
     "ask_them": "Fr\u00e5ga dem",
     "indoor": "Inomhus",
     "outdoor": "Utomhus",

@@ -47,6 +47,8 @@ export default {
     "also_near_you": "\u0623\u064a\u0636\u0627\u064b \u0628\u0627\u0644\u0642\u0631\u0628 \u0645\u0646\u0643",
     "n_venues": "{{count}} \u0645\u0644\u0639\u0628",
     "not_on_ppa": "\u0644\u064a\u0633 \u0639\u0644\u0649 Padel Players \u0628\u0639\u062f",
+    "on_ppa": "\u0639\u0644\u0649 PPA",
+    "booking_coming_soon": "\u0639\u0644\u0649 Padel Players \u2014 \u0627\u0644\u062d\u062c\u0632 \u0642\u0631\u064a\u0628\u064b\u0627",
     "ask_them": "\u0627\u0633\u0623\u0644\u0647\u0645",
     "indoor": "\u0645\u063a\u0644\u0642",
     "outdoor": "\u0645\u0643\u0634\u0648\u0641",

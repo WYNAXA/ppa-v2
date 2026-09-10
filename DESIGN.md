@@ -216,8 +216,76 @@ Rename the pages first if the shorter labels are wanted.
 ### The centre mark
 
 The crossed-racket mark signed off on the design canvas was judged at ~150px.
-At its real size — 32px inside a 62px button — the two heads fuse into a heart,
-which in an app reads as "favourite". It was replaced with a single racket
-meeting the ball, which holds its head, throat and handle at 32px. If the
-crossed pair is wanted back it needs redrawing for the small size, not
-rescaling.
+At its real size — 32px inside a 62px button — the two heads fuse into a rounded
+outline that reads as a heart, which in an app means "favourite". A single-racket
+alternative was built and rejected; the crossed pair is what shipped, on the
+sign-off. It is in `BottomNav.tsx` as `PlayMark`. If it is ever revisited, the
+answer is redrawing the crossed pair for 32px — opening the angle between the
+heads so they do not close at the top — not rescaling either version.
+
+### The last off-palette families
+
+`scripts/codemod/semantic-colours.mjs` — 503 replacements across 56 files.
+
+UAT reported it as one card: *"when you click on other venues that do have
+playtomic it goes blue."* That blue panel was one of 95 blue sites, behind 225
+reds, 126 greens, 41 purples and 5 slates. Restyling the reported card would
+have left the class untouched.
+
+The mapping is semantic, not chromatic:
+
+| family | → | because |
+| --- | --- | --- |
+| `red` | `alert` | something is wrong: destructive, failed, negative delta |
+| `green` `emerald` `lime` | `court` | something is good: won, confirmed, positive delta |
+| `purple` `violet` `fuchsia` | `court` | decorative badge tints; the brand already owns "special" |
+| `slate` `zinc` `neutral` `stone` | `surface` / `hairline` / `ink-2` | a neutral pretending to be a hue |
+| `blue` `sky` `indigo` `cyan` | *split* | see below |
+
+Blue was carrying *"here is some information"* — external booking platforms,
+household links, format explainers. The palette has no info colour, and adding a
+fifth hue for a state that needs none is how a palette dies: an informational
+note is a plain card. So blue tints became `surface`, blue borders `hairline`,
+blue text `ink-2` — and blue *buttons*, which are actions rather than
+information, became `court`.
+
+Marketing (`src/components/marketing/`, `src/pages/Landing.tsx`) is excluded and
+still runs teal/orange. It is its own system. After this pass **zero** default
+Tailwind palette classes remain anywhere else in `src/`, verified against the
+built CSS as well as the source.
+
+Two emoji still stand in for icons — `RewardsCard` (🎾 stamps, 🥤 reward) and
+`GetTheAppCard` (📲). Emoji render in the platform's palette, not ours, so they
+are off-brand by construction; they are on screens UAT has not reached, and are
+noted here rather than changed blind.
+
+### The venue panel you could not leave
+
+UAT: *"there is a button to open in playtomic but if i dont want this and view
+another venue i cant."*
+
+Root cause was not the colour. Choosing a venue PPA does not book set
+`nonPpaVenue`, and the search results, the empty state and the near-you list were
+each guarded with `&& !nonPpaVenue` — so the whole list unmounted and was
+replaced by the panel. The only way back was a 12px grey text link below the
+buttons, with a `hover:` that resolved to its own colour.
+
+Fix class: root-cause. The panel now expands *inside* the venue row it belongs
+to (`ExternalVenuePanel` in `BookCourt.tsx`), the list never moves, the chevron
+rotates, and tapping the open row closes it — so two venues can be compared.
+Making the escape link a visible button would have been the workaround: it leaves
+the list destroyed.
+
+On embedding the platform in an iframe, also asked in UAT: Playtomic and
+PadelMates both send `X-Frame-Options`/`frame-ancestors`, so the browser refuses
+to render them in our frame — and taking a card payment inside a third party's
+iframe is not something we should build. `openVenueLink` is the honest
+equivalent: it opens their native app if installed, and falls back to the web.
+
+### Open Matches on Community
+
+It sat on `warn-50` behind a 🎾. `warn` means *this needs your attention*; an
+open match is an invitation. And the emoji rendered blue on Android, green on
+iOS. Open Matches and My Connections are the same kind of thing — two doors to
+finding people to play with — so they are now a matched pair on `court-50`, told
+apart by their words and glyphs rather than by hue.

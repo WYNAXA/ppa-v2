@@ -45,8 +45,8 @@ interface OpenLeague {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  active:    'bg-green-50 text-green-700',
-  upcoming:  'bg-blue-50 text-blue-700',
+  active:    'bg-court-50 text-court',
+  upcoming:  'bg-surface text-ink-2',
   completed: 'bg-hairline text-ink-2',
   draft:     'bg-warn-50 text-warn',
 }
@@ -300,13 +300,13 @@ export function LeagueDiscoveryPage() {
                   onClick={() => navigate(`/compete/leagues/${league.id}`)}
                   className="w-full flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-hairline text-left"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                    <Trophy className="w-5 h-5 text-purple-600" />
+                  <div className="w-10 h-10 rounded-xl bg-court-50 flex items-center justify-center shrink-0">
+                    <Trophy className="w-5 h-5 text-court" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[14px] font-semibold text-ink truncate">{league.name}</p>
                     <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-purple-50 text-purple-700">Official</span>
+                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-court-50 text-court">Official</span>
                       {league.format && (
                         <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-hairline text-ink-2 capitalize">
                           {league.format}

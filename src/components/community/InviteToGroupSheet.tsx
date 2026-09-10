@@ -117,8 +117,8 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
                       disabled={inviteMutation.isPending}
                       className="w-full flex items-center gap-3 rounded-xl border border-hairline bg-surface px-4 py-3 text-left active:scale-[0.98] transition-transform disabled:opacity-50"
                     >
-                      <div className="h-9 w-9 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
-                        <Users className="h-4 w-4 text-blue-500" />
+                      <div className="h-9 w-9 rounded-full bg-surface flex items-center justify-center flex-shrink-0">
+                        <Users className="h-4 w-4 text-ink-2" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-ink truncate">{g.name}</p>
@@ -129,7 +129,7 @@ export function InviteToGroupSheet({ open, onClose, playerId, playerName }: Invi
                 </div>
               )}
               {inviteMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mt-3">Failed to send invitation. Try again.</p>
+                <p className="text-[12px] text-alert text-center mt-3">Failed to send invitation. Try again.</p>
               )}
             </div>
           </motion.div>

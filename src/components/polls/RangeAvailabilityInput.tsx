@@ -131,7 +131,7 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                   return (
                     <div key={idx} className={cn(
                       "flex items-center gap-2 rounded-lg border px-3 py-2",
-                      isValid ? "border-hairline bg-surface" : "border-red-200 bg-red-50"
+                      isValid ? "border-hairline bg-surface" : "border-alert/40 bg-alert-50"
                     )}>
                       <select
                         value={range.start}
@@ -156,12 +156,12 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                       </select>
                       <button
                         onClick={() => removeRange(date, idx)}
-                        className="ml-auto text-ink-2 hover:text-red-500"
+                        className="ml-auto text-ink-2 hover:text-alert"
                       >
                         <X className="h-4 w-4" />
                       </button>
                       {!isValid && (
-                        <span className="text-[11px] text-red-500">Invalid</span>
+                        <span className="text-[11px] text-alert">Invalid</span>
                       )}
                     </div>
                   )

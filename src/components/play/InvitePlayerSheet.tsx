@@ -182,7 +182,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
               )}
 
               {inviteMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mb-3">{t('invite.failed')}</p>
+                <p className="text-[12px] text-alert text-center mb-3">{t('invite.failed')}</p>
               )}
 
               {results.length > 0 && (
@@ -259,7 +259,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                   />
                   <p className="text-[11px] text-ink-2 leading-snug">{t('invite.guest_share_hint', "We'll create an invite link — the share sheet opens so you can send it via WhatsApp or Messages. No number needed.")}</p>
                   {guestMutation.isError && (
-                    <p className="text-[12px] text-red-500">{t('invite.add_guest_failed')}</p>
+                    <p className="text-[12px] text-alert">{t('invite.add_guest_failed')}</p>
                   )}
                   <div className="flex gap-2">
                     <button

@@ -92,19 +92,19 @@ function NotifIcon({ type }: { type: string }) {
     case 'group_invite':
     case 'group_update':
     case 'group_join_request':
-      return <div className={`${base} bg-blue-50`}><Users className="w-4 h-4 text-blue-500" /></div>
+      return <div className={`${base} bg-surface`}><Users className="w-4 h-4 text-ink-2" /></div>
     case 'connection_request':
     case 'connection_accepted':
       return <div className={`${base} bg-court-50`}><Users className="w-4 h-4 text-court" /></div>
     case 'result_pending_verification':
     case 'result_verified':
-      return <div className={`${base} bg-green-50`}><CheckCheck className="w-4 h-4 text-green-500" /></div>
+      return <div className={`${base} bg-court-50`}><CheckCheck className="w-4 h-4 text-court" /></div>
     case 'result_disputed':
-      return <div className={`${base} bg-red-50`}><Trophy className="w-4 h-4 text-red-500" /></div>
+      return <div className={`${base} bg-alert-50`}><Trophy className="w-4 h-4 text-alert" /></div>
     case 'achievement':
-      return <div className={`${base} bg-purple-50`}><Star className="w-4 h-4 text-purple-500" /></div>
+      return <div className={`${base} bg-court-50`}><Star className="w-4 h-4 text-court" /></div>
     case 'court_booked':
-      return <div className={`${base} bg-green-50`}><BookOpen className="w-4 h-4 text-green-500" /></div>
+      return <div className={`${base} bg-court-50`}><BookOpen className="w-4 h-4 text-court" /></div>
     default:
       return <div className={`${base} bg-hairline`}><Bell className="w-4 h-4 text-ink-2" /></div>
   }

@@ -23,7 +23,7 @@ class ErrorBoundaryInner extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <div className="min-h-screen bg-white flex flex-col items-center justify-center px-8 text-center">
-          <div className="h-20 w-20 rounded-3xl bg-red-50 flex items-center justify-center mb-6">
+          <div className="h-20 w-20 rounded-3xl bg-alert-50 flex items-center justify-center mb-6">
             <span className="text-4xl">&#x26A0;&#xFE0F;</span>
           </div>
           <h1 className="text-[22px] font-bold text-ink mb-2">Something went wrong</h1>
@@ -53,7 +53,7 @@ export function SentryErrorBoundary({ children }: { children: ReactNode }) {
   return (
     <Sentry.ErrorBoundary fallback={({ eventId }) => (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center px-8 text-center">
-        <div className="h-20 w-20 rounded-3xl bg-red-50 flex items-center justify-center mb-6">
+        <div className="h-20 w-20 rounded-3xl bg-alert-50 flex items-center justify-center mb-6">
           <span className="text-4xl">&#x26A0;&#xFE0F;</span>
         </div>
         <h1 className="text-[22px] font-bold text-ink mb-2">Something went wrong</h1>

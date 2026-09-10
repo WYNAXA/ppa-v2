@@ -34,7 +34,7 @@ function CustomTooltip({ active, payload }: any) {
     <div className="bg-white rounded-xl border border-hairline shadow-lg px-3 py-2">
       <p className="text-[11px] text-ink-2">{d.label}</p>
       <p className="text-[14px] font-bold text-ink">{d.elo.toLocaleString()} ELO</p>
-      <p className={cn('text-[12px] font-semibold', d.change > 0 ? 'text-green-600' : d.change < 0 ? 'text-red-500' : 'text-ink-2')}>
+      <p className={cn('text-[12px] font-semibold', d.change > 0 ? 'text-court' : d.change < 0 ? 'text-alert' : 'text-ink-2')}>
         {d.change > 0 ? '+' : ''}{d.change}
       </p>
     </div>
@@ -165,7 +165,7 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
             <p className="text-[11px] text-ink-2">{selectedPoint.label}</p>
             <p className="text-[16px] font-bold text-ink">{selectedPoint.elo.toLocaleString()} ELO</p>
           </div>
-          <p className={cn('text-[13px] font-semibold', selectedPoint.change > 0 ? 'text-green-600' : selectedPoint.change < 0 ? 'text-red-500' : 'text-ink-2')}>
+          <p className={cn('text-[13px] font-semibold', selectedPoint.change > 0 ? 'text-court' : selectedPoint.change < 0 ? 'text-alert' : 'text-ink-2')}>
             {selectedPoint.change > 0 ? '+' : ''}{selectedPoint.change}
           </p>
         </div>
@@ -221,12 +221,12 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
       {thirtyDayTrend !== null && (
         <div className="flex items-center gap-1.5 mt-2">
           {thirtyDayTrend > 0
-            ? <TrendingUp className="h-3.5 w-3.5 text-green-600" />
-            : <TrendingDown className="h-3.5 w-3.5 text-red-500" />
+            ? <TrendingUp className="h-3.5 w-3.5 text-court" />
+            : <TrendingDown className="h-3.5 w-3.5 text-alert" />
           }
           <span className={cn(
             'text-[12px] font-semibold',
-            thirtyDayTrend > 0 ? 'text-green-600' : 'text-red-500'
+            thirtyDayTrend > 0 ? 'text-court' : 'text-alert'
           )}>
             {thirtyDayTrend > 0 ? '+' : ''}{thirtyDayTrend} {t('compete.elo_last_30d')}
           </span>

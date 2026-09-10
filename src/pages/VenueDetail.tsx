@@ -369,12 +369,12 @@ export function VenueDetailPage() {
           </div>
           <div className="flex gap-2 mt-2">
             {venue.ppa_bookable && (
-              <span className="text-xs font-medium bg-emerald-500 text-white px-2 py-0.5 rounded-full">
+              <span className="text-xs font-medium bg-court text-white px-2 py-0.5 rounded-full">
                 Book via PPA
               </span>
             )}
             {venue.is_verified && (
-              <span className="text-xs font-medium bg-blue-500 text-white px-2 py-0.5 rounded-full">
+              <span className="text-xs font-medium bg-court text-white px-2 py-0.5 rounded-full">
                 Verified \u2713
               </span>
             )}
@@ -392,7 +392,7 @@ export function VenueDetailPage() {
         {openStatus && (
           <div className={cn(
             'shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm',
-            !openStatus.isOpen && 'text-red-600',
+            !openStatus.isOpen && 'text-alert',
           )}>
             {'\u{1F550}'} {openStatus.todayHours
               ? (openStatus.isOpen ? `Open until ${openStatus.todayHours.close}` : 'Closed')
@@ -582,7 +582,7 @@ export function VenueDetailPage() {
                     </p>
                   </div>
                   {c.mine ? (
-                    <span className="text-[12px] font-semibold text-emerald-600 flex-shrink-0">Booked ✓</span>
+                    <span className="text-[12px] font-semibold text-court flex-shrink-0">Booked ✓</span>
                   ) : (
                     <button
                       disabled={full || bookClass.isPending}
@@ -648,8 +648,8 @@ export function VenueDetailPage() {
                       <span className={cn(
                         'ml-2 text-xs px-1.5 py-0.5 rounded-full',
                         openStatus.isOpen
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-red-100 text-red-600',
+                          ? 'bg-court-50 text-court'
+                          : 'bg-alert-50 text-alert',
                       )}>
                         {openStatus.isOpen ? 'Open now' : 'Closed'}
                       </span>
@@ -816,7 +816,7 @@ export function VenueDetailPage() {
                       {(v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0)} courts
                     </span>
                     {v.ppa_bookable && (
-                      <span className="text-[11px] font-medium bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">
+                      <span className="text-[11px] font-medium bg-court-50 text-court px-1.5 py-0.5 rounded-full">
                         PPA
                       </span>
                     )}

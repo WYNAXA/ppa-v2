@@ -430,9 +430,9 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
               {!isCreator && (
                 <button
                   onClick={() => removePlayer(p.id)}
-                  className="h-6 w-6 rounded-full bg-hairline hover:bg-red-100 flex items-center justify-center transition-colors flex-shrink-0"
+                  className="h-6 w-6 rounded-full bg-hairline hover:bg-alert-50 flex items-center justify-center transition-colors flex-shrink-0"
                 >
-                  <X className="h-3 w-3 text-ink-2 hover:text-red-500" />
+                  <X className="h-3 w-3 text-ink-2 hover:text-alert" />
                 </button>
               )}
             </div>
@@ -888,7 +888,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
               </AnimatePresence>
 
               {error && (
-                <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+                <p className="mt-4 rounded-xl bg-alert-50 px-4 py-3 text-sm text-alert">{error}</p>
               )}
             </div>
 

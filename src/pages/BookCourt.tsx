@@ -137,6 +137,103 @@ function openVenueLink(url: string, appScheme?: string) {
   }
 }
 
+/**
+ * The booking options for a venue PPA does not book directly.
+ *
+ * WHY IT LIVES INSIDE THE VENUE ROW
+ *   UAT: *"when you click on other venues that do have playtomic it goes blue
+ *   and there is a button to open in playtomic but if i dont want this and view
+ *   another venue i cant."*
+ *
+ *   Root cause — not the colour. Choosing an external venue set `nonPpaVenue`,
+ *   and the results list, the empty state and the near-you list were each
+ *   guarded with `&& !nonPpaVenue`, so the whole list unmounted and was replaced
+ *   by this panel. The only way back was a 12px grey text link under the
+ *   buttons. A detail view that destroys the list it was opened from is the
+ *   wrong shape: the panel now expands *inside* the row it belongs to, the list
+ *   never moves, and tapping the row again closes it.
+ *
+ *   Fix class: root-cause. A workaround would have been to restyle the link into
+ *   a visible "Back" button, which leaves the list destroyed.
+ *
+ * ON EMBEDDING THE PLATFORM IN AN IFRAME
+ *   Asked in UAT. Playtomic and PadelMates both send
+ *   `X-Frame-Options`/`frame-ancestors`, so a browser refuses to render them in
+ *   our frame — and even if they did not, taking a card payment inside someone
+ *   else's iframe is not something we should build. The app-scheme handoff in
+ *   `openVenueLink` is the closest honest equivalent: it opens their native app
+ *   if it is installed and falls back to the web.
+ */
+function ExternalVenuePanel({ venue, onClose }: { venue: Venue; onClose: () => void }) {
+  const platform = PLATFORM_LABELS[venue.booking_platform ?? '']
+  const platformLabel = platform?.label ?? venue.booking_platform ?? null
+  const bookingUrl = venue.booking_url?.trim()
+  const website = venue.website?.trim()
+  const phone = venue.phone?.trim()
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.18 }}
+      className="overflow-hidden"
+    >
+      <div className="mt-2 rounded-2xl border border-hairline bg-surface p-4">
+        {bookingUrl ? (
+          <>
+            <p className="mb-3 text-[13px] leading-[18px] text-ink-2">
+              Books via <strong className="font-bold text-ink">{platformLabel ?? 'an external platform'}</strong>.
+              {' '}You'll finish the booking in their app.
+            </p>
+            <button
+              onClick={() => openVenueLink(bookingUrl, platform?.appScheme)}
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
+            >
+              {platformLabel ? `Open in ${platformLabel}` : 'Book at venue'}
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </>
+        ) : website ? (
+          <>
+            <p className="mb-3 text-[13px] leading-[18px] text-ink-2">
+              Not bookable through Padel Players yet. Check availability on their website.
+            </p>
+            <button
+              onClick={() => window.open(website, '_blank', 'noopener,noreferrer')}
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
+            >
+              Visit venue website
+              <ChevronRight className="h-3.5 w-3.5" />
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="mb-3 text-[13px] leading-[18px] text-ink-2">
+              No online booking — contact the venue directly.
+            </p>
+            {phone && (
+              <a
+                href={`tel:${phone}`}
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
+              >
+                Call {phone}
+              </a>
+            )}
+          </>
+        )}
+
+        <button
+          onClick={onClose}
+          className="mt-3 block min-h-[44px] text-[13px] font-semibold text-ink-2 underline underline-offset-2"
+        >
+          Close
+        </button>
+      </div>
+    </motion.div>
+  )
+}
+
 function generateDateRange() {
   const today = new Date()
   return Array.from({ length: MAX_ADVANCE_DAYS }, (_, i) => {
@@ -294,7 +391,7 @@ function PaymentForm({
 
       <PaymentElement />
 
-      {error && <p className="text-[13px] text-red-500 text-center">{error}</p>}
+      {error && <p className="text-[13px] text-alert text-center">{error}</p>}
 
       <button
         type="submit"
@@ -989,7 +1086,12 @@ export function BookCourtPage() {
 
   // Shared venue card — used by both the search results and the "near you" list.
   function selectVenue(v: Venue) {
-    if (v.ppa_bookable !== true) { setNonPpaVenue(v); return }
+    // External venues expand in place; tapping the open one closes it, so the
+    // player can compare two venues without losing the list.
+    if (v.ppa_bookable !== true) {
+      setNonPpaVenue((cur) => (cur?.venue_id === v.venue_id ? null : v))
+      return
+    }
     setSelectedVenue(v)
     setVenueQuery(v.venue_name)
     setVenueResults([])
@@ -999,11 +1101,18 @@ export function BookCourtPage() {
 
   function renderVenueButton(v: Venue, dist: number | null) {
     const isPpa = v.ppa_bookable === true
+    const isExpanded = !isPpa && nonPpaVenue?.venue_id === v.venue_id
     return (
+      <div key={v.venue_id}>
       <button
-        key={v.venue_id}
         onClick={() => selectVenue(v)}
-        className="w-full text-left rounded-2xl border border-hairline bg-white p-4 hover:border-court-100 hover:bg-court-50/30 transition-colors shadow-sm active:scale-[0.99]"
+        aria-expanded={isPpa ? undefined : isExpanded}
+        className={cn(
+          'w-full text-left rounded-2xl border bg-white p-4 transition-colors shadow-sm active:scale-[0.99]',
+          isExpanded
+            ? 'border-court-100 bg-court-50/40'
+            : 'border-hairline hover:border-court-100 hover:bg-court-50/30',
+        )}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -1014,7 +1123,7 @@ export function BookCourtPage() {
                   Book via PPA
                 </span>
               ) : (
-                <span className="text-[11px] font-bold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5 flex-shrink-0">
+                <span className="text-[11px] font-bold text-ink-2 bg-surface rounded-full px-2 py-0.5 flex-shrink-0">
                   {PLATFORM_LABELS[v.booking_platform ?? '']?.label ?? v.booking_platform ?? 'External'}
                 </span>
               )}
@@ -1037,9 +1146,21 @@ export function BookCourtPage() {
             </div>
             {isPpa && <p className="text-[11px] text-court mt-0.5">3 weeks in advance</p>}
           </div>
-          <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0 mt-1" />
+          <ChevronRight
+            className={cn(
+              'h-4 w-4 flex-shrink-0 mt-1 transition-transform',
+              isExpanded ? 'rotate-90 text-court' : 'text-ink-3',
+            )}
+          />
         </div>
       </button>
+
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <ExternalVenuePanel venue={v} onClose={() => setNonPpaVenue(null)} />
+        )}
+      </AnimatePresence>
+      </div>
     )
   }
 
@@ -1158,82 +1279,9 @@ export function BookCourtPage() {
                 }}
               />
 
-              {/* Non-PPA venue notice */}
-              <AnimatePresence>
-                {nonPpaVenue && (() => {
-                  const hasBookingUrl = !!nonPpaVenue.booking_url?.trim()
-                  const hasWebsite = !!nonPpaVenue.website?.trim()
-                  const hasPhone = !!nonPpaVenue.phone?.trim()
-                  const platformLabel = PLATFORM_LABELS[nonPpaVenue.booking_platform ?? '']?.label
-                    ?? nonPpaVenue.booking_platform ?? null
-                  const appScheme = PLATFORM_LABELS[nonPpaVenue.booking_platform ?? '']?.appScheme
-
-                  return (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0 }}
-                      className="rounded-2xl border border-blue-100 bg-blue-50 p-4"
-                    >
-                      <p className="text-[14px] font-bold text-blue-800 mb-1">{nonPpaVenue.venue_name}</p>
-
-                      {hasBookingUrl ? (
-                        <>
-                          <p className="text-[13px] text-blue-600 mb-3">
-                            This venue books via <strong>{platformLabel ?? 'external platform'}</strong>.
-                            {' '}You'll be taken to their app to complete the booking.
-                          </p>
-                          <button
-                            onClick={() => openVenueLink(nonPpaVenue.booking_url!, appScheme)}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white"
-                          >
-                            {platformLabel ? `Open in ${platformLabel}` : 'Book at venue'}
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </button>
-                        </>
-                      ) : hasWebsite ? (
-                        <>
-                          <p className="text-[13px] text-blue-600 mb-3">
-                            This venue doesn't have direct booking integration yet. Visit their website to check availability and book.
-                          </p>
-                          <button
-                            onClick={() => window.open(nonPpaVenue.website!, '_blank')}
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white"
-                          >
-                            Visit venue website
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <p className="text-[13px] text-blue-600 mb-3">
-                            No online booking available — contact venue directly.
-                          </p>
-                          {hasPhone && (
-                            <a
-                              href={`tel:${nonPpaVenue.phone}`}
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-4 py-2.5 text-[13px] font-bold text-white"
-                            >
-                              Call {nonPpaVenue.phone}
-                            </a>
-                          )}
-                        </>
-                      )}
-
-                      <button
-                        onClick={() => setNonPpaVenue(null)}
-                        className="mt-2 block text-[12px] text-blue-400 hover:text-blue-600"
-                      >
-                        Choose a different venue
-                      </button>
-                    </motion.div>
-                  )
-                })()}
-              </AnimatePresence>
-
               {/* Venue results */}
               <AnimatePresence>
-                {venueResults.length > 0 && !nonPpaVenue && (
+                {venueResults.length > 0 && (
                   <motion.div
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1245,13 +1293,13 @@ export function BookCourtPage() {
                 )}
               </AnimatePresence>
 
-              {venueQuery.length >= 2 && venueResults.length === 0 && !nonPpaVenue && (
+              {venueQuery.length >= 2 && venueResults.length === 0 && (
                 <p className="text-center text-[13px] text-ink-2 py-6">
                   No venues found for "{venueQuery}"
                 </p>
               )}
 
-              {venueQuery.length < 2 && !nonPpaVenue && (
+              {venueQuery.length < 2 && (
                 <div className="space-y-3">
                   {coords ? (
                     <>
@@ -1336,7 +1384,7 @@ export function BookCourtPage() {
               )}
 
               {/* PPA advantage banner */}
-              <div className="rounded-2xl border border-court-100 bg-gradient-to-r from-court-50 to-emerald-50 px-4 py-3">
+              <div className="rounded-2xl border border-court-100 bg-gradient-to-r from-court-50 to-court-50 px-4 py-3">
                 <p className="text-[12px] font-bold text-court-700">
                   PPA Advantage: Book up to 3 weeks in advance
                 </p>
@@ -1446,7 +1494,7 @@ export function BookCourtPage() {
                   )}
 
                   {slotsError && !loadingSlots && (
-                    <p className="text-center text-[13px] text-red-500 py-6">{slotsError}</p>
+                    <p className="text-center text-[13px] text-alert py-6">{slotsError}</p>
                   )}
 
                   {!loadingSlots && !slotsError && slots.length === 0 && (
@@ -1772,7 +1820,7 @@ export function BookCourtPage() {
               </div>
 
               {!pricingAvailable && (
-                <p className="text-[13px] text-red-500 text-center">Pricing not set for this venue — booking unavailable.</p>
+                <p className="text-[13px] text-alert text-center">Pricing not set for this venue — booking unavailable.</p>
               )}
               <button
                 onClick={() => {
@@ -1847,7 +1895,7 @@ export function BookCourtPage() {
               </div>
 
               {!pricingAvailable && (
-                <p className="text-[13px] text-red-500 text-center">Pricing not set for this venue — booking unavailable.</p>
+                <p className="text-[13px] text-alert text-center">Pricing not set for this venue — booking unavailable.</p>
               )}
               <button
                 onClick={() => setStep('payment')}
@@ -1967,8 +2015,8 @@ export function BookCourtPage() {
               )}
 
               {paymentError && !fetchingPayment && !clientSecret && (
-                <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-5 text-center space-y-3">
-                  <p className="text-[13px] text-red-600">{paymentError}</p>
+                <div className="rounded-2xl border border-alert/40 bg-alert-50 px-4 py-5 text-center space-y-3">
+                  <p className="text-[13px] text-alert">{paymentError}</p>
                   <button
                     onClick={initPayment}
                     className="rounded-xl bg-court px-5 py-2.5 text-[13px] font-bold text-white"
@@ -2140,7 +2188,7 @@ export function BookCourtPage() {
                           href={waLink(player)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex items-center gap-1 rounded-xl bg-green-500 px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"
+                          className="flex items-center gap-1 rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0"
                         >
                           WhatsApp
                         </a>
@@ -2275,8 +2323,8 @@ export function BookCourtPage() {
                       onClick={() => setAddMode('match')}
                       className="w-full flex items-center gap-4 rounded-2xl border border-hairline bg-surface px-4 py-4 hover:border-court-100 hover:bg-court-50/30 transition-colors"
                     >
-                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <Calendar className="h-5 w-5 text-blue-500" />
+                      <div className="h-10 w-10 rounded-full bg-surface flex items-center justify-center flex-shrink-0">
+                        <Calendar className="h-5 w-5 text-ink-2" />
                       </div>
                       <div className="text-left flex-1">
                         <p className="text-[14px] font-semibold text-ink">Match players</p>
@@ -2362,7 +2410,7 @@ export function BookCourtPage() {
                   </button>
                   <div>
                     <label className="block text-[12px] font-semibold text-ink-2 mb-1.5">
-                      Name <span className="text-red-400">*</span>
+                      Name <span className="text-alert">*</span>
                     </label>
                     <input
                       autoFocus
@@ -2375,7 +2423,7 @@ export function BookCourtPage() {
                   </div>
                   <div>
                     <label className="block text-[12px] font-semibold text-ink-2 mb-1.5">
-                      Phone or email <span className="text-red-400">*</span>
+                      Phone or email <span className="text-alert">*</span>
                     </label>
                     <input
                       type="text"

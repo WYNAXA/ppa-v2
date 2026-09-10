@@ -163,7 +163,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                 </div>
               )}
               {inviteMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mt-3">Failed to send invitation. Try again.</p>
+                <p className="text-[12px] text-alert text-center mt-3">Failed to send invitation. Try again.</p>
               )}
             </div>
           </motion.div>

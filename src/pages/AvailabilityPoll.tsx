@@ -466,7 +466,7 @@ export function AvailabilityPollPage() {
             onClick={() => setShowDeleteConfirm(true)}
             className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
-            <Trash2 className="h-4 w-4 text-red-400" />
+            <Trash2 className="h-4 w-4 text-alert" />
           </button>
         )}
       </div>
@@ -612,14 +612,14 @@ export function AvailabilityPollPage() {
               <h2 className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-3">
                 Set Your Availability
               </h2>
-              <label className="flex items-center gap-3 rounded-2xl border-2 border-red-100 bg-red-50 px-4 py-3.5 cursor-pointer">
+              <label className="flex items-center gap-3 rounded-2xl border-2 border-alert/40 bg-alert-50 px-4 py-3.5 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={cantDoWeek}
                   onChange={toggleCantDoWeek}
-                  className="h-5 w-5 rounded border-red-300 text-red-600 focus:ring-red-500"
+                  className="h-5 w-5 rounded border-alert/40 text-alert focus:ring-alert"
                 />
-                <span className="text-[14px] font-semibold text-red-700">Can't make it this week</span>
+                <span className="text-[14px] font-semibold text-alert">Can't make it this week</span>
               </label>
             </section>
 
@@ -660,7 +660,7 @@ export function AvailabilityPollPage() {
                             onClick={() => daySlots.forEach((s) => {
                               if (selectedSlots.includes(s.id)) toggleSlot(s.id)
                             })}
-                            className="text-[12px] font-medium text-red-500 hover:text-red-600"
+                            className="text-[12px] font-medium text-alert hover:text-alert"
                           >
                             Can't make this day
                           </button>
@@ -932,7 +932,7 @@ export function AvailabilityPollPage() {
           style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
         >
           {submitMutation.isError && (
-            <p className="text-[12px] text-red-500 text-center mb-2">Failed to save. Try again.</p>
+            <p className="text-[12px] text-alert text-center mb-2">Failed to save. Try again.</p>
           )}
 
           <div className="flex gap-3">
@@ -1015,7 +1015,7 @@ export function AvailabilityPollPage() {
             className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4"
           >
             <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
+              <AlertTriangle className="h-5 w-5 text-alert" />
               <h3 className="text-[15px] font-bold text-ink">Delete Poll</h3>
             </div>
             <p className="text-[13px] text-ink-2">
@@ -1044,7 +1044,7 @@ export function AvailabilityPollPage() {
                   goBack(navigate, '/play')
                 }}
                 disabled={deleting}
-                className="flex-1 rounded-xl bg-red-500 py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
+                className="flex-1 rounded-xl bg-alert py-2.5 text-[13px] font-bold text-white disabled:opacity-50"
               >
                 {deleting ? 'Deleting…' : 'Delete'}
               </button>

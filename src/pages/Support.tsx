@@ -155,7 +155,7 @@ export function SupportPage() {
         </div>
 
         {/* Abuse reporting */}
-        <div className="rounded-2xl bg-red-50 border border-red-100 p-5 mb-8">
+        <div className="rounded-2xl bg-alert-50 border border-alert/40 p-5 mb-8">
           <p className="text-[14px] font-bold text-navy mb-1">Reporting Abuse or Harassment</p>
           <p className="text-[13px] text-ink-2 leading-relaxed">
             If you experience harassment, abuse, or inappropriate content from another user, please email{' '}

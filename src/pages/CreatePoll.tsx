@@ -414,7 +414,7 @@ export function CreatePollPage() {
                     <span className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">Slot {i + 1}</span>
                     {slots.length > 1 && (
                       <button onClick={() => removeSlot(slot.id)}>
-                        <X className="h-4 w-4 text-ink-2 hover:text-red-400" />
+                        <X className="h-4 w-4 text-ink-2 hover:text-alert" />
                       </button>
                     )}
                   </div>
@@ -461,7 +461,7 @@ export function CreatePollPage() {
               <div key={i} className="flex items-center justify-between rounded-xl border border-hairline bg-surface px-3 py-2.5">
                 <span className="text-[13px] text-ink-2">{opt}</span>
                 <button onClick={() => removeAdditionalOption(i)}>
-                  <X className="h-4 w-4 text-ink-2 hover:text-red-400" />
+                  <X className="h-4 w-4 text-ink-2 hover:text-alert" />
                 </button>
               </div>
             ))}
@@ -527,7 +527,7 @@ export function CreatePollPage() {
         style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
       >
         {createMutation.isError && (
-          <p className="text-[12px] text-red-500 text-center mb-2">
+          <p className="text-[12px] text-alert text-center mb-2">
             Failed to create poll. Try again.
           </p>
         )}

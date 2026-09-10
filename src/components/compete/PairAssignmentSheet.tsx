@@ -234,7 +234,7 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                 </button>
                 <button onClick={handleRandom} className="w-full rounded-2xl border border-hairline p-4 text-left hover:border-court-100 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-xl bg-purple-50 flex items-center justify-center"><Shuffle className="h-5 w-5 text-purple-600" /></div>
+                    <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center"><Shuffle className="h-5 w-5 text-court" /></div>
                     <div>
                       <p className="text-[14px] font-semibold text-ink">{t('random')}</p>
                       <p className="text-[12px] text-ink-2">{t('random_desc')}</p>
@@ -260,7 +260,7 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
                 {pairs.length > 0 && (
                   <div className="mb-4 space-y-2">
                     {pairs.map((p, i) => (
-                      <div key={i} className="rounded-xl bg-green-50 border border-green-200 px-3 py-2 flex items-center gap-2">
+                      <div key={i} className="rounded-xl bg-court-50 border border-court-100 px-3 py-2 flex items-center gap-2">
                         <PairAvatar
                           player1={{ name: p.player1.name, avatarUrl: p.player1.avatar_url }}
                           player2={{ name: p.player2.name, avatarUrl: p.player2.avatar_url }}

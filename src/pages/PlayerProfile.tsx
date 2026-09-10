@@ -287,7 +287,7 @@ export function PlayerProfilePage() {
                 </span>
               )}
               {data?.canDrive && (
-                <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[12px] font-semibold text-blue-600" title="Has a car">
+                <span className="rounded-full bg-surface px-2.5 py-1 text-[12px] font-semibold text-ink-2" title="Has a car">
                   🚗 Has a car
                 </span>
               )}
@@ -323,7 +323,7 @@ export function PlayerProfilePage() {
                 <p className="text-[11px] text-ink-2">{t('compete.draws')}</p>
               </div>
               <div className="text-center">
-                <p className="text-[28px] font-black text-red-400">{h2h.losses}</p>
+                <p className="text-[28px] font-black text-alert">{h2h.losses}</p>
                 <p className="text-[11px] text-ink-2">{t('compete.losses')}</p>
               </div>
             </div>
@@ -454,7 +454,7 @@ export function PlayerProfilePage() {
                         ? 'bg-hairline text-ink-2'
                         : won
                         ? 'bg-court-50 text-court'
-                        : 'bg-red-50 text-red-500'
+                        : 'bg-alert-50 text-alert'
                     )}>
                       {draw ? 'Draw' : won ? 'W' : 'L'}
                     </span>
@@ -507,11 +507,11 @@ export function PlayerProfilePage() {
       {/* Entertainer jersey */}
       {(isPlayerCurrentEntertainer || entertainerTitleCount > 0) && (
         <div className="mx-5 mt-6">
-          <div className="rounded-xl border border-blue-100 bg-blue-50/40 px-3 py-2.5 flex items-center gap-2.5">
+          <div className="rounded-xl border border-hairline bg-surface/40 px-3 py-2.5 flex items-center gap-2.5">
             <span className="text-[18px]">🔵</span>
             <div className="flex-1 min-w-0">
               {isPlayerCurrentEntertainer ? (
-                <p className="text-[12px] font-bold text-blue-700">Current Entertainer</p>
+                <p className="text-[12px] font-bold text-ink-2">Current Entertainer</p>
               ) : (
                 <p className="text-[12px] font-semibold text-ink-2">Past Entertainer</p>
               )}

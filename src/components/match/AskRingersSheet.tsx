@@ -270,9 +270,9 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                           {status && (
                             <span className={cn(
                               'text-[11px] font-bold rounded-full px-2 py-0.5 flex-shrink-0',
-                              status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-100' :
+                              status === 'accepted' ? 'bg-court-50 text-court border border-court-100' :
                               status === 'pending' ? 'bg-warn-50 text-warn border border-warn-100' :
-                              status === 'declined' ? 'bg-red-50 text-red-500 border border-red-100' :
+                              status === 'declined' ? 'bg-alert-50 text-alert border border-alert/40' :
                               'bg-hairline text-ink-2'
                             )}>
                               {status === 'accepted' ? t('ringers.ringer_status_accepted') :
@@ -298,7 +298,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                   )}
 
                   {sendMutation.isError && (
-                    <p className="text-[12px] text-red-500 text-center mt-2">{t('ringers.send_failed')}</p>
+                    <p className="text-[12px] text-alert text-center mt-2">{t('ringers.send_failed')}</p>
                   )}
                 </>
               )}

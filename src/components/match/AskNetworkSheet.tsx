@@ -159,7 +159,7 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                 <input
                   type="text" value={search} onChange={e => setSearch(e.target.value)}
                   placeholder="Search by name..." style={{ fontSize: '16px' }}
-                  className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-blue-500"
+                  className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-hairline"
                 />
               </div>
 
@@ -172,7 +172,7 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                 ]).map(f => (
                   <button key={f.key} onClick={() => setFilter(f.key)}
                     className={cn('rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors',
-                      filter === f.key ? 'bg-blue-600 border-blue-600 text-white' : 'border-hairline text-ink-2'
+                      filter === f.key ? 'bg-court border-hairline text-white' : 'border-hairline text-ink-2'
                     )}>{f.label}</button>
                 ))}
               </div>
@@ -198,7 +198,7 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                           setSelected(next)
                         }
                       }}
-                      className="text-[12px] font-semibold text-blue-600"
+                      className="text-[12px] font-semibold text-ink-2"
                     >
                       {people.filter(p => !getInvitationStatus(p.id)).every(p => selected.has(p.id)) ? 'Deselect all' : 'Select all'}
                     </button>
@@ -212,12 +212,12 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                     return (
                       <div key={person.id} className={cn(
                         'flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors',
-                        isSelected ? 'border-blue-500 bg-blue-50' : 'border-hairline bg-white'
+                        isSelected ? 'border-hairline bg-surface' : 'border-hairline bg-white'
                       )}>
                         {isSelectable && (
                           <button onClick={() => toggleSelect(person.id)}
                             className={cn('h-5 w-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors',
-                              isSelected ? 'bg-blue-600 border-blue-600' : 'border-hairline'
+                              isSelected ? 'bg-court border-hairline' : 'border-hairline'
                             )}>
                             {isSelected && <Check className="h-3 w-3 text-white" />}
                           </button>
@@ -234,9 +234,9 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
                         </div>
                         {status && (
                           <span className={cn('text-[11px] font-bold rounded-full px-2 py-0.5 flex-shrink-0',
-                            status === 'accepted' ? 'bg-green-50 text-green-700 border border-green-100' :
+                            status === 'accepted' ? 'bg-court-50 text-court border border-court-100' :
                             status === 'pending' ? 'bg-warn-50 text-warn border border-warn-100' :
-                            status === 'declined' ? 'bg-red-50 text-red-500 border border-red-100' :
+                            status === 'declined' ? 'bg-alert-50 text-alert border border-alert/40' :
                             'bg-hairline text-ink-2'
                           )}>
                             {status === 'accepted' ? 'Available' : status === 'pending' ? 'Waiting' : status === 'declined' ? "Can't play" : 'Filled'}
@@ -251,7 +251,7 @@ export function AskNetworkSheet({ open, onClose, matchId, groupId, matchDateTime
 
               {selected.size > 0 && (
                 <button onClick={() => sendMutation.mutate()} disabled={sendMutation.isPending}
-                  className="w-full mt-4 rounded-2xl bg-blue-600 py-3.5 text-[14px] font-bold text-white disabled:opacity-50">
+                  className="w-full mt-4 rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white disabled:opacity-50">
                   {sendMutation.isPending ? 'Sending\u2026' : `Send to ${selected.size} player${selected.size > 1 ? 's' : ''}`}
                 </button>
               )}

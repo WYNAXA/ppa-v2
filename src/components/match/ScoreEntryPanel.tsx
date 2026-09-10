@@ -135,7 +135,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                 {sets.length > 1 && (
                   <button
                     onClick={() => removeSet(i)}
-                    className="text-[11px] text-ink-3 hover:text-red-400"
+                    className="text-[11px] text-ink-3 hover:text-alert"
                   >
                     x
                   </button>
@@ -203,7 +203,7 @@ export function ScoreEntryPanel({ team1Names, team2Names, initialSets, onChange,
                   />
                 </div>
                 {s.tiebreak && s.tiebreak.team1 === 0 && s.tiebreak.team2 === 0 && (
-                  <p className="text-[11px] text-red-500 mt-1 pl-2">Tie-break can't be 0-0</p>
+                  <p className="text-[11px] text-alert mt-1 pl-2">Tie-break can't be 0-0</p>
                 )}
               </div>
             )}

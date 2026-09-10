@@ -102,7 +102,7 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
       animate={{ opacity: 1, y: 0 }}
       className={cn(
         'rounded-2xl border p-4',
-        ready ? 'border-green-200 bg-green-50/40' : 'border-court-100 bg-court-50/30'
+        ready ? 'border-court-100 bg-court-50/40' : 'border-court-100 bg-court-50/30'
       )}
     >
       <div className="flex items-start justify-between gap-3 mb-3">
@@ -127,14 +127,14 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
         </div>
         <div className="h-1.5 bg-hairline rounded-full overflow-hidden">
           <motion.div
-            className={cn('h-full rounded-full', ready ? 'bg-green-500' : 'bg-court')}
+            className={cn('h-full rounded-full', ready ? 'bg-court' : 'bg-court')}
             initial={{ width: 0 }}
             animate={{ width: `${progress * 100}%` }}
             transition={{ duration: 0.7, ease: 'easeOut' }}
           />
         </div>
         {ready && (
-          <p className="text-[11px] text-green-600 font-semibold mt-1 flex items-center gap-1">
+          <p className="text-[11px] text-court font-semibold mt-1 flex items-center gap-1">
             <CheckCircle className="h-3 w-3" /> Match ready — 4 players available!
           </p>
         )}
@@ -144,7 +144,7 @@ function ActivePollCard({ poll, responseCount, hasResponded, onRespond }: {
         onClick={onRespond}
         className={cn(
           'w-full rounded-xl py-2.5 text-[13px] font-bold text-white',
-          ready ? 'bg-green-600' : 'bg-court'
+          ready ? 'bg-court' : 'bg-court'
         )}
       >
         {hasResponded ? 'Update my availability' : 'Add my availability →'}

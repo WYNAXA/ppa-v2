@@ -335,7 +335,7 @@ export function VenueEventDetailPage() {
                 · {t('play.ve_spots_left', { count: spotsLeft })}
               </span>
             )}
-            {isFull && <span className="text-red-500 font-semibold ml-1"> · {t('play.ve_full')}</span>}
+            {isFull && <span className="text-alert font-semibold ml-1"> · {t('play.ve_full')}</span>}
           </p>
         </div>
         <div className="flex items-center gap-3 pt-1">
@@ -405,7 +405,7 @@ export function VenueEventDetailPage() {
             <button
               onClick={() => leaveMutation.mutate()}
               disabled={leaveMutation.isPending}
-              className="w-full rounded-2xl border border-red-200 py-3 text-[13px] font-semibold text-red-500 transition-all active:scale-[0.98]"
+              className="w-full rounded-2xl border border-alert/40 py-3 text-[13px] font-semibold text-alert transition-all active:scale-[0.98]"
             >
               {leaveMutation.isPending ? t('play.ve_leaving') : t('play.ve_leave')}
             </button>

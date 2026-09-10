@@ -158,7 +158,7 @@ export function CoachDetailPage() {
                     </p>
                   </div>
                   {c.mine ? (
-                    <span className="text-[12px] font-semibold text-emerald-600 flex-shrink-0">Booked ✓</span>
+                    <span className="text-[12px] font-semibold text-court flex-shrink-0">Booked ✓</span>
                   ) : (
                     <button
                       disabled={full || bookClass.isPending}

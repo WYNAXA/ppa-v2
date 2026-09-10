@@ -151,7 +151,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
               {/* Name */}
               <div>
                 <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
-                  Group name <span className="text-red-400">*</span>
+                  Group name <span className="text-alert">*</span>
                 </label>
                 <input
                   type="text"
@@ -287,7 +287,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
               </AnimatePresence>
 
               {createMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center">Failed to create group. Try again.</p>
+                <p className="text-[12px] text-alert text-center">Failed to create group. Try again.</p>
               )}
 
               <button

@@ -670,10 +670,10 @@ function MexicanoTab({
         </button>
       )}
       {generateMutation.isError && (
-        <p className="mt-2 text-[12px] text-red-500 text-center">{t('league.generate_failed_retry')}</p>
+        <p className="mt-2 text-[12px] text-alert text-center">{t('league.generate_failed_retry')}</p>
       )}
       {generateMutation.isSuccess && (
-        <p className="mt-2 text-[12px] text-green-600 text-center font-semibold">{t('league.matches_created')}</p>
+        <p className="mt-2 text-[12px] text-court text-center font-semibold">{t('league.matches_created')}</p>
       )}
     </div>
   )
@@ -1275,7 +1275,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
       </div>
 
       {/* Delete league */}
-      <div className="rounded-2xl border border-red-100 p-4 space-y-3">
+      <div className="rounded-2xl border border-alert/40 p-4 space-y-3">
         <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">{t('league.danger_zone')}</p>
         <button
           onClick={async () => {
@@ -1292,7 +1292,7 @@ function AdminTab({ league, standings, onNavigate, onResetPairs, hasTeams, hasMa
             queryClient.invalidateQueries({ queryKey: ['league-teams', league.id] })
             onNavigate('/compete')
           }}
-          className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
+          className="w-full rounded-xl border border-alert/40 py-2.5 text-[13px] font-semibold text-alert"
         >
           {t('league.delete_league')}
         </button>
@@ -1378,16 +1378,16 @@ function EmptyTab({ message }: { message: string }) {
 }
 
 const STATUS_BADGE: Record<string, string> = {
-  scheduled: 'bg-green-50 text-green-700 border-green-100',
+  scheduled: 'bg-court-50 text-court border-court-100',
   pending:   'bg-warn-50 text-warn border-warn-100',
   completed: 'bg-surface text-ink-2 border-hairline',
-  cancelled: 'bg-red-50 text-red-500 border-red-100',
+  cancelled: 'bg-alert-50 text-alert border-alert/40',
   open:      'bg-warn-50 text-warn border-warn-100',
 }
 
 const LEAGUE_STATUS_STYLE: Record<string, string> = {
-  active:    'bg-green-50 text-green-600 border-green-100',
-  upcoming:  'bg-blue-50 text-blue-600 border-blue-100',
+  active:    'bg-court-50 text-court border-court-100',
+  upcoming:  'bg-surface text-ink-2 border-hairline',
   completed: 'bg-hairline text-ink-2 border-hairline',
 }
 
@@ -1621,7 +1621,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                           className="w-[56px] rounded-xl border border-hairline bg-warn-50 py-2 text-center text-[16px] font-bold text-warn focus:outline-none focus:border-warn"
                         />
                         {sets.length > 1 && (
-                          <button onClick={() => setSets((prev) => prev.filter((_, j) => j !== i))} className="text-[11px] text-ink-3 hover:text-red-400 ml-1">
+                          <button onClick={() => setSets((prev) => prev.filter((_, j) => j !== i))} className="text-[11px] text-ink-3 hover:text-alert ml-1">
                             x
                           </button>
                         )}
@@ -1681,7 +1681,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
                   </div>
 
                   {error && (
-                    <p className="text-[12px] text-red-500 text-center mb-3">{error}</p>
+                    <p className="text-[12px] text-alert text-center mb-3">{error}</p>
                   )}
 
                   <div className="flex gap-2">
@@ -1834,7 +1834,7 @@ function JerseyLegendSheet({ open, onClose, jerseys, standings, prizeScheme }: {
                           </p>
                         )}
                         {prizeScheme?.jerseys?.[color] ? (
-                          <p className="text-[11px] text-purple-600 mt-1">{t('league.prize_label')}: {prizeScheme.jerseys[color]}</p>
+                          <p className="text-[11px] text-court mt-1">{t('league.prize_label')}: {prizeScheme.jerseys[color]}</p>
                         ) : null}
                       </div>
                     </div>
@@ -2510,7 +2510,7 @@ export function LeagueDetailPage() {
                     const gd = isPairs ? (row as TeamStanding).game_difference : (row as Standing).game_difference
                     const styles = [
                       { bg: 'bg-gradient-to-r from-warn-50 to-warn-50', border: 'border-warn-100', text: 'text-warn', pts_text: 'text-warn', emoji: '🏆', label: t('league.champion') },
-                      { bg: 'bg-gradient-to-r from-surface to-slate-50', border: 'border-hairline', text: 'text-ink-2', pts_text: 'text-ink-2', emoji: '🥈', label: t('league.second_place') },
+                      { bg: 'bg-gradient-to-r from-surface to-surface', border: 'border-hairline', text: 'text-ink-2', pts_text: 'text-ink-2', emoji: '🥈', label: t('league.second_place') },
                       { bg: 'bg-gradient-to-r from-warn-50 to-warn-50', border: 'border-warn-100', text: 'text-warn', pts_text: 'text-warn', emoji: '🥉', label: t('league.third_place') },
                     ][i]
                     return (
@@ -2600,8 +2600,8 @@ export function LeagueDetailPage() {
 
               {/* Prizes */}
               {league?.prizes && (
-                <div className="rounded-2xl bg-purple-50 border border-purple-100 px-4 py-3">
-                  <p className="text-[11px] font-bold text-purple-600 uppercase tracking-wide mb-1">{t('league.prizes')}</p>
+                <div className="rounded-2xl bg-court-50 border border-court-100 px-4 py-3">
+                  <p className="text-[11px] font-bold text-court uppercase tracking-wide mb-1">{t('league.prizes')}</p>
                   <p className="text-[13px] text-ink">{league.prizes}</p>
                 </div>
               )}
@@ -2636,7 +2636,7 @@ export function LeagueDetailPage() {
                       <span>{t('league.stat_w')} <span className="font-bold text-ink-2">{row.won}</span></span>
                       <span>{t('league.stat_d')} <span className="font-bold text-ink-2">{row.drawn}</span></span>
                       <span>{t('league.stat_l')} <span className="font-bold text-ink-2">{row.lost}</span></span>
-                      <span className={cn(row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-ink-2')}>
+                      <span className={cn(row.game_difference > 0 ? 'text-court' : row.game_difference < 0 ? 'text-alert' : 'text-ink-2')}>
                         {t('league.stat_gd')} <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
                       </span>
                     </>
@@ -2732,7 +2732,7 @@ export function LeagueDetailPage() {
                         cat['3'] ? `${t('league.prize_bronze')}: ${cat['3']}` : null,
                       ].filter(Boolean)
                       if (parts.length === 0) return null
-                      return <p className="text-[11px] text-purple-600 mb-3">🏆 {parts.join(' · ')}</p>
+                      return <p className="text-[11px] text-court mb-3">🏆 {parts.join(' · ')}</p>
                     })()}
 
                     {/* Form */}
@@ -2770,7 +2770,7 @@ export function LeagueDetailPage() {
                             <span>{t('league.stat_w')} <span className="font-bold text-ink-2">{row.won}</span></span>
                             <span>{t('league.stat_d')} <span className="font-bold text-ink-2">{row.drawn}</span></span>
                             <span>{t('league.stat_l')} <span className="font-bold text-ink-2">{row.lost}</span></span>
-                            <span className={cn(row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-ink-2')}>
+                            <span className={cn(row.game_difference > 0 ? 'text-court' : row.game_difference < 0 ? 'text-alert' : 'text-ink-2')}>
                               {t('league.stat_gd')} <span className="font-bold">{row.game_difference > 0 ? '+' : ''}{row.game_difference}</span>
                             </span>
                             <span>{t('league.stat_p')} <span className="font-bold text-ink-2">{row.played}</span></span>
@@ -2866,7 +2866,7 @@ export function LeagueDetailPage() {
                         )}
                         headlineLabel={t('league.tab_gd')}
                         headline={(row) => (
-                          <span className={cn('text-[12px] font-bold', row.game_difference > 0 ? 'text-green-600' : row.game_difference < 0 ? 'text-red-500' : 'text-ink-2')}>
+                          <span className={cn('text-[12px] font-bold', row.game_difference > 0 ? 'text-court' : row.game_difference < 0 ? 'text-alert' : 'text-ink-2')}>
                             {row.game_difference > 0 ? '+' : ''}{row.game_difference}
                           </span>
                         )}
@@ -2904,7 +2904,7 @@ export function LeagueDetailPage() {
                             )}
                             headlineLabel={t('league.elo_headline')}
                             headline={(row) => (
-                              <span className={cn('text-[12px] font-bold', row.elo_gained > 0 ? 'text-green-600' : row.elo_gained < 0 ? 'text-red-500' : 'text-ink-2')}>
+                              <span className={cn('text-[12px] font-bold', row.elo_gained > 0 ? 'text-court' : row.elo_gained < 0 ? 'text-alert' : 'text-ink-2')}>
                                 {row.elo_gained > 0 ? '+' : ''}{row.elo_gained}
                               </span>
                             )}
@@ -2964,7 +2964,7 @@ export function LeagueDetailPage() {
               })()}
               {/* ── Entertainer jersey ── */}
               {(currentEntertainer || entertainerRace.length > 0 || entertainerHistory.length > 0) && (
-                <div className="mt-6 rounded-2xl border border-blue-100 bg-blue-50/40 p-4 space-y-4">
+                <div className="mt-6 rounded-2xl border border-hairline bg-surface/40 p-4 space-y-4">
 
                   {/* Current holder */}
                   {currentEntertainer && (() => {
@@ -2995,12 +2995,12 @@ export function LeagueDetailPage() {
                             <div key={entry.user_id} className="flex items-center gap-2.5">
                               <span className={cn(
                                 'w-5 text-center text-[11px] font-bold',
-                                idx === 0 ? 'text-blue-600' : 'text-ink-2'
+                                idx === 0 ? 'text-ink-2' : 'text-ink-2'
                               )}>{idx + 1}</span>
                               <span className="text-[12px] font-semibold text-ink flex-1 truncate">{name.split(' ')[0]}</span>
                               <span className={cn(
                                 'text-[12px] font-bold tabular-nums',
-                                idx === 0 ? 'text-blue-600' : 'text-ink-2'
+                                idx === 0 ? 'text-ink-2' : 'text-ink-2'
                               )}>{entry.vote_count}</span>
                             </div>
                           )
@@ -3069,7 +3069,7 @@ export function LeagueDetailPage() {
                     {!isSeasonComplete && (
                       <button
                         onClick={() => navigate(`/compete/leagues/${id}/tournament`)}
-                        className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-purple-600 to-purple-500 px-4 py-3 text-[13px] font-bold text-white"
+                        className="flex items-center justify-center gap-1.5 rounded-2xl bg-gradient-to-r from-court to-court px-4 py-3 text-[13px] font-bold text-white"
                       >
                         <Zap className="h-4 w-4" />
                         {t('league.live')}
@@ -3156,7 +3156,7 @@ export function LeagueDetailPage() {
                             if (error) { toast.error(t('league.cancel_fixture_failed')); return }
                             queryClient.invalidateQueries({ queryKey: ['league-fixtures', id] })
                           }}
-                          className="rounded-lg border border-red-200 px-3 py-1 text-[11px] font-semibold text-red-500"
+                          className="rounded-lg border border-alert/40 px-3 py-1 text-[11px] font-semibold text-alert"
                         >
                           {t('league.cancel_fixture')}
                         </button>
@@ -3191,7 +3191,7 @@ export function LeagueDetailPage() {
                           <span className={cn(
                             'text-[11px] font-semibold rounded-full px-2 py-0.5 border',
                             r.verification_status === 'verified'
-                              ? 'bg-green-50 text-green-700 border-green-100'
+                              ? 'bg-court-50 text-court border-court-100'
                               : 'bg-warn-50 text-warn border-warn-100'
                           )}>
                             {r.verification_status === 'verified' ? t('match.verified') : t('match.pending')}
@@ -3275,7 +3275,7 @@ export function LeagueDetailPage() {
                   }
                   queryClient.invalidateQueries({ queryKey: ['league-standings', id] })
                 }}
-                className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
+                className="w-full rounded-xl border border-alert/40 py-2.5 text-[13px] font-semibold text-alert"
               >
                 {t('league.start_new_season')}
               </button>
@@ -3305,7 +3305,7 @@ export function LeagueDetailPage() {
         <div className="px-5 pb-4">
           <button
             onClick={() => setShowLeaveConfirm(true)}
-            className="w-full rounded-xl border border-red-200 py-2.5 text-[13px] font-semibold text-red-500"
+            className="w-full rounded-xl border border-alert/40 py-2.5 text-[13px] font-semibold text-alert"
           >
             {t('league.leave_league')}
           </button>
@@ -3363,7 +3363,7 @@ export function LeagueDetailPage() {
                     queryClient.invalidateQueries({ queryKey: ['league-teams', id] })
                     navigate('/compete')
                   }}
-                  className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white disabled:opacity-50"
+                  className="flex-1 rounded-xl bg-alert py-3 text-[13px] font-bold text-white disabled:opacity-50"
                 >
                   {leaving ? t('match.leaving') : t('league.leave_league')}
                 </button>

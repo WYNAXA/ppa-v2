@@ -149,7 +149,7 @@ function PaymentForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       <PaymentElement />
       {error && (
-        <p className="text-[13px] text-red-500 text-center">{error}</p>
+        <p className="text-[13px] text-alert text-center">{error}</p>
       )}
       <button
         type="submit"
@@ -542,7 +542,7 @@ export function PayBookingPage() {
 
         {/* Error inline */}
         {error && (
-          <p className="text-[13px] text-red-500 text-center">{error}</p>
+          <p className="text-[13px] text-alert text-center">{error}</p>
         )}
 
         {/* Payment form or proceed button */}

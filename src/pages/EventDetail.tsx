@@ -101,7 +101,7 @@ const RSVP_OPTIONS: { label: string; value: RsvpStatus; activeClass: string; ina
   {
     label: 'Interested',
     value: 'interested',
-    activeClass: 'bg-blue-500 text-white border-blue-500',
+    activeClass: 'bg-court text-white border-hairline',
     inactiveClass: 'bg-white text-ink-2 border border-hairline',
   },
   {
@@ -236,10 +236,10 @@ export function EventDetailPage() {
           <button
             onClick={handleDelete}
             disabled={deleting}
-            className="h-9 w-9 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0"
+            className="h-9 w-9 rounded-full bg-alert-50 flex items-center justify-center flex-shrink-0"
             title="Delete event"
           >
-            <Trash2 className="h-4 w-4 text-red-500" />
+            <Trash2 className="h-4 w-4 text-alert" />
           </button>
         )}
       </div>
@@ -307,7 +307,7 @@ export function EventDetailPage() {
           ))}
         </div>
         {rsvpMutation.isError && (
-          <p className="text-[12px] text-red-500 text-center mt-2">Failed to save. Try again.</p>
+          <p className="text-[12px] text-alert text-center mt-2">Failed to save. Try again.</p>
         )}
       </div>
 
@@ -323,7 +323,7 @@ export function EventDetailPage() {
             </span>
             {interestedCount > 0 && (
               <span className="text-[13px] text-ink-2">
-                <span className="font-bold text-blue-500">{interestedCount}</span> interested
+                <span className="font-bold text-ink-2">{interestedCount}</span> interested
               </span>
             )}
           </div>
@@ -334,7 +334,7 @@ export function EventDetailPage() {
                   {(a.profile?.name ?? '?').charAt(0).toUpperCase()}
                 </div>
                 <span className="text-[13px] text-ink-2 flex-1">{a.profile?.name ?? 'Unknown'}</span>
-                <span className={`text-[11px] font-semibold ${a.status === 'going' ? 'text-court' : 'text-blue-500'}`}>
+                <span className={`text-[11px] font-semibold ${a.status === 'going' ? 'text-court' : 'text-ink-2'}`}>
                   {a.status === 'going' ? 'Going' : 'Interested'}
                 </span>
               </div>

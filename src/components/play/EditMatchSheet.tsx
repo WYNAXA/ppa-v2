@@ -441,7 +441,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                           <button
                             type="button"
                             onClick={() => setPlayerIds((prev) => prev.filter((_, i) => i !== idx))}
-                            className="text-ink-3 hover:text-red-500 px-1"
+                            className="text-ink-3 hover:text-alert px-1"
                             aria-label="Remove player"
                           >
                             <X className="h-4 w-4" />
@@ -459,7 +459,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         <button
                           type="button"
                           onClick={() => setLegacyGuests((prev) => prev.filter((_, i) => i !== gi))}
-                          className="text-ink-3 hover:text-red-500 px-1"
+                          className="text-ink-3 hover:text-alert px-1"
                           aria-label="Remove guest"
                         >
                           <X className="h-4 w-4" />
@@ -552,7 +552,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                           />
                           <p className="text-[11px] text-ink-2 leading-snug">We'll create an invite link and open the share sheet — send it via WhatsApp or Messages. They join the match when they sign up.</p>
                           {inviteGuestMutation.isError && (
-                            <p className="text-[12px] text-red-500">Couldn't create the invite. Try again.</p>
+                            <p className="text-[12px] text-alert">Couldn't create the invite. Try again.</p>
                           )}
                           <button
                             type="button"
@@ -590,7 +590,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                 </div>
 
                 {saveMutation.isError && (
-                  <p className="text-[12px] text-red-500 text-center">Failed to save. Try again.</p>
+                  <p className="text-[12px] text-alert text-center">Failed to save. Try again.</p>
                 )}
 
                 <button

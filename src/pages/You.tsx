@@ -484,7 +484,7 @@ function LinkPartnerSheet({
                 </div>
               )}
               {linkMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mb-3">{t('you.link_failed')}</p>
+                <p className="text-[12px] text-alert text-center mb-3">{t('you.link_failed')}</p>
               )}
               <button
                 onClick={() => selected && linkMutation.mutate(selected.id)}
@@ -790,7 +790,7 @@ function EditProfileSheet({
               </div>
 
               {saveMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center">{t('you.save_failed')}</p>
+                <p className="text-[12px] text-alert text-center">{t('you.save_failed')}</p>
               )}
 
               <button
@@ -1163,7 +1163,7 @@ export function YouPage() {
                   await supabase.rpc('unlink_household_partner')
                   queryClient.invalidateQueries({ queryKey: ['full-profile', userId] })
                 }}
-                className="w-full flex items-center justify-center gap-2 rounded-xl border border-red-100 py-2.5 text-[13px] font-semibold text-red-500 hover:bg-red-50 transition-colors"
+                className="w-full flex items-center justify-center gap-2 rounded-xl border border-alert/40 py-2.5 text-[13px] font-semibold text-alert hover:bg-alert-50 transition-colors"
               >
                 <Unlink className="h-4 w-4" />
                 {t('you.remove_link')}
@@ -1231,8 +1231,8 @@ export function YouPage() {
                     <div key={m.id} className="flex items-center gap-3 rounded-xl border border-hairline bg-surface px-3 py-2.5">
                       <span className={cn(
                         'flex-shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold capitalize',
-                        m.result_type === 'win'  ? 'bg-green-50 text-green-700 border border-green-100' :
-                        m.result_type === 'loss' ? 'bg-red-50 text-red-500 border border-red-100'       :
+                        m.result_type === 'win'  ? 'bg-court-50 text-court border border-court-100' :
+                        m.result_type === 'loss' ? 'bg-alert-50 text-alert border border-alert/40'       :
                                                    'bg-hairline text-ink-2 border border-hairline'
                       )}>
                         {m.result_type ?? '—'}
@@ -1270,15 +1270,15 @@ export function YouPage() {
             bronze: 'border-warn bg-warn-50',
             silver: 'border-hairline bg-surface',
             gold: 'border-warn bg-warn-50',
-            platinum: 'border-slate-300 bg-slate-50',
-            diamond: 'border-cyan-200 bg-cyan-50',
+            platinum: 'border-hairline bg-surface',
+            diamond: 'border-hairline bg-surface',
           }
           const ctTierTextColors: Record<string, string> = {
             bronze: 'text-warn',
             silver: 'text-ink-2',
             gold: 'text-warn',
-            platinum: 'text-slate-600',
-            diamond: 'text-cyan-600',
+            platinum: 'text-ink-2',
+            diamond: 'text-ink-2',
           }
           const tierLabel = currentTier ? currentTier.charAt(0).toUpperCase() + currentTier.slice(1) : null
           return (
@@ -1574,8 +1574,8 @@ export function YouPage() {
               onClick={() => setShowDeleteConfirm(true)}
               className="w-full flex items-center justify-between px-4 py-3.5"
             >
-              <span className="text-[13px] font-medium text-red-500">{t('you.delete_account')}</span>
-              <ChevronRight className="h-4 w-4 text-red-300" />
+              <span className="text-[13px] font-medium text-alert">{t('you.delete_account')}</span>
+              <ChevronRight className="h-4 w-4 text-alert" />
             </button>
           </div>
 
@@ -1589,7 +1589,7 @@ export function YouPage() {
               localStorage.clear()
               window.location.href = '/auth'
             }}
-            className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl border border-red-100 py-3.5 text-[14px] font-semibold text-red-500 hover:bg-red-50 transition-colors"
+            className="mt-4 w-full flex items-center justify-center gap-2 rounded-2xl border border-alert/40 py-3.5 text-[14px] font-semibold text-alert hover:bg-alert-50 transition-colors"
           >
             <LogOut className="h-4 w-4" />
             {t('you.sign_out')}
@@ -1624,7 +1624,7 @@ export function YouPage() {
                       </button>
                       <button
                         onClick={() => setDeleteStep(2)}
-                        className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white"
+                        className="flex-1 rounded-xl bg-alert py-3 text-[13px] font-bold text-white"
                       >
                         Continue
                       </button>
@@ -1632,7 +1632,7 @@ export function YouPage() {
                   </>
                 ) : (
                   <>
-                    <h3 className="text-[17px] font-bold text-red-600 text-center mb-2">Final confirmation</h3>
+                    <h3 className="text-[17px] font-bold text-alert text-center mb-2">Final confirmation</h3>
                     <p className="text-[13px] text-ink-2 text-center mb-3">
                       Type <span className="font-bold text-ink">DELETE</span> below to confirm.
                     </p>
@@ -1642,7 +1642,7 @@ export function YouPage() {
                       onChange={(e) => setDeleteTyped(e.target.value)}
                       placeholder="Type DELETE"
                       autoFocus
-                      className="w-full rounded-xl border border-hairline px-4 py-3 text-center text-[14px] font-bold text-ink focus:outline-none focus:border-red-400 mb-4"
+                      className="w-full rounded-xl border border-hairline px-4 py-3 text-center text-[14px] font-bold text-ink focus:outline-none focus:border-alert mb-4"
                     />
                     <div className="flex gap-3">
                       <button
@@ -1671,7 +1671,7 @@ export function YouPage() {
                             setDeleting(false)
                           }
                         }}
-                        className="flex-1 rounded-xl bg-red-500 py-3 text-[13px] font-bold text-white disabled:opacity-40"
+                        className="flex-1 rounded-xl bg-alert py-3 text-[13px] font-bold text-white disabled:opacity-40"
                       >
                         {deleting ? 'Deleting…' : 'Delete my account'}
                       </button>

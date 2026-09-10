@@ -631,7 +631,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
       <div className="space-y-2.5">
         {/* Step 1: Profile — always done */}
         <div className="flex items-center gap-3">
-          <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
+          <span className="h-6 w-6 rounded-full bg-court-50 flex items-center justify-center text-[12px] text-court font-bold shrink-0">✓</span>
           <p className="text-[13px] text-ink-2 line-through">You're all set up</p>
         </div>
 
@@ -639,7 +639,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
         <div className="flex items-start gap-3">
           {groupDone ? (
             <>
-              <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
+              <span className="h-6 w-6 rounded-full bg-court-50 flex items-center justify-center text-[12px] text-court font-bold shrink-0">✓</span>
               <p className="text-[13px] text-ink-2 line-through">Create a group & invite friends</p>
             </>
           ) : (
@@ -687,7 +687,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
         <div className="flex items-start gap-3">
           {playDone ? (
             <>
-              <span className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center text-[12px] text-green-600 font-bold shrink-0">✓</span>
+              <span className="h-6 w-6 rounded-full bg-court-50 flex items-center justify-center text-[12px] text-court font-bold shrink-0">✓</span>
               <p className="text-[13px] text-ink-2 line-through">Find a time to play</p>
             </>
           ) : (

@@ -235,7 +235,7 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
                 )}
               </div>
 
-              {error && <p className="text-[12px] text-red-500 text-center mb-3">{error}</p>}
+              {error && <p className="text-[12px] text-alert text-center mb-3">{error}</p>}
 
               <button
                 onClick={handleSubmit}

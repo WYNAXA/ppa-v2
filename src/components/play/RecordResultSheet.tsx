@@ -440,7 +440,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               {sets.length > 1 && (
                                 <button
                                   onClick={() => removeSet(i)}
-                                  className="text-[11px] text-ink-3 hover:text-red-400"
+                                  className="text-[11px] text-ink-3 hover:text-alert"
                                 >
                                   ×
                                 </button>
@@ -508,7 +508,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 />
                               </div>
                               {s.tiebreak && s.tiebreak.team1 === 0 && s.tiebreak.team2 === 0 && (
-                                <p className="text-[11px] text-red-500 mt-1 pl-2">{t('record_result.tiebreak_zero_error')}</p>
+                                <p className="text-[11px] text-alert mt-1 pl-2">{t('record_result.tiebreak_zero_error')}</p>
                               )}
                             </div>
                           )}
@@ -674,7 +674,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     })()}
 
                     {submitMutation.isError && (
-                      <p className="text-[12px] text-red-500 text-center mb-3">{t('record_result.submit_failed')}</p>
+                      <p className="text-[12px] text-alert text-center mb-3">{t('record_result.submit_failed')}</p>
                     )}
 
                     <button
@@ -723,7 +723,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                     {!showPeerVoting && (
                       <button
                         onClick={() => setShowPeerVoting(true)}
-                        className="w-full rounded-2xl bg-purple-50 border border-purple-100 py-2.5 text-[12px] font-bold text-purple-700"
+                        className="w-full rounded-2xl bg-court-50 border border-court-100 py-2.5 text-[12px] font-bold text-court"
                       >
                         {t('record_result.rate_teammates')}
                       </button>

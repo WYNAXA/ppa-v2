@@ -96,7 +96,7 @@ export function MyConnectionsPage() {
                   <Calendar className="h-3 w-3 inline mr-0.5" /> Match
                 </button>
                 <button onClick={() => setInviteGroup({ id: conn.user_id, name: conn.name })}
-                  className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-1 text-[11px] font-bold text-blue-700">
+                  className="rounded-lg bg-surface border border-hairline px-2 py-1 text-[11px] font-bold text-ink-2">
                   <Users className="h-3 w-3 inline mr-0.5" /> Group
                 </button>
               </ConnectionCard>

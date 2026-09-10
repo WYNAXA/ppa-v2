@@ -98,7 +98,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
               style={{ maxHeight: '80vh', paddingBottom: 'calc(16px + env(safe-area-inset-bottom))' }}
             >
               <div>
-                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">Title <span className="text-red-400">*</span></label>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">Title <span className="text-alert">*</span></label>
                 <input
                   type="text"
                   value={title}
@@ -165,7 +165,7 @@ export function CreateEventSheet({ open, onClose, groupId }: CreateEventSheetPro
               </div>
 
               {createMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center">Failed to create event. Try again.</p>
+                <p className="text-[12px] text-alert text-center">Failed to create event. Try again.</p>
               )}
 
               <button

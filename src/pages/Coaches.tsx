@@ -100,7 +100,7 @@ export function CoachesPage() {
                 <p className="text-[15px] font-bold text-ink truncate">{c.name}</p>
                 {c.headline && <p className="text-[12px] text-court truncate">{c.headline}</p>}
                 <div className="flex items-center gap-2 mt-1 flex-wrap">
-                  {c.upcoming > 0 && <span className="text-[11px] font-semibold text-emerald-600">{c.upcoming} upcoming</span>}
+                  {c.upcoming > 0 && <span className="text-[11px] font-semibold text-court">{c.upcoming} upcoming</span>}
                   {c.venues.length > 0 && <span className="text-[11px] text-ink-2 truncate">{c.venues.slice(0, 2).join(' · ')}</span>}
                 </div>
                 {c.specialties.length > 0 && (

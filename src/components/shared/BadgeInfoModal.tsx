@@ -5,9 +5,9 @@ import { ACHIEVEMENT_LIBRARY } from '@/lib/achievements'
 const RARITY_STYLES: Record<string, string> = {
   common: 'bg-hairline text-ink-2',
   uncommon: 'bg-court-50 text-court-700',
-  rare: 'bg-purple-50 text-purple-700',
+  rare: 'bg-court-50 text-court',
   epic: 'bg-warn-50 text-warn',
-  special: 'bg-blue-50 text-blue-700',
+  special: 'bg-surface text-ink-2',
 }
 
 interface Props {

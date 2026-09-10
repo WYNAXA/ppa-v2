@@ -116,7 +116,7 @@ export default function ResetPasswordPage() {
             className={`mt-4 rounded-lg px-4 py-3 text-sm ${
               message.type === 'success'
                 ? 'bg-court-50 text-court-700'
-                : 'bg-red-50 text-red-700'
+                : 'bg-alert-50 text-alert'
             }`}
           >
             {message.text}

@@ -257,7 +257,7 @@ function Step2({
         {/* Name */}
         <div>
           <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
-            {t('create_league.name_label')} <span className="text-red-400">*</span>
+            {t('create_league.name_label')} <span className="text-alert">*</span>
           </label>
           <input
             type="text"
@@ -310,7 +310,7 @@ function Step2({
           </div>
         ) : (
           <div>
-            <label className="block text-[13px] font-medium text-ink-2 mb-2">{t('create_league.tournament_format_label')} <span className="text-red-400">*</span></label>
+            <label className="block text-[13px] font-medium text-ink-2 mb-2">{t('create_league.tournament_format_label')} <span className="text-alert">*</span></label>
             <div className="grid grid-cols-2 gap-2">
               {FORMATS.map((id) => (
                 <div key={id} className="relative">
@@ -784,7 +784,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
               </AnimatePresence>
 
               {error && (
-                <p className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-600">{error}</p>
+                <p className="mt-4 rounded-xl bg-alert-50 px-4 py-3 text-sm text-alert">{error}</p>
               )}
             </div>
 

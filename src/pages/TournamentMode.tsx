@@ -503,9 +503,9 @@ export function TournamentModePage() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-[17px] font-bold text-ink">Tournament Mode</h1>
-              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 border border-red-200 px-2 py-0.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-                <span className="text-[11px] font-bold text-red-600">LIVE</span>
+              <span className="inline-flex items-center gap-1 rounded-full bg-alert-50 border border-alert/40 px-2 py-0.5">
+                <span className="h-1.5 w-1.5 rounded-full bg-alert animate-pulse" />
+                <span className="text-[11px] font-bold text-alert">LIVE</span>
               </span>
             </div>
             {league && (
@@ -616,7 +616,7 @@ export function TournamentModePage() {
               This round: {completedCount} of {totalCount} results
             </span>
             {allCompleted && (
-              <span className="text-[11px] font-bold text-green-600">Round complete!</span>
+              <span className="text-[11px] font-bold text-court">Round complete!</span>
             )}
           </div>
           <div className="h-2 rounded-full bg-hairline overflow-hidden">
@@ -701,7 +701,7 @@ export function TournamentModePage() {
                     className={cn(
                       'rounded-2xl border p-4 mb-3',
                       entry.completed
-                        ? 'bg-green-50 border-green-200'
+                        ? 'bg-court-50 border-court-100'
                         : 'bg-white border-hairline',
                     )}
                   >
@@ -781,8 +781,8 @@ export function TournamentModePage() {
                     {/* Completed state */}
                     {entry.completed && (
                       <div className="flex items-center gap-1 mt-2">
-                        <Check className="h-4 w-4 text-green-600" />
-                        <span className="text-[12px] font-semibold text-green-700">
+                        <Check className="h-4 w-4 text-court" />
+                        <span className="text-[12px] font-semibold text-court">
                           Result submitted
                         </span>
                       </div>

@@ -122,7 +122,7 @@ export function JoinMatchPage() {
               >
                 {claiming ? 'Joining…' : 'Join this match'}
               </button>
-              {claimError && <p className="mt-2 text-[12px] text-red-500">{claimError}</p>}
+              {claimError && <p className="mt-2 text-[12px] text-alert">{claimError}</p>}
             </>
           ) : (
             <>

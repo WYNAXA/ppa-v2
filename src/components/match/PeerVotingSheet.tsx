@@ -186,7 +186,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
                     </button>
 
                     {submitMutation.isError && (
-                      <p className="text-[12px] text-red-500 text-center mt-2">{t('peer_voting.submit_failed')}</p>
+                      <p className="text-[12px] text-alert text-center mt-2">{t('peer_voting.submit_failed')}</p>
                     )}
                   </>
                 )}

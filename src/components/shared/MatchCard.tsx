@@ -33,14 +33,14 @@ interface MatchCardProps {
 
 const TYPE_CLASS: Record<string, string> = {
   competitive: 'bg-warn-50 text-warn border-warn-100',
-  friendly:    'bg-blue-50 text-blue-600 border-blue-100',
+  friendly:    'bg-surface text-ink-2 border-hairline',
   casual:      'bg-surface text-ink-2 border-hairline',
   group:       'bg-court-50 text-court border-court-100',
 }
 
 const STATUS_DOT: Record<string, string> = {
-  confirmed: 'bg-green-400',
-  scheduled: 'bg-green-400',
+  confirmed: 'bg-court',
+  scheduled: 'bg-court',
   open:      'bg-warn',
   pending:   'bg-warn',
   completed: 'bg-ink-4',
@@ -151,13 +151,13 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
             )}>
               <span className={cn(
                 'text-[15px] font-black',
-                match.didWin === true ? 'text-court' : match.didWin === false ? 'text-red-500' : 'text-ink-2'
+                match.didWin === true ? 'text-court' : match.didWin === false ? 'text-alert' : 'text-ink-2'
               )}>
                 {match.score}
               </span>
               <span className={cn(
                 'text-[11px] font-bold uppercase tracking-wide',
-                match.didWin === true ? 'text-court' : match.didWin === false ? 'text-red-400' : 'text-ink-2'
+                match.didWin === true ? 'text-court' : match.didWin === false ? 'text-alert' : 'text-ink-2'
               )}>
                 {match.didWin === true ? t('matches.win') : match.didWin === false ? t('matches.loss') : t('matches.draw')}
               </span>

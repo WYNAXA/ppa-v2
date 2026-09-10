@@ -90,7 +90,7 @@ function PollCountdown({ closesAt }: { closesAt: string }) {
     expired: 'bg-surface border-hairline text-ink-2',
     normal: 'bg-court-50 border-court-100 text-court-700',
     warning: 'bg-warn-50 border-warn text-warn',
-    critical: 'bg-red-50 border-red-200 text-red-700',
+    critical: 'bg-alert-50 border-alert/40 text-alert',
   }
 
   const unitBox = (value: number, label: string) => (
@@ -736,11 +736,11 @@ export function PollAdminView({
           className={cn(
             'rounded-2xl border px-3 py-3 text-center transition-all',
             expandedSection === 'unavailable'
-              ? 'border-red-300 bg-red-50'
-              : 'border-hairline bg-white hover:border-red-200',
+              ? 'border-alert/40 bg-alert-50'
+              : 'border-hairline bg-white hover:border-alert/40',
           )}
         >
-          <XCircle className="h-5 w-5 text-red-400 mx-auto mb-1" />
+          <XCircle className="h-5 w-5 text-alert mx-auto mb-1" />
           <p className="text-[18px] font-bold text-ink">{unavailableResponses.length}</p>
           <p className="text-[11px] text-ink-2 font-medium">{t('polls.unavailable')}</p>
         </button>
@@ -788,10 +788,10 @@ export function PollAdminView({
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden rounded-2xl border border-red-100 bg-red-50"
+            className="overflow-hidden rounded-2xl border border-alert/40 bg-alert-50"
           >
             <div className="px-4 py-3 space-y-2">
-              <p className="text-[12px] font-semibold text-red-700 uppercase tracking-wide">{t('polls.unavailable')}</p>
+              <p className="text-[12px] font-semibold text-alert uppercase tracking-wide">{t('polls.unavailable')}</p>
               {unavailableResponses.map((r) => (
                 <div key={r.user_id} className="flex items-center gap-2">
                   <PlayerAvatar name={r.profile?.name} avatarUrl={r.profile?.avatar_url} size="sm" />
@@ -836,7 +836,7 @@ export function PollAdminView({
                       className={cn(
                         'flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all',
                         remindedUsers.has(m.id)
-                          ? 'bg-green-100 text-green-600'
+                          ? 'bg-court-50 text-court'
                           : 'bg-warn-100 text-warn hover:bg-warn-100 active:scale-95',
                       )}
                     >
@@ -1117,9 +1117,9 @@ export function PollAdminView({
           )}
 
           {generateError && (
-            <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3">
-              <p className="text-[12px] font-semibold text-red-700">{t('polls.generation_failed')}</p>
-              <p className="text-[11px] text-red-500 mt-0.5">{generateError}</p>
+            <div className="rounded-xl bg-alert-50 border border-alert/40 px-4 py-3">
+              <p className="text-[12px] font-semibold text-alert">{t('polls.generation_failed')}</p>
+              <p className="text-[11px] text-alert mt-0.5">{generateError}</p>
             </div>
           )}
 

@@ -95,8 +95,8 @@ export function AddToCalendarSheet({ open, onClose, event }: AddToCalendarSheetP
     {
       label:       'Google Calendar',
       description: 'Opens in a new tab',
-      icon:        <Calendar className="h-4 w-4 text-blue-600" />,
-      bg:          'bg-blue-50',
+      icon:        <Calendar className="h-4 w-4 text-ink-2" />,
+      bg:          'bg-surface',
       action:      () => { openUrl(googleUrl); onClose() },
     },
     {
@@ -109,8 +109,8 @@ export function AddToCalendarSheet({ open, onClose, event }: AddToCalendarSheetP
     {
       label:       'Outlook',
       description: 'Opens in a new tab',
-      icon:        <Calendar className="h-4 w-4 text-blue-800" />,
-      bg:          'bg-blue-50',
+      icon:        <Calendar className="h-4 w-4 text-ink-2" />,
+      bg:          'bg-surface',
       action:      () => { openUrl(outlookUrl); onClose() },
     },
   ]

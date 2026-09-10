@@ -146,7 +146,7 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
               </button>
 
               {createMutation.isError && (
-                <p className="text-[12px] text-red-500 text-center mt-2">{t('play_another.create_failed')}</p>
+                <p className="text-[12px] text-alert text-center mt-2">{t('play_another.create_failed')}</p>
               )}
             </div>
           </motion.div>

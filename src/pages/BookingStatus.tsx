@@ -339,7 +339,7 @@ export function BookingStatusPage() {
             {deadlineMs > 0 && (
               <div className="flex items-center justify-between">
                 <p className="text-[12px] font-semibold text-ink-2">Payment due in</p>
-                <p className={cn('text-[14px] font-bold', deadlineRemaining > 0 ? 'text-warn' : 'text-red-500')}>
+                <p className={cn('text-[14px] font-bold', deadlineRemaining > 0 ? 'text-warn' : 'text-alert')}>
                   {formatCountdown(deadlineRemaining)}
                 </p>
               </div>
@@ -420,20 +420,20 @@ export function BookingStatusPage() {
             {!showCancelConfirm ? (
               <button
                 onClick={() => setShowCancelConfirm(true)}
-                className="w-full rounded-2xl border-2 border-red-200 py-3.5 text-[14px] font-bold text-red-500 flex items-center justify-center gap-2"
+                className="w-full rounded-2xl border-2 border-alert/40 py-3.5 text-[14px] font-bold text-alert flex items-center justify-center gap-2"
               >
                 <XCircle className="h-4 w-4" />
                 Cancel booking
               </button>
             ) : (
-              <div className="rounded-2xl border border-red-100 bg-red-50 p-4 space-y-3">
+              <div className="rounded-2xl border border-alert/40 bg-alert-50 p-4 space-y-3">
                 <div className="flex items-start gap-2">
-                  <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <AlertTriangle className="h-4 w-4 text-alert flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-[14px] font-bold text-red-800">
+                    <p className="text-[14px] font-bold text-alert">
                       {beforeCutoff ? 'Cancel with full refund?' : 'Cancel \u2014 no refund'}
                     </p>
-                    <p className="text-[12px] text-red-600 mt-1">
+                    <p className="text-[12px] text-alert mt-1">
                       {beforeCutoff
                         ? 'All payments will be refunded in full.'
                         : 'You are inside the cancellation window. Payments already made will not be refunded.'}
@@ -441,7 +441,7 @@ export function BookingStatusPage() {
                   </div>
                 </div>
                 {cancelError && (
-                  <p className="text-[12px] text-red-500">{cancelError}</p>
+                  <p className="text-[12px] text-alert">{cancelError}</p>
                 )}
                 <div className="flex gap-2">
                   <button
@@ -454,7 +454,7 @@ export function BookingStatusPage() {
                   <button
                     onClick={handleCancel}
                     disabled={cancelling}
-                    className="flex-1 rounded-xl bg-red-500 py-2.5 text-[13px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="flex-1 rounded-xl bg-alert py-2.5 text-[13px] font-bold text-white disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
                     {cancelling ? 'Cancelling\u2026' : beforeCutoff ? 'Confirm \u2014 full refund' : 'Confirm \u2014 no refund'}
                   </button>

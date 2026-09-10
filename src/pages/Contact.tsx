@@ -113,7 +113,7 @@ export function ContactPage() {
         </div>
 
         {/* Report abuse */}
-        <div className="rounded-2xl bg-red-50 border border-red-100 p-5 mb-8">
+        <div className="rounded-2xl bg-alert-50 border border-alert/40 p-5 mb-8">
           <p className="text-[14px] font-bold text-navy mb-1">Report abuse or harassment</p>
           <p className="text-[13px] text-ink-2 leading-relaxed">
             Email{' '}

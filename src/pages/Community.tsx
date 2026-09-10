@@ -619,17 +619,17 @@ function UpcomingEventsSection({ userId, userGroupIds }: { userId: string; userG
             onClick={() => navigate(`/community/events/${e.id}`)}
             className={cn(
               'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
-              e.is_official ? 'border-purple-100 bg-purple-50/30' : 'border-hairline bg-white',
+              e.is_official ? 'border-court-100 bg-court-50/30' : 'border-hairline bg-white',
             )}
           >
             <div className="flex items-center gap-2 mb-1">
               {e.is_official && (
-                <span className="text-[11px] font-bold text-purple-700 bg-purple-100 rounded-full px-2 py-0.5">{t('community.badge_official')}</span>
+                <span className="text-[11px] font-bold text-court bg-court-50 rounded-full px-2 py-0.5">{t('community.badge_official')}</span>
               )}
               {(e.entry_fee_pence ?? 0) > 0 ? (
                 <span className="text-[11px] font-semibold text-ink-2">{'\u00A3'}{((e.entry_fee_pence ?? 0) / 100).toFixed(2)}</span>
               ) : (
-                <span className="text-[11px] font-semibold text-green-600">{t('community.badge_free')}</span>
+                <span className="text-[11px] font-semibold text-court">{t('community.badge_free')}</span>
               )}
             </div>
             <p className="text-[14px] font-bold text-ink">{e.title}</p>
@@ -1166,13 +1166,24 @@ export function CommunityPage() {
           refs={{ groups: groupsRef, players: playersRef, coaches: coachesRef, venues: venuesRef, events: eventsRef }}
         />
 
-        {/* Open Matches link */}
+        {/* Open Matches link.
+            It used to sit on `warn-50` behind a 🎾 emoji. Two things wrong with
+            that: `warn` means *something needs your attention*, and an open
+            match is an invitation, not a warning; and the emoji renders in a
+            different palette on every platform — blue on Android, green on iOS —
+            so it was the one genuinely off-brand element on the page. Open
+            Matches and My Connections are the same kind of thing — two doors to
+            finding people to play with — so they are now a matched pair, told
+            apart by their words and their glyphs rather than by hue. The ring
+            glyph is the one the Play sheet already uses for open matches. */}
         <button
           onClick={() => navigate('/open-matches')}
-          className="w-full flex items-center gap-3 rounded-2xl border border-warn-100 bg-warn-50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
+          className="w-full flex items-center gap-3 rounded-2xl border border-court-100 bg-court-50/50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
         >
-          <div className="h-9 w-9 rounded-xl bg-warn-100 flex items-center justify-center flex-shrink-0">
-            <span className="text-lg">🎾</span>
+          <div className="h-9 w-9 rounded-xl bg-court-100 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-court)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" /><path d="M12 3a9 9 0 0 1 0 18" /><path d="M12 3a9 9 0 0 0 0 18" />
+            </svg>
           </div>
           <div className="flex-1 min-w-0">
             <p className="text-[13px] font-bold text-ink">{t('community.open_matches')}</p>
@@ -1251,7 +1262,7 @@ export function CommunityPage() {
                   <button
                     onClick={() => cancelRequestMutation.mutate(req.group_id)}
                     disabled={cancelRequestMutation.isPending}
-                    className="flex-shrink-0 rounded-xl border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500 active:scale-95 transition-transform"
+                    className="flex-shrink-0 rounded-xl border border-alert/40 px-3 py-1.5 text-[11px] font-bold text-alert active:scale-95 transition-transform"
                   >
                     {t('community.cancel')}
                   </button>
@@ -1383,7 +1394,7 @@ export function CommunityPage() {
                   </button>
                   <button
                     onClick={() => setInviteGroupTarget({ id: conn.user_id, name: conn.name })}
-                    className="rounded-lg bg-blue-50 border border-blue-200 px-2 py-1 text-[11px] font-bold text-blue-700"
+                    className="rounded-lg bg-surface border border-hairline px-2 py-1 text-[11px] font-bold text-ink-2"
                   >
                     <Users className="h-3 w-3 inline mr-0.5" />
                     Group

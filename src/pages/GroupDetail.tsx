@@ -616,7 +616,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
                 <button
                   onClick={() => memberAction.mutate({ action: 'remove', memberId: menuMemberId })}
                   disabled={memberAction.isPending}
-                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-red-500 hover:bg-red-50"
+                  className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-[14px] font-semibold text-alert hover:bg-alert-50"
                 >
                   <UserX className="h-4 w-4" />
                   {t('group_detail.remove_from_group')}
@@ -763,8 +763,8 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
             <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-1">{t('group_detail.your_record_in_group')}</p>
             <div className="flex gap-4">
               <span className="text-[13px] font-bold text-ink">{t('group_detail.played', { count: playedCount })}</span>
-              <span className="text-[13px] font-bold text-green-700">{winsCount}W</span>
-              <span className="text-[13px] font-bold text-red-500">{lossesCount}L</span>
+              <span className="text-[13px] font-bold text-court">{winsCount}W</span>
+              <span className="text-[13px] font-bold text-alert">{lossesCount}L</span>
               <span className="text-[13px] font-bold text-ink-2">{playedCount > 0 ? Math.round((winsCount / playedCount) * 100) : 0}%</span>
             </div>
           </div>
@@ -867,7 +867,7 @@ function PollCard({ poll }: { poll: Poll }) {
         </div>
         <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold flex-shrink-0 mt-0.5 ${
           poll.status === 'open'
-            ? 'bg-green-50 text-green-600 border border-green-100'
+            ? 'bg-court-50 text-court border border-court-100'
             : 'bg-hairline text-ink-2'
         }`}>
           {poll.status === 'open' ? t('group_detail.poll_open') : t('group_detail.poll_closed')}
@@ -953,8 +953,8 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
   if (isLoading) return <TabSkeleton />
 
   const STATUS_STYLE: Record<string, string> = {
-    active:    'bg-green-50 text-green-600 border-green-100',
-    upcoming:  'bg-blue-50 text-blue-600 border-blue-100',
+    active:    'bg-court-50 text-court border-court-100',
+    upcoming:  'bg-surface text-ink-2 border-hairline',
     completed: 'bg-hairline text-ink-2 border-hairline',
   }
 
@@ -1276,7 +1276,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           </button>
                           <button
                             onClick={() => declineMember(pm)}
-                            className="rounded-lg border border-red-200 px-3 py-1.5 text-[11px] font-bold text-red-500"
+                            className="rounded-lg border border-alert/40 px-3 py-1.5 text-[11px] font-bold text-alert"
                           >
                             {t('group_detail.decline')}
                           </button>
@@ -1322,7 +1322,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           <button
                             onClick={() => removeMember(m.id)}
                             disabled={actionPending === m.id}
-                            className="rounded-lg border border-red-200 px-2.5 py-1 text-[11px] font-semibold text-red-500 disabled:opacity-50"
+                            className="rounded-lg border border-alert/40 px-2.5 py-1 text-[11px] font-semibold text-alert disabled:opacity-50"
                           >
                             {t('group_detail.remove')}
                           </button>
@@ -1545,11 +1545,11 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       )}
 
       {/* Danger Zone — visible to all members */}
-      <div className="rounded-2xl border border-red-100 p-4">
+      <div className="rounded-2xl border border-alert/40 p-4">
         <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide mb-3">{t('group_detail.danger_zone')}</p>
         <button
           onClick={() => setConfirmLeave(true)}
-          className="w-full rounded-xl border border-red-200 py-3 text-[14px] font-semibold text-red-500"
+          className="w-full rounded-xl border border-alert/40 py-3 text-[14px] font-semibold text-alert"
         >
           {t('group_detail.leave_group_btn')}
         </button>
@@ -1573,7 +1573,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               <p className="text-[13px] text-ink-2 text-center mb-6">{t('group_detail.leave_group_help')}</p>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmLeave(false)} className="flex-1 rounded-2xl border border-hairline py-3 text-[14px] font-semibold text-ink-2">{t('group_detail.cancel')}</button>
-                <button onClick={leaveGroup} disabled={leaving} className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-50">{leaving ? 'Leaving...' : t('group_detail.leave')}</button>
+                <button onClick={leaveGroup} disabled={leaving} className="flex-1 rounded-2xl bg-alert py-3 text-[14px] font-bold text-white disabled:opacity-50">{leaving ? 'Leaving...' : t('group_detail.leave')}</button>
               </div>
             </motion.div>
           </>
@@ -1612,7 +1612,7 @@ function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: 
       <div className="px-5 pb-8">
         <button
           onClick={() => setConfirmOpen(true)}
-          className="w-full rounded-xl border border-red-200 py-3 text-[14px] font-semibold text-red-500 active:scale-[0.98] transition-transform"
+          className="w-full rounded-xl border border-alert/40 py-3 text-[14px] font-semibold text-alert active:scale-[0.98] transition-transform"
         >
           {isRinger ? t('group_detail.stop_ringer_btn') : t('group_detail.leave_group_btn')}
         </button>
@@ -1642,7 +1642,7 @@ function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: 
                   {t('group_detail.cancel')}
                 </button>
                 <button onClick={() => leaveMutation.mutate()} disabled={leaveMutation.isPending}
-                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-50">
+                  className="flex-1 rounded-2xl bg-alert py-3 text-[14px] font-bold text-white disabled:opacity-50">
                   {leaveMutation.isPending ? t('group_detail.leaving') : t('group_detail.leave')}
                 </button>
               </div>

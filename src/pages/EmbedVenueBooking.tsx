@@ -151,7 +151,7 @@ export function EmbedVenueBookingPage() {
                 <div className="h-6 w-6 rounded-full border-2 border-court border-t-transparent animate-spin" />
               </div>
             ) : slotsError ? (
-              <p className="text-center text-[13px] text-red-500 py-8">{slotsError}</p>
+              <p className="text-center text-[13px] text-alert py-8">{slotsError}</p>
             ) : slots.length === 0 ? (
               <p className="text-center text-[13px] text-ink-2 py-8">No availability for this day — try another date.</p>
             ) : (

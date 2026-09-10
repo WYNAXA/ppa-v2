@@ -293,8 +293,8 @@ function FormDot({ result }: { result: 'win' | 'loss' | 'draw' }) {
   return (
     <div className={cn(
       'h-2.5 w-2.5 rounded-full',
-      result === 'win'  ? 'bg-green-400' :
-      result === 'loss' ? 'bg-red-400'   : 'bg-ink-4'
+      result === 'win'  ? 'bg-court' :
+      result === 'loss' ? 'bg-alert'   : 'bg-ink-4'
     )} />
   )
 }
@@ -349,8 +349,8 @@ function RankingCard({
             {/* Win/loss row */}
             <div className="grid grid-cols-4 gap-2 mb-4">
               {[
-                { label: t('compete.wins'),   value: stats.wins,   color: 'text-green-300' },
-                { label: t('compete.losses'), value: stats.losses, color: 'text-red-300'   },
+                { label: t('compete.wins'),   value: stats.wins,   color: 'text-court' },
+                { label: t('compete.losses'), value: stats.losses, color: 'text-alert'   },
                 { label: t('compete.draws'),  value: stats.draws,  color: 'text-ink-3'  },
               ].map(({ label, value, color }) => (
                 <div key={label} className="bg-white/10 rounded-xl py-2.5 text-center">
@@ -382,13 +382,13 @@ function RankingCard({
                     <span className="text-[13px] font-semibold text-ink-3">New</span>
                   ) : stats.trend > 0 ? (
                     <>
-                      <TrendingUp className="h-4 w-4 text-green-300" />
-                      <span className="text-[14px] font-bold text-green-300">+{stats.trend}</span>
+                      <TrendingUp className="h-4 w-4 text-court" />
+                      <span className="text-[14px] font-bold text-court">+{stats.trend}</span>
                     </>
                   ) : stats.trend < 0 ? (
                     <>
-                      <TrendingDown className="h-4 w-4 text-red-300" />
-                      <span className="text-[14px] font-bold text-red-300">{stats.trend}</span>
+                      <TrendingDown className="h-4 w-4 text-alert" />
+                      <span className="text-[14px] font-bold text-alert">{stats.trend}</span>
                     </>
                   ) : (
                     <>
@@ -477,8 +477,8 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
   const { t } = useTranslation()
 
   const STATUS_STYLE: Record<string, string> = {
-    active:    'bg-green-50 text-green-600 border-green-100',
-    upcoming:  'bg-blue-50 text-blue-600 border-blue-100',
+    active:    'bg-court-50 text-court border-court-100',
+    upcoming:  'bg-surface text-ink-2 border-hairline',
     completed: 'bg-hairline text-ink-2 border-hairline',
   }
 

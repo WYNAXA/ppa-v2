@@ -69,12 +69,12 @@ function MatchCardEnhanced({
       {/* Badges row */}
       <div className="flex items-center gap-1.5 mb-1">
         {match.group_name && (
-          <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 rounded-full px-2 py-0.5">
+          <span className="text-[11px] font-semibold text-ink-2 bg-surface rounded-full px-2 py-0.5">
             {match.group_name}
           </span>
         )}
         {match.poll_id && !isCompleted && (
-          <span className="text-[11px] font-semibold text-purple-600 bg-purple-50 rounded-full px-2 py-0.5">
+          <span className="text-[11px] font-semibold text-court bg-court-50 rounded-full px-2 py-0.5">
             {t('play.auto_scheduled')}
           </span>
         )}
@@ -225,7 +225,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
           </button>
         </div>
         {offerMutation.isSuccess && (
-          <p className="text-[12px] text-green-600 text-center mt-2 font-semibold">{t('play.offer_sent')}</p>
+          <p className="text-[12px] text-court text-center mt-2 font-semibold">{t('play.offer_sent')}</p>
         )}
       </motion.div>
     </>
@@ -649,7 +649,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                     <span className={cn(
                       'text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
                       m.verification_status === 'disputed'
-                        ? 'bg-red-50 text-red-600 border border-red-100'
+                        ? 'bg-alert-50 text-alert border border-alert/40'
                         : 'bg-warn-100 text-warn border border-warn'
                     )}>
                       {m.verification_status === 'disputed' ? 'Disputed' : 'Confirm'}
@@ -693,7 +693,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                     <span className={cn(
                       'text-[11px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 flex-shrink-0',
                       m.verification_status === 'disputed'
-                        ? 'bg-red-50 text-red-600 border border-red-100'
+                        ? 'bg-alert-50 text-alert border border-alert/40'
                         : 'bg-hairline text-ink-2 border border-hairline'
                     )}>
                       {m.verification_status === 'disputed' ? 'Disputed' : 'Pending'}

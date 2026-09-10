@@ -43,18 +43,18 @@ const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 
 const TYPE_STYLES: Record<string, { labelKey: string; className: string }> = {
   competitive: { labelKey: 'match.competitive', className: 'bg-warn-50 text-warn border-warn-100' },
-  friendly:    { labelKey: 'match.friendly',    className: 'bg-blue-50 text-blue-600 border-blue-100'     },
+  friendly:    { labelKey: 'match.friendly',    className: 'bg-surface text-ink-2 border-hairline'     },
   casual:      { labelKey: 'match.casual',      className: 'bg-surface text-ink-2 border-hairline'     },
   group:       { labelKey: 'match.group_type',  className: 'bg-court-50 text-court border-court-100'     },
 }
 
 const STATUS_STYLES: Record<string, { labelKey: string; className: string; dot: string }> = {
-  confirmed:  { labelKey: 'match.confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
-  scheduled:  { labelKey: 'match.confirmed',  className: 'bg-green-50 text-green-700 border-green-100',   dot: 'bg-green-400'  },
+  confirmed:  { labelKey: 'match.confirmed',  className: 'bg-court-50 text-court border-court-100',   dot: 'bg-court'  },
+  scheduled:  { labelKey: 'match.confirmed',  className: 'bg-court-50 text-court border-court-100',   dot: 'bg-court'  },
   open:       { labelKey: 'match.open',       className: 'bg-warn-50 text-warn border-warn-100', dot: 'bg-warn' },
   pending:    { labelKey: 'match.pending',    className: 'bg-warn-50 text-warn border-warn-100', dot: 'bg-warn' },
   completed:  { labelKey: 'match.completed',  className: 'bg-surface text-ink-2 border-hairline',      dot: 'bg-ink-4'   },
-  cancelled:  { labelKey: 'match.cancelled',  className: 'bg-red-50 text-red-500 border-red-100',         dot: 'bg-red-400'    },
+  cancelled:  { labelKey: 'match.cancelled',  className: 'bg-alert-50 text-alert border-alert/40',         dot: 'bg-alert'    },
 }
 
 interface DisputeProposal {
@@ -232,15 +232,15 @@ function ResultBanner({ result, players, currentUserId }: { result: MatchResult;
         <span className={cn(
           'ml-auto text-[11px] font-semibold rounded-full px-2 py-0.5 border',
           result.verification_status === 'verified'
-            ? 'bg-green-50 text-green-700 border-green-100'
+            ? 'bg-court-50 text-court border-court-100'
             : result.verification_status === 'disputed'
-            ? 'bg-red-50 text-red-700 border-red-100'
+            ? 'bg-alert-50 text-alert border-alert/40'
             : result.verification_status === 'submitter_review' || result.verification_status === 'opponent_review'
             ? 'bg-warn-50 text-warn border-warn-100'
             : result.verification_status === 'admin_review'
             ? 'bg-warn-50 text-warn border-warn-100'
             : result.verification_status === 'cancelled'
-            ? 'bg-red-50 text-red-700 border-red-100'
+            ? 'bg-alert-50 text-alert border-alert/40'
             : 'bg-warn-50 text-warn border-warn-100'
         )}>
           {result.verification_status === 'verified' ? t('match.verified')
@@ -1368,7 +1368,7 @@ export function MatchDetailPage() {
                 href={googleMapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex-shrink-0 flex items-center gap-1 rounded-lg bg-blue-50 border border-blue-100 px-2 py-1 text-[11px] font-semibold text-blue-600"
+                className="flex-shrink-0 flex items-center gap-1 rounded-lg bg-surface border border-hairline px-2 py-1 text-[11px] font-semibold text-ink-2"
               >
                 <Navigation className="h-3 w-3" />
                 {t('match.directions')}
@@ -1389,17 +1389,17 @@ export function MatchDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mx-5 mb-4 rounded-2xl bg-green-50 border border-green-200 px-4 py-3"
+          className="mx-5 mb-4 rounded-2xl bg-court-50 border border-court-100 px-4 py-3"
         >
           <div className="flex items-center gap-2 mb-2">
-            <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
-            <p className="text-[13px] font-bold text-green-800">{t('match.all_players_confirmed')}</p>
+            <CheckCircle className="h-4 w-4 text-court flex-shrink-0" />
+            <p className="text-[13px] font-bold text-court">{t('match.all_players_confirmed')}</p>
           </div>
           {(match as any).booking_status !== 'booked' && (
             <div className="mt-2 space-y-1.5">
               <button
                 onClick={() => navigate(`/play/book-court?match_id=${match.id}&date=${match.match_date}&time=${match.match_time ?? ''}`)}
-                className="w-full rounded-xl bg-green-600 py-2 text-[12px] font-bold text-white"
+                className="w-full rounded-xl bg-court py-2 text-[12px] font-bold text-white"
               >
                 {t('match.book_court')}
               </button>
@@ -1643,7 +1643,7 @@ export function MatchDetailPage() {
                       {t('match.their_proposed_score', { name: disputeProposal.voterName })}
                     </p>
                     {disputeProposal.reason && (
-                      <p className="text-[11px] text-red-600 italic mb-1">{t('match.dispute_reason', { reason: disputeProposal.reason })}</p>
+                      <p className="text-[11px] text-alert italic mb-1">{t('match.dispute_reason', { reason: disputeProposal.reason })}</p>
                     )}
                     {renderScoreSummary(disputeProposal.sets_data, disputeProposal.team1_score, disputeProposal.team2_score, disputeProposal.result_type)}
                   </>
@@ -1743,7 +1743,7 @@ export function MatchDetailPage() {
                         queryClient.invalidateQueries({ queryKey: ['match', id] })
                         toast.success(t('match.proposal_accepted'))
                       }}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-court-100 py-2.5 text-[13px] font-semibold text-court"
                     >
                       <CheckCircle className="h-4 w-4" />
                       {t('match.accept')}
@@ -1807,7 +1807,7 @@ export function MatchDetailPage() {
                       queryClient.invalidateQueries({ queryKey: ['match', id] })
                       toast.success(t('match.counter_proposal_accepted'))
                     }}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700"
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-court-100 py-2.5 text-[13px] font-semibold text-court"
                   >
                     <CheckCircle className="h-4 w-4" />
                     Accept
@@ -1854,7 +1854,7 @@ export function MatchDetailPage() {
                       queryClient.invalidateQueries({ queryKey: ['match', id] })
                       toast.success(t('match.escalated_to_admin'))
                     }}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600"
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-alert/40 py-2.5 text-[13px] font-semibold text-alert"
                   >
                     <XCircle className="h-4 w-4" />
                     {t('match.escalate')}
@@ -1884,7 +1884,7 @@ export function MatchDetailPage() {
           return (
             <div className="px-5 mb-4">
               {showEditScores ? (
-                <div className="rounded-2xl border border-green-100 bg-green-50 p-4">
+                <div className="rounded-2xl border border-court-100 bg-court-50 p-4">
                   <p className="text-[13px] font-bold text-ink mb-2">{t('match.edit_scores')}</p>
                   <ScoreEntryPanel
                     team1Names={t1Names}
@@ -1940,15 +1940,15 @@ export function MatchDetailPage() {
                   </div>
                 </div>
               ) : (
-                <div className="rounded-2xl border border-green-100 bg-green-50 p-3 text-center">
-                  <p className="text-[13px] font-semibold text-green-700">{t('match.you_submitted_result')}</p>
+                <div className="rounded-2xl border border-court-100 bg-court-50 p-3 text-center">
+                  <p className="text-[13px] font-semibold text-court">{t('match.you_submitted_result')}</p>
                   <p className="text-[11px] text-ink-2 mt-1">{t('match.awaiting_verification')}</p>
                   {hoursUntilAutoVerify > 0 && (
                     <p className="text-[11px] text-ink-2 mt-0.5">{t('match.auto_verifies_in', { hours: hoursUntilAutoVerify })}</p>
                   )}
                   <button
                     onClick={() => setShowEditScores(true)}
-                    className="mt-2 rounded-xl border border-green-200 bg-white px-4 py-1.5 text-[12px] font-semibold text-green-700"
+                    className="mt-2 rounded-xl border border-court-100 bg-white px-4 py-1.5 text-[12px] font-semibold text-court"
                   >
                     {t('match.edit_scores')}
                   </button>
@@ -1965,9 +1965,9 @@ export function MatchDetailPage() {
               <div className="px-5 mb-4">
                 <div className={cn(
                   'rounded-2xl border p-3 text-center',
-                  myVote === 'dispute' ? 'bg-red-50 border-red-100' : 'bg-green-50 border-green-100'
+                  myVote === 'dispute' ? 'bg-alert-50 border-alert/40' : 'bg-court-50 border-court-100'
                 )}>
-                  <p className={cn('text-[13px] font-semibold', myVote === 'dispute' ? 'text-red-700' : 'text-green-700')}>
+                  <p className={cn('text-[13px] font-semibold', myVote === 'dispute' ? 'text-alert' : 'text-court')}>
                     {myVote === 'dispute' ? t('match.result_disputed_toast') : t('match.result_confirmed_toast')}
                   </p>
                 </div>
@@ -1996,7 +1996,7 @@ export function MatchDetailPage() {
                       value={disputeReason}
                       onChange={(e) => setDisputeReason(e.target.value)}
                       placeholder={t('match.describe_issue_placeholder')}
-                      className="w-full rounded-xl border border-red-200 bg-white px-3 py-2 text-[13px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-1 focus:ring-red-300 mb-2 resize-none"
+                      className="w-full rounded-xl border border-alert/40 bg-white px-3 py-2 text-[13px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-1 focus:ring-alert/40 mb-2 resize-none"
                       rows={3}
                     />
                     <p className="text-[12px] font-semibold text-ink-2 mb-2">{t('match.correct_score_q')}</p>
@@ -2064,7 +2064,7 @@ export function MatchDetailPage() {
                           toast.success(t('match.dispute_submitted'))
                         }}
                         disabled={!disputeResultType}
-                        className="flex-1 rounded-xl bg-red-500 py-2 text-[13px] font-bold text-white disabled:opacity-50"
+                        className="flex-1 rounded-xl bg-alert py-2 text-[13px] font-bold text-white disabled:opacity-50"
                       >
                         {t('match.submit_dispute')}
                       </button>
@@ -2075,7 +2075,7 @@ export function MatchDetailPage() {
                     <button
                       onClick={() => voteMutation.mutate({ vote: 'confirm' })}
                       disabled={voteMutation.isPending}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-green-200 py-2.5 text-[13px] font-semibold text-green-700 disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-court-100 py-2.5 text-[13px] font-semibold text-court disabled:opacity-50"
                     >
                       <CheckCircle className="h-4 w-4" />
                       {t('match.confirm_result')}
@@ -2083,7 +2083,7 @@ export function MatchDetailPage() {
                     <button
                       onClick={() => setShowDisputeInput(true)}
                       disabled={voteMutation.isPending}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-red-200 py-2.5 text-[13px] font-semibold text-red-600 disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-alert/40 py-2.5 text-[13px] font-semibold text-alert disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
                       {t('match.dispute_result')}
@@ -2103,10 +2103,10 @@ export function MatchDetailPage() {
         <div className="px-5 mb-4">
           <button
             onClick={() => setShowPeerVoting(true)}
-            className="w-full rounded-2xl bg-purple-50 border border-purple-100 p-4 text-left"
+            className="w-full rounded-2xl bg-court-50 border border-court-100 p-4 text-left"
           >
-            <p className="text-[14px] font-bold text-purple-800 mb-0.5">{t('peer_voting.cast_votes')} 🎾</p>
-            <p className="text-[12px] text-purple-600">{t('peer_voting.cast_votes_desc')}</p>
+            <p className="text-[14px] font-bold text-court mb-0.5">{t('peer_voting.cast_votes')} 🎾</p>
+            <p className="text-[12px] text-court">{t('peer_voting.cast_votes_desc')}</p>
           </button>
         </div>
       )}
@@ -2244,28 +2244,28 @@ export function MatchDetailPage() {
               {/* ── PART 1: Confirmed-lift banner ── */}
               {/* Rider view: driver is picking you up */}
               {myAcceptedDriver && (
-                <div className="rounded-xl bg-green-50 border border-green-100 px-3 py-2.5 mb-3">
+                <div className="rounded-xl bg-court-50 border border-court-100 px-3 py-2.5 mb-3">
                   <div className="flex items-center gap-2">
                     <span className="text-[16px]">🚗</span>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[13px] font-semibold text-green-800">
+                      <p className="text-[13px] font-semibold text-court">
                         {t('match.x_is_picking_you_up', { name: myAcceptedDriver.name.split(' ')[0] })}
                         {myAccepted?.pickup_time && (
-                          <span className="text-green-600 font-normal"> {t('match.at_time', { time: myAccepted.pickup_time.slice(0, 5) })}</span>
+                          <span className="text-court font-normal"> {t('match.at_time', { time: myAccepted.pickup_time.slice(0, 5) })}</span>
                         )}
                       </p>
                     </div>
-                    <span className="shrink-0 rounded-full bg-green-100 border border-green-200 px-2 py-0.5 text-[11px] font-bold text-green-700">{t('match.confirmed')}</span>
+                    <span className="shrink-0 rounded-full bg-court-50 border border-court-100 px-2 py-0.5 text-[11px] font-bold text-court">{t('match.confirmed')}</span>
                   </div>
                 </div>
               )}
 
               {/* Driver view: you're driving these riders */}
               {confirmedRiders.length > 0 && (
-                <div className="rounded-xl bg-green-50 border border-green-100 px-3 py-2.5 mb-3">
+                <div className="rounded-xl bg-court-50 border border-court-100 px-3 py-2.5 mb-3">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-[16px]">🚗</span>
-                    <p className="text-[13px] font-semibold text-green-800 flex-1">
+                    <p className="text-[13px] font-semibold text-court flex-1">
                       {t('match.youre_driving_x', { names: confirmedRiders.map((r) => r.requesterName.split(' ')[0]).join(' & ') })}
                     </p>
                   </div>
@@ -2273,7 +2273,7 @@ export function MatchDetailPage() {
                   {/* Per-rider details: pickup time + address (Part 2 + 3) */}
                   <div className="space-y-2 mt-2">
                     {confirmedRiders.map((rider) => (
-                      <div key={rider.requester_id} className="rounded-lg bg-white border border-green-100 px-3 py-2">
+                      <div key={rider.requester_id} className="rounded-lg bg-white border border-court-100 px-3 py-2">
                         <button
                           onClick={() => setExpandedRiderId(expandedRiderId === rider.requester_id ? null : rider.requester_id)}
                           className="w-full flex items-center justify-between"
@@ -2307,7 +2307,7 @@ export function MatchDetailPage() {
 
                         {/* Address (Part 3 — privacy-gated, expanded) */}
                         {expandedRiderId === rider.requester_id && (
-                          <div className="mt-2 pt-2 border-t border-green-100">
+                          <div className="mt-2 pt-2 border-t border-court-100">
                             {riderAddress?.postal_code || riderAddress?.city ? (
                               <p className="text-[11px] text-ink-2">
                                 <MapPin className="h-3 w-3 inline mr-1 text-ink-2" />
@@ -2465,7 +2465,7 @@ export function MatchDetailPage() {
                               <div className="flex-1 min-w-0">
                                 <p className="text-[12px] font-semibold text-ink truncate">{passenger.name}</p>
                                 {isMe && acceptedDriverLocal && (
-                                  <p className="text-[11px] text-green-600">{t('match.riding_with_x', { name: acceptedDriverLocal.name.split(' ')[0] })}</p>
+                                  <p className="text-[11px] text-court">{t('match.riding_with_x', { name: acceptedDriverLocal.name.split(' ')[0] })}</p>
                                 )}
                                 {isMe && !acceptedDriverLocal && pendingRequests.length > 0 && (
                                   <p className="text-[11px] text-ink-2">{t('match.waiting_for_response')}</p>
@@ -2481,7 +2481,7 @@ export function MatchDetailPage() {
                                 </button>
                               )}
                               {isMe && acceptedDriverLocal && (
-                                <span className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">
+                                <span className="shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-court-50 border border-court-100 text-court">
                                   {t('match.lift_confirmed')}
                                 </span>
                               )}
@@ -2569,12 +2569,12 @@ export function MatchDetailPage() {
 
       {/* Invitation response banner */}
       {myInvitation?.status === 'pending' && new Date(myInvitation.expires_at) > new Date() && (
-        <div className="mx-5 mb-4 rounded-2xl border border-blue-200 bg-blue-50 p-4">
-          <p className="text-[14px] font-bold text-blue-900 mb-1">{t('match.invited_to_match')}</p>
-          <p className="text-[12px] text-blue-700 mb-3">{t('match.reply_by', { date: format(parseISO(myInvitation.expires_at), 'EEE d MMM, HH:mm', { locale }) })}</p>
+        <div className="mx-5 mb-4 rounded-2xl border border-hairline bg-surface p-4">
+          <p className="text-[14px] font-bold text-ink-2 mb-1">{t('match.invited_to_match')}</p>
+          <p className="text-[12px] text-ink-2 mb-3">{t('match.reply_by', { date: format(parseISO(myInvitation.expires_at), 'EEE d MMM, HH:mm', { locale }) })}</p>
           <div className="flex gap-2">
             <button onClick={() => respondInvitationMutation.mutate(true)} disabled={respondInvitationMutation.isPending}
-              className="flex-1 rounded-xl bg-blue-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
+              className="flex-1 rounded-xl bg-court py-2.5 text-[13px] font-semibold text-white disabled:opacity-50">
               {t('match.yes_i_can_play')}
             </button>
             <button onClick={() => respondInvitationMutation.mutate(false)} disabled={respondInvitationMutation.isPending}
@@ -2585,9 +2585,9 @@ export function MatchDetailPage() {
         </div>
       )}
       {myInvitation?.status === 'accepted' && !isParticipant && (
-        <div className="mx-5 mb-4 rounded-2xl bg-blue-50 border border-blue-200 px-4 py-3">
-          <p className="text-[13px] font-semibold text-blue-900 mb-0.5">{t('match.you_accepted_invitation')}</p>
-          <p className="text-[12px] text-blue-700">
+        <div className="mx-5 mb-4 rounded-2xl bg-surface border border-hairline px-4 py-3">
+          <p className="text-[13px] font-semibold text-ink-2 mb-0.5">{t('match.you_accepted_invitation')}</p>
+          <p className="text-[12px] text-ink-2">
             {myInvitation.is_broadcast
               ? t('match.waiting_host_confirm')
               : t('match.will_be_added_shortly')}
@@ -2597,13 +2597,13 @@ export function MatchDetailPage() {
 
       {/* Claim open match banner */}
       {canClaim && (
-        <div className="mx-5 mb-4 rounded-2xl border border-purple-200 bg-purple-50 p-4">
-          <p className="text-[14px] font-bold text-purple-900 mb-1">{t('open_matches.claim_banner_title')}</p>
-          <p className="text-[12px] text-purple-700 mb-3">{t('open_matches.claim_banner_subtitle')}</p>
+        <div className="mx-5 mb-4 rounded-2xl border border-court-100 bg-court-50 p-4">
+          <p className="text-[14px] font-bold text-court mb-1">{t('open_matches.claim_banner_title')}</p>
+          <p className="text-[12px] text-court mb-3">{t('open_matches.claim_banner_subtitle')}</p>
           <button
             onClick={() => claimOpenMutation.mutate()}
             disabled={claimOpenMutation.isPending}
-            className="w-full rounded-xl bg-purple-600 py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-xl bg-court py-2.5 text-[13px] font-semibold text-white disabled:opacity-50"
           >
             {claimOpenMutation.isPending ? t('match.claiming') : t('open_matches.claim_button')}
           </button>
@@ -2685,7 +2685,7 @@ export function MatchDetailPage() {
                     {(match as any).booked_by === currentUserId && (
                       <button
                         onClick={() => setConfirmCancelBooking(true)}
-                        className="text-[11px] text-red-500 font-semibold"
+                        className="text-[11px] text-alert font-semibold"
                       >
                         {t('match.cancel_booking')}
                       </button>
@@ -2727,7 +2727,7 @@ export function MatchDetailPage() {
           {playerIds.length < 4 && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
               onClick={() => setShowAskNetwork(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 py-3 text-[13px] font-semibold text-blue-700"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-hairline bg-surface py-3 text-[13px] font-semibold text-ink-2"
             >
               <Users className="h-4 w-4" />
               {t('match.ask_network')}
@@ -2736,20 +2736,20 @@ export function MatchDetailPage() {
           {playerIds.length < 4 && !(match as any).is_open && (isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
               onClick={() => setShowPushToOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-court-100 bg-court-50 py-3 text-[13px] font-semibold text-court"
             >
               {t('match.push_to_open')}
             </button>
           )}
           {(match as any).is_open && (isParticipant || isGroupAdmin) && (
             <>
-              <div className="flex items-center justify-center gap-1.5 rounded-xl border border-green-200 bg-green-50 py-3 text-[13px] font-semibold text-green-700">
+              <div className="flex items-center justify-center gap-1.5 rounded-xl border border-court-100 bg-court-50 py-3 text-[13px] font-semibold text-court">
                 <CheckCircle className="h-4 w-4" />
                 {t('match.open_match')}
               </div>
               <button
                 onClick={() => setShowPushToOpen(true)}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 py-3 text-[13px] font-semibold text-purple-700"
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-court-100 bg-court-50 py-3 text-[13px] font-semibold text-court"
               >
                 {t('match.edit_elo_range')}
               </button>
@@ -2779,7 +2779,7 @@ export function MatchDetailPage() {
           {isParticipant && !isCreator && match.status !== 'completed' && match.status !== 'cancelled' && (
             <button
               onClick={() => setConfirmLeave(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-red-100 py-3 text-[13px] font-semibold text-red-500"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-alert/40 py-3 text-[13px] font-semibold text-alert"
             >
               <LogOut className="h-4 w-4" />
               {t('match.leave')}
@@ -2813,7 +2813,7 @@ export function MatchDetailPage() {
           {canDelete && (
             <button
               onClick={() => setConfirmDelete(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-red-200 py-3 text-[13px] font-semibold text-red-500"
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-alert/40 py-3 text-[13px] font-semibold text-alert"
             >
               <Trash2 className="h-4 w-4" />
               {t('match.delete')}
@@ -2843,7 +2843,7 @@ export function MatchDetailPage() {
           </h3>
           <div className="space-y-2">
             {pendingInvitees.map((p: any) => (
-              <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-blue-100 bg-blue-50 px-3 py-2.5">
+              <div key={p.id} className="flex items-center gap-3 rounded-2xl border border-hairline bg-surface px-3 py-2.5">
                 <PlayerAvatar name={p.inviteeName} avatarUrl={p.inviteeAvatar} size="sm" />
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-ink truncate">{p.inviteeName ?? t('match.unknown_player')}</p>
@@ -2854,8 +2854,8 @@ export function MatchDetailPage() {
                   disabled={confirmingInviteeId !== null}
                   className={`rounded-xl px-3 py-1.5 text-[12px] font-semibold text-white ${
                     confirmingInviteeId === p.invitee_id
-                      ? 'bg-blue-700 animate-pulse'
-                      : 'bg-blue-600 disabled:bg-blue-400'
+                      ? 'bg-court animate-pulse'
+                      : 'bg-court disabled:bg-ink-2'
                   }`}
                 >
                   {confirmingInviteeId === p.invitee_id ? t('match.confirming') : t('match.confirm_result')}
@@ -2944,7 +2944,7 @@ export function MatchDetailPage() {
                         )}
                       </div>
                       {myReq?.status === 'accepted' ? (
-                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-green-50 border border-green-100 text-green-600">{t('match.accepted')}</span>
+                        <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-court-50 border border-court-100 text-court">{t('match.accepted')}</span>
                       ) : myReq?.status === 'pending' ? (
                         <span className="flex-shrink-0 rounded-lg px-2.5 py-1 text-[11px] font-bold bg-hairline text-ink-2">{t('match.requested')}</span>
                       ) : myReq?.status === 'declined' ? (
@@ -2999,8 +2999,8 @@ export function MatchDetailPage() {
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
               <div className="flex justify-center mb-5">
-                <div className="h-10 w-10 rounded-full bg-red-50 flex items-center justify-center">
-                  <LogOut className="h-5 w-5 text-red-500" />
+                <div className="h-10 w-10 rounded-full bg-alert-50 flex items-center justify-center">
+                  <LogOut className="h-5 w-5 text-alert" />
                 </div>
               </div>
               <p className="text-[16px] font-bold text-ink text-center mb-2">{t('match.leave_confirm')}</p>
@@ -3017,7 +3017,7 @@ export function MatchDetailPage() {
                 <button
                   onClick={handleLeave}
                   disabled={leaving}
-                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                  className="flex-1 rounded-2xl bg-alert py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
                   {leaving ? t('match.leaving') : t('match.leave_match')}
                 </button>
@@ -3103,7 +3103,7 @@ export function MatchDetailPage() {
                 <button
                   onClick={handleCancelBooking}
                   disabled={cancellingBooking}
-                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                  className="flex-1 rounded-2xl bg-alert py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
                   {cancellingBooking ? t('match.cancelling') : t('match.cancel_booking')}
                 </button>
@@ -3189,7 +3189,7 @@ export function MatchDetailPage() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
             >
-              <h3 className="text-[16px] font-bold text-red-600 mb-2">{t('match.delete_match_confirm')}</h3>
+              <h3 className="text-[16px] font-bold text-alert mb-2">{t('match.delete_match_confirm')}</h3>
               <p className="text-[13px] text-ink-2 mb-5">
                 {t('match.delete_match_sub')}
               </p>
@@ -3203,7 +3203,7 @@ export function MatchDetailPage() {
                 <button
                   onClick={handleDeleteMatch}
                   disabled={deleting}
-                  className="flex-1 rounded-2xl bg-red-500 py-3 text-[14px] font-bold text-white disabled:opacity-60"
+                  className="flex-1 rounded-2xl bg-alert py-3 text-[14px] font-bold text-white disabled:opacity-60"
                 >
                   {deleting ? t('match.deleting') : t('match.delete_forever')}
                 </button>
@@ -3221,7 +3221,7 @@ export function MatchDetailPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
             onClick={() => setDeleteError(null)}
-            className="fixed bottom-28 left-4 right-4 z-[70] bg-red-600 text-white text-[13px] font-medium px-4 py-3 rounded-2xl shadow-lg text-center"
+            className="fixed bottom-28 left-4 right-4 z-[70] bg-alert text-white text-[13px] font-medium px-4 py-3 rounded-2xl shadow-lg text-center"
           >
             {deleteError}
           </motion.div>
@@ -3234,7 +3234,7 @@ export function MatchDetailPage() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 16 }}
             onClick={() => setCancelError(null)}
-            className="fixed bottom-28 left-4 right-4 z-[70] bg-red-600 text-white text-[13px] font-medium px-4 py-3 rounded-2xl shadow-lg text-center"
+            className="fixed bottom-28 left-4 right-4 z-[70] bg-alert text-white text-[13px] font-medium px-4 py-3 rounded-2xl shadow-lg text-center"
           >
             {cancelError}
           </motion.div>

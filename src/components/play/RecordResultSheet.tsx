@@ -306,7 +306,7 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[90vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl max-h-[90vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -363,8 +363,8 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 selectedForSwap === pid
                                   ? 'bg-court-100 ring-2 ring-court scale-[1.02]'
                                   : selectedForSwap && team2.includes(selectedForSwap)
-                                    ? 'bg-white ring-2 ring-warn'
-                                    : 'bg-white'
+                                    ? 'bg-card ring-2 ring-warn'
+                                    : 'bg-card'
                               }`}
                             >
                               <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />
@@ -386,8 +386,8 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                                 selectedForSwap === pid
                                   ? 'bg-warn-100 ring-2 ring-warn scale-[1.02]'
                                   : selectedForSwap && team1.includes(selectedForSwap)
-                                    ? 'bg-white ring-2 ring-court-100'
-                                    : 'bg-white'
+                                    ? 'bg-card ring-2 ring-court-100'
+                                    : 'bg-card'
                               }`}
                             >
                               <PlayerAvatar name={p?.name ?? null} avatarUrl={p?.avatar_url} size="sm" />

@@ -200,7 +200,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
         <>
           <motion.div className="fixed inset-0 z-[60] bg-scrim" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-3xl max-h-[85vh] flex flex-col"
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
@@ -239,7 +239,7 @@ export function AskRingersSheet({ open, onClose, matchId, groupId, matchDateTime
                       return (
                         <div key={ringer.id} className={cn(
                           'flex items-center gap-3 rounded-xl border px-3 py-3 transition-colors',
-                          isSelected ? 'border-court bg-court-50' : 'border-hairline bg-white'
+                          isSelected ? 'border-court bg-court-50' : 'border-hairline bg-card'
                         )}>
                           {isSelectable && (
                             <button

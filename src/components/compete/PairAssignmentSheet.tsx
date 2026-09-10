@@ -195,10 +195,10 @@ export function PairAssignmentSheet({ open, onClose, leagueId, members, onSaved 
       <motion.div
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl max-h-[90vh] overflow-y-auto"
+        className="fixed inset-x-0 bottom-0 z-50 bg-card rounded-t-2xl max-h-[90vh] overflow-y-auto"
       >
         {/* Header */}
-        <div className="sticky top-0 bg-white z-10 px-5 pt-5 pb-3 border-b border-hairline">
+        <div className="sticky top-0 bg-card z-10 px-5 pt-5 pb-3 border-b border-hairline">
           <div className="flex items-center justify-between">
             <h2 className="text-[17px] font-bold text-ink">{t('setup_title')}</h2>
             <button onClick={handleClose} className="h-8 w-8 rounded-full bg-hairline flex items-center justify-center">

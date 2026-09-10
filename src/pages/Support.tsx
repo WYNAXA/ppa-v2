@@ -67,7 +67,7 @@ const TOPICS = [
 
 function TopicCard({ icon: Icon, title, desc, links }: typeof TOPICS[number]) {
   return (
-    <div className="rounded-2xl bg-white border border-hairline shadow-sm p-5 hover:border-court-100 hover:shadow-md transition-all">
+    <div className="rounded-2xl bg-card border border-hairline shadow-sm p-5 hover:border-court-100 hover:shadow-md transition-all">
       <div className="flex items-start gap-3 mb-3">
         <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
           <Icon className="h-5 w-5 text-court" />
@@ -98,7 +98,7 @@ export function SupportPage() {
   return (
     <div className="min-h-full bg-cream">
       {/* Header */}
-      <div className="bg-white border-b border-hairline">
+      <div className="bg-card border-b border-hairline">
         <div className="mx-auto max-w-3xl flex items-center gap-3 px-5 pt-14 pb-4">
           <Link
             to="/"
@@ -147,7 +147,7 @@ export function SupportPage() {
             </Link>
             <a
               href="mailto:support@padelplayersapp.com"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-court-100 bg-white px-5 py-2.5 text-[13px] font-semibold text-court hover:bg-court-50 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-court-100 bg-card px-5 py-2.5 text-[13px] font-semibold text-court hover:bg-court-50 transition-colors"
             >
               Email Support
             </a>

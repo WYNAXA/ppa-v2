@@ -592,7 +592,7 @@ function NextMatchCard({
       <div className="flex gap-2">
         <button
           onClick={() => navigate(`/matches/${match.id}`)}
-          className="min-h-[44px] flex-grow rounded-card bg-white py-[13px] text-center text-[15px] font-semibold leading-[18px] text-ink"
+          className="min-h-[44px] flex-grow rounded-card bg-card py-[13px] text-center text-[15px] font-semibold leading-[18px] text-ink"
         >
           {t('home.match_details')}
         </button>

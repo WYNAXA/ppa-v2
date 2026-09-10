@@ -67,7 +67,7 @@ export function WaitlistPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-card pb-24">
       <div className="px-5 pt-14 pb-3 flex items-center gap-3">
         <button onClick={() => goBack(navigate, '/play')} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0">
           <ChevronLeft className="h-5 w-5 text-ink-2" />
@@ -90,7 +90,7 @@ export function WaitlistPage() {
       ) : (
         <div className="px-5 space-y-2">
           {entries.map((e) => (
-            <div key={e.id} className="flex items-center gap-3 rounded-2xl border border-hairline bg-white p-3.5">
+            <div key={e.id} className="flex items-center gap-3 rounded-2xl border border-hairline bg-card p-3.5">
               <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0"><Bell className="h-5 w-5 text-court" /></div>
               <div className="flex-1 min-w-0">
                 <p className="text-[14px] font-semibold text-ink truncate">{e.venue?.venue_name ?? 'Venue'}</p>

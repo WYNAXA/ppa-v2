@@ -69,7 +69,7 @@ export function PlayerAvatar({ name, avatarUrl, size = 'md', badge }: PlayerAvat
         </div>
       )}
       {badge && (
-        <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-white px-1 py-px text-[11px] font-bold leading-none text-court shadow-sm border border-court-100">
+        <span className="absolute -bottom-0.5 -right-0.5 rounded-full bg-card px-1 py-px text-[11px] font-bold leading-none text-court shadow-sm border border-court-100">
           {badge}
         </span>
       )}

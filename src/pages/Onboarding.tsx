@@ -199,7 +199,7 @@ export function OnboardingPage() {
 
   if (finished) {
     return (
-      <div className="min-h-full bg-white flex flex-col items-center justify-center px-8 text-center">
+      <div className="min-h-full bg-card flex flex-col items-center justify-center px-8 text-center">
         <div className="text-5xl mb-3">🎾</div>
         <h1 className="text-xl font-bold text-ink">You're all set!</h1>
         <p className="mt-2 text-[14px] text-ink-2">Your account is ready.</p>
@@ -215,7 +215,7 @@ export function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-full bg-white flex flex-col">
+    <div className="min-h-full bg-card flex flex-col">
       {/* Progress dots */}
       <div className="flex gap-1.5 px-5 pt-14 pb-4 justify-center">
         {STEPS.map((s, i) => (
@@ -264,7 +264,7 @@ export function OnboardingPage() {
                       className={`w-full flex items-center gap-3 rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
                         selectedLang === code
                           ? 'border-court bg-court-50'
-                          : 'border-hairline bg-white'
+                          : 'border-hairline bg-card'
                       }`}
                     >
                       <span className="text-2xl">{flag}</span>
@@ -348,7 +348,7 @@ export function OnboardingPage() {
                       key={opt.key}
                       onClick={() => setLevelBranch(opt.key)}
                       className={`w-full rounded-2xl border-2 px-4 py-3.5 text-left transition-colors ${
-                        levelBranch === opt.key ? 'border-court bg-court-50' : 'border-hairline bg-white'
+                        levelBranch === opt.key ? 'border-court bg-court-50' : 'border-hairline bg-card'
                       }`}
                     >
                       <p className="text-[14px] font-semibold text-ink">{opt.title}</p>
@@ -369,7 +369,7 @@ export function OnboardingPage() {
                       value={playtomicLevel}
                       onChange={(e) => setPlaytomicLevel(e.target.value)}
                       placeholder={t('onboarding.level_playtomic_placeholder')}
-                      className="w-full rounded-xl border border-hairline px-4 py-3 text-[15px] bg-white outline-none focus:border-court"
+                      className="w-full rounded-xl border border-hairline px-4 py-3 text-[15px] bg-card outline-none focus:border-court"
                     />
                     <p className="text-[11px] text-ink-2 mt-1">{t('onboarding.level_playtomic_help')}</p>
                     {playtomicLevel && !isNaN(parseFloat(playtomicLevel)) && (
@@ -399,7 +399,7 @@ export function OnboardingPage() {
                     { icon: <Trophy className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card4_title', descKey: 'onboarding.tour_card4_desc' },
                     { icon: <Heart className="h-5 w-5 text-court" />, titleKey: 'onboarding.tour_card5_title', descKey: 'onboarding.tour_card5_desc' },
                   ]).map(card => (
-                    <div key={card.titleKey} className="flex items-start gap-3 rounded-2xl border border-hairline bg-white px-4 py-3">
+                    <div key={card.titleKey} className="flex items-start gap-3 rounded-2xl border border-hairline bg-card px-4 py-3">
                       <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
                         {card.icon}
                       </div>
@@ -433,7 +433,7 @@ export function OnboardingPage() {
                     t('onboarding.notifications_benefit2'),
                     t('onboarding.notifications_benefit3'),
                   ].map((text) => (
-                    <div key={text} className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3">
+                    <div key={text} className="flex items-center gap-3 rounded-2xl border border-hairline bg-card px-4 py-3">
                       <span className="text-court text-lg">✓</span>
                       <span className="text-[13px] text-ink-2">{text}</span>
                     </div>

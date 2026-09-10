@@ -12,7 +12,7 @@ export function ConnectionCard({ player, children }: ConnectionCardProps) {
   const playerId = player.user_id ?? player.id
 
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-white border border-hairline px-3 py-3">
+    <div className="flex items-center gap-3 rounded-xl bg-card border border-hairline px-3 py-3">
       <button
         onClick={() => playerId && navigate(`/players/${playerId}`)}
         className="flex items-center gap-3 flex-1 min-w-0 text-left active:opacity-70 transition-opacity"

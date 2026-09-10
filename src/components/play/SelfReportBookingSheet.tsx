@@ -102,7 +102,7 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-3xl max-h-[85vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -136,7 +136,7 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
                     />
                   </div>
                   {venueResults.length > 0 && (
-                    <div className="mt-1 rounded-xl border border-hairline bg-white shadow-sm overflow-hidden">
+                    <div className="mt-1 rounded-xl border border-hairline bg-card shadow-sm overflow-hidden">
                       {venueResults.map((v) => (
                         <button
                           key={v.venue_id}

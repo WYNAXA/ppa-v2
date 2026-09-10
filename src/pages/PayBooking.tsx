@@ -166,7 +166,7 @@ function PaymentForm({
 
 function SuccessScreen() {
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+    <div className="min-h-screen bg-card flex flex-col items-center justify-center px-6 text-center">
       <div className="text-[64px] mb-4">🎾</div>
       <h1 className="text-[24px] font-black text-ink mb-2">Payment confirmed!</h1>
       <p className="text-[15px] text-ink-2 mb-10">See you on court</p>
@@ -412,7 +412,7 @@ export function PayBookingPage() {
   // ── Already paid ──
   if (alreadyPaid) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-screen bg-card flex flex-col items-center justify-center px-6 text-center">
         <div className="text-[56px] mb-4">{'\u2713'}</div>
         <h1 className="text-[22px] font-black text-ink mb-2">Already paid</h1>
         <p className="text-[14px] text-ink-2">Your share has already been paid for this booking.</p>
@@ -428,7 +428,7 @@ export function PayBookingPage() {
   // ── Loading ──
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-card flex flex-col items-center justify-center gap-4">
         <div className="h-10 w-10 rounded-full border-4 border-hairline border-t-court animate-spin" />
         <p className="text-[13px] text-ink-2">Loading booking\u2026</p>
       </div>
@@ -438,7 +438,7 @@ export function PayBookingPage() {
   // ── Error ──
   if (error && !booking) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-screen bg-card flex flex-col items-center justify-center px-6 text-center">
         <div className="text-[48px] mb-4">{'\u26A0\uFE0F'}</div>
         <h1 className="text-[20px] font-bold text-ink mb-2">Oops</h1>
         <p className="text-[14px] text-ink-2">{error}</p>
@@ -456,14 +456,14 @@ export function PayBookingPage() {
   return (
     <div className="min-h-screen bg-surface">
       {/* Header */}
-      <div className="bg-white border-b border-hairline px-5 pt-14 pb-4">
+      <div className="bg-card border-b border-hairline px-5 pt-14 pb-4">
         <p className="text-[12px] font-semibold text-court uppercase tracking-wide mb-0.5">Court Booking</p>
         <h1 className="text-[22px] font-black text-ink">Split Payment</h1>
       </div>
 
       <div className="px-5 py-5 space-y-4 max-w-lg mx-auto">
         {/* Booking details card */}
-        <div className="rounded-2xl bg-white border border-hairline p-4 space-y-3">
+        <div className="rounded-2xl bg-card border border-hairline p-4 space-y-3">
           <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">Booking Details</p>
 
           <div className="space-y-2">
@@ -491,7 +491,7 @@ export function PayBookingPage() {
         </div>
 
         {/* Player selection card */}
-        <div className="rounded-2xl bg-white border border-hairline p-4 space-y-3">
+        <div className="rounded-2xl bg-card border border-hairline p-4 space-y-3">
           <div className="flex items-center justify-between">
             <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">
               {unpaidPlayers.length > 1 ? 'Cover additional players?' : 'Paying for'}
@@ -547,7 +547,7 @@ export function PayBookingPage() {
 
         {/* Payment form or proceed button */}
         {clientSecret ? (
-          <div className="rounded-2xl bg-white border border-hairline p-4">
+          <div className="rounded-2xl bg-card border border-hairline p-4">
             <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-4">Payment</p>
             <Elements
               stripe={stripePromise}

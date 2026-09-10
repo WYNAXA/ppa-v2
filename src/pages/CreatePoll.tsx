@@ -175,7 +175,7 @@ export function CreatePollPage() {
   })
 
   return (
-    <div className="min-h-full bg-white pb-40">
+    <div className="min-h-full bg-card pb-40">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
@@ -230,7 +230,7 @@ export function CreatePollPage() {
               value={groupId}
               onChange={(e) => setGroupId(e.target.value)}
               style={{ fontSize: '16px' }}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court bg-white"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court bg-card"
             >
               <option value="">Select a group…</option>
               {groups.map((g) => (
@@ -272,7 +272,7 @@ export function CreatePollPage() {
             value={weekStartDate}
             onChange={(e) => setWeekStartDate(e.target.value)}
             style={{ fontSize: '16px' }}
-            className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court bg-white"
+            className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court bg-card"
           />
           <p className="text-[11px] text-ink-2 mt-1">Select the Monday of the target week</p>
         </div>
@@ -287,7 +287,7 @@ export function CreatePollPage() {
                 "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
                 pollMode === 'ranges'
                   ? "bg-court text-white border-court"
-                  : "bg-white text-ink-2 border-hairline"
+                  : "bg-card text-ink-2 border-hairline"
               )}
             >
               Time ranges
@@ -298,7 +298,7 @@ export function CreatePollPage() {
                 "flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors",
                 pollMode === 'slots'
                   ? "bg-court text-white border-court"
-                  : "bg-white text-ink-2 border-hairline"
+                  : "bg-card text-ink-2 border-hairline"
               )}
             >
               Fixed slots
@@ -332,7 +332,7 @@ export function CreatePollPage() {
                       "rounded-xl px-3 py-2 text-[12px] font-semibold border transition-colors",
                       isSelected
                         ? "bg-court text-white border-court"
-                        : "bg-white text-ink-2 border-hairline"
+                        : "bg-card text-ink-2 border-hairline"
                     )}
                   >
                     <div>{day.slice(0, 3)}</div>
@@ -422,7 +422,7 @@ export function CreatePollPage() {
                     <label className="block text-[11px] text-ink-2 mb-1">Day</label>
                     <select value={slot.day} onChange={(e) => updateSlot(slot.id, 'day', e.target.value)}
                       style={{ fontSize: '16px' }}
-                      className="w-full rounded-xl border border-hairline px-3 py-2 bg-white outline-none focus:border-court"
+                      className="w-full rounded-xl border border-hairline px-3 py-2 bg-card outline-none focus:border-court"
                     >
                       {DAYS.map((d) => (<option key={d} value={d}>{d}</option>))}
                     </select>
@@ -433,7 +433,7 @@ export function CreatePollPage() {
                       <input type="time" value={slot.start_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'start_time', e.target.value)}
                         style={{ fontSize: '16px' }}
-                        className="w-full rounded-xl border border-hairline px-3 py-2 bg-white outline-none focus:border-court"
+                        className="w-full rounded-xl border border-hairline px-3 py-2 bg-card outline-none focus:border-court"
                       />
                     </div>
                     <div>
@@ -441,7 +441,7 @@ export function CreatePollPage() {
                       <input type="time" value={slot.end_time} step="1800"
                         onChange={(e) => updateSlot(slot.id, 'end_time', e.target.value)}
                         style={{ fontSize: '16px' }}
-                        className="w-full rounded-xl border border-hairline px-3 py-2 bg-white outline-none focus:border-court"
+                        className="w-full rounded-xl border border-hairline px-3 py-2 bg-card outline-none focus:border-court"
                       />
                     </div>
                   </div>
@@ -523,7 +523,7 @@ export function CreatePollPage() {
 
       {/* Fixed footer */}
       <div
-        className="fixed bottom-0 left-0 right-0 bg-white border-t border-hairline px-5 pt-4"
+        className="fixed bottom-0 left-0 right-0 bg-card border-t border-hairline px-5 pt-4"
         style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
       >
         {createMutation.isError && (

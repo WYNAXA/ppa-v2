@@ -84,11 +84,11 @@ export function CoachDetailPage() {
   const venueNames = [...new Set((sessions as any[]).map((s) => s.venue?.venue_name).filter(Boolean))] as string[]
 
   if (isLoading) {
-    return <div className="min-h-screen flex items-center justify-center bg-white"><div className="h-7 w-7 rounded-full border-2 border-court border-t-transparent animate-spin" /></div>
+    return <div className="min-h-screen flex items-center justify-center bg-card"><div className="h-7 w-7 rounded-full border-2 border-court border-t-transparent animate-spin" /></div>
   }
   if (!coach) {
     return (
-      <div className="min-h-screen bg-white">
+      <div className="min-h-screen bg-card">
         <div className="px-5 pt-14"><button onClick={() => navigate(-1)} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center"><ChevronLeft className="h-5 w-5 text-ink-2" /></button></div>
         <p className="text-center text-[14px] text-ink-2 mt-10">Coach not found.</p>
       </div>
@@ -96,7 +96,7 @@ export function CoachDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white pb-16">
+    <div className="min-h-screen bg-card pb-16">
       {/* Header */}
       <div className="px-5 pt-14 pb-4">
         <button onClick={() => navigate(-1)} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center mb-4"><ChevronLeft className="h-5 w-5 text-ink-2" /></button>

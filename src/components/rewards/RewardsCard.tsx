@@ -135,7 +135,7 @@ export function RewardsCard({ venueId, venueName, userId, compact = false }: Rew
 
   // ── Full version ──
   return (
-    <div className="rounded-2xl bg-white border border-hairline p-4">
+    <div className="rounded-2xl bg-card border border-hairline p-4">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div>

@@ -142,7 +142,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -237,7 +237,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
                     <button
                       type="button"
                       onClick={chooseFromContacts}
-                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-court-100 bg-white py-2.5 text-[13px] font-semibold text-court-700"
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-court-100 bg-card py-2.5 text-[13px] font-semibold text-court-700"
                     >
                       <UserRound className="h-4 w-4" /> {t('invite.from_contacts', 'Choose from contacts')}
                     </button>

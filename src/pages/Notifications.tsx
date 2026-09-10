@@ -208,7 +208,7 @@ export function NotificationsPage() {
   return (
     <div className="flex flex-col min-h-full bg-surface">
       {/* Header */}
-      <div className="bg-white border-b border-hairline px-4 pt-12 pb-4">
+      <div className="bg-card border-b border-hairline px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -258,7 +258,7 @@ export function NotificationsPage() {
                       key={n.id}
                       onClick={() => handleTap(n)}
                       className={`w-full flex items-start gap-3 p-3 rounded-xl text-left transition-colors ${
-                        n.read ? 'bg-white' : 'bg-court-50/60'
+                        n.read ? 'bg-card' : 'bg-court-50/60'
                       }`}
                     >
                       <NotifIcon type={n.type} />

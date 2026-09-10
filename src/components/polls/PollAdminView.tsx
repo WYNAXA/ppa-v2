@@ -723,7 +723,7 @@ export function PollAdminView({
             'rounded-2xl border px-3 py-3 text-center transition-all',
             expandedSection === 'available'
               ? 'border-court-100 bg-court-50'
-              : 'border-hairline bg-white hover:border-court-100',
+              : 'border-hairline bg-card hover:border-court-100',
           )}
         >
           <CheckCircle className="h-5 w-5 text-court mx-auto mb-1" />
@@ -737,7 +737,7 @@ export function PollAdminView({
             'rounded-2xl border px-3 py-3 text-center transition-all',
             expandedSection === 'unavailable'
               ? 'border-alert/40 bg-alert-50'
-              : 'border-hairline bg-white hover:border-alert/40',
+              : 'border-hairline bg-card hover:border-alert/40',
           )}
         >
           <XCircle className="h-5 w-5 text-alert mx-auto mb-1" />
@@ -751,7 +751,7 @@ export function PollAdminView({
             'rounded-2xl border px-3 py-3 text-center transition-all',
             expandedSection === 'notVoted'
               ? 'border-warn bg-warn-50'
-              : 'border-hairline bg-white hover:border-warn',
+              : 'border-hairline bg-card hover:border-warn',
           )}
         >
           <Clock className="h-5 w-5 text-warn mx-auto mb-1" />
@@ -927,7 +927,7 @@ export function PollAdminView({
                                 {(c.player_ids ?? []).map((pid: string) => {
                                   const profile = breakdownProfiles[pid]
                                   return (
-                                    <span key={pid} className="inline-flex items-center gap-1.5 rounded-full bg-white border border-hairline px-2.5 py-1 text-[12px] font-medium text-ink">
+                                    <span key={pid} className="inline-flex items-center gap-1.5 rounded-full bg-card border border-hairline px-2.5 py-1 text-[12px] font-medium text-ink">
                                       <PlayerAvatar name={profile?.name} avatarUrl={profile?.avatar_url} size="sm" />
                                       {profile?.name?.split(' ')[0] ?? pid.slice(0, 8)}
                                     </span>
@@ -1135,7 +1135,7 @@ export function PollAdminView({
                 {t('polls.options_found', { count: matchSchedules.length })}
               </p>
               {matchSchedules.map((schedule, idx) => (
-                <div key={idx} className="rounded-xl border border-hairline bg-white px-4 py-3 space-y-2">
+                <div key={idx} className="rounded-xl border border-hairline bg-card px-4 py-3 space-y-2">
                   <div className="flex items-center gap-2">
                     <p className="text-[13px] font-semibold text-ink">
                       {schedule.strategyName ?? t('polls.option_number', { number: idx + 1 })}
@@ -1221,7 +1221,7 @@ export function PollAdminView({
                                   )}
                                 </div>
                                 {isSwapOpen && (
-                                  <div className="ml-8 mt-1 mb-1 p-2 bg-white rounded-lg border border-court-100 space-y-1">
+                                  <div className="ml-8 mt-1 mb-1 p-2 bg-card rounded-lg border border-court-100 space-y-1">
                                     <p className="text-[11px] text-ink-2 font-semibold">{t('polls.available_for_slot')}</p>
                                     {swapCandidates.length === 0 && (
                                       <p className="text-[11px] text-ink-2">{t('polls.no_other_available')}</p>
@@ -1312,14 +1312,14 @@ export function PollAdminView({
             )}
           </div>
           {matchesNeedingRingers.map((m: any) => (
-            <div key={m.id} className="flex items-center justify-between rounded-xl bg-white border border-warn-100 px-3 py-2">
+            <div key={m.id} className="flex items-center justify-between rounded-xl bg-card border border-warn-100 px-3 py-2">
               <div>
                 <p className="text-[12px] font-medium text-ink">{m.match_date} {m.match_time?.slice(0, 5) ?? ''}</p>
                 <p className="text-[11px] text-ink-2">{t('polls.players_of_four', { count: m.player_ids?.length ?? 0 })}</p>
               </div>
               <button
                 onClick={() => setAskRingersMatchId(m.id)}
-                className="rounded-lg border border-court-100 bg-white px-3 py-1.5 text-[11px] font-semibold text-court-700"
+                className="rounded-lg border border-court-100 bg-card px-3 py-1.5 text-[11px] font-semibold text-court-700"
               >
                 {t('polls.ask_ringers')}
               </button>

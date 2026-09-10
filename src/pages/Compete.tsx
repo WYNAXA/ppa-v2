@@ -489,7 +489,7 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       whileTap={{ scale: 0.985 }}
-      className="w-full text-left rounded-2xl border border-hairline bg-white px-4 py-3.5 hover:border-court-100 transition-colors"
+      className="w-full text-left rounded-2xl border border-hairline bg-card px-4 py-3.5 hover:border-court-100 transition-colors"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
@@ -657,7 +657,7 @@ export function CompetePage() {
                 onClick={() => { setLeaderboardTab(tab); setLeaderboardSearch(''); setLeaderboardLimit(50) }}
                 className={cn(
                   'flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors',
-                  leaderboardTab === tab ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
+                  leaderboardTab === tab ? 'bg-card text-ink shadow-sm' : 'text-ink-2'
                 )}
               >
                 {tab === 'global' ? t('compete.global') : t('compete.my_groups')}
@@ -670,7 +670,7 @@ export function CompetePage() {
             <select
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[13px] text-ink mb-3 focus:outline-none focus:border-court bg-white"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 text-[13px] text-ink mb-3 focus:outline-none focus:border-court bg-card"
             >
               {userGroups.map((g) => (
                 <option key={g.group_id} value={g.group_id}>{g.name}</option>

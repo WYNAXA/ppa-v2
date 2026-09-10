@@ -8,7 +8,7 @@ export function MatchesPage() {
   const [createOpen, setCreateOpen] = useState(false)
 
   return (
-    <div className="min-h-full bg-white pb-6">
+    <div className="min-h-full bg-card pb-6">
       {/* Header */}
       <div className="px-5 pt-14 pb-1">
         <h1 className="text-[22px] font-bold text-ink">{t('matches.title')}</h1>

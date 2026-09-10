@@ -63,8 +63,8 @@ export function MyConnectionsPage() {
   const incoming = data?.incomingRequests ?? []
 
   return (
-    <div className="min-h-full bg-white pb-32">
-      <div className="px-4 pt-12 pb-4 bg-white border-b border-hairline">
+    <div className="min-h-full bg-card pb-32">
+      <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />

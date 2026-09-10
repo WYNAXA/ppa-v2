@@ -75,7 +75,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
             onClick={() => close(false)}
           >
             <motion.div
-              className="w-full max-w-xs rounded-2xl bg-white p-5 shadow-xl"
+              className="w-full max-w-xs rounded-2xl bg-card p-5 shadow-xl"
               initial={{ scale: 0.92, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.92, opacity: 0 }}

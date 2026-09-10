@@ -143,8 +143,8 @@ export function AllGroupsPage() {
   const [showRingerInfo, setShowRingerInfo] = useState(false)
 
   return (
-    <div className="min-h-full bg-white pb-32">
-      <div className="px-4 pt-12 pb-4 bg-white border-b border-hairline">
+    <div className="min-h-full bg-card pb-32">
+      <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/community')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
@@ -162,7 +162,7 @@ export function AllGroupsPage() {
         <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
           {[{ key: 'near_me', label: t('community.filter_near_me') }, { key: 'open_to_join', label: t('community.filter_open_to_join') }, { key: 'welcomes_ringers', label: t('community.filter_welcomes_ringers') }].map(({ key, label }) => (
             <button key={key} onClick={() => setActiveFilter(activeFilter === key ? null : key)}
-              className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${activeFilter === key ? 'bg-court text-white border-court' : 'bg-white text-ink-2 border-hairline'}`}>
+              className={`flex-shrink-0 rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors ${activeFilter === key ? 'bg-court text-white border-court' : 'bg-card text-ink-2 border-hairline'}`}>
               {label}
             </button>
           ))}
@@ -185,7 +185,7 @@ export function AllGroupsPage() {
             {groups.map((g, i) => (
               <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
                 onClick={() => setPreviewGroup(g)}
-                className="bg-white rounded-2xl border border-hairline px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform">
+                className="bg-card rounded-2xl border border-hairline px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-[14px] font-bold text-ink truncate">{g.name}</h3>
@@ -230,7 +230,7 @@ export function AllGroupsPage() {
               onClick={() => setPreviewGroup(null)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl"
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
             >

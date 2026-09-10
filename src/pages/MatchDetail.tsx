@@ -1308,7 +1308,7 @@ export function MatchDetailPage() {
     .trim()
 
   return (
-    <div className="min-h-full bg-white pb-6">
+    <div className="min-h-full bg-card pb-6">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
@@ -1452,7 +1452,7 @@ export function MatchDetailPage() {
               onClick={isClickable ? () => navigate(`/players/${player.id}`) : undefined}
               className={cn(
                 'flex items-center gap-2.5 rounded-xl border px-3 py-2.5',
-                player ? 'border-hairline bg-white' : 'border-dashed border-hairline bg-surface',
+                player ? 'border-hairline bg-card' : 'border-dashed border-hairline bg-surface',
                 isClickable ? 'cursor-pointer hover:border-court-100 hover:bg-court-50/20 active:scale-[0.98] transition-all' : ''
               )}
             >
@@ -1489,7 +1489,7 @@ export function MatchDetailPage() {
                 </>
               ) : (
                 <>
-                  <div className="h-7 w-7 rounded-full border-2 border-dashed border-hairline bg-white flex items-center justify-center flex-shrink-0">
+                  <div className="h-7 w-7 rounded-full border-2 border-dashed border-hairline bg-card flex items-center justify-center flex-shrink-0">
                     <span className="text-[11px] text-ink-3">+</span>
                   </div>
                   {(isParticipant || isGroupAdmin) && match.status !== 'completed' && match.status !== 'cancelled' ? (
@@ -1743,14 +1743,14 @@ export function MatchDetailPage() {
                         queryClient.invalidateQueries({ queryKey: ['match', id] })
                         toast.success(t('match.proposal_accepted'))
                       }}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-court-100 py-2.5 text-[13px] font-semibold text-court"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-card border border-court-100 py-2.5 text-[13px] font-semibold text-court"
                     >
                       <CheckCircle className="h-4 w-4" />
                       {t('match.accept')}
                     </button>
                     <button
                       onClick={() => setShowCounterProposal(true)}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-warn py-2.5 text-[13px] font-semibold text-warn"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-card border border-warn py-2.5 text-[13px] font-semibold text-warn"
                     >
                       {t('match.counter')}
                     </button>
@@ -1807,7 +1807,7 @@ export function MatchDetailPage() {
                       queryClient.invalidateQueries({ queryKey: ['match', id] })
                       toast.success(t('match.counter_proposal_accepted'))
                     }}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-court-100 py-2.5 text-[13px] font-semibold text-court"
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-card border border-court-100 py-2.5 text-[13px] font-semibold text-court"
                   >
                     <CheckCircle className="h-4 w-4" />
                     Accept
@@ -1854,7 +1854,7 @@ export function MatchDetailPage() {
                       queryClient.invalidateQueries({ queryKey: ['match', id] })
                       toast.success(t('match.escalated_to_admin'))
                     }}
-                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-alert/40 py-2.5 text-[13px] font-semibold text-alert"
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-card border border-alert/40 py-2.5 text-[13px] font-semibold text-alert"
                   >
                     <XCircle className="h-4 w-4" />
                     {t('match.escalate')}
@@ -1957,7 +1957,7 @@ export function MatchDetailPage() {
                   )}
                   <button
                     onClick={() => setShowEditScores(true)}
-                    className="mt-2 rounded-xl border border-court-100 bg-white px-4 py-1.5 text-[12px] font-semibold text-court"
+                    className="mt-2 rounded-xl border border-court-100 bg-card px-4 py-1.5 text-[12px] font-semibold text-court"
                   >
                     {t('match.edit_scores')}
                   </button>
@@ -2005,7 +2005,7 @@ export function MatchDetailPage() {
                       value={disputeReason}
                       onChange={(e) => setDisputeReason(e.target.value)}
                       placeholder={t('match.describe_issue_placeholder')}
-                      className="w-full rounded-xl border border-alert/40 bg-white px-3 py-2 text-[13px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-1 focus:ring-alert/40 mb-2 resize-none"
+                      className="w-full rounded-xl border border-alert/40 bg-card px-3 py-2 text-[13px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-1 focus:ring-alert/40 mb-2 resize-none"
                       rows={3}
                     />
                     <p className="text-[12px] font-semibold text-ink-2 mb-2">{t('match.correct_score_q')}</p>
@@ -2084,7 +2084,7 @@ export function MatchDetailPage() {
                     <button
                       onClick={() => voteMutation.mutate({ vote: 'confirm' })}
                       disabled={voteMutation.isPending}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-court-100 py-2.5 text-[13px] font-semibold text-court disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-card border border-court-100 py-2.5 text-[13px] font-semibold text-court disabled:opacity-50"
                     >
                       <CheckCircle className="h-4 w-4" />
                       {t('match.confirm_result')}
@@ -2092,7 +2092,7 @@ export function MatchDetailPage() {
                     <button
                       onClick={() => setShowDisputeInput(true)}
                       disabled={voteMutation.isPending}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-white border border-alert/40 py-2.5 text-[13px] font-semibold text-alert disabled:opacity-50"
+                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-card border border-alert/40 py-2.5 text-[13px] font-semibold text-alert disabled:opacity-50"
                     >
                       <XCircle className="h-4 w-4" />
                       {t('match.dispute_result')}
@@ -2282,7 +2282,7 @@ export function MatchDetailPage() {
                   {/* Per-rider details: pickup time + address (Part 2 + 3) */}
                   <div className="space-y-2 mt-2">
                     {confirmedRiders.map((rider) => (
-                      <div key={rider.requester_id} className="rounded-lg bg-white border border-court-100 px-3 py-2">
+                      <div key={rider.requester_id} className="rounded-lg bg-card border border-court-100 px-3 py-2">
                         <button
                           onClick={() => setExpandedRiderId(expandedRiderId === rider.requester_id ? null : rider.requester_id)}
                           className="w-full flex items-center justify-between"
@@ -2370,7 +2370,7 @@ export function MatchDetailPage() {
                               </button>
                               <button
                                 onClick={() => updateTravelRequestMutation.mutate({ requesterId: req.requester_id, status: 'declined' })}
-                                className="rounded-lg bg-white border border-hairline px-2.5 py-1 text-[11px] font-semibold text-ink-2"
+                                className="rounded-lg bg-card border border-hairline px-2.5 py-1 text-[11px] font-semibold text-ink-2"
                               >
                                 {t('match.decline')}
                               </button>
@@ -2919,7 +2919,7 @@ export function MatchDetailPage() {
               onClick={() => setShowLiftChooser(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl"
+              className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-3xl"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -3000,7 +3000,7 @@ export function MatchDetailPage() {
               onClick={() => setConfirmLeave(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl px-5 pt-6"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -3048,7 +3048,7 @@ export function MatchDetailPage() {
               onClick={() => setConfirmCancel(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl px-5 pt-6"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -3091,7 +3091,7 @@ export function MatchDetailPage() {
               onClick={() => setConfirmCancelBooking(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl px-5 pt-6"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
@@ -3191,7 +3191,7 @@ export function MatchDetailPage() {
               onClick={() => setConfirmDelete(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl px-5 pt-6"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}

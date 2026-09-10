@@ -80,7 +80,7 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.25 }}
       whileTap={{ scale: 0.985 }}
-      className="w-full text-left bg-white border border-hairline rounded-2xl px-4 py-3.5 hover:border-court-100 hover:bg-court-50/20 transition-all duration-150 active:scale-[0.985]"
+      className="w-full text-left bg-card border border-hairline rounded-2xl px-4 py-3.5 hover:border-court-100 hover:bg-court-50/20 transition-all duration-150 active:scale-[0.985]"
     >
       <div className="flex items-start justify-between gap-3">
         {/* Left */}

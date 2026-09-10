@@ -31,7 +31,7 @@ function CustomTooltip({ active, payload }: any) {
   if (!active || !payload?.[0]) return null
   const d = payload[0].payload as HistoryPoint
   return (
-    <div className="bg-white rounded-xl border border-hairline shadow-lg px-3 py-2">
+    <div className="bg-card rounded-xl border border-hairline shadow-lg px-3 py-2">
       <p className="text-[11px] text-ink-2">{d.label}</p>
       <p className="text-[14px] font-bold text-ink">{d.elo.toLocaleString()} ELO</p>
       <p className={cn('text-[12px] font-semibold', d.change > 0 ? 'text-court' : d.change < 0 ? 'text-alert' : 'text-ink-2')}>

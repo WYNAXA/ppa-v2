@@ -204,7 +204,7 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
 
                 <button
                   onClick={() => { onClose(); setBroadcastOpen(true) }}
-                  className="min-h-[44px] rounded-card bg-white py-3.5 text-center text-[15px] font-bold leading-[18px] text-ink"
+                  className="min-h-[44px] rounded-card bg-on-brand py-3.5 text-center text-[15px] font-bold leading-[18px] text-ink"
                 >
                   {t('play.sheet_share_availability')}
                 </button>

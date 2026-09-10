@@ -96,19 +96,19 @@ const RSVP_OPTIONS: { label: string; value: RsvpStatus; activeClass: string; ina
     label: 'Going',
     value: 'going',
     activeClass: 'bg-court text-white border-court',
-    inactiveClass: 'bg-white text-ink-2 border border-hairline',
+    inactiveClass: 'bg-card text-ink-2 border border-hairline',
   },
   {
     label: 'Interested',
     value: 'interested',
     activeClass: 'bg-court text-white border-hairline',
-    inactiveClass: 'bg-white text-ink-2 border border-hairline',
+    inactiveClass: 'bg-card text-ink-2 border border-hairline',
   },
   {
     label: "Can't make it",
     value: 'not_going',
     activeClass: 'bg-court text-white border-court',
-    inactiveClass: 'bg-white text-ink-2 border border-hairline',
+    inactiveClass: 'bg-card text-ink-2 border border-hairline',
   },
 ]
 
@@ -206,7 +206,7 @@ export function EventDetailPage() {
     : null
 
   return (
-    <div className="min-h-full bg-white pb-10">
+    <div className="min-h-full bg-card pb-10">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button

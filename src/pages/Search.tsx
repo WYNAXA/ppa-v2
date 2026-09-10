@@ -165,7 +165,7 @@ export function SearchPage() {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 bg-white flex flex-col"
+      className="fixed inset-0 z-50 bg-card flex flex-col"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}

@@ -61,7 +61,7 @@ export function JoinMatchPage() {
 
   if (claimedMatchId) {
     return (
-      <div className="min-h-full bg-white flex flex-col items-center justify-center px-8 text-center">
+      <div className="min-h-full bg-card flex flex-col items-center justify-center px-8 text-center">
         <div className="text-5xl mb-3">🎾</div>
         <h1 className="text-xl font-bold text-ink">You're in!</h1>
         <p className="mt-2 text-[14px] text-ink-2">You've joined the match.</p>
@@ -83,7 +83,7 @@ export function JoinMatchPage() {
   const expired = preview.expired || preview.status === 'cancelled'
 
   return (
-    <div className="min-h-full bg-white flex flex-col items-center justify-center px-8 text-center">
+    <div className="min-h-full bg-card flex flex-col items-center justify-center px-8 text-center">
       <div className="text-5xl mb-4">🎾</div>
 
       {invalid ? (

@@ -106,7 +106,7 @@ export function PeerVotingSheet({ open, onClose, matchId, players, currentUserId
             onClick={handleClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-3xl max-h-[85vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}

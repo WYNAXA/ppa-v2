@@ -442,7 +442,7 @@ export function AvailabilityPollPage() {
 
   // ── Render ──
   return (
-    <div className="min-h-full bg-white pb-40">
+    <div className="min-h-full bg-card pb-40">
 
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
@@ -683,7 +683,7 @@ export function AvailabilityPollPage() {
                                 'flex flex-col items-center px-4 py-2.5 rounded-xl border-2 transition-all active:scale-[0.97]',
                                 isSelected
                                   ? 'bg-court border-court text-white'
-                                  : 'bg-white border-hairline text-ink-2 hover:border-court-100'
+                                  : 'bg-card border-hairline text-ink-2 hover:border-court-100'
                               )}
                             >
                               <span className="text-[13px] font-semibold">{period}</span>
@@ -717,7 +717,7 @@ export function AvailabilityPollPage() {
                                     ...prev,
                                     [slot.id]: { start: e.target.value, end: currentEnd },
                                   }))}
-                                  className="w-full rounded-xl border border-hairline px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
+                                  className="w-full rounded-xl border border-hairline px-2 py-2 text-[13px] bg-card outline-none focus:border-court"
                                 >
                                   {startOptions.map((t) => (
                                     <option key={t} value={t}>{t}</option>
@@ -733,7 +733,7 @@ export function AvailabilityPollPage() {
                                     ...prev,
                                     [slot.id]: { start: currentStart, end: e.target.value },
                                   }))}
-                                  className="w-full rounded-xl border border-hairline px-2 py-2 text-[13px] bg-white outline-none focus:border-court"
+                                  className="w-full rounded-xl border border-hairline px-2 py-2 text-[13px] bg-card outline-none focus:border-court"
                                 >
                                   {endOptions.map((t) => (
                                     <option key={t} value={t}>{t}</option>
@@ -831,7 +831,7 @@ export function AvailabilityPollPage() {
                 <select
                   value={preferredDate}
                   onChange={(e) => setPreferredDate(e.target.value)}
-                  className="w-full rounded-xl border border-hairline px-3 py-3 text-[14px] text-ink bg-white outline-none focus:border-court"
+                  className="w-full rounded-xl border border-hairline px-3 py-3 text-[14px] text-ink bg-card outline-none focus:border-court"
                   style={{ fontSize: '16px' }}
                 >
                   <option value="">No preference</option>
@@ -928,7 +928,7 @@ export function AvailabilityPollPage() {
       {/* ── Fixed submit footer ── */}
       {isFormActive && (
         <div
-          className="fixed bottom-0 left-0 right-0 bg-white border-t border-hairline px-5 pt-4"
+          className="fixed bottom-0 left-0 right-0 bg-card border-t border-hairline px-5 pt-4"
           style={{ paddingBottom: 'calc(80px + env(safe-area-inset-bottom))' }}
         >
           {submitMutation.isError && (
@@ -970,7 +970,7 @@ export function AvailabilityPollPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4"
+            className="bg-card rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4"
           >
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-warn flex-shrink-0" />
@@ -1012,7 +1012,7 @@ export function AvailabilityPollPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4"
+            className="bg-card rounded-2xl p-5 w-full max-w-sm shadow-xl space-y-4"
           >
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-5 w-5 text-alert" />

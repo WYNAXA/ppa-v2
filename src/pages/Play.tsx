@@ -69,7 +69,7 @@ function WhatsOnSection() {
             <button
               key={ev.occurrence_id}
               onClick={() => navigate(`/play/events/${ev.occurrence_id}`)}
-              className="w-full text-left rounded-2xl border border-hairline bg-white p-4 transition-all hover:border-hairline active:scale-[0.99]"
+              className="w-full text-left rounded-2xl border border-hairline bg-card p-4 transition-all hover:border-hairline active:scale-[0.99]"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
@@ -198,7 +198,7 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[85vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl max-h-[85vh] flex flex-col"
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
@@ -313,7 +313,7 @@ export function PlayPage() {
               {/* Create Match */}
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-card py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <Plus className="h-4 w-4 text-court" />
@@ -324,7 +324,7 @@ export function PlayPage() {
               {/* Join Match */}
               <button
                 onClick={() => setJoinSheetOpen(true)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-card py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <Search className="h-4 w-4 text-court" />
@@ -335,7 +335,7 @@ export function PlayPage() {
               {/* Book Court */}
               <button
                 onClick={() => navigate('/play/book-court')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-card py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <BookOpen className="h-4 w-4 text-court" />
@@ -346,7 +346,7 @@ export function PlayPage() {
               {/* Leagues */}
               <button
                 onClick={() => navigate('/leagues')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-card py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <Trophy className="h-4 w-4 text-court" />
@@ -357,7 +357,7 @@ export function PlayPage() {
               {/* Find a coach */}
               <button
                 onClick={() => navigate('/coaches')}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-white py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
+                className="flex flex-col items-center gap-1.5 rounded-2xl border-2 border-court bg-card py-3 px-1 transition-all hover:bg-court-50/50 active:scale-[0.97]"
               >
                 <div className="h-9 w-9 rounded-xl bg-court-50 flex items-center justify-center">
                   <GraduationCap className="h-4 w-4 text-court" />

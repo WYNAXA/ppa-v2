@@ -121,7 +121,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -272,7 +272,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
                                   'flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors',
                                   ringerApproval === opt
                                     ? 'bg-court text-white border-court'
-                                    : 'bg-white text-ink-2 border-hairline'
+                                    : 'bg-card text-ink-2 border-hairline'
                                 )}
                               >
                                 {opt === 'admin' ? 'Admin only' : 'Any member'}

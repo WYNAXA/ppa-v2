@@ -179,7 +179,7 @@ function RingerOfferSheet({ match, userId, onClose }: {
         onClick={onClose}
       />
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[55] bg-white rounded-t-3xl px-5 pt-6"
+        className="fixed bottom-0 left-0 right-0 z-[55] bg-card rounded-t-3xl px-5 pt-6"
         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
@@ -632,7 +632,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                   <button
                     key={m.id}
                     onClick={() => navigate(`/matches/${m.id}`)}
-                    className="w-full flex items-center justify-between rounded-xl bg-white border border-warn-100 px-3 py-2 text-left hover:border-warn transition-colors"
+                    className="w-full flex items-center justify-between rounded-xl bg-card border border-warn-100 px-3 py-2 text-left hover:border-warn transition-colors"
                   >
                     <div>
                       <p className="text-[12px] font-semibold text-ink">
@@ -676,7 +676,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                   <button
                     key={m.id}
                     onClick={() => navigate(`/matches/${m.id}`)}
-                    className="w-full flex items-center justify-between rounded-xl bg-white border border-hairline px-3 py-2 text-left hover:border-hairline transition-colors"
+                    className="w-full flex items-center justify-between rounded-xl bg-card border border-hairline px-3 py-2 text-left hover:border-hairline transition-colors"
                   >
                     <div>
                       <p className="text-[12px] font-semibold text-ink">
@@ -719,7 +719,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               onClick={() => { setViewTab(tab.id); setSelectedFilter('all') }}
               className={cn(
                 'flex-1 rounded-lg py-2 text-[12px] font-semibold transition-colors',
-                viewTab === tab.id ? 'bg-white text-ink shadow-sm' : 'text-ink-2',
+                viewTab === tab.id ? 'bg-card text-ink shadow-sm' : 'text-ink-2',
               )}
             >
               {tab.label}
@@ -763,7 +763,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 onClick={() => setSelectedDay(isSelected ? null : day)}
                 className={cn(
                   'flex-1 flex flex-col items-center py-2 rounded-xl transition-all min-w-0',
-                  isSelected ? 'bg-court text-white' : 'bg-white text-ink-2',
+                  isSelected ? 'bg-court text-white' : 'bg-card text-ink-2',
                   isDayToday && !isSelected && 'ring-2 ring-court',
                 )}
               >
@@ -777,7 +777,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                   <div className="flex gap-0.5 mt-0.5">
                     {dots.map((color, i) => (
                       <div key={i} className={cn('h-1 w-1 rounded-full', {
-                        'bg-white': isSelected,
+                        'bg-card': isSelected,
                         'bg-court': !isSelected && color === 'teal',
                         'bg-ink-4': !isSelected && color === 'gray',
                         'bg-warn': !isSelected && color === 'orange',
@@ -800,7 +800,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
               'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
               needsRingersOnly
                 ? 'bg-warn border-warn text-white'
-                : 'border-hairline text-ink-2 bg-white',
+                : 'border-hairline text-ink-2 bg-card',
             )}
           >
             {t('play.needs_ringers')}
@@ -813,7 +813,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                 'flex-shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-semibold transition-colors',
                 selectedFilter === f.id
                   ? 'bg-court border-court text-white'
-                  : 'border-hairline text-ink-2 bg-white',
+                  : 'border-hairline text-ink-2 bg-card',
               )}
             >
               {f.label}

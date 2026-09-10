@@ -217,7 +217,7 @@ function MyGroupCard({ group, index, badge }: { group: MyGroup; index: number; b
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 }}
       whileTap={{ scale: 0.985 }}
-      className="w-full text-left bg-white rounded-2xl border border-hairline overflow-hidden hover:border-court-100 transition-colors relative"
+      className="w-full text-left bg-card rounded-2xl border border-hairline overflow-hidden hover:border-court-100 transition-colors relative"
     >
       <div className="flex">
         <div className="w-1 bg-court flex-shrink-0" />
@@ -396,7 +396,7 @@ function NearbyVenuesSection({
                   key={v}
                   onClick={() => setView(v)}
                   className={`rounded-full px-2.5 py-1 text-[11px] font-bold transition-colors ${
-                    view === v ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
+                    view === v ? 'bg-card text-ink shadow-sm' : 'text-ink-2'
                   }`}
                 >
                   {v === 'list' ? t('community.courts_view_list') : t('community.courts_view_map')}
@@ -432,7 +432,7 @@ function NearbyVenuesSection({
                   'flex-shrink-0 rounded-full border px-3 py-1 text-[12px] font-semibold transition-colors active:scale-95',
                   on
                     ? 'border-court bg-court text-white'
-                    : 'border-hairline bg-white text-ink-2',
+                    : 'border-hairline bg-card text-ink-2',
                 )}
               >
                 {label}
@@ -488,7 +488,7 @@ function NearbyVenuesSection({
             <button
               key={v.venue_id}
               onClick={() => navigate(`/venues/${v.venue_id}`)}
-              className="flex-shrink-0 w-48 rounded-2xl border border-hairline bg-white overflow-hidden text-left active:scale-[0.97] transition-transform"
+              className="flex-shrink-0 w-48 rounded-2xl border border-hairline bg-card overflow-hidden text-left active:scale-[0.97] transition-transform"
             >
               <div className="h-20 relative">
                 {hero ? (

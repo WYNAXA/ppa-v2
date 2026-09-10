@@ -66,7 +66,7 @@ function ExplainerEmbed() {
   }, [])
 
   return (
-    <div ref={containerRef} className="mb-4 rounded-2xl overflow-hidden bg-white border border-hairline shadow-sm">
+    <div ref={containerRef} className="mb-4 rounded-2xl overflow-hidden bg-card border border-hairline shadow-sm">
       <div style={{ aspectRatio: '16 / 9', width: '100%' }}>
         {loaded ? (
           <iframe
@@ -135,7 +135,7 @@ export function FAQPage() {
   return (
     <div className="min-h-full bg-cream">
       {/* Header */}
-      <div className="bg-white border-b border-hairline">
+      <div className="bg-card border-b border-hairline">
         <div className="mx-auto max-w-3xl flex items-center gap-3 px-5 pt-14 pb-4">
           <Link
             to="/"
@@ -157,7 +157,7 @@ export function FAQPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search questions..."
-            className="w-full rounded-xl border border-hairline bg-white pl-10 pr-10 py-3 text-[14px] outline-none focus:border-court focus:ring-2 focus:ring-court/20 transition-colors"
+            className="w-full rounded-xl border border-hairline bg-card pl-10 pr-10 py-3 text-[14px] outline-none focus:border-court focus:ring-2 focus:ring-court/20 transition-colors"
           />
           {search && (
             <button
@@ -177,7 +177,7 @@ export function FAQPage() {
             className={`mkt-btn flex-shrink-0 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-colors ${
               !activeCategory
                 ? 'bg-court text-white'
-                : 'bg-white border border-hairline text-ink-2 hover:border-court-100 hover:text-court'
+                : 'bg-card border border-hairline text-ink-2 hover:border-court-100 hover:text-court'
             }`}
           >
             All
@@ -189,7 +189,7 @@ export function FAQPage() {
               className={`mkt-btn flex-shrink-0 rounded-full px-4 py-1.5 text-[12px] font-semibold transition-colors ${
                 activeCategory === cat.id
                   ? 'bg-court text-white'
-                  : 'bg-white border border-hairline text-ink-2 hover:border-court-100 hover:text-court'
+                  : 'bg-card border border-hairline text-ink-2 hover:border-court-100 hover:text-court'
               }`}
             >
               {cat.label}
@@ -199,7 +199,7 @@ export function FAQPage() {
 
         {/* Grouped FAQ items */}
         {grouped.size === 0 ? (
-          <div className="rounded-2xl bg-white border border-hairline shadow-sm p-8 text-center">
+          <div className="rounded-2xl bg-card border border-hairline shadow-sm p-8 text-center">
             <p className="text-[14px] text-ink-2">No questions match your search.</p>
             <button
               onClick={() => { setSearch(''); setActiveCategory(null) }}
@@ -215,7 +215,7 @@ export function FAQPage() {
               <div key={topic} id={`cat-${topic}`} className="mb-6 scroll-mt-24">
                 <h2 className="font-display text-[15px] font-bold text-navy mb-2 px-1">{cat?.label ?? topic}</h2>
                 {topic === 'voting' && <ExplainerEmbed />}
-                <div className="rounded-2xl bg-white border border-hairline shadow-sm overflow-hidden px-5">
+                <div className="rounded-2xl bg-card border border-hairline shadow-sm overflow-hidden px-5">
                   {items.map((faq) => (
                     <FaqAccordion
                       key={faq.id}
@@ -244,7 +244,7 @@ export function FAQPage() {
             </Link>
             <Link
               to="/support"
-              className="mkt-btn inline-flex items-center gap-1.5 rounded-xl border border-court-100 bg-white px-4 py-2.5 text-[13px] font-semibold text-court hover:bg-court-50 transition-colors"
+              className="mkt-btn inline-flex items-center gap-1.5 rounded-xl border border-court-100 bg-card px-4 py-2.5 text-[13px] font-semibold text-court hover:bg-court-50 transition-colors"
             >
               Help Centre
             </Link>

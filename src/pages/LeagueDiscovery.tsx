@@ -206,7 +206,7 @@ export function LeagueDiscoveryPage() {
   return (
     <div className="flex flex-col min-h-full bg-surface">
       {/* Header */}
-      <div className="bg-white border-b border-hairline px-4 pt-12 pb-4">
+      <div className="bg-card border-b border-hairline px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => goBack(navigate, '/compete')}
@@ -229,7 +229,7 @@ export function LeagueDiscoveryPage() {
                   key={league.id}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => navigate(`/compete/leagues/${league.id}`)}
-                  className="w-full flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-hairline text-left"
+                  className="w-full flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm border border-hairline text-left"
                 >
                   <div className="w-10 h-10 rounded-xl bg-court-50 flex items-center justify-center shrink-0">
                     <Trophy className="w-5 h-5 text-court" />
@@ -263,7 +263,7 @@ export function LeagueDiscoveryPage() {
             <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">Pending Invitations</h2>
             <div className="space-y-2">
               {invitations.map(inv => (
-                <div key={inv.id} className="rounded-2xl bg-white p-4 shadow-sm border border-hairline">
+                <div key={inv.id} className="rounded-2xl bg-card p-4 shadow-sm border border-hairline">
                   <p className="text-[14px] font-semibold text-ink">{inv.leagues?.name ?? 'League'}</p>
                   <p className="text-[12px] text-ink-2 mt-0.5">Invited by a team member</p>
                   <div className="flex gap-2 mt-3">
@@ -298,7 +298,7 @@ export function LeagueDiscoveryPage() {
                   key={league.id}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => navigate(`/compete/leagues/${league.id}`)}
-                  className="w-full flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-hairline text-left"
+                  className="w-full flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm border border-hairline text-left"
                 >
                   <div className="w-10 h-10 rounded-xl bg-court-50 flex items-center justify-center shrink-0">
                     <Trophy className="w-5 h-5 text-court" />
@@ -345,7 +345,7 @@ export function LeagueDiscoveryPage() {
                 onClick={() => setLeagueFilter(f.id)}
                 className={cn(
                   'flex-shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors',
-                  leagueFilter === f.id ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-white'
+                  leagueFilter === f.id ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-card'
                 )}
               >
                 {f.label}
@@ -361,7 +361,7 @@ export function LeagueDiscoveryPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search leagues..."
-              className="w-full rounded-xl border border-hairline bg-white py-2.5 pl-9 pr-4 text-[14px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-2 focus:ring-court/30 focus:border-court"
+              className="w-full rounded-xl border border-hairline bg-card py-2.5 pl-9 pr-4 text-[14px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-2 focus:ring-court/30 focus:border-court"
             />
           </div>
 
@@ -373,7 +373,7 @@ export function LeagueDiscoveryPage() {
                 <motion.div
                   key={league.id}
                   whileTap={{ scale: 0.98 }}
-                  className="flex items-center gap-3 rounded-2xl bg-white p-4 shadow-sm border border-hairline"
+                  className="flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm border border-hairline"
                 >
                   <div className="w-10 h-10 rounded-xl bg-court-50 flex items-center justify-center shrink-0">
                     <Trophy className="w-5 h-5 text-court" />
@@ -409,7 +409,7 @@ export function LeagueDiscoveryPage() {
 
         {/* ── Create League CTA ──────────────────────────────────────────── */}
         <section className="px-4 pt-6 pb-4">
-          <div className="rounded-2xl bg-white p-5 shadow-sm border border-hairline text-center">
+          <div className="rounded-2xl bg-card p-5 shadow-sm border border-hairline text-center">
             <div className="w-12 h-12 rounded-full bg-court-50 flex items-center justify-center mx-auto mb-3">
               <Plus className="w-6 h-6 text-court" />
             </div>

@@ -67,8 +67,8 @@ export function OpenMatchesPage() {
   })
 
   return (
-    <div className="min-h-full bg-white pb-32">
-      <div className="px-4 pt-12 pb-4 bg-white border-b border-hairline">
+    <div className="min-h-full bg-card pb-32">
+      <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
           <button onClick={() => goBack(navigate, '/play')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
@@ -87,7 +87,7 @@ export function OpenMatchesPage() {
             onClick={() => setFilterMyElo(v => !v)}
             className={cn(
               'rounded-full px-3 py-1.5 text-[12px] font-semibold border transition-colors mb-4',
-              filterMyElo ? 'bg-court text-white border-court' : 'bg-white text-ink-2 border-hairline'
+              filterMyElo ? 'bg-court text-white border-court' : 'bg-card text-ink-2 border-hairline'
             )}
           >
             {t('open_matches.filter_match_my_elo')} ({userElo})
@@ -120,7 +120,7 @@ export function OpenMatchesPage() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.03 }}
                   onClick={() => navigate(`/matches/${m.id}`)}
-                  className="w-full text-left rounded-2xl border border-hairline bg-white px-4 py-3.5 active:scale-[0.98] transition-transform"
+                  className="w-full text-left rounded-2xl border border-hairline bg-card px-4 py-3.5 active:scale-[0.98] transition-transform"
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">

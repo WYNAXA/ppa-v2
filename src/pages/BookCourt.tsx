@@ -1108,7 +1108,7 @@ export function BookCourtPage() {
         onClick={() => selectVenue(v)}
         aria-expanded={isPpa ? undefined : isExpanded}
         className={cn(
-          'w-full text-left rounded-2xl border bg-white p-4 transition-colors shadow-sm active:scale-[0.99]',
+          'w-full text-left rounded-2xl border bg-card p-4 transition-colors shadow-sm active:scale-[0.99]',
           isExpanded
             ? 'border-court-100 bg-court-50/40'
             : 'border-hairline hover:border-court-100 hover:bg-court-50/30',
@@ -1407,7 +1407,7 @@ export function BookCourtPage() {
                         'flex-1 rounded-xl py-2.5 text-[13px] font-semibold border transition-colors',
                         selectedDuration === dur
                           ? 'bg-court text-white border-court'
-                          : 'bg-white text-ink-2 border-hairline hover:border-court-100',
+                          : 'bg-card text-ink-2 border-hairline hover:border-court-100',
                       )}
                     >
                       {dur} min
@@ -1439,7 +1439,7 @@ export function BookCourtPage() {
                           onClick={() => setSelectedDate(date)}
                           className={cn(
                             'h-10 w-full rounded-xl text-[13px] font-semibold transition-all relative',
-                            isSelected ? 'bg-court text-white' : 'bg-white text-ink hover:bg-surface',
+                            isSelected ? 'bg-court text-white' : 'bg-card text-ink hover:bg-surface',
                             isPpaExclusive && !isSelected && 'bg-court-50/60',
                           )}
                         >
@@ -1522,7 +1522,7 @@ export function BookCourtPage() {
                             onClick={() => setTimePeriod(p.id)}
                             className={cn(
                               'flex-shrink-0 flex flex-col items-center rounded-xl border-2 px-4 py-2 transition-all min-w-[80px]',
-                              timePeriod === p.id ? 'border-court bg-court-50 text-court' : 'border-hairline bg-white text-ink-2',
+                              timePeriod === p.id ? 'border-court bg-court-50 text-court' : 'border-hairline bg-card text-ink-2',
                             )}
                           >
                             <span className="text-[18px]">{p.emoji}</span>
@@ -1571,7 +1571,7 @@ export function BookCourtPage() {
                               slot.available
                                 ? isSelected
                                   ? 'border-court bg-court-50 shadow-sm'
-                                  : 'border-hairline bg-white hover:border-court-100'
+                                  : 'border-hairline bg-card hover:border-court-100'
                                 : onWaitlist
                                   ? 'border-court-100 bg-court-50/50'
                                   : 'border-hairline bg-surface hover:border-warn',
@@ -1647,7 +1647,7 @@ export function BookCourtPage() {
                               'flex items-center gap-1.5 rounded-2xl border px-4 py-2.5 text-[13px] font-semibold transition-all active:scale-[0.98]',
                               isSelected
                                 ? 'border-court bg-court-50 text-court'
-                                : 'border-hairline bg-white text-ink-2 hover:border-court-100',
+                                : 'border-hairline bg-card text-ink-2 hover:border-court-100',
                             )}
                           >
                             {c.name}
@@ -1740,7 +1740,7 @@ export function BookCourtPage() {
                         animate={{ opacity: 1, scale: 1 }}
                         className={cn(
                           'flex items-center gap-3 rounded-2xl border px-4 py-3',
-                          isBooker ? 'border-court-100 bg-court-50/60' : 'border-hairline bg-white',
+                          isBooker ? 'border-court-100 bg-court-50/60' : 'border-hairline bg-card',
                         )}
                       >
                         <PlayerAvatar
@@ -1857,7 +1857,7 @@ export function BookCourtPage() {
                   <select
                     value={selectedGroupId ?? ''}
                     onChange={(e) => setSelectedGroupId(e.target.value || null)}
-                    className="w-full rounded-xl border border-hairline px-4 py-3 text-[14px] text-ink bg-white focus:outline-none focus:border-court"
+                    className="w-full rounded-xl border border-hairline px-4 py-3 text-[14px] text-ink bg-card focus:outline-none focus:border-court"
                   >
                     <option value="">None — standalone match</option>
                     {userGroups.map((g) => (
@@ -1920,7 +1920,7 @@ export function BookCourtPage() {
             >
               {/* Cover additional players */}
               {otherPlayers.length > 0 && !clientSecret && !fetchingPayment && (
-                <div className="rounded-2xl border border-hairline bg-white p-4 space-y-3">
+                <div className="rounded-2xl border border-hairline bg-card p-4 space-y-3">
                   <p className="text-[12px] font-bold text-ink-2 uppercase tracking-wide">
                     Cover additional players?
                   </p>
@@ -2174,7 +2174,7 @@ export function BookCourtPage() {
                     .map((player) => (
                       <div
                         key={player.id}
-                        className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3"
+                        className="flex items-center gap-3 rounded-2xl border border-hairline bg-card px-4 py-3"
                       >
                         <PlayerAvatar
                           name={player.name}
@@ -2194,7 +2194,7 @@ export function BookCourtPage() {
                         </a>
                         <button
                           onClick={() => copyPayLink(player)}
-                          className="h-8 w-8 rounded-xl border border-hairline bg-white flex items-center justify-center flex-shrink-0"
+                          className="h-8 w-8 rounded-xl border border-hairline bg-card flex items-center justify-center flex-shrink-0"
                         >
                           {copiedId === player.id ? (
                             <CheckCircle className="h-3.5 w-3.5 text-court" />
@@ -2270,7 +2270,7 @@ export function BookCourtPage() {
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-              className="fixed bottom-0 left-0 right-0 z-[70] rounded-t-3xl bg-white shadow-2xl max-h-[80vh] flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-[70] rounded-t-3xl bg-card shadow-2xl max-h-[80vh] flex flex-col"
               style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 88px)' }}
             >
               {/* Handle + title */}

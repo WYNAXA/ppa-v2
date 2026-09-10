@@ -252,7 +252,7 @@ export function PlayerProfilePage() {
   const theirWinProb = 1 - myWinProb
 
   return (
-    <div className="min-h-full bg-white pb-12">
+    <div className="min-h-full bg-card pb-12">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button

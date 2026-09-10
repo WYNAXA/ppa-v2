@@ -524,7 +524,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
             key={f}
             onClick={() => setMemberFilter(f)}
             className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors capitalize ${
-              memberFilter === f ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
+              memberFilter === f ? 'bg-card text-ink shadow-sm' : 'text-ink-2'
             }`}
           >
             {f === 'members' ? t('group_detail.members_count', { count: members.length }) : t('group_detail.ringers_count', { count: members.filter(m => m.memberStatus === 'ringer').length })}
@@ -571,7 +571,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
               onClick={() => setMenuMemberId(null)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-5"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl px-5 pt-5"
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}
@@ -698,7 +698,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
             key={v}
             onClick={() => setView(v)}
             className={`flex-1 rounded-lg py-2 text-[13px] font-semibold transition-colors capitalize ${
-              view === v ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
+              view === v ? 'bg-card text-ink shadow-sm' : 'text-ink-2'
             }`}
           >
             {v === 'upcoming' ? t('group_detail.upcoming_count', { count: upcoming.length }) : t('group_detail.past_count', { count: past.length })}
@@ -719,7 +719,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
               key={key}
               onClick={() => setWeekFilter(key)}
               className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-                weekFilter === key ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-white'
+                weekFilter === key ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-card'
               }`}
             >
               {label}
@@ -728,7 +728,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
           <button
             onClick={() => setNeedsRingersOnly(v => !v)}
             className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-              needsRingersOnly ? 'bg-warn border-warn text-white' : 'border-hairline text-ink-2 bg-white'
+              needsRingersOnly ? 'bg-warn border-warn text-white' : 'border-hairline text-ink-2 bg-card'
             }`}
           >
             {t('group_detail.needs_ringers')}
@@ -750,7 +750,7 @@ function MatchesTab({ upcoming, past, isLoading, userId, onCreateMatch }: {
                 key={f.id}
                 onClick={() => setPastFilter(f.id)}
                 className={`flex-shrink-0 rounded-full border px-3 py-1 text-[11px] font-semibold transition-colors ${
-                  pastFilter === f.id ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-white'
+                  pastFilter === f.id ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-card'
                 }`}
               >
                 {f.label}
@@ -1260,7 +1260,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                   ) : (
                     <div className="space-y-2">
                       {pendingMembers.map((pm) => (
-                        <div key={pm.id} className="flex items-center gap-3 bg-white rounded-xl px-3 py-2.5">
+                        <div key={pm.id} className="flex items-center gap-3 bg-card rounded-xl px-3 py-2.5">
                           <PlayerAvatar name={pm.name} avatarUrl={pm.avatar_url} size="sm" />
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-semibold text-ink truncate">{pm.name}</p>
@@ -1434,7 +1434,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                       onClick={() => setAllowJoinRequests(v => !v)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowJoinRequests ? 'bg-court' : 'bg-hairline'}`}
                     >
-                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowJoinRequests ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${allowJoinRequests ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                   {allowJoinRequests && (
@@ -1445,7 +1445,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                         onClick={() => setAutoApprove(v => !v)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoApprove ? 'bg-court' : 'bg-hairline'}`}
                       >
-                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoApprove ? 'translate-x-6' : 'translate-x-1'}`} />
+                        <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${autoApprove ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
                     </div>
                   )}
@@ -1462,7 +1462,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                     onClick={() => setAllowRingers(v => !v)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${allowRingers ? 'bg-court' : 'bg-hairline'}`}
                   >
-                    <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${allowRingers ? 'translate-x-6' : 'translate-x-1'}`} />
+                    <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${allowRingers ? 'translate-x-6' : 'translate-x-1'}`} />
                   </button>
                 </div>
                 {allowRingers && (
@@ -1477,7 +1477,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                           className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${
                             ringerApproval === opt
                               ? 'bg-court text-white border-court'
-                              : 'bg-white text-ink-2 border-hairline'
+                              : 'bg-card text-ink-2 border-hairline'
                           }`}
                         >
                           {opt === 'admin' ? 'Admin only' : 'Any member'}
@@ -1499,7 +1499,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
                       onClick={() => setAutoMatchEnabled(v => !v)}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${autoMatchEnabled ? 'bg-court' : 'bg-hairline'}`}
                     >
-                      <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${autoMatchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                      <span className={`inline-block h-4 w-4 rounded-full bg-card shadow transition-transform ${autoMatchEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                   </div>
                   <p className="text-[11px] text-ink-2 mt-1">When voting closes, create the matches automatically. Turn this off if you'd rather review and generate them yourself.</p>
@@ -1564,7 +1564,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
               onClick={() => setConfirmLeave(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl px-5 pt-6"
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
@@ -1626,7 +1626,7 @@ function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: 
               onClick={() => setConfirmOpen(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl px-5 pt-6"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl px-5 pt-6"
               initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               style={{ paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}
@@ -1877,7 +1877,7 @@ export function GroupDetailPage() {
   }
 
   return (
-    <div className="min-h-full bg-white">
+    <div className="min-h-full bg-card">
       {/* Banner */}
       {group.banner_url && (
         <div className="relative h-36 overflow-hidden">

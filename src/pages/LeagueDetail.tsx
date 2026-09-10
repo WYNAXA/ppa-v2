@@ -1543,7 +1543,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
             onClick={handleClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[80vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl max-h-[80vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -1789,7 +1789,7 @@ function JerseyLegendSheet({ open, onClose, jerseys, standings, prizeScheme }: {
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[70vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl max-h-[70vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -1874,7 +1874,7 @@ function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[70vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl max-h-[70vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -2006,7 +2006,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[80vh] flex flex-col"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl max-h-[80vh] flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -2351,7 +2351,7 @@ export function LeagueDetailPage() {
   }
 
   return (
-    <div className="min-h-full bg-white">
+    <div className="min-h-full bg-card">
       {/* Header */}
       <div className="px-5 pt-14 pb-4">
         <div className="flex items-center gap-3 mb-1">
@@ -2702,7 +2702,7 @@ export function LeagueDetailPage() {
                           onClick={() => setStandingsView(v.id)}
                           className={cn(
                             'flex-1 min-w-[52px] rounded-lg py-1.5 text-[11px] font-semibold transition-colors whitespace-nowrap',
-                            standingsView === v.id ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
+                            standingsView === v.id ? 'bg-card text-ink shadow-sm' : 'text-ink-2'
                           )}
                         >
                           {v.label}
@@ -3322,7 +3322,7 @@ export function LeagueDetailPage() {
               onClick={() => !leaving && setShowLeaveConfirm(false)}
             />
             <motion.div
-              className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
+              className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-card rounded-2xl p-6 shadow-xl"
               initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
             >
               <h3 className="text-[15px] font-bold text-ink mb-2">{t('league.leave_league_confirm')}</h3>
@@ -3411,7 +3411,7 @@ export function LeagueDetailPage() {
               onClick={() => setShowScoringSheet(false)}
             />
             <motion.div
-              className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl max-h-[80vh] flex flex-col"
+              className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl max-h-[80vh] flex flex-col"
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}

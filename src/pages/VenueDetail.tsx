@@ -471,7 +471,7 @@ export function VenueDetailPage() {
           onClick={() => setShowClaimQr(false)}
         >
           <div
-            className="w-full max-w-sm rounded-3xl bg-white p-6 text-center relative"
+            className="w-full max-w-sm rounded-3xl bg-card p-6 text-center relative"
             onClick={(e) => e.stopPropagation()}
           >
             <button
@@ -483,7 +483,7 @@ export function VenueDetailPage() {
             </button>
             <p className="text-[13px] font-semibold text-court-700">Claim this venue on Wynaxa Hub</p>
             <h3 className="text-lg font-bold text-ink mt-0.5 mb-4">{venue.venue_name}</h3>
-            <div className="bg-white p-4 rounded-2xl border border-hairline inline-block">
+            <div className="bg-card p-4 rounded-2xl border border-hairline inline-block">
               <QRCodeSVG value={venueClaimUrl(venueId)} size={200} />
             </div>
             <p className="text-[12px] text-ink-2 mt-4 leading-relaxed">

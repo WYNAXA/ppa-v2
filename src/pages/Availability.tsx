@@ -196,7 +196,7 @@ export function AvailabilityPage() {
   })
 
   return (
-    <div className="min-h-full bg-white pb-6">
+    <div className="min-h-full bg-card pb-6">
       {/* Header */}
       <div className="px-5 pt-14 pb-4">
         <div className="flex items-center justify-between">
@@ -248,7 +248,7 @@ export function AvailabilityPage() {
                   <button
                     key={poll.id}
                     onClick={() => navigate(`/play/availability/${poll.id}`)}
-                    className="flex items-center justify-between rounded-2xl border border-hairline bg-white px-4 py-3 text-left hover:border-court-100 transition-colors"
+                    className="flex items-center justify-between rounded-2xl border border-hairline bg-card px-4 py-3 text-left hover:border-court-100 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-[13px] font-semibold text-ink truncate">{poll.title}</p>
@@ -274,7 +274,7 @@ export function AvailabilityPage() {
                   <button
                     key={`${poll.id}-${slot.id}`}
                     onClick={() => navigate(`/play/availability/${poll.id}`)}
-                    className="flex items-center gap-3 rounded-2xl border border-hairline bg-white px-4 py-3 text-left hover:border-court-100 transition-colors"
+                    className="flex items-center gap-3 rounded-2xl border border-hairline bg-card px-4 py-3 text-left hover:border-court-100 transition-colors"
                   >
                     <div className="h-8 w-8 rounded-full bg-court-50 flex items-center justify-center flex-shrink-0">
                       <Clock className="h-4 w-4 text-court" />

@@ -30,7 +30,7 @@ function Ul({ items }: { items: string[] }) {
 export function PrivacyPolicyPage() {
   return (
     <div className="min-h-full bg-cream">
-      <div className="bg-white border-b border-hairline">
+      <div className="bg-card border-b border-hairline">
         <div className="mx-auto max-w-2xl flex items-center gap-3 px-5 pt-14 pb-4">
           <Link
             to="/"
@@ -44,7 +44,7 @@ export function PrivacyPolicyPage() {
       </div>
 
       <div className="mx-auto max-w-2xl px-5 py-8">
-        <div className="rounded-2xl bg-white border border-hairline shadow-sm p-5 sm:p-8">
+        <div className="rounded-2xl bg-card border border-hairline shadow-sm p-5 sm:p-8">
           <p className="text-[12px] text-ink-2 mb-4">Last updated: 1 June 2026</p>
           <P>This Privacy Policy explains how Wynaxa Sports Tech Ltd (part of Wynaxa Limited), acting as the operator of Padel Players App ({'"'}the App{'"'}), collects, uses, and protects your personal data. We are committed to protecting your privacy in accordance with the General Data Protection Regulation (GDPR) and applicable Irish data protection law.</P>
           <P><strong>We do not use your data for advertising, behavioural tracking, or profiling. We do not share or sell data to data brokers or ad networks.</strong></P>

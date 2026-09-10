@@ -255,7 +255,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -317,7 +317,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         className={`py-2 rounded-xl text-[12px] font-semibold border transition-colors ${
                           matchType === value
                             ? 'bg-court text-white border-court'
-                            : 'bg-white text-ink-2 border-hairline'
+                            : 'bg-card text-ink-2 border-hairline'
                         } ${matchTypeLocked ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {label}
@@ -360,7 +360,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                         initial={{ opacity: 0, y: -4 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0 }}
-                        className="absolute z-50 mt-1 w-full rounded-xl border border-hairline bg-white shadow-lg max-h-48 overflow-y-auto"
+                        className="absolute z-50 mt-1 w-full rounded-xl border border-hairline bg-card shadow-lg max-h-48 overflow-y-auto"
                       >
                         {venues.map((v) => (
                           <li key={v.venue_id}>
@@ -393,7 +393,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                     <select
                       value={selectedCourtId}
                       onChange={(e) => setSelectedCourtId(e.target.value)}
-                      className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-white"
+                      className="w-full rounded-xl border border-hairline px-3 py-2.5 text-sm outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-card"
                     >
                       <option value="">Select a court…</option>
                       {courts.map((c) => (
@@ -530,7 +530,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
                             <button
                               type="button"
                               onClick={chooseGuestFromContacts}
-                              className="w-full flex items-center justify-center gap-2 rounded-lg border border-court-100 bg-white py-2 text-[12px] font-semibold text-court-700"
+                              className="w-full flex items-center justify-center gap-2 rounded-lg border border-court-100 bg-card py-2 text-[12px] font-semibold text-court-700"
                             >
                               <UserRound className="h-3.5 w-3.5" /> Choose from contacts
                             </button>

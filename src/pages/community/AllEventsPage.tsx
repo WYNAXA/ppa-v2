@@ -104,8 +104,8 @@ export function AllEventsPage() {
   const loading = loadingGroup || loadingVenue
 
   return (
-    <div className="min-h-full bg-white pb-32">
-      <div className="px-4 pt-12 pb-4 bg-white border-b border-hairline">
+    <div className="min-h-full bg-card pb-32">
+      <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/community')}
@@ -154,7 +154,7 @@ export function AllEventsPage() {
                   'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
                   r.kind === 'group' && r.official
                     ? 'border-court-100 bg-court-50/30'
-                    : 'border-hairline bg-white',
+                    : 'border-hairline bg-card',
                 )}
               >
                 <div className="flex items-center gap-2 mb-1 flex-wrap">

@@ -35,7 +35,7 @@ export function ForVenuesPage() {
   }, [query])
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-card">
       {/* Nav */}
       <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-hairline">
         <div className="max-w-5xl mx-auto flex items-center justify-between px-5 py-4">
@@ -96,7 +96,7 @@ export function ForVenuesPage() {
               { icon: CreditCard, title: 'Online bookings & payments', desc: 'Accept bookings and payments directly via Stripe. A small fee only on what you take in-app.' },
               { icon: Users, title: 'Player discovery', desc: 'Padel venues listed worldwide. Players in your area find and book your courts through the PPA app.' },
             ].map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="rounded-2xl bg-white border border-hairline p-5">
+              <div key={title} className="rounded-2xl bg-card border border-hairline p-5">
                 <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center mb-4">
                   <Icon className="h-5 w-5 text-court" />
                 </div>
@@ -140,7 +140,7 @@ export function ForVenuesPage() {
                 <a
                   key={v.venue_id}
                   href={`${VM_URL}/claim?venue=${v.venue_id}`}
-                  className="flex items-center justify-between rounded-xl border border-hairline bg-white px-4 py-3 hover:border-court hover:bg-court-50/30 transition-all group"
+                  className="flex items-center justify-between rounded-xl border border-hairline bg-card px-4 py-3 hover:border-court hover:bg-court-50/30 transition-all group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
@@ -180,17 +180,17 @@ export function ForVenuesPage() {
         <div className="max-w-3xl mx-auto px-5 text-center">
           <h2 className="text-[24px] font-bold text-ink mb-8">Why claim your venue?</h2>
           <div className="grid sm:grid-cols-3 gap-6 text-left">
-            <div className="rounded-2xl bg-white border border-hairline p-5">
+            <div className="rounded-2xl bg-card border border-hairline p-5">
               <p className="text-[28px] mb-2">🎯</p>
               <h3 className="text-[14px] font-bold text-ink mb-1">Control your listing</h3>
               <p className="text-[12px] text-ink-2">Update your hours, pricing, photos, and court details. Your venue, your way.</p>
             </div>
-            <div className="rounded-2xl bg-white border border-hairline p-5">
+            <div className="rounded-2xl bg-card border border-hairline p-5">
               <p className="text-[28px] mb-2">📱</p>
               <h3 className="text-[14px] font-bold text-ink mb-1">Reach new players</h3>
               <p className="text-[12px] text-ink-2">PPA players in your area discover your courts when looking for games. Free exposure.</p>
             </div>
-            <div className="rounded-2xl bg-white border border-hairline p-5">
+            <div className="rounded-2xl bg-card border border-hairline p-5">
               <p className="text-[28px] mb-2">💳</p>
               <h3 className="text-[14px] font-bold text-ink mb-1">Take bookings directly</h3>
               <p className="text-[12px] text-ink-2">Players book and pay through the app — a small fee only on in-app bookings. Send them to your own link and we take nothing.</p>

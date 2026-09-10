@@ -68,7 +68,7 @@ export function CoachesPage() {
   })
 
   return (
-    <div className="min-h-screen bg-white pb-24">
+    <div className="min-h-screen bg-card pb-24">
       <div className="px-5 pt-14 pb-3 flex items-center gap-3">
         <button onClick={() => goBack(navigate, '/play')} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0">
           <ChevronLeft className="h-5 w-5 text-ink-2" />
@@ -93,7 +93,7 @@ export function CoachesPage() {
             <button
               key={c.id}
               onClick={() => navigate(`/coaches/${c.id}`)}
-              className="w-full flex items-center gap-3 rounded-2xl border border-hairline bg-white p-3 text-left hover:border-court-100 hover:bg-court-50/20 active:scale-[0.99] transition-all"
+              className="w-full flex items-center gap-3 rounded-2xl border border-hairline bg-card p-3 text-left hover:border-court-100 hover:bg-court-50/20 active:scale-[0.99] transition-all"
             >
               <PlayerAvatar name={c.name} avatarUrl={c.avatar_url} size="md" />
               <div className="flex-1 min-w-0">

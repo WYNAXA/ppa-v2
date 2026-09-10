@@ -656,3 +656,46 @@ The one thing that needed care: the group preview sheet was only reachable from
 the removed Find Groups cards, so `previewGroup` could never be set and both its
 mutations were unreachable. `AllGroupsPage` carries its own preview, join and
 ringer-offer. Checked before deleting, not after.
+
+### Surfaces stopped being a literal colour
+
+Dark mode was written up above as "a pass over every screen". After the token
+codemods it is not. The app is already **1,958 `text-ink`, 647
+`border-hairline`, 541 `bg-court`, 216 `bg-surface`** — all of which flip by
+redefining a token.
+
+`bg-white` did not. A literal, **284 sites against 29 `bg-card`**, and the single
+thing standing between this app and a dark mode that is a token swap rather than
+a rewrite. `scripts/codemod/white-to-card.mjs` converts 281 of them.
+
+**This changed nothing visually.** `--color-card` is `#FFFFFF`, so `bg-card` and
+`bg-white` render identically today. Proved rather than asserted: four screens
+captured before and after and pixel-diffed. Two showed differences until two
+runs of the *same* build showed the same differences in the same bands — the
+`animate-pulse` skeleton loaders. Masked those and every screen is pixel-identical.
+
+**What is deliberately still white:**
+
+- **`bg-white/<opacity>`, 16 sites.** Translucent white over a dark ground — the
+  Compete hero, the Play sheet's tick row, Home's week strip. Correct as
+  literals, and they must not follow the surface into the dark.
+- **The Play sheet's primary button.** It sits on the `court` panel, so it takes
+  a new token, **`on-brand`**, which stays white in both themes. "White on the
+  brand colour" is a different idea from "the colour of a card"; conflating them
+  is exactly what would put dark text on a dark panel the day dark mode is
+  switched on.
+- **The toggle knob and the QR code ground** — white because of what they sit on
+  and what has to scan them, not because they are surfaces.
+
+**A note on the detection, because it nearly shipped wrong.** Finding which
+elements sit inside a `bg-court` ground means walking JSX indentation, and the
+first version treated a blank line as zero indentation — which closed every open
+element. Anything below a blank line inside its parent looked top-level, and the
+check reported two on-brand sites instead of three, missing the one case already
+known by hand. It was caught only because that case was known. An indentation
+walker needs proving against something you already know the answer to.
+
+**What is left for dark mode itself:** wiring the variant and choosing the dark
+values for `court`, `line` and `warn`, which need re-picking rather than
+inverting — `court` at `#0F5D54` is nearly black on a dark ground. That is the
+job; it is no longer a rewrite.

@@ -69,7 +69,7 @@ function FormatInfoModal({ format, onClose }: { format: Format; onClose: () => v
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-        className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[75] bg-white rounded-2xl p-6 shadow-2xl"
+        className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[75] bg-card rounded-2xl p-6 shadow-2xl"
       >
         <div className="flex items-start justify-between mb-4">
           <h3 className="text-[17px] font-bold text-ink flex-1 pr-2">{t(`create_league.format_${format}_title`)}</h3>
@@ -144,7 +144,7 @@ function StepPreset({ onSelect }: { onSelect: (mode: PresetMode) => void }) {
         </button>
         <button
           onClick={() => onSelect('custom')}
-          className="w-full flex items-center gap-4 rounded-2xl border-2 border-hairline bg-white p-4 text-left transition-all hover:border-hairline"
+          className="w-full flex items-center gap-4 rounded-2xl border-2 border-hairline bg-card p-4 text-left transition-all hover:border-hairline"
         >
           <div className="h-11 w-11 rounded-xl bg-hairline flex items-center justify-center shrink-0">
             <Users className="h-5 w-5 text-ink-2" />
@@ -183,7 +183,7 @@ function Step1({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
               onClick={() => setForm({ ...form, leagueType: type })}
               className={cn(
                 'w-full flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all',
-                selected ? 'border-court bg-court-50/50' : 'border-hairline bg-white hover:border-hairline'
+                selected ? 'border-court bg-court-50/50' : 'border-hairline bg-card hover:border-hairline'
               )}
             >
               <div className={cn(
@@ -292,7 +292,7 @@ function Step2({
               value={form.groupId ?? ''}
               onChange={(e) => setForm({ ...form, groupId: e.target.value || null })}
               style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-white"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-card"
             >
               <option value="">{t('create_league.group_none')}</option>
               {groups.map((g) => (
@@ -352,7 +352,7 @@ function Step2({
                   onClick={() => setForm({ ...form, scoringFormat: id })}
                   className={cn(
                     'w-full flex items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-all',
-                    form.scoringFormat === id ? 'border-court bg-court-50/40' : 'border-hairline bg-white'
+                    form.scoringFormat === id ? 'border-court bg-court-50/40' : 'border-hairline bg-card'
                   )}
                 >
                   <div className={cn(
@@ -446,7 +446,7 @@ function Step3({ form, setForm, isPpl }: { form: FormState; setForm: (f: FormSta
                 onClick={() => setForm({ ...form, visibility: id })}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all',
-                  form.visibility === id ? 'border-court bg-court-50/50' : 'border-hairline bg-white'
+                  form.visibility === id ? 'border-court bg-court-50/50' : 'border-hairline bg-card'
                 )}
               >
                 <div className={cn(
@@ -474,7 +474,7 @@ function Step3({ form, setForm, isPpl }: { form: FormState; setForm: (f: FormSta
                 onClick={() => setForm({ ...form, joinMode: id })}
                 className={cn(
                   'w-full flex items-center gap-3 rounded-xl border-2 p-3 text-left transition-all',
-                  form.joinMode === id ? 'border-court bg-court-50/50' : 'border-hairline bg-white'
+                  form.joinMode === id ? 'border-court bg-court-50/50' : 'border-hairline bg-card'
                 )}
               >
                 <div className={cn(
@@ -741,7 +741,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] flex flex-col bg-white rounded-t-3xl shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] flex flex-col bg-card rounded-t-3xl shadow-2xl"
             style={{ maxHeight: '92vh' }}
           >
             {/* Handle */}

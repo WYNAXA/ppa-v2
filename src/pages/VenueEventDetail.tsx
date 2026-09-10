@@ -233,7 +233,7 @@ export function VenueEventDetailPage() {
   // ── If payment flow is open, show Stripe Elements ────────────────────────
   if (paymentState) {
     return (
-      <div className="min-h-full bg-white">
+      <div className="min-h-full bg-card">
         <div className="flex items-center gap-3 px-5 pt-14 pb-4">
           <button
             onClick={() => setPaymentState(null)}
@@ -278,7 +278,7 @@ export function VenueEventDetailPage() {
 
   // ── Main detail view ─────────────────────────────────────────────────────
   return (
-    <div className="min-h-full bg-white pb-10">
+    <div className="min-h-full bg-card pb-10">
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button

@@ -434,7 +434,7 @@ function LinkPartnerSheet({
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl"
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 300 }}
           >
@@ -612,7 +612,7 @@ function EditProfileSheet({
             onClick={onClose}
           />
           <motion.div
-            className="fixed bottom-0 left-0 right-0 z-[60] bg-white rounded-t-3xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] bg-card rounded-t-3xl"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -708,7 +708,7 @@ function EditProfileSheet({
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   style={{ fontSize: '16px', width: '100%', boxSizing: 'border-box' }}
-                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-white"
+                  className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-card"
                 >
                   <option value="">{t('you.country_placeholder')}</option>
                   {COUNTRIES.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -726,7 +726,7 @@ function EditProfileSheet({
                     onClick={() => setCanDrive((v) => !v)}
                     className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', canDrive ? 'bg-court' : 'bg-hairline')}
                   >
-                    <span className={cn('inline-block h-4 w-4 rounded-full bg-white shadow transition-transform', canDrive ? 'translate-x-6' : 'translate-x-1')} />
+                    <span className={cn('inline-block h-4 w-4 rounded-full bg-card shadow transition-transform', canDrive ? 'translate-x-6' : 'translate-x-1')} />
                   </button>
                 </div>
 
@@ -783,7 +783,7 @@ function EditProfileSheet({
                       () => { setLocating(false); toast.error('Could not get your location') },
                     )
                   }}
-                  className="w-full rounded-xl border border-hairline bg-white py-2 text-[12px] font-semibold text-ink-2 hover:bg-surface disabled:opacity-40 transition-colors"
+                  className="w-full rounded-xl border border-hairline bg-card py-2 text-[12px] font-semibold text-ink-2 hover:bg-surface disabled:opacity-40 transition-colors"
                 >
                   {locating ? t('you.getting_location') : t('you.use_current_location')}
                 </button>
@@ -1202,7 +1202,7 @@ export function YouPage() {
                 onClick={() => setHistoryFilter(f)}
                 className={cn(
                   'flex-1 rounded-lg py-2 text-[12px] font-semibold capitalize transition-colors',
-                  historyFilter === f ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
+                  historyFilter === f ? 'bg-card text-ink shadow-sm' : 'text-ink-2'
                 )}
               >
                 {label}
@@ -1428,7 +1428,7 @@ export function YouPage() {
                 aria-label={t('you.toggle_notifications_aria')}
               >
                 <span className={cn(
-                  'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+                  'inline-block h-4 w-4 rounded-full bg-card shadow transition-transform',
                   notifEnabled ? 'translate-x-6' : 'translate-x-1'
                 )} />
               </button>
@@ -1464,7 +1464,7 @@ export function YouPage() {
                       'flex-shrink-0 rounded-lg px-3 py-1.5 text-[12px] font-semibold border transition-colors',
                       i18n.language === lang.code
                         ? 'bg-court text-white border-court'
-                        : 'bg-white text-ink-2 border-hairline'
+                        : 'bg-card text-ink-2 border-hairline'
                     )}
                   >
                     {lang.label}
@@ -1504,7 +1504,7 @@ export function YouPage() {
                     aria-label={label}
                   >
                     <span className={cn(
-                      'inline-block h-4 w-4 rounded-full bg-white shadow transition-transform',
+                      'inline-block h-4 w-4 rounded-full bg-card shadow transition-transform',
                       currentVal ? 'translate-x-6' : 'translate-x-1'
                     )} />
                   </button>
@@ -1606,7 +1606,7 @@ export function YouPage() {
                 onClick={() => { if (!deleting) { setShowDeleteConfirm(false); setDeleteStep(1); setDeleteTyped('') } }}
               />
               <motion.div
-                className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-white rounded-2xl p-6 shadow-xl"
+                className="fixed inset-x-5 top-1/2 -translate-y-1/2 z-[60] bg-card rounded-2xl p-6 shadow-xl"
                 initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
               >
                 {deleteStep === 1 ? (

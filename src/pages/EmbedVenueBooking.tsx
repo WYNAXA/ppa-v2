@@ -78,19 +78,19 @@ export function EmbedVenueBookingPage() {
 
   if (loadingVenue) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-card">
         <div className="h-7 w-7 rounded-full border-2 border-court border-t-transparent animate-spin" />
       </div>
     )
   }
   if (!venue) {
-    return <div className="min-h-screen flex items-center justify-center bg-white text-[14px] text-ink-2">Venue not found.</div>
+    return <div className="min-h-screen flex items-center justify-center bg-card text-[14px] text-ink-2">Venue not found.</div>
   }
 
   const external = !venue.ppa_bookable
 
   return (
-    <div className="min-h-screen bg-white text-ink flex flex-col">
+    <div className="min-h-screen bg-card text-ink flex flex-col">
       {/* Header */}
       <div className="px-4 pt-4 pb-3 border-b border-hairline">
         <p className="text-[11px] font-bold uppercase tracking-wide text-court">Book a court</p>
@@ -121,7 +121,7 @@ export function EmbedVenueBookingPage() {
                 <button
                   key={ds}
                   onClick={() => setDate(ds)}
-                  className={`flex-shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[52px] transition-colors ${active ? 'border-court bg-court text-white' : 'border-hairline bg-white text-ink-2'}`}
+                  className={`flex-shrink-0 flex flex-col items-center rounded-xl border px-3 py-2 min-w-[52px] transition-colors ${active ? 'border-court bg-court text-white' : 'border-hairline bg-card text-ink-2'}`}
                 >
                   <span className="text-[11px] font-semibold uppercase opacity-80">{format(d, 'EEE')}</span>
                   <span className="text-[16px] font-bold leading-tight">{format(d, 'd')}</span>
@@ -137,7 +137,7 @@ export function EmbedVenueBookingPage() {
               <button
                 key={dur}
                 onClick={() => setDuration(dur)}
-                className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${duration === dur ? 'bg-court text-white border-court' : 'bg-white text-ink-2 border-hairline'}`}
+                className={`flex-1 rounded-lg py-2 text-[12px] font-semibold border transition-colors ${duration === dur ? 'bg-court text-white border-court' : 'bg-card text-ink-2 border-hairline'}`}
               >
                 {dur} min
               </button>
@@ -162,7 +162,7 @@ export function EmbedVenueBookingPage() {
                     href={bookUrl(s.start_time)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-xl border border-hairline bg-white py-2.5 text-center text-[14px] font-semibold text-ink hover:border-court hover:bg-court/[0.06] active:scale-95 transition-all"
+                    className="rounded-xl border border-hairline bg-card py-2.5 text-center text-[14px] font-semibold text-ink hover:border-court hover:bg-court/[0.06] active:scale-95 transition-all"
                   >
                     {fmtSlot(s.start_time)}
                   </a>

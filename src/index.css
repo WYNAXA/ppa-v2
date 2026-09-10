@@ -62,6 +62,14 @@
   --color-warn-50:   #FDF3E6;
   --color-warn-100:  #F2DEBE;
 
+  /* White on the brand colour, and it stays white when the app goes dark.
+     A light control sitting on `court` or `ink` is not a card — it is the
+     inverse of its ground. Card flips with the theme; this must not, or the
+     Play sheet's primary button becomes dark text on a dark panel the day dark
+     mode is switched on. Use it only for controls on a permanently dark
+     surface, never for a surface itself. */
+  --color-on-brand:  #FFFFFF;
+
   /* The scrim behind every sheet and modal. The app had four different values
      for this — bg-black/40 in 43 places, plus /45, /50 and /60 — so a sheet
      opened from another sheet dimmed the page by a different amount depending

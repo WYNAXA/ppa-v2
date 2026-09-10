@@ -8,7 +8,7 @@ export function ContactPage() {
   return (
     <div className="min-h-full bg-cream">
       {/* Header */}
-      <div className="bg-white border-b border-hairline">
+      <div className="bg-card border-b border-hairline">
         <div className="mx-auto max-w-3xl flex items-center gap-3 px-5 pt-14 pb-4">
           <Link
             to="/"
@@ -36,7 +36,7 @@ export function ContactPage() {
           </p>
           <Link
             to="/faq"
-            className="mkt-btn inline-flex items-center gap-1 rounded-lg bg-white border border-court-100 px-3 py-1.5 text-[12px] font-semibold text-court hover:bg-court-50 transition-colors flex-shrink-0"
+            className="mkt-btn inline-flex items-center gap-1 rounded-lg bg-card border border-court-100 px-3 py-1.5 text-[12px] font-semibold text-court hover:bg-court-50 transition-colors flex-shrink-0"
           >
             Browse FAQ
             <ChevronRight className="h-3 w-3" />
@@ -46,7 +46,7 @@ export function ContactPage() {
         {/* Map + business details — side by side on desktop */}
         <div className="grid sm:grid-cols-2 gap-5 mb-8">
           {/* Map */}
-          <div className="rounded-2xl border border-hairline shadow-sm overflow-hidden bg-white" style={{ minHeight: 280 }}>
+          <div className="rounded-2xl border border-hairline shadow-sm overflow-hidden bg-card" style={{ minHeight: 280 }}>
             <Suspense fallback={
               <div className="h-[280px] bg-hairline flex items-center justify-center">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
@@ -61,7 +61,7 @@ export function ContactPage() {
 
           {/* Business details */}
           <div className="space-y-4">
-            <div className="mkt-card-hover rounded-2xl bg-white border border-hairline shadow-sm p-5">
+            <div className="mkt-card-hover rounded-2xl bg-card border border-hairline shadow-sm p-5">
               <div className="flex items-start gap-4">
                 <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
                   <Building className="h-5 w-5 text-court" />
@@ -82,7 +82,7 @@ export function ContactPage() {
 
         {/* Email cards */}
         <div className="grid sm:grid-cols-2 gap-5 mb-8">
-          <div className="mkt-card-hover rounded-2xl bg-white border border-hairline shadow-sm p-5">
+          <div className="mkt-card-hover rounded-2xl bg-card border border-hairline shadow-sm p-5">
             <div className="flex items-start gap-4">
               <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
                 <Mail className="h-5 w-5 text-court" />
@@ -96,7 +96,7 @@ export function ContactPage() {
               </div>
             </div>
           </div>
-          <div className="mkt-card-hover rounded-2xl bg-white border border-hairline shadow-sm p-5">
+          <div className="mkt-card-hover rounded-2xl bg-card border border-hairline shadow-sm p-5">
             <div className="flex items-start gap-4">
               <div className="h-10 w-10 rounded-xl bg-court-50 flex items-center justify-center flex-shrink-0">
                 <Mail className="h-5 w-5 text-court" />

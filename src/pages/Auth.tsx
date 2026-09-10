@@ -130,7 +130,7 @@ export function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 bg-white">
+    <div className="flex min-h-full flex-col items-center justify-center px-6 py-12 bg-card">
       {/* Logo / brand */}
       <div className="mb-10 text-center">
         <img
@@ -154,7 +154,7 @@ export function AuthPage() {
             type="button"
             onClick={() => { setMode(key); setMessage(null) }}
             className={`flex-1 rounded-lg py-2 text-[12px] font-medium transition-colors ${
-              mode === key ? 'bg-white text-ink shadow-sm' : 'text-ink-2'
+              mode === key ? 'bg-card text-ink shadow-sm' : 'text-ink-2'
             }`}
           >
             {label}

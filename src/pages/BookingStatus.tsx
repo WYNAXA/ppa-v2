@@ -250,7 +250,7 @@ export function BookingStatusPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center gap-4">
+      <div className="min-h-screen bg-card flex flex-col items-center justify-center gap-4">
         <div className="h-10 w-10 rounded-full border-4 border-hairline border-t-court animate-spin" />
         <p className="text-[13px] text-ink-2">Loading booking\u2026</p>
       </div>
@@ -259,7 +259,7 @@ export function BookingStatusPage() {
 
   if (error || !booking) {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center px-6 text-center">
+      <div className="min-h-screen bg-card flex flex-col items-center justify-center px-6 text-center">
         <div className="text-[48px] mb-4">{'\u26A0\uFE0F'}</div>
         <h1 className="text-[20px] font-bold text-ink mb-2">Oops</h1>
         <p className="text-[14px] text-ink-2">{error ?? 'Something went wrong.'}</p>
@@ -285,7 +285,7 @@ export function BookingStatusPage() {
   return (
     <div className="min-h-screen bg-surface">
       {/* Header */}
-      <div className="bg-white border-b border-hairline px-5 pt-14 pb-4">
+      <div className="bg-card border-b border-hairline px-5 pt-14 pb-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
@@ -315,7 +315,7 @@ export function BookingStatusPage() {
         )}
 
         {/* Venue / date / time */}
-        <div className="rounded-2xl bg-white border border-hairline p-4 space-y-2.5">
+        <div className="rounded-2xl bg-card border border-hairline p-4 space-y-2.5">
           <div className="flex items-center gap-2.5">
             <MapPin className="h-4 w-4 text-ink-2 flex-shrink-0" />
             <div>
@@ -335,7 +335,7 @@ export function BookingStatusPage() {
 
         {/* Countdown timers (active + held payment only) */}
         {resState === 'active' && payState === 'held' && (
-          <div className="rounded-2xl bg-white border border-hairline p-4 space-y-3">
+          <div className="rounded-2xl bg-card border border-hairline p-4 space-y-3">
             {deadlineMs > 0 && (
               <div className="flex items-center justify-between">
                 <p className="text-[12px] font-semibold text-ink-2">Payment due in</p>
@@ -354,7 +354,7 @@ export function BookingStatusPage() {
         )}
 
         {/* Player payment status */}
-        <div className="rounded-2xl border border-hairline overflow-hidden bg-white">
+        <div className="rounded-2xl border border-hairline overflow-hidden bg-card">
           <div className="px-4 py-2.5 bg-surface border-b border-hairline">
             <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide">
               Player payments {'\u2014'} {paidCount} of {PLAYERS_PER_COURT} paid

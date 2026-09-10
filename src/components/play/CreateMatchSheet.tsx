@@ -115,7 +115,7 @@ function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: Fo
                 'w-full flex items-center gap-4 rounded-2xl border-2 p-4 text-left transition-all',
                 selected ? 'border-court shadow-sm' : 'border-hairline hover:border-hairline'
               )}
-              style={{ backgroundColor: selected ? bg : 'white' }}
+              style={{ backgroundColor: selected ? bg : 'var(--color-card)' }}
             >
               <div className="h-11 w-11 rounded-xl flex items-center justify-center flex-shrink-0" style={{ backgroundColor: bg }}>
                 <Icon className="h-5 w-5" style={{ color: accent }} />
@@ -295,7 +295,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 initial={{ opacity: 0, y: -4 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
-                className="absolute z-50 mt-1 w-full rounded-xl border border-hairline bg-white shadow-lg overflow-hidden"
+                className="absolute z-50 mt-1 w-full rounded-xl border border-hairline bg-card shadow-lg overflow-hidden"
               >
                 {venues.map((v) => (
                   <li key={v.venue_id}>
@@ -325,7 +325,7 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
                 setForm({ ...form, court: c })
               }}
               style={{ fontSize: '16px' }}
-              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-white"
+              className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 bg-card"
             >
               <option value="">Any court</option>
               {courts.map((c) => (
@@ -486,7 +486,7 @@ function Step3({ form, setForm, creatorProfile, playerConflicts, conflictsLoadin
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className="mt-1 rounded-xl border border-hairline bg-white shadow-lg overflow-y-auto max-h-40"
+            className="mt-1 rounded-xl border border-hairline bg-card shadow-lg overflow-y-auto max-h-40"
           >
             {results.map((p) => (
               <li key={p.id}>
@@ -600,7 +600,7 @@ function Step4({ form, safePlayers, playerConflicts }: { form: FormState; safePl
         {safePlayers.map((p) => {
           const hasConflict = playerConflicts[p.id]?.length > 0
           return (
-            <div key={p.id} className={cn('flex items-center gap-2 rounded-xl px-3 py-2.5', hasConflict ? 'bg-warn-50 border border-warn' : 'bg-white border border-hairline')}>
+            <div key={p.id} className={cn('flex items-center gap-2 rounded-xl px-3 py-2.5', hasConflict ? 'bg-warn-50 border border-warn' : 'bg-card border border-hairline')}>
               <PlayerAvatar name={p.name} avatarUrl={p.isGuest ? null : undefined} size="sm" />
               <div className="flex-1 min-w-0">
                 <p className="text-[12px] font-semibold text-ink truncate">{p.name.split(' ')[0]}</p>
@@ -884,7 +884,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, d
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-            className="fixed bottom-0 left-0 right-0 z-[60] flex flex-col bg-white rounded-t-3xl shadow-2xl"
+            className="fixed bottom-0 left-0 right-0 z-[60] flex flex-col bg-card rounded-t-3xl shadow-2xl"
             style={{ maxHeight: '92vh' }}
           >
             {/* Handle */}
@@ -964,7 +964,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, d
                   exit={{ opacity: 0 }}
                 />
                 <motion.div
-                  className="fixed bottom-0 left-0 right-0 z-[70] bg-white rounded-t-3xl px-5 pt-6"
+                  className="fixed bottom-0 left-0 right-0 z-[70] bg-card rounded-t-3xl px-5 pt-6"
                   initial={{ y: '100%' }}
                   animate={{ y: 0 }}
                   exit={{ y: '100%' }}

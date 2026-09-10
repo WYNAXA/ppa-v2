@@ -492,7 +492,7 @@ export function TournamentModePage() {
   return (
     <div className="min-h-screen bg-surface flex flex-col">
       {/* Header */}
-      <div className="bg-white px-5 pt-14 pb-4 border-b border-hairline">
+      <div className="bg-card px-5 pt-14 pb-4 border-b border-hairline">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate(`/compete/leagues/${id}`)}
@@ -525,7 +525,7 @@ export function TournamentModePage() {
 
       {/* Standings mini-view */}
       {(isPairs ? teamStandings.length > 0 : standings.length > 0) && (
-        <div className="bg-white border-b border-hairline">
+        <div className="bg-card border-b border-hairline">
           <button
             onClick={() => setStandingsOpen((v) => !v)}
             className="w-full flex items-center justify-between px-5 py-2"
@@ -590,7 +590,7 @@ export function TournamentModePage() {
 
       {/* About this tournament */}
       {league?.format && (
-        <div className="bg-white border-b border-hairline px-5 py-3">
+        <div className="bg-card border-b border-hairline px-5 py-3">
           <p className="text-[11px] font-bold text-ink-2 uppercase tracking-wide mb-1.5">{t('about_this_league')}</p>
           <p className="text-[13px] text-ink-2 mb-2">{t(`format_${league.format}_desc`)}</p>
           <div className="flex flex-wrap gap-x-6 gap-y-1">
@@ -610,7 +610,7 @@ export function TournamentModePage() {
 
       {/* Progress bar — top position */}
       {totalCount > 0 && (
-        <div className="bg-white border-b border-hairline px-5 py-3">
+        <div className="bg-card border-b border-hairline px-5 py-3">
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-[12px] font-semibold text-ink-2">
               This round: {completedCount} of {totalCount} results
@@ -632,7 +632,7 @@ export function TournamentModePage() {
 
       {/* Admin: Generate Round button at top (hidden when season complete) */}
       {isAdmin && !isSeasonComplete && (
-        <div className="bg-white border-b border-hairline px-5 py-3">
+        <div className="bg-card border-b border-hairline px-5 py-3">
           <button
             onClick={() => {
               if (isPairs && leagueTeams.length === 0) {
@@ -702,7 +702,7 @@ export function TournamentModePage() {
                       'rounded-2xl border p-4 mb-3',
                       entry.completed
                         ? 'bg-court-50 border-court-100'
-                        : 'bg-white border-hairline',
+                        : 'bg-card border-hairline',
                     )}
                   >
                     {/* Team names */}

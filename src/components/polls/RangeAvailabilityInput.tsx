@@ -73,7 +73,7 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
         const hasRanges = ranges.length > 0
 
         return (
-          <div key={date} className="rounded-xl border border-hairline bg-white overflow-hidden">
+          <div key={date} className="rounded-xl border border-hairline bg-card overflow-hidden">
             {/* Date header */}
             <button
               onClick={() => setExpandedDate(isExpanded ? null : date)}

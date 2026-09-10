@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Calendar, AlertTriangle } from 'lucide-react'
+import { X, Calendar, AlertTriangle, Plus, ChevronRight } from 'lucide-react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
@@ -8,6 +8,30 @@ import { supabase } from '@/lib/supabase'
 import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { checkSelfConflict } from '@/lib/conflictCheck'
+import { CreateMatchSheet, type MatchPlayer } from '@/components/play/CreateMatchSheet'
+
+/**
+ * "Play with <someone>" — reached from a connection, a player card or the
+ * connections list.
+ *
+ * WHY IT OFFERS TWO ROUTES
+ *   UAT: *"when i click on my connections and then a player it gives me no
+ *   upcoming matches with open slots. this is fine but can we have the option to
+ *   create a match with this person?"*
+ *
+ *   Root cause is not a missing button in the empty state. The sheet only knew
+ *   how to *add someone to a match that already exists*, so the action it named
+ *   was impossible for any player without a half-empty fixture in their diary —
+ *   and "no upcoming matches with open slots" was a dead end rather than an
+ *   answer. Starting a new match is not a fallback for that case; it is the
+ *   other half of what "play with this person" means, and it is offered first
+ *   whether or not there is anything to add them to. A player with three open
+ *   fixtures may still want a fourth with only this person in it.
+ *
+ *   Fix class: root-cause. Showing the create button only when the list came
+ *   back empty would have been the patch — it would have made the more common
+ *   intent reachable only by accident.
+ */
 
 interface InviteToMatchSheetProps {
   open: boolean
@@ -23,6 +47,28 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
   const locale = useDateLocale()
   const today = new Date().toISOString().split('T')[0]
   const [conflictWarn, setConflictWarn] = useState<{ match: any; time: string | null } | null>(null)
+  const [createOpen, setCreateOpen] = useState(false)
+  const firstName = playerName.split(' ')[0]
+
+  /**
+   * The invited player's own row, so the new match seats them with their real
+   * avatar and level rather than a name-only placeholder. Callers reach this
+   * sheet from three places and only one of them has the full profile to hand,
+   * so it is fetched here rather than threaded through every caller.
+   */
+  const { data: invitee } = useQuery<MatchPlayer | null>({
+    queryKey: ['invite-player-profile', playerId],
+    enabled: open && !!playerId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url, playtomic_level')
+        .eq('id', playerId)
+        .maybeSingle()
+      return (data as MatchPlayer) ?? { id: playerId, name: playerName }
+    },
+  })
 
   const { data: matches = [], isLoading } = useQuery({
     queryKey: ['invite-to-match-options', userId],
@@ -65,11 +111,16 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
   })
 
   return (
+    <>
     <AnimatePresence>
-      {open && (
+      {/* Hidden — not unmounted — while the create flow is up. Two stacked
+          sheets at the same depth read as a mistake, and both carry the same
+          z-index, so which one wins would otherwise depend on DOM order. The
+          component stays mounted so the invitee query keeps its result. */}
+      {open && !createOpen && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -89,21 +140,41 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
               <button onClick={onClose} className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center">
                 <X className="h-4 w-4 text-ink-2" />
               </button>
-              <h2 className="text-[15px] font-bold text-ink">Invite {playerName.split(' ')[0]}</h2>
+              <h2 className="text-[15px] font-bold text-ink">Play with {firstName}</h2>
               <div className="w-9" />
             </div>
-            <div className="px-5 pb-6 overflow-y-auto" style={{ maxHeight: '60vh', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
+            <div className="px-5 pb-6 overflow-y-auto" style={{ maxHeight: '70vh', paddingBottom: 'calc(32px + env(safe-area-inset-bottom))' }}>
+              {/* Route one: a brand-new match, with them already seated. Always
+                  present — see the note at the top of this file. */}
+              <button
+                onClick={() => setCreateOpen(true)}
+                className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-court p-4 text-left transition-transform active:scale-[0.99]"
+              >
+                <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-ball">
+                  <Plus className="h-5 w-5 text-ink" strokeWidth={2.4} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-bold leading-5 text-white">
+                    New match with {firstName}
+                  </span>
+                  <span className="block text-[12px] leading-4 text-court-100">
+                    Pick a date, court and the other two
+                  </span>
+                </span>
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-court-100" />
+              </button>
+
               {isLoading ? (
                 <div className="flex justify-center py-8">
                   <div className="h-5 w-5 animate-spin rounded-full border-2 border-court border-t-transparent" />
                 </div>
               ) : matches.length === 0 ? (
-                <div className="text-center py-8">
-                  <p className="text-[13px] text-ink-2">No upcoming matches with open slots</p>
-                </div>
+                <p className="pb-2 text-center text-[13px] text-ink-2">
+                  You have no upcoming matches with a free slot to add {firstName} to.
+                </p>
               ) : (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-ink-2 mb-2">Select a match to invite {playerName.split(' ')[0]} to:</p>
+                  <p className="text-[11px] text-ink-2 mb-2">Or add {firstName} to a match you already have:</p>
                   {matches.map((m: any) => {
                     const dateStr = (() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()
                     const timeStr = m.match_time?.slice(0, 5) ?? ''
@@ -141,7 +212,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                       <div className="flex items-start gap-2 mb-2">
                         <AlertTriangle className="h-4 w-4 text-warn flex-shrink-0 mt-0.5" />
                         <p className="text-[13px] font-semibold text-warn">
-                          {playerName.split(' ')[0]} already has a match{conflictWarn.time ? ` at ${conflictWarn.time.slice(0, 5)}` : ' that day'}
+                          {firstName} already has a match{conflictWarn.time ? ` at ${conflictWarn.time.slice(0, 5)}` : ' that day'}
                         </p>
                       </div>
                       <div className="flex gap-2">
@@ -169,6 +240,17 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
           </motion.div>
         </>
       )}
+
     </AnimatePresence>
+
+    {/* A sibling of the AnimatePresence, not a child: it must survive this
+        sheet closing behind it, and AnimatePresence only tracks its own
+        keyed motion children. */}
+    <CreateMatchSheet
+      open={createOpen}
+      onClose={() => { setCreateOpen(false); onClose() }}
+      defaultPlayers={invitee ? [invitee] : undefined}
+    />
+    </>
   )
 }

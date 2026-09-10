@@ -289,3 +289,59 @@ open match is an invitation. And the emoji rendered blue on Android, green on
 iOS. Open Matches and My Connections are the same kind of thing — two doors to
 finding people to play with — so they are now a matched pair on `court-50`, told
 apart by their words and glyphs rather than by hue.
+
+### Play with someone
+
+UAT: *"when i click on my connections and then a player it gives me no upcoming
+matches with open slots. this is fine but can we have the option to create a
+match with this person?"*
+
+Root cause was not a missing button in the empty state. `InviteToMatchSheet`
+only knew how to *add someone to a match that already exists*, so the action it
+named was impossible for any player without a half-empty fixture in their diary,
+and "no upcoming matches with open slots" was a dead end rather than an answer.
+
+Starting a new match is not a fallback for that case — it is the other half of
+what "play with this person" means. So the sheet is now **Play with <name>** and
+offers both routes, with the new match first, **whether or not** there is
+anything to add them to: a player with three open fixtures may still want a
+fourth with only this person in it. Showing the create button only when the list
+came back empty would have been the patch.
+
+`CreateMatchSheet` gained `defaultPlayers`, which seats the creator first, then
+the seeded players, de-duplicated and capped at four — so no caller can seat an
+invalid court.
+
+### Colours the codemod could not see
+
+`semantic-colours.mjs` matches Tailwind class names. It cannot see a colour
+written as a hex literal in an inline style, and the claim that zero off-palette
+colour remained was therefore too strong. A second audit of hex literals found
+34 sites, of which these mattered:
+
+- **`#1565C0` on `#f0f4ff`** — the Friendly match type. The app's only blue, on
+  the first screen of its most-used flow. The three match types now separate by
+  weight rather than hue: Competitive keeps `warn` (something is at stake),
+  Friendly is `court` (the ordinary brand case), Casual recedes to `ink-2` (no
+  consequence at all). Three steps of emphasis on one palette read more clearly
+  than three unrelated hues, and they say something true about the choice.
+- **`#00796B` in 8 places** — the *old* brand teal, used as the hover/active
+  step under `bg-court`. That step is `court-700`.
+- `#2563eb` (the "you are here" map dot), `#004d44` (the Compete hero gradient),
+  `#D97706` and `#9CA3AF` (ELO chart chrome), `#1f2937`/`#e5e7eb` (toast chrome
+  and step dots) — all tokenised.
+- `RARITY_COLORS` carried a purple and a pink and was **exported but never
+  imported**. Deleted rather than recoloured.
+
+Two hex ramps are deliberate and stay: `PlayerAvatar`'s eight identity colours
+(they must differ per person, and all eight clear 4.5:1), and the two artboard
+values `#05302B` (`EloHero`) and `#D7DDD9` (the Play sheet grabber).
+
+### One scrim
+
+The app dimmed the page behind a sheet with `bg-black/40` in 43 places, plus
+`/45`, `/50` and `/60` — so a sheet opened from another sheet dimmed by a
+different amount depending on which door you came through, and none of the four
+matched the artboard. There is now a `--color-scrim` token — `ink` at 84%, the
+Play artboard's value, warmer than pure black and dark enough that the sheet
+reads as the only live surface — used as `bg-scrim` in all 48 places.

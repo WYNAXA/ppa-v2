@@ -707,7 +707,7 @@ export function PollAdminView({
                 setNewDeadline(poll.closes_at?.slice(0, 16) ?? '')
                 setEditingDeadline(true)
               }}
-              className="text-[11px] font-semibold text-court hover:text-[#00796B]"
+              className="text-[11px] font-semibold text-court hover:text-court-700"
             >
               {poll.status === 'processed' ? t('polls.reopen_poll') : t('polls.edit_deadline')}
             </button>
@@ -1071,7 +1071,7 @@ export function PollAdminView({
               </p>
               <a
                 href={`/community/groups/${groupId}`}
-                className="inline-flex items-center gap-1 text-[12px] font-semibold text-court hover:text-[#00796B]"
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-court hover:text-court-700"
               >
                 {t('polls.view_matches')}
               </a>
@@ -1305,7 +1305,7 @@ export function PollAdminView({
             {matchesNeedingRingers.length >= 1 && (
               <button
                 onClick={() => setAskRingersAll(true)}
-                className="text-[11px] font-semibold text-court hover:text-[#00796B]"
+                className="text-[11px] font-semibold text-court hover:text-court-700"
               >
                 {t('polls.ask_for_all')}
               </button>

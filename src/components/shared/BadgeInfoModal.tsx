@@ -30,7 +30,7 @@ export default function BadgeInfoModal({ badgeKey, onClose }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-scrim"
       onClick={onClose}
     >
       <div

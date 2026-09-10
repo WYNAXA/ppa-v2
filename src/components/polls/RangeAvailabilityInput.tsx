@@ -170,7 +170,7 @@ export function RangeAvailabilityInput({ dates, value, onChange, densityData, to
                 {/* Add another range */}
                 <button
                   onClick={() => addRange(date, { start: '19:00', end: '21:00' })}
-                  className="flex items-center gap-1.5 text-[12px] text-court font-semibold hover:text-[#00796B]"
+                  className="flex items-center gap-1.5 text-[12px] text-court font-semibold hover:text-court-700"
                 >
                   <Plus className="h-3.5 w-3.5" />
                   Add another time range

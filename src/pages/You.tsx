@@ -429,7 +429,7 @@ function LinkPartnerSheet({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
           />
@@ -605,7 +605,7 @@ function EditProfileSheet({
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1601,7 +1601,7 @@ export function YouPage() {
           {showDeleteConfirm && (
             <>
               <motion.div
-                className="fixed inset-0 z-[55] bg-black/50"
+                className="fixed inset-0 z-[55] bg-scrim"
                 initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                 onClick={() => { if (!deleting) { setShowDeleteConfirm(false); setDeleteStep(1); setDeleteTyped('') } }}
               />

@@ -62,7 +62,7 @@ function FormatInfoModal({ format, onClose }: { format: Format; onClose: () => v
     <>
       <motion.div
         initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[70] bg-black/40"
+        className="fixed inset-0 z-[70] bg-scrim"
         onClick={onClose}
       />
       <motion.div
@@ -107,7 +107,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <motion.div
           key={i}
-          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? 'var(--color-court)' : '#e5e7eb' }}
+          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? 'var(--color-court)' : 'var(--color-hairline)' }}
           transition={{ duration: 0.25 }}
           className="h-1.5 rounded-full"
         />
@@ -733,7 +733,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
           />
           <motion.div
             key="sheet"

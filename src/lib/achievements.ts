@@ -89,10 +89,6 @@ export const JERSEY_LIBRARY: Record<string, { emoji: string; name: string; descr
   black:  { emoji: '⚫', name: 'Wooden Spoon',   description: 'Bottom of standings' },
 }
 
-export const RARITY_COLORS: Record<string, string> = {
-  common: '#9CA3AF', uncommon: 'var(--color-court)', rare: '#7C3AED', epic: '#D97706', special: '#EC4899',
-}
-
 export const PEER_VOTE_CATEGORIES = [
   { id: 'shot_of_match',   emoji: '🎾', name: 'Shot of the Match', desc: 'Best single shot' },
   { id: 'tactical_genius',  emoji: '🧠', name: 'Tactical Genius',   desc: 'Smartest play' },

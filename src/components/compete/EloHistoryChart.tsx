@@ -193,15 +193,15 @@ export function EloHistoryChart({ userId, compact }: EloHistoryChartProps) {
               axisLine={false}
               tickLine={false}
             />
-            <YAxis tick={{ fontSize: 11, fill: '#9CA3AF' }} axisLine={false} tickLine={false} domain={['dataMin - 20', 'dataMax + 20']} />
+            <YAxis tick={{ fontSize: 11, fill: 'var(--color-ink-3)' }} axisLine={false} tickLine={false} domain={['dataMin - 20', 'dataMax + 20']} />
             <Tooltip content={<CustomTooltip />} />
-            <ReferenceLine y={1500} stroke="#E5E7EB" strokeDasharray="3 3" />
+            <ReferenceLine y={1500} stroke="var(--color-hairline)" strokeDasharray="3 3" />
             {peakElo > 0 && (
               <ReferenceLine
                 y={peakElo}
-                stroke="#D97706"
+                stroke="var(--color-warn)"
                 strokeDasharray="3 3"
-                label={{ value: `Peak: ${peakElo}`, position: 'insideTopLeft', offset: 5, fontSize: 11, fill: '#D97706', fontWeight: 600 }}
+                label={{ value: `Peak: ${peakElo}`, position: 'insideTopLeft', offset: 5, fontSize: 11, fill: 'var(--color-warn)', fontWeight: 600 }}
               />
             )}
             <Area

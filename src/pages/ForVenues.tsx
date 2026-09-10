@@ -47,7 +47,7 @@ export function ForVenuesPage() {
             <Link to="/faq" className="text-ink-2 hover:text-ink hidden sm:block">FAQ</Link>
             <a
               href={VM_URL}
-              className="rounded-xl bg-court px-4 py-2 text-[13px] font-bold text-white hover:bg-[#00796B] transition-colors"
+              className="rounded-xl bg-court px-4 py-2 text-[13px] font-bold text-white hover:bg-court-700 transition-colors"
             >
               Sign in
             </a>
@@ -72,7 +72,7 @@ export function ForVenuesPage() {
         <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3">
           <a
             href={VM_URL + '/onboarding'}
-            className="rounded-2xl bg-court px-8 py-3.5 text-[15px] font-bold text-white hover:bg-[#00796B] transition-all active:scale-[0.98] flex items-center gap-2"
+            className="rounded-2xl bg-court px-8 py-3.5 text-[15px] font-bold text-white hover:bg-court-700 transition-all active:scale-[0.98] flex items-center gap-2"
           >
             Get started free <ArrowRight className="h-4 w-4" />
           </a>
@@ -208,7 +208,7 @@ export function ForVenuesPage() {
           </p>
           <a
             href={VM_URL + '/onboarding'}
-            className="inline-flex items-center gap-2 rounded-2xl bg-court px-10 py-4 text-[16px] font-bold text-white hover:bg-[#00796B] transition-all active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-2xl bg-court px-10 py-4 text-[16px] font-bold text-white hover:bg-court-700 transition-all active:scale-[0.98]"
           >
             Claim your venue <ArrowRight className="h-5 w-5" />
           </a>

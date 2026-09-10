@@ -27,7 +27,7 @@ const youIcon = L.divIcon({
   className: '',
   iconSize: [18, 18],
   iconAnchor: [9, 9],
-  html: `<div style="width:14px;height:14px;border-radius:50%;background:#2563eb;border:3px solid white;box-shadow:0 0 0 2px rgba(37,99,235,0.35)"></div>`,
+  html: `<div style="width:14px;height:14px;border-radius:50%;background:#0F5D54;border:3px solid white;box-shadow:0 0 0 2px rgba(15,93,84,0.35)"></div>`,
 })
 
 interface VenueMapProps {

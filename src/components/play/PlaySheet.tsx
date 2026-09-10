@@ -127,7 +127,7 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-ink/[0.84]"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

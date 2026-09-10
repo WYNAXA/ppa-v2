@@ -319,7 +319,7 @@ function RankingCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className="rounded-2xl overflow-hidden"
-      style={{ background: 'linear-gradient(135deg, var(--color-court) 0%, #004d44 100%)' }}
+      style={{ background: 'linear-gradient(135deg, var(--color-court) 0%, var(--color-court-700) 100%)' }}
     >
       <div className="p-5">
         {/* Top row: avatar + name + ELO */}

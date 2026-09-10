@@ -62,6 +62,14 @@
   --color-warn-50:   #FDF3E6;
   --color-warn-100:  #F2DEBE;
 
+  /* The scrim behind every sheet and modal. The app had four different values
+     for this — bg-black/40 in 43 places, plus /45, /50 and /60 — so a sheet
+     opened from another sheet dimmed the page by a different amount depending
+     on which one you came through. `ink` at 84% is the value on the Play
+     artboard: warmer than pure black, and dark enough that the sheet reads as
+     the only live surface. One token, used as `bg-scrim`. */
+  --color-scrim:     rgb(11 21 18 / 0.84);
+
   /* Dark surfaces. Defined here so screens can adopt them as they
      migrate; the dark variant itself is not wired up yet. */
   --color-ink-surface: #0B1512;

@@ -387,7 +387,7 @@ function GroupPreviewSheet({ group, open, onClose, onJoin, joiningGroupId, onOff
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
           />
@@ -919,7 +919,7 @@ function NearbyVenuesSection({
                   </div>
                 )}
                 {distance != null && (
-                  <span className="absolute top-1.5 right-1.5 text-[11px] font-semibold text-white bg-black/45 backdrop-blur rounded-full px-1.5 py-0.5">
+                  <span className="absolute top-1.5 right-1.5 text-[11px] font-semibold text-white bg-scrim backdrop-blur rounded-full px-1.5 py-0.5">
                     {t('community.courts_near_away', { distance: formatDistance(distance) })}
                   </span>
                 )}

@@ -467,7 +467,7 @@ export function VenueDetailPage() {
       {/* Claim-QR modal */}
       {showClaimQr && venueId && (
         <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-scrim p-4"
           onClick={() => setShowClaimQr(false)}
         >
           <div

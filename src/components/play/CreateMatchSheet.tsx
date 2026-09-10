@@ -18,7 +18,8 @@ type Duration  = 60 | 90 | 120
 
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
 interface Court { id: string; court_name?: string | null }
-interface Profile { id: string; name: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
+export interface MatchPlayer { id: string; name: string; avatar_url?: string | null; playtomic_level?: number | null; isGuest?: boolean }
+type Profile = MatchPlayer
 
 interface GroupOption { id: string; name: string }
 
@@ -67,7 +68,7 @@ function StepDots({ current, total }: { current: number; total: number }) {
       {Array.from({ length: total }).map((_, i) => (
         <motion.div
           key={i}
-          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? 'var(--color-court)' : '#e5e7eb' }}
+          animate={{ width: i === current - 1 ? 20 : 6, backgroundColor: i === current - 1 ? 'var(--color-court)' : 'var(--color-hairline)' }}
           transition={{ duration: 0.25 }}
           className="h-1.5 rounded-full"
         />
@@ -78,10 +79,23 @@ function StepDots({ current, total }: { current: number; total: number }) {
 
 // ── Step 1 — Match type ───────────────────────────────────────────────────────
 
+/**
+ * The three match types, separated by weight rather than by hue.
+ *
+ * Friendly was `#1565C0` on `#f0f4ff` — a hardcoded blue the colour codemod
+ * could not see, because it lives in an inline style rather than a class. It
+ * put the app's only blue on the first screen of the most-used flow.
+ *
+ * A competitive match has something at stake, so it keeps `warn`. Friendly is
+ * the ordinary brand case: `court`. Casual is the one with no consequence at
+ * all, so it recedes to a neutral. Three steps of emphasis on one palette read
+ * more clearly than three unrelated hues, and they say something true about the
+ * choice.
+ */
 const MATCH_TYPES: Array<{ type: MatchType; label: string; desc: string; Icon: typeof Trophy; accent: string; bg: string }> = [
-  { type: 'competitive', label: 'Competitive', desc: 'Results count toward your ranking', Icon: Trophy,      accent: 'var(--color-warn)', bg: 'var(--color-warn-50)' },
-  { type: 'friendly',    label: 'Friendly',    desc: 'Play for fun, no ranking impact',   Icon: Handshake,   accent: '#1565C0', bg: '#f0f4ff' },
-  { type: 'casual',      label: 'Casual',      desc: 'Informal — anyone can join',        Icon: Users,       accent: 'var(--color-court)', bg: '#f0fdfb' },
+  { type: 'competitive', label: 'Competitive', desc: 'Results count toward your ranking', Icon: Trophy,    accent: 'var(--color-warn)',  bg: 'var(--color-warn-50)' },
+  { type: 'friendly',    label: 'Friendly',    desc: 'Play for fun, no ranking impact',   Icon: Handshake, accent: 'var(--color-court)', bg: 'var(--color-court-50)' },
+  { type: 'casual',      label: 'Casual',      desc: 'Informal — anyone can join',        Icon: Users,     accent: 'var(--color-ink-2)', bg: 'var(--color-surface)' },
 ]
 
 function Step1({ form, setForm, userGroups }: { form: FormState; setForm: (f: FormState) => void; userGroups: GroupOption[] }) {
@@ -621,9 +635,17 @@ interface CreateMatchSheetProps {
   onClose: () => void
   defaultGroupId?: string
   defaultDate?: string
+  /**
+   * Players to seat alongside the creator when the sheet opens — used when the
+   * match starts from a person rather than from a date, e.g. "New match with
+   * Priya" on a connection's profile. The creator is always first; duplicates
+   * and anything past four are dropped, so a caller cannot seat an invalid
+   * court.
+   */
+  defaultPlayers?: MatchPlayer[]
 }
 
-export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }: CreateMatchSheetProps) {
+export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, defaultPlayers }: CreateMatchSheetProps) {
   const { user, profile } = useAuth()
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -631,6 +653,20 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
   const creatorProfile: Profile | null = profile
     ? { id: user!.id, name: profile.name, avatar_url: profile.avatar_url ?? null, playtomic_level: profile.playtomic_level ?? null }
     : null
+
+  /** Creator first, then the seeded players, de-duplicated and capped at four. */
+  const seatPlayers = useCallback((): Profile[] => {
+    const seats: Profile[] = creatorProfile ? [creatorProfile] : []
+    const seen = new Set(seats.map((p) => p.id))
+    for (const p of defaultPlayers ?? []) {
+      if (seats.length >= 4 || seen.has(p.id)) continue
+      seen.add(p.id)
+      seats.push(p)
+    }
+    return seats
+  // creatorProfile is rebuilt every render; its identity is the auth profile.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, profile?.name, profile?.avatar_url, profile?.playtomic_level, defaultPlayers])
 
   const [step, setStep]       = useState(1)
   const [submitting, setSubmitting] = useState(false)
@@ -647,7 +683,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
     venue: null,
     court: null,
     notes: '',
-    players: creatorProfile ? [creatorProfile] : [],
+    players: seatPlayers(),
   })
 
   // Reset on open
@@ -668,7 +704,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
         venue: null,
         court: null,
         notes: '',
-        players: creatorProfile ? [creatorProfile] : [],
+        players: seatPlayers(),
       })
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -838,7 +874,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
           />
 
           {/* Sheet */}
@@ -922,7 +958,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate }:
             {conflictWarning && (
               <>
                 <motion.div
-                  className="fixed inset-0 z-[65] bg-black/40"
+                  className="fixed inset-0 z-[65] bg-scrim"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}

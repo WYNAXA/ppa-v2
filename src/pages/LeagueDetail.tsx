@@ -1536,7 +1536,7 @@ function QuickResultSheet({ open, onClose, match, leagueId, currentUserId, scori
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1782,7 +1782,7 @@ function JerseyLegendSheet({ open, onClose, jerseys, standings, prizeScheme }: {
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1867,7 +1867,7 @@ function FixturePickerSheet({ open, onClose, fixtures, onSelect }: {
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -1999,7 +1999,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -3317,7 +3317,7 @@ export function LeagueDetailPage() {
         {showLeaveConfirm && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => !leaving && setShowLeaveConfirm(false)}
             />
@@ -3404,7 +3404,7 @@ export function LeagueDetailPage() {
         {showScoringSheet && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

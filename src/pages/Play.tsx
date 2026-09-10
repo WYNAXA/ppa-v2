@@ -193,7 +193,7 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
       {open && (
         <>
           <motion.div
-            className="fixed inset-0 z-[55] bg-black/40"
+            className="fixed inset-0 z-[55] bg-scrim"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
           />

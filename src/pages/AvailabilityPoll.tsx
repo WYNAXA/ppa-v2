@@ -966,7 +966,7 @@ export function AvailabilityPollPage() {
 
       {/* ── Section G: Household conflict dialog ── */}
       {showConflictDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-scrim">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -1008,7 +1008,7 @@ export function AvailabilityPollPage() {
 
       {/* ── Delete poll confirmation dialog ── */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-scrim">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}

@@ -566,7 +566,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
         {menuMemberId && menuMember && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setMenuMemberId(null)}
             />
@@ -1559,7 +1559,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
         {confirmLeave && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setConfirmLeave(false)}
             />
@@ -1621,7 +1621,7 @@ function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: 
         {confirmOpen && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setConfirmOpen(false)}
             />

@@ -2903,7 +2903,7 @@ export function MatchDetailPage() {
         {showLiftChooser && travelInfo && (
           <>
             <motion.div
-              className="fixed inset-0 z-[60] bg-black/40"
+              className="fixed inset-0 z-[60] bg-scrim"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -2984,7 +2984,7 @@ export function MatchDetailPage() {
         {confirmLeave && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -3032,7 +3032,7 @@ export function MatchDetailPage() {
         {confirmCancel && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -3075,7 +3075,7 @@ export function MatchDetailPage() {
         {confirmCancelBooking && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -3175,7 +3175,7 @@ export function MatchDetailPage() {
         {confirmDelete && (
           <>
             <motion.div
-              className="fixed inset-0 z-[55] bg-black/40"
+              className="fixed inset-0 z-[55] bg-scrim"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

@@ -800,3 +800,63 @@ carrying "names, emails and phone numbers". The columns exist; every one of them
 is NULL. The personal data is names only. The write and delete exposure was
 real — the sensitivity was overstated, and the data-protection framing I put on
 it was wrong.
+
+### A broadcast now tells the people it is for
+
+"Put it out there" shipped visible but unannounced. A connection saw it only if
+they happened to open Open Matches or the Play sheet that evening. A feature
+whose entire premise is *is anyone about?* cannot wait for people to come
+looking.
+
+**A trigger, not a client loop.** The client would have to read the connection
+list and fan out N inserts — slow, half-failable, and skippable by anyone who
+closes the sheet mid-write. `trg_notify_connections_of_broadcast` fires with the
+insert, in the same transaction, and cannot be bypassed. It is the same shape as
+the notification `claim_open_match` already sends. Inserting into `notifications`
+is all it does: `trg_compute_nav_url` sets the destination and `trg_dispatch_push`
+delivers. The type is `open_match_broadcast`, and
+`compute_notification_nav_url` already routes `open_match_%` to
+`/matches/:related_id`, so the tap lands on the broadcast itself with no change
+to that function.
+
+**One tap sends 34 pushes.** That is the real number for the test account, not an
+estimate — every accepted connection in both directions. It is also why the rate
+limit is the design rather than a detail: **only the first broadcast in a
+six-hour window notifies anyone.** Later ones are still created, still listed in
+Open Matches, still joinable — they simply do not buzz. Five broadcasts in an
+evening from one person is how a feature gets muted at the OS level, and reach is
+worth less than not being switched off.
+
+Fires only when the row is genuinely a broadcast: `is_open`, aimed at
+`connections`, and exactly one player. Push-to-open matches already have three
+players and their own notification path.
+
+### The notification switches were lying
+
+Found while building the above, and worth naming plainly.
+`notification_preferences` has a row for all **93** players and five switches —
+match reminders, poll reminders, chat, connection requests, match results.
+**Nothing read it.** `dispatch_push_notification` pushed every row inserted into
+`notifications`, whatever the player had set.
+
+Nobody has muted anything, so this changed no behaviour today. It is not
+cosmetic: it is the difference between a switch that works and a switch that
+lies, and the app was one settings screen away from lying to 93 people. Shipping
+a sixth push type into that — one with no possible off switch, that reaches
+everyone you know at once — would have been the patch.
+
+So `open_matches` was added as a sixth category and the dispatcher was taught to
+read all six. Types are matched by **prefix**, so new ones inherit sensible
+behaviour rather than defaulting to always-push by accident. Anything unmapped
+still pushes: an unknown type is more likely to be important than to be spam, and
+over-delivery is recoverable where a silently dropped push is invisible.
+
+Verified in rolled-back transactions against production: a broadcast insert wrote
+**34** notification rows with the title *"Christian Shanahan is free Saturday
+evening"*; with one connection muted, all 34 in-app rows were still written and
+the push was skipped for that one user only.
+
+**Still missing, and named rather than hidden: there is no settings UI.** The
+switches work now, but a player cannot reach them. That is the next piece, and
+until it is built every value stays at its default of `true` — which is exactly
+today's behaviour.

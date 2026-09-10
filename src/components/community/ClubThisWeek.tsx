@@ -86,7 +86,7 @@ function useClubWeek(groupId: string | null, userId: string) {
         .select('id, match_date, match_time, booked_venue_name, booked_court_number, player_ids')
         .eq('group_id', groupId)
         .gte('match_date', today).lte('match_date', weekEnd)
-        .not('status', 'in', '(cancelled,completed)')
+        .not('status', 'in', '(cancelled,completed,open)')
         .order('match_date', { ascending: true })
         .limit(12)
 

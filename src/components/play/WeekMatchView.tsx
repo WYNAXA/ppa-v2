@@ -312,7 +312,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
         .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id')
         .in('group_id', userGroupIds)
         .gte('match_date', fetchStart).lte('match_date', fetchEnd)
-        .not('status', 'in', '(cancelled)')
+        .not('status', 'in', '(cancelled,open)')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true })
       if (error) throw error
@@ -331,7 +331,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
         .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id, is_open, open_elo_min, open_elo_max')
         .eq('is_open', true)
         .gte('match_date', format(today, 'yyyy-MM-dd', { locale }))
-        .not('status', 'in', '(cancelled)')
+        .not('status', 'in', '(cancelled,open)')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true })
         .limit(30)
@@ -379,7 +379,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id')
       .contains('player_ids', [uid])
       .gte('match_date', start).lte('match_date', end)
-      .not('status', 'in', '(cancelled)')
+      .not('status', 'in', '(cancelled,open)')
       .order('match_date', { ascending: true })
       .order('match_time', { ascending: true })
     if (error) throw error

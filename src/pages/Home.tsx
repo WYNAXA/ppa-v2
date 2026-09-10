@@ -89,7 +89,7 @@ function useNextMatch(userId: string) {
         .select('id, match_date, match_time, match_type, status, player_ids, booked_venue_name, booked_court_number')
         .contains('player_ids', [userId])
         .gte('match_date', todayStr())
-        .not('status', 'in', '("completed","cancelled")')
+        .not('status', 'in', '("completed","cancelled","open")')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true, nullsFirst: false })
         .limit(1)

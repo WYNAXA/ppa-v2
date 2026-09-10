@@ -8,10 +8,18 @@ import { Plus, Bell, Check, ChevronRight, Calendar } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
+import { PutItOutThereSheet } from '@/components/play/PutItOutThereSheet'
 
 /**
  * "Get a game" — the destination of the centre nav action, built to
  * `Play.dc.html` from the design canvas.
+ *
+ * THE TOP CARD USED TO PROMISE SOMETHING THAT DID NOT EXIST
+ *   It read "we check every player's diary — and your household's — then build
+ *   the match", and the button went to a list of open group polls. There is no
+ *   solver: `poll_match_options` is an unused table and fixtures are arranged by
+ *   hand in the poll admin view. The card now opens `PutItOutThereSheet` and its
+ *   copy describes what that actually does.
  *
  * WHY IT IS A RANKED LIST AND NOT A GRID OF TILES
  *   The board's subtitle is the whole argument: *four ways in, start at the
@@ -72,6 +80,7 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
   const { user, profile } = useAuth()
   const userId = user?.id ?? ''
   const [createOpen, setCreateOpen] = useState(false)
+  const [broadcastOpen, setBroadcastOpen] = useState(false)
 
   const { data: openCount = 0 } = useOpenMatchCount(userId, profile?.internal_ranking, open)
   const { data: waitlists = 0 } = useWaitlistCount(userId, open)
@@ -194,7 +203,7 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
                 </div>
 
                 <button
-                  onClick={() => go('/play/availability')}
+                  onClick={() => { onClose(); setBroadcastOpen(true) }}
                   className="min-h-[44px] rounded-card bg-white py-3.5 text-center text-[15px] font-bold leading-[18px] text-ink"
                 >
                   {t('play.sheet_share_availability')}
@@ -249,6 +258,7 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
     <>
       {createPortal(sheet, document.body)}
       <CreateMatchSheet open={createOpen} onClose={() => setCreateOpen(false)} />
+      <PutItOutThereSheet open={broadcastOpen} onClose={() => setBroadcastOpen(false)} />
     </>
   )
 }

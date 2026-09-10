@@ -481,3 +481,66 @@ less frightening.
 unattached scheduled matches. That is the right default — a destructive default
 is never the safe one — but the deletion flow should offer to clear unplayed
 fixtures at the same time. App work, not schema work.
+
+### Put it out there
+
+UAT: *"if one player is open to a match, they could put it out there and other
+connections might see it."* Layer A of the availability design note.
+
+**A broadcast is an open match**, not a new kind of object: a time window, one
+player, no court. `matches` already carried `window_start`, `window_end`,
+`duration_minutes`, `court_requirement`, `is_open` and the ELO band, so this
+needed no new table — and it inherits the join flow, the Open Matches page and
+the ELO filter. A parallel "availability broadcast" system beside the
+open-match system would have been two things to keep in step forever.
+
+**A window, not a time.** Nobody is free at exactly 19:30; they are free after
+work until bedtime. A precise time forces a guess the first replier then has to
+negotiate away. The match settles inside the window once a second player is in.
+
+**The calendar is deliberately not here.** A gap says when you *could* play,
+never when you *want* to. Broadcast from gaps and the first false positive
+teaches people to ignore the feature. There is also no device to read: the iOS
+app is a WKWebView shell that bridges OneSignal, with no Capacitor, so EventKit
+and the Android provider are both out of reach. The honest job for a calendar is
+the opposite one — "careful, you have something then" — which
+`check_self_conflict` already does for matches.
+
+#### Three things had to be true before this could ship
+
+1. **The audience had to be enforceable.** `matches_open_select` read
+   `(is_open = true) OR (auth.uid() IS NOT NULL)`, and Postgres ORs permissive
+   policies, so every signed-in account could read every match and no "audience"
+   would have meant anything. Dropping it was audited, not assumed: of the 35
+   places the app reads `matches`, 34 already filter by player, group or league;
+   every league match carries a group and every league member is in it; the one
+   global read is the text search, which today lets any account search every
+   private match by venue name. Narrowing that is the fix.
+2. **An open match had to say who it is open *to*.** `open_audience` —
+   `connections` · `groups` · `open`, defaulting to `open` so all 410 existing
+   matches kept exactly the visibility they had. Enforced in RLS through
+   `are_connected()`, which is SECURITY DEFINER because `player_connections` is
+   row-scoped to its own participants and a policy has to ask about a pair that
+   does not include the reader.
+3. **An unanswered offer must not look like a fixture.** It is created with
+   `status = 'open'` and `claim_open_match` promotes it to `scheduled` the
+   moment a second player joins — a no-op for Push-to-open matches, which
+   already have three players when they open. Today, Your week and Club exclude
+   `open`, so a broadcast nobody has answered never appears as "your next
+   match".
+
+`claim_open_match` also had a latent bug this exposed: it compared the joiner's
+ELO to `open_elo_min`/`max` without a NULL check. A broadcast has no band, and
+`NULL < NULL` is NULL rather than false, so it happened to pass — by accident,
+not design. Now explicit.
+
+**"Find my game" is gone**, in eight languages. It promised the app "checks
+every player's diary — and your household's — then builds the match", and the
+button opened a list of group polls. There is no solver: `poll_match_options` is
+an unused table and fixtures are arranged by hand in the poll admin view. The
+card now says what it does.
+
+**Not done, and not pretended otherwise:** nothing notifies a connection that a
+broadcast exists — they see it in Open Matches and on the Play sheet count, but
+no push. That is the next thing to build if the feature gets used, and the thing
+to measure is what share of broadcasts get a reply.

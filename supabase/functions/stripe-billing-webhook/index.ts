@@ -44,12 +44,15 @@ async function corePlan(): Promise<{ key: string; commission_rate_bps: number }>
 async function applyPlan(venueId: string, sub: Stripe.Subscription, metadataPlan?: string | null) {
   const contract = await activeContract(venueId)
 
-  // Cross-check only. The contract is authoritative either way — this exists so a
-  // subscription created against a tier the venue is not contracted on is surfaced
-  // loudly instead of quietly reconciled.
+  // Cross-check only. The contract is authoritative — metadata is informational.
+  // During a plan change there is a brief window where the contract has the new
+  // tier but the subscription metadata still carries the old one (reconcile-subscription
+  // updates it, but a webhook may arrive first). A hard throw here would 500-loop
+  // on every Stripe retry until the metadata catches up. Log and proceed: the
+  // contract's plan_tier and commission_rate_bps are what get written to venues.
   if (metadataPlan && metadataPlan !== contract.plan_tier) {
-    throw new Error(
-      `plan_mismatch venue=${venueId} stripe_plan=${metadataPlan} contract_plan=${contract.plan_tier} contract=${contract.id}`,
+    console.warn(
+      `plan_mismatch venue=${venueId} stripe_plan=${metadataPlan} contract_plan=${contract.plan_tier} contract=${contract.id} — proceeding with contract terms`,
     )
   }
 

@@ -447,6 +447,12 @@ export function BookCourtPage() {
   // The selected venue's own currency. No fallback: an amount we cannot denominate
   // renders as a dash rather than silently becoming pounds.
   const venueCurrency = selectedVenue?.currency ?? null
+  // The currency Stripe actually charged, returned by create-booking-payment. This is
+  // the only authoritative denomination for the booking row: venueCurrency is the
+  // venue's CURRENT setting, which can differ from what was charged a moment ago, and
+  // bookings.price_currency otherwise falls back to its 'GBP' column default and stamps
+  // every venue on earth with pounds.
+  const [chargedCurrency, setChargedCurrency] = useState<string | null>(null)
   const [nonPpaVenue, setNonPpaVenue] = useState<Venue | null>(null)
   const debouncedVenueQuery = useDebounce(venueQuery, 300)
 
@@ -873,6 +879,7 @@ export function BookCourtPage() {
     setFetchingPayment(true)
     setPaymentError('')
     setClientSecret(null)
+    setChargedCurrency(null)
     try {
       const res = await fetch(`${SUPABASE_URL}/functions/v1/create-booking-payment`, {
         method: 'POST',
@@ -907,6 +914,11 @@ export function BookCourtPage() {
         setPaymentError(`Could not start payment: ${reason}`)
         return
       }
+      // create-booking-payment refuses with currency_unknown rather than guessing, so a
+      // successful response always carries the currency it charged in. Both setters run
+      // in the same batch, so the render that mounts the payment element - and captures
+      // handlePaymentSuccess - already sees this value.
+      setChargedCurrency(typeof json.currency === 'string' ? json.currency : null)
       setClientSecret(json.client_secret)
     } catch (err) {
       // A genuine network failure never reached the server at all - say so,
@@ -966,6 +978,10 @@ export function BookCourtPage() {
         source: 'in_app',
         total_price_pence: totalPence,
         price_per_player_pence: perPlayerPence,
+        // Stamp what Stripe charged. Deliberately NOT falling back to venueCurrency or
+        // to the column's 'GBP' default: null here makes the payment-due trigger stay
+        // silent rather than tell a player "£9.00" for a court billed in euros.
+        price_currency: chargedCurrency,
         booker_stripe_pi_id: piId,
         payment_deadline: paymentDeadline,
       }

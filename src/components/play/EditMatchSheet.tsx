@@ -146,7 +146,9 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   useEffect(() => {
     if (debouncedQuery.length < 2) { setVenues([]); return }
     supabase
-      .from('padel_venues')
+      // discoverable_venues, not padel_venues: this offers the player a venue to
+      // pick, and a closed one must never be on that list.
+      .from('discoverable_venues')
       .select('venue_id, venue_name, city')
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)

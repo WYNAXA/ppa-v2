@@ -39,7 +39,9 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
   useEffect(() => {
     if (debouncedQuery.length < 2) { setVenueResults([]); return }
     supabase
-      .from('padel_venues')
+      // discoverable_venues, not padel_venues: this offers the player a venue to
+      // pick, and a closed one must never be on that list.
+      .from('discoverable_venues')
       .select('venue_id, venue_name, city')
       .or(`venue_name.ilike.%${debouncedQuery}%,city.ilike.%${debouncedQuery}%`)
       .limit(5)

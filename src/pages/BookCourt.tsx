@@ -710,7 +710,10 @@ export function BookCourtPage() {
       return
     }
     supabase
-      .from('padel_venues')
+      // discoverable_venues, not padel_venues: this is the search a player books from.
+      // resolveAndSelectVenue and the ?venue= deep-link below deliberately keep reading
+      // padel_venues directly - a venue already referenced must resolve after it closes.
+      .from('discoverable_venues')
       .select(
         'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, currency, website, phone',
       )

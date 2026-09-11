@@ -95,17 +95,20 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const [{ data: bookable }, { data: nearby }, { count }] = await Promise.all([
+        // All three read discoverable_venues, not padel_venues. These are the lists a
+        // player picks from and the count shown beside them; a closed venue belongs in
+        // none of them, and a count that includes closed rows cannot match the list.
         supabase
-          .from('padel_venues')
+          .from('discoverable_venues')
           .select('venue_id, venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
           .eq('ppa_bookable', true)
           .limit(20),
         supabase
-          .from('padel_venues')
+          .from('discoverable_venues')
           .select('venue_id, venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
           .not('ppa_bookable', 'is', true)
           .limit(200),
-        supabase.from('padel_venues').select('venues_id', { count: 'exact', head: true }),
+        supabase.from('discoverable_venues').select('venues_id', { count: 'exact', head: true }),
       ])
 
       // Which of these are already on Padel Players. Only a handful of the

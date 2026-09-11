@@ -314,7 +314,7 @@ export function PeoplePage() {
     staleTime: 24 * 60 * 60_000,
     queryFn: async () => {
       const { count } = await supabase
-        .from('padel_venues')
+        .from('discoverable_venues')
         .select('venue_id', { count: 'exact', head: true })
       return count ?? 0
     },

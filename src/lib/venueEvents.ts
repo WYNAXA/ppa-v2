@@ -9,22 +9,8 @@
 import { supabase } from './supabase'
 import { calculateDistance } from './travelUtils'
 
-// ── Currency-aware money formatting ──────────────────────────────────────────
-
-/**
- * Format a minor-unit amount for display using the currency's real exponent.
- * e.g. formatMoney(500, 'GBP') → "£5.00", formatMoney(500, 'HUF') → "500 Ft"
- *
- * Uses Intl.NumberFormat to derive the correct decimal exponent and symbol —
- * never hardcodes /100 or a currency symbol.
- */
-export function formatMoney(minorUnits: number, currency: string): string {
-  // Intl.NumberFormat tells us the real fractional digit count for the currency
-  const fmt = new Intl.NumberFormat(undefined, { style: 'currency', currency })
-  const digits = fmt.resolvedOptions().minimumFractionDigits ?? 2
-  const majorUnits = digits > 0 ? minorUnits / Math.pow(10, digits) : minorUnits
-  return fmt.format(majorUnits)
-}
+// Money formatting lives in lib/money — it is not specific to venue events, and
+// keeping a second copy here is how the app ended up with four of them.
 
 // ── Types ────────────────────────────────────────────────────────────────────
 

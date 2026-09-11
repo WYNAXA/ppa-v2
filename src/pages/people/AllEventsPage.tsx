@@ -7,7 +7,8 @@ import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useDateLocale } from '@/lib/dateLocale'
-import { discoverVenueEvents, formatMoney, type DiscoverableEvent } from '@/lib/venueEvents'
+import { discoverVenueEvents, type DiscoverableEvent } from '@/lib/venueEvents'
+import { formatMoney, money } from '@/lib/money'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 
@@ -33,7 +34,7 @@ import { cn } from '@/lib/utils'
  */
 
 type Row =
-  | { kind: 'group'; id: string; at: string; title: string; where: string | null; pricePence: number | null; official: boolean }
+  | { kind: 'group'; id: string; at: string; title: string; where: string | null; pricePence: number | null; currency: string | null; official: boolean }
   | { kind: 'venue'; id: string; at: string; title: string; where: string | null; priceLabel: string | null; spots: string | null; distanceMiles: number | null }
 
 export function AllEventsPage() {
@@ -57,7 +58,7 @@ export function AllEventsPage() {
 
       const { data } = await supabase
         .from('events')
-        .select('id, title, start_time, location, entry_fee_pence, is_official')
+        .select('id, title, start_time, location, entry_fee_pence, currency, is_official')
         .gte('start_time', new Date().toISOString().split('T')[0])
         .or(filters.join(','))
         .order('start_time', { ascending: true })
@@ -79,6 +80,7 @@ export function AllEventsPage() {
       title: e.title as string,
       where: (e.location as string) ?? null,
       pricePence: (e.entry_fee_pence as number) ?? null,
+      currency: (e.currency as string) ?? null,
       official: e.is_official === true,
     }))
     const v: Row[] = venueEvents.map((e) => ({
@@ -171,7 +173,7 @@ export function AllEventsPage() {
                   {r.kind === 'group' ? (
                     (r.pricePence ?? 0) > 0 ? (
                       <span className="num text-[11px] font-semibold text-ink-2">
-                        £{((r.pricePence ?? 0) / 100).toFixed(2)}
+                        {money(r.pricePence, r.currency)}
                       </span>
                     ) : (
                       <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>

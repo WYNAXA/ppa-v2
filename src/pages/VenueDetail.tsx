@@ -10,6 +10,7 @@ import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { venueClaimUrl } from '@/lib/admin'
+import { money, currencySymbolFor } from '@/lib/money'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
 import { calculateDistance } from '@/lib/travelUtils'
@@ -69,22 +70,9 @@ function googleMapsUrl(lat?: number | null, lng?: number | null, address?: strin
   return '#'
 }
 
-// Venues are worldwide — show the price tier in the venue's own currency.
-const CURRENCY_BY_COUNTRY: Record<string, string> = {
-  GB: '£',
-  IE: '€', ES: '€', IT: '€', FR: '€', DE: '€', PT: '€',
-  NL: '€', BE: '€', AT: '€', GR: '€', FI: '€', HR: '€',
-  SI: '€', SK: '€',
-  US: '$', CA: '$', AU: '$', NZ: '$', SG: '$', MX: '$', AR: '$', CL: '$', CO: '$',
-  BR: 'R$', SE: 'kr', NO: 'kr', DK: 'kr', CH: 'CHF', PL: 'zł', CZ: 'Kč',
-  HU: 'Ft', RO: 'lei', RS: 'din', TR: '₺', AE: 'dh', SA: 'SAR', QA: 'QAR',
-  IN: '₹', JP: '¥', CN: '¥', TH: '฿', MY: 'RM', ZA: 'R',
-  KE: 'KSh', NG: '₦', IL: '₪', MA: 'DH', PE: 'S/',
-}
-
-function currencySymbol(countryCode?: string | null): string {
-  return (countryCode && CURRENCY_BY_COUNTRY[countryCode]) || '£'
-}
+// A hand-maintained country→symbol table used to live here. It listed ~40 countries
+// and returned '£' for every other country on earth. The venue row already carries
+// its own currency, so amounts are formatted from that — see lib/money.
 
 // Every seed venue was given the same fabricated opening hours. Treat that exact
 // pattern (and null) as "not confirmed" so we invite the venue to update it rather
@@ -313,7 +301,8 @@ export function VenueDetailPage() {
   const totalCourts = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
   const hoursConfirmed = !!venue?.opening_hours && !isSeedDefaultHours(venue.opening_hours as any)
   const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any) : null
-  const pricingLabel = venue?.pricing_tier ? currencySymbol(venue.country_code).repeat(venue.pricing_tier) : null
+  const venueSymbol = currencySymbolFor(venue?.currency)
+  const pricingLabel = venue?.pricing_tier && venueSymbol ? venueSymbol.repeat(venue.pricing_tier) : null
   const venueFacilities = (venue?.facilities as string[] | null) ?? []
 
   // ── Loading / error states ───────────────────────────────────────────────
@@ -575,7 +564,7 @@ export function VenueDetailPage() {
                     )}
                     <p className="text-[11px] mt-0.5">
                       {c.price_pence != null && (
-                        <span className="font-semibold text-ink-2">{currencySymbol(venue.country_code)}{(c.price_pence / 100).toFixed(2)}</span>
+                        <span className="font-semibold text-ink-2">{money(c.price_pence, c.currency ?? venue.currency)}</span>
                       )}
                       {c.price_pence != null && <span className="text-ink-3"> · </span>}
                       <span className="text-ink-2">{c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}</span>
@@ -613,7 +602,7 @@ export function VenueDetailPage() {
                   <p className="text-xs text-ink-2 truncate">
                     {tn.tournament_start && format(new Date(tn.tournament_start), 'EEE d MMM · HH:mm', { locale })}
                     {` · ${tn.participants}${tn.max_participants ? `/${tn.max_participants}` : ''} players`}
-                    {tn.entry_fee_pence > 0 && ` · ${currencySymbol(venue.country_code)}${(tn.entry_fee_pence / 100).toFixed(2)}`}
+                    {tn.entry_fee_pence > 0 && ` · ${money(tn.entry_fee_pence, venue.currency)}`}
                   </p>
                 </div>
                 <ChevronLeft size={16} className="text-ink-3 rotate-180 shrink-0" />

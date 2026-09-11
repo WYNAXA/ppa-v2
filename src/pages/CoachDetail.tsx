@@ -7,9 +7,11 @@ import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { money } from '@/lib/money'
 
-const CUR: Record<string, string> = { GBP: '£', EUR: '€', USD: '$', SEK: 'kr', AUD: '$', CAD: '$' }
-function sym(c?: string | null): string { return CUR[c ?? 'GBP'] ?? (c ? `${c} ` : '£') }
+// A six-entry symbol table with two GBP defaults used to live here — one for a
+// missing currency and one for a currency it did not know. Sessions carry their own
+// currency, and lib/money formats every currency correctly without a table.
 
 export function CoachDetailPage() {
   const { coachId = '' } = useParams<{ coachId: string }>()
@@ -152,7 +154,7 @@ export function CoachDetailPage() {
                       {c.venue?.venue_name && ` · ${c.venue.venue_name}`}
                     </p>
                     <p className="text-[11px] mt-0.5">
-                      {c.price_pence != null && <span className="font-semibold text-ink-2">{sym(c.currency)}{(c.price_pence / 100).toFixed(2)}</span>}
+                      {c.price_pence != null && <span className="font-semibold text-ink-2">{money(c.price_pence, c.currency)}</span>}
                       {c.price_pence != null && <span className="text-ink-3"> · </span>}
                       <span className="text-ink-2">{c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}</span>
                     </p>

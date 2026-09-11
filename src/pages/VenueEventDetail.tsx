@@ -22,8 +22,8 @@ import {
   joinVenueEvent,
   finaliseEventPayment,
   leaveVenueEvent,
-  formatMoney,
 } from '@/lib/venueEvents'
+import { formatMoney } from '@/lib/money'
 import { useTranslation } from 'react-i18next'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string

@@ -11,7 +11,8 @@ import { useAuth } from '@/hooks/useAuth'
 import { MatchCard, type MatchCardData } from '@/components/shared/MatchCard'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
 import { WeekMatchView } from '@/components/play/WeekMatchView'
-import { discoverVenueEvents, formatMoney, type DiscoverableEvent } from '@/lib/venueEvents'
+import { discoverVenueEvents, type DiscoverableEvent } from '@/lib/venueEvents'
+import { formatMoney } from '@/lib/money'
 import { formatDistance } from '@/lib/travelUtils'
 
 // ── WhatsOn Section ──────────────────────────────────────────────────────────

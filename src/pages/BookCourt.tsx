@@ -11,6 +11,7 @@ import {
   CheckCircle, Share2, Copy, Search, X, Plus, ChevronRight,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { money } from '@/lib/money'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
 import { CourtsHome } from '@/components/play/CourtsHome'
@@ -62,6 +63,7 @@ interface Venue {
   price_per_hour?: number | null
   price_pence?: number | null
   price_per_player_pence?: number | null
+  currency?: string | null
   website?: string | null
   phone?: string | null
   _distanceMiles?: number | null   // attached for the "near you" list (from venues_near)
@@ -120,9 +122,11 @@ function formatSlotTime(timeStr: string): string {
   }
 }
 
-// Local wrapper: BookCourt shows exact pence (£36.00) not rounded (£36)
-function formatPence(pence: number): string {
-  return `£${(pence / 100).toFixed(2)}`
+// Every amount on this page belongs to the selected venue and is shown in that
+// venue's currency. The previous local wrapper hardcoded a pound sign and a /100,
+// so an Italian court at EUR 30 displayed as GBP 30.00 to the player booking it.
+function formatPence(minor: number | null | undefined, currency: string | null | undefined): string {
+  return money(minor, currency)
 }
 
 function openVenueLink(url: string, appScheme?: string) {
@@ -313,6 +317,7 @@ interface PaymentFormProps {
   setError: (v: string) => void
   depositPence: number
   totalPence: number
+  currency: string | null
 }
 
 function PaymentForm({
@@ -326,6 +331,7 @@ function PaymentForm({
   setError,
   depositPence,
   totalPence,
+  currency,
 }: PaymentFormProps) {
   const stripe = useStripe()
   const elements = useElements()
@@ -370,14 +376,14 @@ function PaymentForm({
         </div>
         <div className="border-t border-court-100 pt-2">
           <p className="text-[16px] font-bold text-court-700">
-            You pay: {formatPence(depositPence)}{' '}
+            You pay: {formatPence(depositPence, currency)}{' '}
             <span className="text-[12px] font-normal text-court">
               ({Math.round(depositPence / (totalPence / PLAYERS_PER_COURT))} {Math.round(depositPence / (totalPence / PLAYERS_PER_COURT)) === 1 ? 'share' : 'shares'})
             </span>
           </p>
           {totalPence - depositPence > 0 && (
             <p className="text-[12px] text-court mt-0.5">
-              The remaining {formatPence(totalPence - depositPence)} is split between
+              The remaining {formatPence(totalPence - depositPence, currency)} is split between
               the other players. They'll be asked to pay 48 hours before the match.
             </p>
           )}
@@ -409,7 +415,7 @@ function PaymentForm({
         ) : (
           <>
             <CreditCard className="h-4 w-4" />
-            Pay {formatPence(depositPence)}
+            Pay {formatPence(depositPence, currency)}
           </>
         )}
       </button>
@@ -438,6 +444,9 @@ export function BookCourtPage() {
   const [venueQuery, setVenueQuery] = useState('')
   const [venueResults, setVenueResults] = useState<Venue[]>([])
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null)
+  // The selected venue's own currency. No fallback: an amount we cannot denominate
+  // renders as a dash rather than silently becoming pounds.
+  const venueCurrency = selectedVenue?.currency ?? null
   const [nonPpaVenue, setNonPpaVenue] = useState<Venue | null>(null)
   const debouncedVenueQuery = useDebounce(venueQuery, 300)
 
@@ -611,7 +620,7 @@ export function BookCourtPage() {
 
     const { data } = await supabase
       .from('padel_venues')
-      .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone')
+      .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, currency, website, phone')
       .or(`venues_id.eq.${venueId},venue_id.eq.${venueId}`)
       .limit(1)
       .maybeSingle()
@@ -697,7 +706,7 @@ export function BookCourtPage() {
     supabase
       .from('padel_venues')
       .select(
-        'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone',
+        'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, currency, website, phone',
       )
       .or(`venue_name.ilike.%${debouncedVenueQuery}%,city.ilike.%${debouncedVenueQuery}%`)
       .limit(15)
@@ -728,7 +737,7 @@ export function BookCourtPage() {
     setPrefilled(true)
     supabase
       .from('padel_venues')
-      .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, website, phone')
+      .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, currency, website, phone')
       .eq('venues_id', venueParam)
       .maybeSingle()
       .then(({ data }) => {
@@ -872,9 +881,14 @@ export function BookCourtPage() {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
+          // amount_pence is sent only so the server can refuse a stale tab with
+          // amount_mismatch. The real amount is resolved server-side from
+          // resolve_court_price, so the browser cannot set its own price.
           amount_pence: coveredCount * perPlayerPence,
           share_count: coveredCount,
           venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
+          court_id: selectedCourtId || null,
+          duration_minutes: selectedDuration,
           booker_id: userId,
           venue_name: selectedVenue.venue_name,
           match_date: selectedDate,
@@ -1191,7 +1205,7 @@ export function BookCourtPage() {
     if (!createdBooking) return ''
     const url = `${window.location.origin}/pay/booking/${createdBooking.id}/player/${player.id}`
     const text = encodeURIComponent(
-      `Hi${player.name ? ` ${player.name}` : ''}! Please pay your £9 court deposit here: ${url}`,
+      `Hi${player.name ? ` ${player.name}` : ''}! Please pay your ${formatPence(perPlayerPence, venueCurrency)} court deposit here: ${url}`,
     )
     return `https://wa.me/?text=${text}`
   }
@@ -1548,7 +1562,7 @@ export function BookCourtPage() {
                             </div>
                             {slot.available ? (
                               <p className="text-[12px] font-semibold text-court mt-1">
-                                {formatPence(priceP)} · {formatPence(pricePerPlayer)}/player
+                                {formatPence(priceP, venueCurrency)} · {formatPence(pricePerPlayer, venueCurrency)}/player
                               </p>
                             ) : onWaitlist ? (
                               <p className="text-[11px] font-semibold text-court mt-1 flex items-center gap-1">
@@ -1755,10 +1769,10 @@ export function BookCourtPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-[14px] font-bold text-ink">
-                      Total: {formatPence(totalPence)}
+                      Total: {formatPence(totalPence, venueCurrency)}
                     </p>
                     <p className="text-[12px] text-ink-2">
-                      You pay {formatPence(perPlayerPence)} now as your deposit
+                      You pay {formatPence(perPlayerPence, venueCurrency)} now as your deposit
                     </p>
                   </div>
                   <Users className="h-5 w-5 text-ink-3" />
@@ -1885,7 +1899,7 @@ export function BookCourtPage() {
                           <span className="text-[11px] text-ink-2 font-normal ml-1.5">(you)</span>
                         </p>
                       </div>
-                      <span className="text-[12px] font-semibold text-court">{formatPence(perPlayerPence)}</span>
+                      <span className="text-[12px] font-semibold text-court">{formatPence(perPlayerPence, venueCurrency)}</span>
                     </div>
                     {/* Other players */}
                     {otherPlayers.map((p) => (
@@ -1910,7 +1924,7 @@ export function BookCourtPage() {
                             <p className="text-[11px] text-ink-2">Guest</p>
                           )}
                         </div>
-                        <span className="text-[12px] font-semibold text-ink-2">{formatPence(perPlayerPence)}</span>
+                        <span className="text-[12px] font-semibold text-ink-2">{formatPence(perPlayerPence, venueCurrency)}</span>
                       </label>
                     ))}
                   </div>
@@ -1919,7 +1933,7 @@ export function BookCourtPage() {
                     <p className="text-[13px] font-semibold text-ink-2">
                       Paying {coveredCount} {coveredCount === 1 ? 'share' : 'shares'}
                     </p>
-                    <p className="text-[20px] font-black text-court">{formatPence(depositPence)}</p>
+                    <p className="text-[20px] font-black text-court">{formatPence(depositPence, venueCurrency)}</p>
                   </div>
                 </div>
               )}
@@ -1931,7 +1945,7 @@ export function BookCourtPage() {
                   className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2"
                 >
                   <CreditCard className="h-4 w-4" />
-                  Proceed to pay {formatPence(depositPence)}
+                  Proceed to pay {formatPence(depositPence, venueCurrency)}
                 </button>
               )}
 
@@ -1989,6 +2003,7 @@ export function BookCourtPage() {
                     setError={setPaymentError}
                     depositPence={depositPence}
                     totalPence={totalPence}
+                    currency={venueCurrency}
                   />
                 </Elements>
               )}
@@ -2076,7 +2091,7 @@ export function BookCourtPage() {
                             )}
                           >
                             {isCovered
-                              ? `${formatPence(perPlayerPence)} paid${!isBooker ? ' (covered by you)' : ''}`
+                              ? `${formatPence(perPlayerPence, venueCurrency)} paid${!isBooker ? ' (covered by you)' : ''}`
                               : '\u23F3 Payment pending'}
                           </p>
                         </div>
@@ -2105,7 +2120,7 @@ export function BookCourtPage() {
               <div className="rounded-2xl border border-warn-100 bg-warn-50 px-4 py-3 flex gap-3">
                 <Clock className="h-4 w-4 text-warn flex-shrink-0 mt-0.5" />
                 <p className="text-[12px] text-warn">
-                  Share the payment links below {'\u2014'} each player pays their own {formatPence(perPlayerPence)} share before the deadline.
+                  Share the payment links below {'\u2014'} each player pays their own {formatPence(perPlayerPence, venueCurrency)} share before the deadline.
                 </p>
               </div>
 

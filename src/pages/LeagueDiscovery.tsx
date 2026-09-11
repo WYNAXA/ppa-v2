@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { ChevronLeft, Search, Trophy, ChevronRight, Plus } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { money } from '@/lib/money'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
@@ -38,6 +39,7 @@ interface OpenLeague {
   status: string
   is_open_registration: boolean | null
   entry_fee_pence: number | null
+  currency: string | null
   max_participants: number | null
   is_official: boolean | null
 }
@@ -51,9 +53,12 @@ const STATUS_COLORS: Record<string, string> = {
   draft:     'bg-warn-50 text-warn',
 }
 
-function formatFee(pence: number | null | undefined): string | null {
-  if (!pence) return null
-  return `£${(pence / 100).toFixed(2)}`
+// Entry fees carry their own currency (leagues.currency). An amount with no
+// currency renders as a dash — printing it with a pound sign, as this did, is a
+// guess dressed up as a fact.
+function formatFee(minor: number | null | undefined, currency: string | null | undefined): string | null {
+  if (!minor) return null
+  return money(minor, currency)
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -160,7 +165,7 @@ export function LeagueDiscoveryPage() {
     queryFn: async () => {
       let q = supabase
         .from('leagues')
-        .select('id, name, match_type, format, status, is_open_registration, entry_fee_pence, max_participants, is_official, city')
+        .select('id, name, match_type, format, status, is_open_registration, entry_fee_pence, currency, max_participants, is_official, city')
         .eq('status', 'active')
         .or('is_open_registration.eq.true,visibility.eq.public')
         .order('created_at', { ascending: false })
@@ -312,8 +317,8 @@ export function LeagueDiscoveryPage() {
                           {league.format}
                         </span>
                       )}
-                      {formatFee(league.entry_fee_pence) && (
-                        <span className="text-[11px] text-ink-2">{formatFee(league.entry_fee_pence)}</span>
+                      {formatFee(league.entry_fee_pence, league.currency) && (
+                        <span className="text-[11px] text-ink-2">{formatFee(league.entry_fee_pence, league.currency)}</span>
                       )}
                     </div>
                   </div>
@@ -389,8 +394,8 @@ export function LeagueDiscoveryPage() {
                           {league.format}
                         </span>
                       )}
-                      {formatFee(league.entry_fee_pence) && (
-                        <span className="text-[11px] text-ink-2">{formatFee(league.entry_fee_pence)}</span>
+                      {formatFee(league.entry_fee_pence, league.currency) && (
+                        <span className="text-[11px] text-ink-2">{formatFee(league.entry_fee_pence, league.currency)}</span>
                       )}
                     </div>
                   </div>

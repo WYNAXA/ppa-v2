@@ -10,7 +10,7 @@ import {
 import { format, parseISO } from 'date-fns'
 import { getDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
-import { penceToPounds } from '@/lib/money'
+import { money } from '@/lib/money'
 import { APP_STORE_URL, PLAY_STORE_URL } from '@/lib/appInstall'
 
 // ── Env vars ──────────────────────────────────────────────────────────────────
@@ -40,6 +40,7 @@ interface CourtBooking {
   guest_players: GuestPlayer[] | null
   paid_player_ids: string[] | null
   price_per_player_pence: number
+  price_currency: string | null
 }
 
 interface PadelVenue {
@@ -63,6 +64,10 @@ interface PaymentFormProps {
   playerId: string
   coveredPlayerIds: string[]
   totalPence: number
+  // The currency the booking was quoted in. Required, not optional: the pay button
+  // has to state what the customer is actually being charged, and this page used to
+  // render every amount with a pound sign regardless of the real currency.
+  currency: string | null
   onSuccess: () => void
 }
 
@@ -71,6 +76,7 @@ function PaymentForm({
   playerId,
   coveredPlayerIds,
   totalPence,
+  currency,
   onSuccess,
 }: PaymentFormProps) {
   const stripe = useStripe()
@@ -143,7 +149,7 @@ function PaymentForm({
     }
   }
 
-  const amountGBP = penceToPounds(totalPence).toFixed(2)
+  const amountLabel = money(totalPence, currency)
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -156,7 +162,7 @@ function PaymentForm({
         disabled={!stripe || !elements || submitting}
         className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
       >
-        {submitting ? 'Processing\u2026' : `Pay \u00a3${amountGBP}`}
+        {submitting ? 'Processing\u2026' : `Pay ${amountLabel}`}
       </button>
     </form>
   )
@@ -233,7 +239,7 @@ export function PayBookingPage() {
         const { data: b, error: bErr } = await supabase
           .from('court_bookings')
           .select(
-            'id, booking_reference, venue_id, match_date, start_time, duration_minutes, player_ids, guest_players, paid_player_ids, price_per_player_pence'
+            'id, booking_reference, venue_id, match_date, start_time, duration_minutes, player_ids, guest_players, paid_player_ids, price_per_player_pence, price_currency'
           )
           .eq('id', bookingId)
           .single()
@@ -358,8 +364,11 @@ export function PayBookingPage() {
           Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
+          // The server derives the real amount from the booking; these are sent so a
+          // stale tab is refused with amount_mismatch rather than quietly charged.
           amount_pence: totalPence,
           share_count: shareCount,
+          player_ids: [...selectedIds],
           venue_id: booking.venue_id,
           player_id: playerId,
           booking_id: bookingId,
@@ -406,8 +415,10 @@ export function PayBookingPage() {
 
   const shareCount = selectedIds.size
   const totalPence = booking ? shareCount * booking.price_per_player_pence : 0
-  const totalGBP = penceToPounds(totalPence).toFixed(2)
-  const perShareGBP = booking ? penceToPounds(booking.price_per_player_pence).toFixed(2) : '0.00'
+  // The currency the booking was quoted in — never assumed.
+  const bookingCurrency = booking?.price_currency ?? null
+  const totalLabel = money(totalPence, bookingCurrency)
+  const perShareLabel = money(booking?.price_per_player_pence ?? null, bookingCurrency)
 
   // ── Already paid ──
   if (alreadyPaid) {
@@ -497,7 +508,7 @@ export function PayBookingPage() {
               {unpaidPlayers.length > 1 ? 'Cover additional players?' : 'Paying for'}
             </p>
             <p className="text-[12px] font-semibold text-ink-2">
-              {'\u00a3'}{perShareGBP} / player
+              {perShareLabel} / player
             </p>
           </div>
 
@@ -536,7 +547,7 @@ export function PayBookingPage() {
             <p className="text-[13px] font-semibold text-ink-2">
               Paying {shareCount} {shareCount === 1 ? 'share' : 'shares'}
             </p>
-            <p className="text-[22px] font-black text-court">{'\u00a3'}{totalGBP}</p>
+            <p className="text-[22px] font-black text-court">{totalLabel}</p>
           </div>
         </div>
 
@@ -568,6 +579,7 @@ export function PayBookingPage() {
                 playerId={playerId!}
                 coveredPlayerIds={[...selectedIds]}
                 totalPence={totalPence}
+                currency={bookingCurrency}
                 onSuccess={() => setSucceeded(true)}
               />
             </Elements>
@@ -578,7 +590,7 @@ export function PayBookingPage() {
             disabled={creatingIntent}
             className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white disabled:opacity-50 transition-opacity"
           >
-            {creatingIntent ? 'Setting up payment\u2026' : `Proceed to pay \u00a3${totalGBP}`}
+            {creatingIntent ? 'Setting up payment\u2026' : `Proceed to pay ${totalLabel}`}
           </button>
         )}
 

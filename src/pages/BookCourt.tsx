@@ -895,11 +895,24 @@ export function BookCourtPage() {
           start_time: selectedSlot.start_time,
         }),
       })
-      if (!res.ok) throw new Error('Could not initialise payment')
-      const json = await res.json()
+      const json = await res.json().catch(() => null)
+      if (!res.ok || !json?.client_secret) {
+        // Show what the server actually said. It replies with a named reason -
+        // pricing_unavailable, venue_not_set_up_for_payments, amount_mismatch,
+        // booking_price_invalid - and replacing that with 'please try again'
+        // destroys the only information anyone has to act on. A venue owner
+        // reading this on their own screen needs the reason, not a shrug.
+        const reason = json?.error ?? `HTTP ${res.status}`
+        console.error('create-booking-payment failed:', res.status, json)
+        setPaymentError(`Could not start payment: ${reason}`)
+        return
+      }
       setClientSecret(json.client_secret)
-    } catch {
-      setPaymentError('Could not start payment. Please try again.')
+    } catch (err) {
+      // A genuine network failure never reached the server at all - say so,
+      // because it is a different problem with a different fix.
+      console.error('create-booking-payment network error:', err)
+      setPaymentError(`Could not reach the payment service: ${err instanceof Error ? err.message : 'network error'}`)
     } finally {
       setFetchingPayment(false)
     }

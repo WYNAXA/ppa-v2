@@ -26,5 +26,19 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  /*
+   * Test files are excluded from the APP build.
+   *
+   * `src/lib/parseSetsData.test.ts` is a Deno test — its own header says
+   * `deno test --no-check` — so it imports from deno.land and uses the global
+   * `Deno`. Neither exists in this project's compiler environment
+   * (lib: ES2023 + DOM, types: vite/client), so `tsc -b` failed on six errors
+   * in a file that is not part of the app and was never meant to be compiled
+   * here. Excluding it is the fix; adding Deno types to the browser build, or
+   * deleting a working test, would both be wrong.
+   *
+   * Run it with:  deno test --no-check src/lib/parseSetsData.test.ts
+   */
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx"]
 }

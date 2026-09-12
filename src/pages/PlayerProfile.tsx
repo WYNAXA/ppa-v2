@@ -42,7 +42,8 @@ interface CommonMatch {
   match_type: string | null
   team1_score: number
   team2_score: number
-  result_type: string
+  // match_results.result_type is nullable (defaults to 'win').
+  result_type: string | null
   currentUserTeam: 1 | 2
 }
 
@@ -215,10 +216,12 @@ export function PlayerProfilePage() {
   const queryClient = useQueryClient()
   const connectMutation = useMutation({
     mutationFn: async () => {
+      // player_connections.user_id and connected_user_id are both NOT NULL.
+      if (!currentUserId || !playerId) throw new Error('Not signed in')
       const { error } = await supabase.from('player_connections').insert({ user_id: currentUserId, connected_user_id: playerId, status: 'pending' })
       if (error) throw error
       sendNotification({
-        user_id: playerId!, type: 'connection_request', title: t('people.notif_connection_request'),
+        user_id: playerId, type: 'connection_request', title: t('people.notif_connection_request'),
         message: `${profile?.name ?? 'A player'} wants to connect with you.`, related_id: currentUserId,
       })
     },

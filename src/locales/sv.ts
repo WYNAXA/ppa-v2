@@ -32,6 +32,8 @@ export default {
     "play": "Spela",
     "compete": "Tävla",
     "people": "Personer",
+    "community": "Gemenskap",
+    "leagues": "Ligor",
     "you": "Du"
   },
   "courts": {
@@ -60,6 +62,7 @@ export default {
     "indoor": "Inomhus",
     "outdoor": "Utomhus",
     "n_courts": "{{count}} banor",
+    "courts_unconfirmed": "banor ej bekräftade",
   },
   "club": {
     "ask": "Fr\u00e5ga",
@@ -236,6 +239,7 @@ export default {
     "counter_submitted": "Motförslag skickat",
     "submit_counter": "Skicka motförslag",
     "accept_failed": "Kunde inte godkänna",
+    "no_score_proposed": "Inget resultat föreslaget",
     "proposal_accepted": "Förslag godkänt",
     "accept": "Godkänn",
     "counter": "Motförslag",
@@ -681,6 +685,9 @@ export default {
     "decline": "Avvisa",
     "requests_count": "Förfrågningar ({{count}})",
     "my_connections_subtitle": "Spelare du spelar med regelbundet",
+    "my_leagues": "Mina ligor",
+    "my_leagues_subtitle": "Stegar och säsonger du spelar i",
+    "my_leagues_empty": "Hitta en liga nära dig",
     "filter_welcomes_ringers": "Välkomnar inhoppare",
     "offer_ringer": "Erbjud dig som inhoppare",
     "offering": "Erbjuder…",
@@ -1076,6 +1083,7 @@ export default {
     "creating": "Skapar…",
     "conflict_title": "Du har redan en match denna dag",
     "conflict_at": "Det finns en match kl.",
+    "time_required": "Välj en tid innan du skapar matchen",
     "conflict_date": "Det finns redan en match schemalagd på detta datum",
     "conflict_anyway": "Skapa en till ändå?",
     "create_anyway": "Skapa ändå",

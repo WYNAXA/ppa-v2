@@ -1,3 +1,4 @@
+import type { TableInsert } from '@/lib/types'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
@@ -138,18 +139,18 @@ export function TournamentModePage() {
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
       const sorted = [...rows].sort(
         (a, b) =>
-          ((b.ranking_points ?? b.points ?? 0) as number) -
-          ((a.ranking_points ?? a.points ?? 0) as number),
+          ((b.ranking_points ?? 0) as number) -
+          ((a.ranking_points ?? 0) as number),
       )
 
       return sorted.map((r, i) => ({
         user_id: r.user_id,
         rank: i + 1,
-        played: (r.matches_played ?? r.played ?? 0) as number,
-        won: (r.wins ?? r.won ?? 0) as number,
-        lost: (r.losses ?? r.lost ?? 0) as number,
-        drawn: (r.draws ?? r.drawn ?? 0) as number,
-        points: (r.ranking_points ?? r.points ?? 0) as number,
+        played: (r.matches_played ?? 0) as number,
+        won: (r.wins ?? 0) as number,
+        lost: (r.losses ?? 0) as number,
+        drawn: (r.draws ?? 0) as number,
+        points: (r.ranking_points ?? 0) as number,
         profile: profileMap[r.user_id],
       }))
     },
@@ -400,7 +401,7 @@ export function TournamentModePage() {
         return
       }
 
-      const matchesToCreate: Record<string, unknown>[] = []
+      const matchesToCreate: TableInsert<'matches'>[] = []
 
       if (isPairs && leagueTeams.length >= 2) {
         const teamIds = leagueTeams.map((t) => t.id)
@@ -410,12 +411,25 @@ export function TournamentModePage() {
         for (const [aId, bId] of pairings) {
           const t1 = teamMap[aId]
           const t2 = teamMap[bId]
+          /**
+           * `league_teams.player1_id` and `player2_id` are both nullable, and
+           * `matches.player_ids` is `uuid[] NOT NULL` — which stops the ARRAY
+           * being null but accepts a null ELEMENT perfectly happily. An
+           * incomplete team would therefore have produced a fixture containing
+           * a null player: written without error, then broken in the standings
+           * and on the match screen, with nothing to point at the cause.
+           *
+           * Skip a pairing we already know is malformed rather than writing it.
+           */
+          const pairPlayerIds = [t1?.player1_id, t1?.player2_id, t2?.player1_id, t2?.player2_id]
+            .filter((x): x is string => !!x)
+          if (pairPlayerIds.length !== 4) continue
           matchesToCreate.push({
             match_date: today,
             match_time: '12:00:00',
             match_type: 'competitive',
             status: 'scheduled',
-            player_ids: [t1.player1_id, t1.player2_id, t2.player1_id, t2.player2_id],
+            player_ids: pairPlayerIds,
             team1_id: t1.id,
             team2_id: t2.id,
             group_id: league.linked_group_ids?.[0] ?? null,

@@ -27,7 +27,8 @@ import { PushToOpenSheet } from '@/components/match/PushToOpenSheet'
 import { InvitePlayerSheet } from '@/components/play/InvitePlayerSheet'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { cn } from '@/lib/utils'
-import type { Match, MatchResult, Profile } from '@/lib/types'
+import { parseSetsData, setsToJson } from '@/lib/parseSetsData'
+import type { Match, MatchResult, Profile, TableUpdate } from '@/lib/types'
 import { calculateMatchPrediction, PAIRINGS, pairingToTeams, findPairingIndex } from '@/lib/predictions'
 import { MatchStakes } from '@/components/match/MatchStakes'
 import {
@@ -57,20 +58,30 @@ const STATUS_STYLES: Record<string, { labelKey: string; className: string; dot: 
   cancelled:  { labelKey: 'match.cancelled',  className: 'bg-alert-50 text-alert border-alert/40',         dot: 'bg-alert'    },
 }
 
+/**
+ * A score a player has PROPOSED while disputing a result.
+ *
+ * On `match_result_votes`, `proposed_team1_score`, `proposed_team2_score`,
+ * `proposed_result_type` and `proposed_sets_data` are all nullable — a player
+ * can dispute a result and give only a reason, without proposing a score. These
+ * were declared non-null, so nothing forced the UI to handle that case, and a
+ * reason-only dispute would render an empty or "null" score to the admin
+ * settling it. `voter_id` is genuinely NOT NULL and stays required.
+ */
 interface DisputeProposal {
-  sets_data: any
-  team1_score: number
-  team2_score: number
-  result_type: string
+  sets_data: SetScore[] | null
+  team1_score: number | null
+  team2_score: number | null
+  result_type: string | null
   voter_id: string
   voterName: string
   reason: string | null
 }
 interface CounterProposal {
-  sets_data: any
-  team1_score: number
-  team2_score: number
-  result_type: string
+  sets_data: SetScore[] | null
+  team1_score: number | null
+  team2_score: number | null
+  result_type: string | null
   voter_id: string
   voterName: string
 }
@@ -141,7 +152,7 @@ async function fetchMatchDetail(id: string): Promise<{
       if (disputeVote) {
         const voter = players.find(p => p.id === disputeVote.voter_id)
         disputeProposal = {
-          sets_data: disputeVote.proposed_sets_data,
+          sets_data: parseSetsData(disputeVote.proposed_sets_data),
           team1_score: disputeVote.proposed_team1_score,
           team2_score: disputeVote.proposed_team2_score,
           result_type: disputeVote.proposed_result_type,
@@ -163,7 +174,7 @@ async function fetchMatchDetail(id: string): Promise<{
       if (counterVote) {
         const voter = players.find(p => p.id === counterVote.voter_id)
         counterProposal = {
-          sets_data: counterVote.proposed_sets_data,
+          sets_data: parseSetsData(counterVote.proposed_sets_data),
           team1_score: counterVote.proposed_team1_score,
           team2_score: counterVote.proposed_team2_score,
           result_type: counterVote.proposed_result_type,
@@ -193,7 +204,7 @@ async function fetchMatchDetail(id: string): Promise<{
         }
         if (disputeVote.proposed_team1_score != null || disputeVote.proposed_sets_data != null) {
           disputeProposal = {
-            sets_data: disputeVote.proposed_sets_data,
+            sets_data: parseSetsData(disputeVote.proposed_sets_data),
             team1_score: disputeVote.proposed_team1_score,
             team2_score: disputeVote.proposed_team2_score,
             result_type: disputeVote.proposed_result_type,
@@ -206,7 +217,15 @@ async function fetchMatchDetail(id: string): Promise<{
     }
   }
 
-  return { match, players, result: result ?? null, myVote, disputeInfo, disputeProposal, counterProposal }
+  return {
+    match: match as Match,
+    players,
+    result: result ? { ...result, sets_data: parseSetsData(result.sets_data) } : null,
+    myVote,
+    disputeInfo,
+    disputeProposal,
+    counterProposal,
+  }
 }
 
 function ResultBanner({ result, players, currentUserId }: { result: MatchResult; players: Profile[]; currentUserId?: string }) {
@@ -579,6 +598,7 @@ export function MatchDetailPage() {
 
   const respondRingerMutation = useMutation({
     mutationFn: async (accept: boolean) => {
+      if (!id) throw new Error('No match id in the route')
       const { error } = await supabase.rpc('respond_ringer_request', {
         p_match_id: id!,
         p_accept: accept,
@@ -612,17 +632,21 @@ export function MatchDetailPage() {
       if (!result) throw new Error('No result to settle')
 
       const proposal = data?.disputeProposal
-      const patch: Record<string, unknown> = {
+      const patch: TableUpdate<'match_results'> = {
         verification_status: 'verified',
         review_deadline: null,
         last_proposal_by: null,
       }
       if (choice === 'proposed') {
-        if (!proposal || proposal.team1_score == null) throw new Error('No proposed score to take')
+        // Both scores are NOT NULL on match_results, and a dispute can be
+        // raised with no proposed score at all. This checked team1 only.
+        if (!proposal || proposal.team1_score == null || proposal.team2_score == null) {
+          throw new Error('No proposed score to take')
+        }
         patch.team1_score = proposal.team1_score
         patch.team2_score = proposal.team2_score
         patch.result_type = proposal.result_type
-        patch.sets_data = proposal.sets_data
+        patch.sets_data = setsToJson(proposal.sets_data)
       }
 
       const { error } = await supabase.from('match_results').update(patch).eq('id', result.id)
@@ -656,6 +680,7 @@ export function MatchDetailPage() {
 
   const claimOpenMutation = useMutation({
     mutationFn: async () => {
+      if (!id) throw new Error('No match id in the route')
       const { data: res, error } = await supabase.rpc('claim_open_match', { p_match_id: id })
       if (error) throw error
       if (!(res as any)?.success) throw new Error('Claim failed')
@@ -692,6 +717,7 @@ export function MatchDetailPage() {
 
   const respondInvitationMutation = useMutation({
     mutationFn: async (accept: boolean) => {
+      if (!id) throw new Error('No match id in the route')
       const { error } = await supabase.rpc('respond_match_invitation', { p_match_id: id, p_accept: accept })
       if (error) throw error
     },
@@ -747,6 +773,7 @@ export function MatchDetailPage() {
 
   const confirmInviteeMutation = useMutation({
     mutationFn: async (inviteeId: string) => {
+      if (!id) throw new Error('No match id in the route')
       const { data, error } = await supabase.rpc('confirm_invitee_for_match', {
         p_match_id: id,
         p_invitee_id: inviteeId,
@@ -771,9 +798,11 @@ export function MatchDetailPage() {
   // Travel request mutation
   const requestLiftMutation = useMutation({
     mutationFn: async ({ driverId }: { driverId: string }) => {
+      // travel_requests.match_id and requester_id are both NOT NULL.
+      if (!id || !profile?.id) throw new Error('No match id in the route')
       const { error } = await supabase.from('travel_requests').insert({
         match_id:     id,
-        requester_id: profile?.id,
+        requester_id: profile.id,
         driver_id:    driverId,
         status:       'pending',
       })
@@ -800,6 +829,8 @@ export function MatchDetailPage() {
     queryKey: ['travel-requests', id, profile?.id],
     enabled: !!id && !!profile?.id,
     queryFn: async () => {
+      // Gated by `enabled` above; narrow rather than assert.
+      if (!id) return []
       const { data } = await supabase
         .from('travel_requests')
         .select('driver_id, status, pickup_time')
@@ -814,6 +845,8 @@ export function MatchDetailPage() {
     queryKey: ['confirmed-riders', id, profile?.id],
     enabled: !!id && !!profile?.id,
     queryFn: async () => {
+      // Gated by `enabled` above; narrow rather than assert.
+      if (!id) return []
       const { data } = await supabase
         .from('travel_requests')
         .select('requester_id, pickup_time')
@@ -831,6 +864,7 @@ export function MatchDetailPage() {
 
   const updateTravelRequestMutation = useMutation({
     mutationFn: async ({ requesterId, status }: { requesterId: string; status: 'accepted' | 'declined' }) => {
+      if (!id) throw new Error('No match id in the route')
       if (!profile?.id || !id) throw new Error('Not signed in')
 
       // Block over-capacity: check available seats before accepting
@@ -891,6 +925,7 @@ export function MatchDetailPage() {
   // Pickup time mutation (driver sets time for accepted rider)
   const setPickupTimeMutation = useMutation({
     mutationFn: async ({ riderId, time }: { riderId: string; time: string | null }) => {
+      if (!id) throw new Error('No match id in the route')
       if (!profile?.id || !id) throw new Error('Not signed in')
       const { error } = await supabase
         .from('travel_requests')
@@ -916,6 +951,7 @@ export function MatchDetailPage() {
 
   const toggleDrivingMutation = useMutation({
     mutationFn: async () => {
+      if (!id) throw new Error('No match id in the route')
       if (!profile?.id || !id) throw new Error('Not signed in')
       if (amDriving) {
         await supabase.from('match_drivers').delete().eq('match_id', id).eq('driver_id', profile.id)
@@ -931,6 +967,7 @@ export function MatchDetailPage() {
 
   const toggleOfferingMutation = useMutation({
     mutationFn: async () => {
+      if (!id) throw new Error('No match id in the route')
       if (!profile?.id || !id) throw new Error('Not signed in')
       await supabase.from('match_drivers').update({ offering_lifts: !amOffering }).eq('match_id', id).eq('driver_id', profile.id)
     },
@@ -948,6 +985,8 @@ export function MatchDetailPage() {
     queryKey: ['rider-address', id, expandedRiderId],
     enabled: !!id && !!expandedRiderId,
     queryFn: async () => {
+      // Gated by `enabled` above; narrow rather than assert.
+      if (!id) return null
       const { data, error } = await supabase.rpc('get_rider_address_for_driver', {
         p_match_id: id,
         p_rider_id: expandedRiderId!,
@@ -966,6 +1005,8 @@ export function MatchDetailPage() {
     queryKey: ['incoming-travel-requests', id, profile?.id],
     enabled: !!id && !!profile?.id,
     queryFn: async () => {
+      // Gated by `enabled` above; narrow rather than assert.
+      if (!id) return []
       const { data } = await supabase
         .from('travel_requests')
         .select('id, requester_id, status')
@@ -1636,7 +1677,16 @@ export function MatchDetailPage() {
 
         // Helper: render score summary (viewer-oriented — viewer's team score first)
         const viewerOnTeam1 = result ? (result.team1_players ?? []).includes(currentUserId) : true
-        const renderScoreSummary = (setsData: any, t1Score: number, t2Score: number, rType: string) => {
+        const renderScoreSummary = (setsData: any, t1Score: number | null, t2Score: number | null, rType: string | null) => {
+          // A dispute can carry a reason and no score. Say so, rather than
+          // drawing an empty scoreline the admin has to interpret.
+          if (t1Score == null || t2Score == null) {
+            return (
+              <div className="bg-surface rounded-xl p-3 mb-2 text-center">
+                <span className="text-[12px] text-ink-2 italic">{t('match.no_score_proposed')}</span>
+              </div>
+            )
+          }
           const sets = parseSetsData(setsData)
           const leftScore = viewerOnTeam1 ? t1Score : t2Score
           const rightScore = viewerOnTeam1 ? t2Score : t1Score
@@ -1854,11 +1904,19 @@ export function MatchDetailPage() {
                     <button
                       onClick={async () => {
                         if (!disputeProposal || !result) return
+                        // match_results.team1_score / team2_score are NOT NULL, and a
+                        // dispute can be raised with a reason and no proposed score.
+                        // Without this the update raised a 23502. Same guard as
+                        // settleDispute, which already got this right.
+                        if (disputeProposal.team1_score == null || disputeProposal.team2_score == null) {
+                          toast.error(t('match.accept_failed'))
+                          return
+                        }
                         const { error } = await supabase.from('match_results').update({
                           team1_score: disputeProposal.team1_score,
                           team2_score: disputeProposal.team2_score,
                           result_type: disputeProposal.result_type,
-                          sets_data: disputeProposal.sets_data,
+                          sets_data: setsToJson(disputeProposal.sets_data),
                           verification_status: 'verified',
                           review_deadline: null,
                           last_proposal_by: null,
@@ -1918,11 +1976,19 @@ export function MatchDetailPage() {
                   <button
                     onClick={async () => {
                       if (!counterProposal || !result) return
+                      // match_results.team1_score / team2_score are NOT NULL, and a
+                      // dispute can be raised with a reason and no proposed score.
+                      // Without this the update raised a 23502. Same guard as
+                      // settleDispute, which already got this right.
+                      if (counterProposal.team1_score == null || counterProposal.team2_score == null) {
+                        toast.error(t('match.accept_failed'))
+                        return
+                      }
                       const { error } = await supabase.from('match_results').update({
                         team1_score: counterProposal.team1_score,
                         team2_score: counterProposal.team2_score,
                         result_type: counterProposal.result_type,
-                        sets_data: counterProposal.sets_data,
+                        sets_data: setsToJson(counterProposal.sets_data),
                         verification_status: 'verified',
                         review_deadline: null,
                         last_proposal_by: null,

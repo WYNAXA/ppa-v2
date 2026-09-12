@@ -32,6 +32,8 @@ export default {
     "play": "Jugar",
     "compete": "Competir",
     "people": "Gente",
+    "community": "Comunidad",
+    "leagues": "Ligas",
     "you": "Tú"
   },
   "courts": {
@@ -60,6 +62,7 @@ export default {
     "indoor": "Interior",
     "outdoor": "Exterior",
     "n_courts": "{{count}} pistas",
+    "courts_unconfirmed": "pistas sin confirmar",
   },
   "club": {
     "ask": "Pedir",
@@ -236,6 +239,7 @@ export default {
     "counter_submitted": "Contrapropuesta enviada",
     "submit_counter": "Enviar contrapropuesta",
     "accept_failed": "No se pudo aceptar",
+    "no_score_proposed": "No se propuso ningún resultado",
     "proposal_accepted": "Propuesta aceptada",
     "accept": "Aceptar",
     "counter": "Contrapropuesta",
@@ -681,6 +685,9 @@ export default {
     "decline": "Rechazar",
     "requests_count": "Solicitudes ({{count}})",
     "my_connections_subtitle": "Jugadores con los que juegas habitualmente",
+    "my_leagues": "Mis ligas",
+    "my_leagues_subtitle": "Escaleras y temporadas en las que juegas",
+    "my_leagues_empty": "Encuentra una liga cerca de ti",
     "filter_welcomes_ringers": "Admite suplentes",
     "offer_ringer": "Ofrecerte como suplente",
     "offering": "Ofreciendo…",
@@ -1076,6 +1083,7 @@ export default {
     "creating": "Creando…",
     "conflict_title": "Ya tienes un partido este día",
     "conflict_at": "Hay un partido a las",
+    "time_required": "Elige una hora antes de crear el partido",
     "conflict_date": "Ya hay un partido programado para esta fecha",
     "conflict_anyway": "¿Crear otro de todas formas?",
     "create_anyway": "Crear de todas formas",

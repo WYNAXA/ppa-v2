@@ -96,7 +96,13 @@ openai_api_key = "env(OPENAI_API_KEY)"
 
 # Email testing server. Emails sent with the local dev setup are not actually sent - rather, they
 # are monitored, and you can view the emails that would have been sent from the web interface.
-[inbucket]
+# Renamed from the deprecated [inbucket] section. The Supabase CLI printed
+# "WARN: config section [inbucket] is deprecated" on STDOUT, and because
+# `supabase gen types ... > src/lib/database.types.ts` redirects stdout, that
+# warning was written as line 1 of the generated types file — producing five
+# syntax errors in a file nobody edits. Silencing the warning at the source is
+# the fix; stripping the first line of the output would only hide it.
+[local_smtp]
 enabled = true
 # Port to use for the email testing server web interface.
 port = 54324

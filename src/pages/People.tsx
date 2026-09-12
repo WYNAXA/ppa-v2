@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, Users, MapPin, ChevronRight } from 'lucide-react'
+import { Plus, Users, MapPin, ChevronRight, Trophy } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -288,6 +288,27 @@ export function PeoplePage() {
   const groupsRef = useRef<HTMLElement>(null)
   const connectionsRef = useRef<HTMLElement>(null)
 
+  /**
+   * Leagues the player is actually in.
+   *
+   * Until now nothing in the app linked to `/leagues` at all — the route
+   * existed, `LeagueDiscovery` was built, and the only way in was a deep link.
+   * Leagues are a social object, so Community is where the door belongs.
+   */
+  const { data: myLeagueCount = 0 } = useQuery({
+    queryKey: ['my-league-count', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('league_members')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('status', 'active')
+      if (error) throw error
+      return count ?? 0
+    },
+  })
+
   // Queries
   const { data: connectionsData } = useMyConnections(userId)
   const connections = connectionsData ?? { accepted: new Set<string>(), acceptedProfiles: [], pendingOutgoing: new Set<string>(), incomingRequests: [] }
@@ -416,6 +437,30 @@ export function PeoplePage() {
           <div className="flex items-center gap-2 flex-shrink-0">
             {connections.accepted.size > 0 && (
               <span className="text-[12px] font-semibold text-court">{connections.accepted.size}</span>
+            )}
+            <ChevronRight className="h-4 w-4 text-ink-3" />
+          </div>
+        </button>
+
+        {/* My Leagues link — the app's only entry point to league discovery. */}
+        <button
+          onClick={() => navigate('/leagues')}
+          className="w-full flex items-center gap-3 rounded-2xl border border-court-100 bg-court-50/50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
+        >
+          <div className="h-9 w-9 rounded-xl bg-court-100 flex items-center justify-center flex-shrink-0">
+            <Trophy className="h-4.5 w-4.5 text-court" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-bold text-ink">{t('people.my_leagues')}</p>
+            <p className="text-[11px] text-ink-2">
+              {myLeagueCount > 0
+                ? t('people.my_leagues_subtitle')
+                : t('people.my_leagues_empty')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {myLeagueCount > 0 && (
+              <span className="text-[12px] font-semibold text-court">{myLeagueCount}</span>
             )}
             <ChevronRight className="h-4 w-4 text-ink-3" />
           </div>

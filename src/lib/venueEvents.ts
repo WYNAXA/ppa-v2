@@ -94,6 +94,10 @@ async function resolveVenueDisplay(venueIds: string[]): Promise<Map<string, Venu
     .in('venues_id', unique)
 
   for (const row of data ?? []) {
+    // padel_venues.venues_id is nullable (it is the optional link to the
+    // operational `venues` row). A null key would collide every unlinked
+    // venue into one bogus map entry.
+    if (!row.venues_id) continue
     map.set(row.venues_id, {
       venue_name: row.venue_name,
       city: row.city ?? null,
@@ -279,15 +283,28 @@ export async function fetchOccurrenceDetail(occurrenceId: string) {
 // ── Fetch participants for an occurrence ─────────────────────────────────────
 
 export async function fetchParticipants(occurrenceId: string) {
+  /**
+   * `venue_event_participants` is (id, occurrence_id, user_id, status,
+   * joined_at). It has no `created_at`, so selecting one made PostgREST reject
+   * the request with a 400 — and `return []` below turned that into an empty
+   * participant list. The occurrence still showed its `spots_taken` count,
+   * because join_venue_event increments that separately, so events read as
+   * "3 spots taken" with nobody listed.
+   *
+   * 'joined' is the correct status filter: join_venue_event inserts exactly
+   * that value.
+   */
   const { data, error } = await supabase
     .from('venue_event_participants')
-    .select('id, occurrence_id, user_id, status, created_at')
+    .select('id, occurrence_id, user_id, status, joined_at')
     .eq('occurrence_id', occurrenceId)
     .eq('status', 'joined')
 
   if (error) {
+    // Throw rather than return [] — an empty list is indistinguishable from
+    // "nobody has joined", which is how the bug above stayed invisible.
     console.error('fetchParticipants error:', error)
-    return []
+    throw error
   }
   return data ?? []
 }

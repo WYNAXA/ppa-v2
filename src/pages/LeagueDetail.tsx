@@ -1,3 +1,4 @@
+import type { TableInsert } from '@/lib/types'
 import { useState, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -26,7 +27,9 @@ import { validateSetScores } from '@/lib/scoreValidation'
 interface LeagueInfo {
   id: string
   name: string
-  status: string
+  // leagues.status is nullable in the database (defaults to 'draft', no
+  // NOT NULL). Declaring it `string` failed the useQuery overload.
+  status: string | null
   match_type: string | null
   format: string | null
   scoring_format: string | null
@@ -48,6 +51,17 @@ interface LeagueInfo {
 type PrizeScheme = {
   categories: Record<string, { '1': string; '2': string; '3': string }>
   jerseys: Record<string, string>
+}
+
+/**
+ * `leagues.prize_scheme` is jsonb, so the database hands it over as `Json` —
+ * which could be a string or a number just as easily as the object above.
+ * Convert at the read boundary instead of letting LeagueInfo claim a shape
+ * nothing has checked.
+ */
+function asPrizeScheme(v: unknown): PrizeScheme | null {
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return null
+  return v as PrizeScheme
 }
 
 interface Standing {
@@ -87,8 +101,10 @@ interface ResultMatch {
     team2_players: string[]
     team1_score: number
     team2_score: number
-    result_type: string
-    verification_status: string
+    // match_results.result_type is nullable.
+    result_type: string | null
+    // match_results.verification_status is nullable (defaults to 'pending').
+    verification_status: string | null
   } | null
   profiles: Record<string, { name: string; avatar_url: string | null }>
 }
@@ -124,7 +140,8 @@ function useLeague(id: string) {
         .eq('id', id)
         .single()
       if (error) throw error
-      return data
+      // jsonb -> typed, once, here. See asPrizeScheme.
+      return { ...data, prize_scheme: asPrizeScheme(data.prize_scheme) }
     },
   })
 }
@@ -224,8 +241,8 @@ function useStandings(leagueId: string) {
 
       // Compute form for each row, then sort by form DESC, points DESC, sets ASC
       const withForm = rows.map((r) => {
-        const pts = (r.ranking_points ?? r.points ?? 0) as number
-        const sets = (r.matches_played ?? r.played ?? 0) as number
+        const pts = (r.ranking_points ?? 0) as number
+        const sets = (r.matches_played ?? 0) as number
         const form = (pts + C * PRIOR) / (sets + C)
         return { ...r, _form: form }
       })
@@ -233,24 +250,24 @@ function useStandings(leagueId: string) {
       const sorted = [...withForm].sort((a, b) => {
         const formDiff = b._form - a._form
         if (formDiff !== 0) return formDiff
-        const ptsDiff = ((b.ranking_points ?? b.points ?? 0) as number) - ((a.ranking_points ?? a.points ?? 0) as number)
+        const ptsDiff = ((b.ranking_points ?? 0) as number) - ((a.ranking_points ?? 0) as number)
         if (ptsDiff !== 0) return ptsDiff
-        return ((a.matches_played ?? a.played ?? 0) as number) - ((b.matches_played ?? b.played ?? 0) as number)
+        return ((a.matches_played ?? 0) as number) - ((b.matches_played ?? 0) as number)
       })
 
       return sorted.map((r, i) => {
         const gd = gdMap[r.user_id]
-        const played = (r.matches_played ?? r.played ?? 0) as number
-        const won = (r.wins ?? r.won ?? 0) as number
+        const played = (r.matches_played ?? 0) as number
+        const won = (r.wins ?? 0) as number
         return {
           id:      r.id,
           user_id: r.user_id,
           rank:    i + 1,
           played,
           won,
-          lost:    (r.losses ?? r.lost ?? 0) as number,
-          drawn:   (r.draws ?? r.drawn ?? 0) as number,
-          points:  (r.ranking_points ?? r.points ?? 0) as number,
+          lost:    (r.losses ?? 0) as number,
+          drawn:   (r.draws ?? 0) as number,
+          points:  (r.ranking_points ?? 0) as number,
           game_difference: gd ? gd.won - gd.lost : 0,
           internal_ranking: (profileMap[r.user_id]?.internal_ranking as number) ?? 1230,
           win_rate: played > 0 ? Math.round(won / played * 100) : 0,
@@ -372,7 +389,8 @@ function useLeagueTeams(leagueId: string) {
 interface JerseyEntry {
   user_id: string
   jersey_type: string
-  jersey_color: string
+  // league_jerseys.jersey_color is nullable; jersey_type is NOT NULL.
+  jersey_color: string | null
   reason_value: number | null
   awarded_week: string | null
 }
@@ -414,7 +432,9 @@ function useEntertainerRace(leagueId: string) {
     queryFn: async () => {
       const { data, error } = await supabase.rpc('get_weekly_league_vote_standings', {
         p_league_id: leagueId,
-        p_week_start: null,
+        // DEFAULT NULL in the signature: omit the key and let Postgres apply
+        // it, which is what the generated optional arg expects.
+        p_week_start: undefined,
       })
       if (error) return []
       return (data ?? []).map((r: Record<string, unknown>) => ({
@@ -599,12 +619,19 @@ function MexicanoTab({
       const today = new Date().toISOString().split('T')[0]
       const insertions = rounds.map((r) => ({
         match_date:  today,
+        // `matches.match_time` is NOT NULL with no default. This insert omitted
+        // it, so every "generate Mexicano rounds" raised a 23502 not_null
+        // violation and surfaced as a toast — the button had never once worked.
+        // 12:00:00 is the placeholder the other two fixture generators in this
+        // file already use (see the round-robin and knockout inserts below);
+        // the organiser edits the real time on each fixture afterwards.
+        match_time:  '12:00:00',
         match_type:  'competitive',
         status:      'scheduled',
         player_ids:  [...r.pair1.map((p) => p.user_id), ...r.pair2.map((p) => p.user_id)],
         league_id:   leagueId,
         notes:       'Mexicano round — auto-generated',
-        created_by:  profile?.id,
+        created_by:  profile?.id ?? null,
       }))
       const { error } = await supabase.from('matches').insert(insertions)
       if (error) throw error
@@ -1963,7 +1990,7 @@ function QuickSessionSheet({ open, onClose, standings, leagueId, linkedGroupId, 
     setGenerating(true)
     try {
       const today = format(new Date(), 'yyyy-MM-dd')
-      const matchesToCreate: Array<Record<string, unknown>> = []
+      const matchesToCreate: TableInsert<'matches'>[] = []
 
       for (let r = 0; r < effectiveRounds; r++) {
         const { pairings } = generateRoundRobinRound(playerIds, r)
@@ -2259,7 +2286,7 @@ export function LeagueDetailPage() {
         return
       }
 
-      const matchesToCreate: Record<string, unknown>[] = []
+      const matchesToCreate: TableInsert<'matches'>[] = []
 
       if (isPairs) {
         if (leagueTeams.length < 2) {
@@ -2273,12 +2300,25 @@ export function LeagueDetailPage() {
         for (const [aId, bId] of pairings) {
           const t1 = teamMap[aId]
           const t2 = teamMap[bId]
+          /**
+           * `league_teams.player1_id` and `player2_id` are both nullable, and
+           * `matches.player_ids` is `uuid[] NOT NULL` — which stops the ARRAY
+           * being null but accepts a null ELEMENT perfectly happily. An
+           * incomplete team would therefore have produced a fixture containing
+           * a null player: written without error, then broken in the standings
+           * and on the match screen, with nothing to point at the cause.
+           *
+           * Skip a pairing we already know is malformed rather than writing it.
+           */
+          const pairPlayerIds = [t1?.player1_id, t1?.player2_id, t2?.player1_id, t2?.player2_id]
+            .filter((x): x is string => !!x)
+          if (pairPlayerIds.length !== 4) continue
           matchesToCreate.push({
             match_date: today,
             match_time: '12:00:00',
             match_type: 'competitive',
             status: 'scheduled',
-            player_ids: [t1.player1_id, t1.player2_id, t2.player1_id, t2.player2_id],
+            player_ids: pairPlayerIds,
             team1_id: t1.id,
             team2_id: t2.id,
             group_id: league?.linked_group_ids?.[0] ?? null,
@@ -2375,7 +2415,7 @@ export function LeagueDetailPage() {
               )}
               <span className={cn(
                 'rounded-full border px-2 py-0.5 text-[11px] font-bold capitalize',
-                LEAGUE_STATUS_STYLE[league.status] ?? 'bg-hairline text-ink-2 border-hairline'
+                LEAGUE_STATUS_STYLE[league.status ?? 'draft'] ?? 'bg-hairline text-ink-2 border-hairline'
               )}>
                 {league.status}
               </span>
@@ -2746,7 +2786,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-ink')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id] ?? ''] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2790,7 +2830,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-ink')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id] ?? ''] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2828,7 +2868,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-ink')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id] ?? ''] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2858,7 +2898,7 @@ export function LeagueDetailPage() {
                             <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-ink')}>
                               {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                               {jerseyByUser[row.user_id] && (
-                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
+                                <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id] ?? ''] ?? ''}</button>
                               )}
                               {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                             </span>
@@ -2896,7 +2936,7 @@ export function LeagueDetailPage() {
                                 <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-ink')}>
                                   {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
-                                    <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
+                                    <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id] ?? ''] ?? ''}</button>
                                   )}
                                   {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                                 </span>
@@ -2936,7 +2976,7 @@ export function LeagueDetailPage() {
                                 <span className={cn('text-[12px] font-semibold truncate', isMe ? 'text-court' : 'text-ink')}>
                                   {row.profile?.name ?? t('league.unknown')}{isMe ? ' ★' : ''}
                                   {jerseyByUser[row.user_id] && (
-                                    <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id]] ?? ''}</button>
+                                    <button onClick={() => setShowJerseyLegend(true)} className="ml-0.5 text-[11px] leading-none">{JERSEY_EMOJI[jerseyByUser[row.user_id] ?? ''] ?? ''}</button>
                                   )}
                                   {row.win_streak >= 3 && <span className="ml-0.5 text-[11px]">🔥{row.win_streak}</span>}
                                 </span>

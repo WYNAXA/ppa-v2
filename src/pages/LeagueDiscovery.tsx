@@ -17,7 +17,13 @@ interface MyLeague {
   name: string
   match_type: string | null
   format: string | null
-  status: string
+  /**
+   * `leagues.status` is nullable in the database — it defaults to 'draft' but
+   * carries no NOT NULL. Declaring it `string` here made the useQuery overload
+   * fail, which degraded `data` to `never[]` and broke every `.map` / `.filter`
+   * downstream. Most of this page's type errors came from this one line.
+   */
+  status: string | null
   season_start: string | null
   season_end: string | null
   role: string
@@ -36,7 +42,8 @@ interface OpenLeague {
   name: string
   match_type: string | null
   format: string | null
-  status: string
+  // Nullable in the database. See the note on MyLeague.status.
+  status: string | null
   is_open_registration: boolean | null
   entry_fee_pence: number | null
   currency: string | null
@@ -83,7 +90,10 @@ export function LeagueDiscoveryPage() {
         .eq('user_id', userId)
         .eq('status', 'active')
       if (!memberships || memberships.length === 0) return []
-      const ids = memberships.map(m => m.league_id)
+      // league_members.league_id is nullable, and PostgREST's .in() takes
+      // string[] — a null in the list would be sent as the literal "null".
+      const ids = memberships.map(m => m.league_id).filter((x): x is string => !!x)
+      if (ids.length === 0) return []
       const { data: leagues } = await supabase
         .from('leagues')
         .select('id, name, match_type, format, status, season_start, season_end')
@@ -161,7 +171,11 @@ export function LeagueDiscoveryPage() {
   ]
 
   const { data: openLeagues = [] } = useQuery<OpenLeague[]>({
-    queryKey: ['open-leagues', searchQuery, leagueFilter],
+    // myLeagues is read inside the queryFn to exclude leagues you are already
+    // in, so it belongs in the key — without it the list is computed once
+    // against an empty myLeagues and never recomputed, showing leagues you
+    // have already joined.
+    queryKey: ['open-leagues', searchQuery, leagueFilter, myLeagues.map(l => l.id).join(',')],
     queryFn: async () => {
       let q = supabase
         .from('leagues')
@@ -247,8 +261,8 @@ export function LeagueDiscoveryPage() {
                           {league.format}
                         </span>
                       )}
-                      <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', STATUS_COLORS[league.status] ?? 'bg-hairline text-ink-2')}>
-                        {league.status}
+                      <span className={cn('text-[11px] font-medium px-2 py-0.5 rounded-full', STATUS_COLORS[league.status ?? 'draft'] ?? 'bg-hairline text-ink-2')}>
+                        {league.status ?? 'draft'}
                       </span>
                       {league.role === 'admin' && (
                         <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-warn-50 text-warn">Admin</span>

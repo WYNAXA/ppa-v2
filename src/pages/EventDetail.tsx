@@ -24,9 +24,11 @@ interface EventDetail {
   end_time: string | null
   location: string | null
   event_type: string | null
-  status: string
-  group_id: string
-  created_by: string
+  // events.status is nullable in the database (defaults to 'draft').
+  status: string | null
+  // events.group_id is nullable.
+  group_id: string | null
+  created_by: string | null
 }
 
 function useEvent(id: string) {
@@ -61,16 +63,20 @@ function useAttendees(eventId: string) {
         .select('user_id, status')
         .eq('event_id', eventId)
       if (!data || data.length === 0) return []
-      const ids = data.map((r) => r.user_id)
+      // event_attendees.user_id is nullable; drop nulls before .in().
+      const ids = data.map((r) => r.user_id).filter((x): x is string => !!x)
       const { data: profiles } = await supabase
         .from('profiles')
         .select('id, name, avatar_url')
         .in('id', ids)
-      return data.map((r) => ({
-        ...r,
-        status: r.status as RsvpStatus,
-        profile: profiles?.find((p) => p.id === r.user_id) ?? null,
-      }))
+      // A row with no user_id is not an attendee we can render or link to.
+      return data
+        .filter((r): r is typeof r & { user_id: string } => !!r.user_id)
+        .map((r) => ({
+          ...r,
+          status: r.status as RsvpStatus,
+          profile: profiles?.find((p) => p.id === r.user_id) ?? null,
+        }))
     },
   })
 }

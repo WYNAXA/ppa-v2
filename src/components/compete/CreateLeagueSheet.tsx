@@ -1,3 +1,4 @@
+import type { TableInsert } from '@/lib/types'
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -592,7 +593,7 @@ export function CreateLeagueSheet({ open, onClose, defaultGroupId }: CreateLeagu
       if (!user) throw new Error('Not authenticated')
 
       // Only include fields with values to avoid CHECK constraint issues
-      const payload: Record<string, unknown> = {
+      const payload: TableInsert<'leagues'> = {
         name:             form.name.trim(),
         created_by:       user.id,
         status:           'active',

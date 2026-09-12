@@ -11,6 +11,7 @@ import {
   CheckCircle, Share2, Copy, Search, X, Plus, ChevronRight,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { usableVenues } from '@/lib/venueRows'
 import { money } from '@/lib/money'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
@@ -508,11 +509,11 @@ export function BookCourtPage() {
     const startTime = selectedSlot?.start_time ?? null
     supabase.rpc('resolve_court_price', {
       p_venue_id: venueId,
-      p_court_id: selectedCourtId || null,
+      p_court_id: selectedCourtId || undefined,
       p_date: selectedDate,
-      p_start_time: startTime ? (startTime.length === 5 ? `${startTime}:00` : startTime) : null,
+      p_start_time: startTime ? (startTime.length === 5 ? `${startTime}:00` : startTime) : undefined,
       p_duration_minutes: selectedDuration,
-      p_user_id: userId || null,   // enables member pricing (discount applied server-side)
+      p_user_id: userId || undefined,   // enables member pricing (discount applied server-side)
     }).then(({ data }) => {
       const result = data as { status: string; price_pence: number | null; member_discount_pct?: number | null } | null
       if (result && result.status !== 'not_configured' && result.price_pence != null) {
@@ -720,7 +721,7 @@ export function BookCourtPage() {
       .or(`venue_name.ilike.%${debouncedVenueQuery}%,city.ilike.%${debouncedVenueQuery}%`)
       .limit(15)
       .then(({ data }) => {
-        const venues: Venue[] = data ?? []
+        const venues: Venue[] = usableVenues(data)
         const uLat = userLocation?.latitude
         const uLng = userLocation?.longitude
         if (uLat && uLng) {
@@ -966,8 +967,22 @@ export function BookCourtPage() {
         }
       })()
 
+      /**
+       * `bookings` is the TABLE (court_bookings is a view over it), and
+       * bookings.venue_id, booked_by and court_id are all NOT NULL.
+       *
+       * venue_id here comes from discoverable_venues, a VIEW — Postgres does
+       * not propagate NOT NULL through a view, so even the primary key arrives
+       * typed nullable.
+       */
+      const resolvedVenueId = selectedVenue.venues_id ?? selectedVenue.venue_id
+      if (!resolvedVenueId || !userId) {
+        console.error('[BookCourt] missing venue or user', { resolvedVenueId, userId })
+        toast.error('Something went wrong setting up the booking. Please contact support.')
+        return
+      }
       const bookingPayload = {
-        venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
+        venue_id: resolvedVenueId,
         match_id: matchId || null,
         booked_by: userId,
         start_at: startAt,
@@ -997,7 +1012,24 @@ export function BookCourtPage() {
         selectedCourtId
           ? [selectedCourtId]
           : (selectedSlot.courts?.map((c: any) => c.id).filter(Boolean) ?? [])
-      const courtAttempts = candidateCourtIds.length ? candidateCourtIds : [null]
+      /**
+       * There used to be a `: [null]` fallback here. `bookings.court_id` is NOT
+       * NULL, so that attempt could only ever raise 23502 — and it fires at the
+       * point payment has already been taken, landing the player on "Payment
+       * succeeded but the booking could not be saved." It has never fired (the
+       * one ppa_bookable venue has its courts configured), but it would the
+       * first time a bookable venue is onboarded before its courts are.
+       *
+       * Failing before the insert is not a fix for the ordering — taking payment
+       * before a court is resolved is the underlying problem and needs its own
+       * pass — but it stops us writing a row we know Postgres will reject.
+       */
+      const courtAttempts: string[] = candidateCourtIds.filter((id): id is string => id != null)
+      if (courtAttempts.length === 0) {
+        console.error('[BookCourt] no court resolved for slot', { venue: resolvedVenueId, slot: selectedSlot })
+        toast.error('This venue has no bookable court configured. Please contact support — your payment will be reversed.')
+        return
+      }
 
       let booking: any = null
       let bookingError: any = null

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, ChevronLeft, ChevronRight, Search, Check, Trophy, Handshake, Users, MapPin, UserPlus, AlertTriangle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { usableVenues } from '@/lib/venueRows'
 import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -194,8 +195,8 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)
       .then(({ data, error }) => {
-        console.log('[venue search]', debouncedQuery, { data, error })
-        if (data) setVenues(data)
+        if (error) console.error('[venue search]', debouncedQuery, error)
+        setVenues(usableVenues(data))
       })
   }, [debouncedQuery])
 
@@ -792,8 +793,17 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, d
     const guestList   = safePlayers.filter((p) => p.isGuest)
     const finalNotes  = form.notes.trim() || null
 
+    // matches.match_time is NOT NULL, and the step-2 gate
+    // (`!!form.date && !!form.time`) already makes a time mandatory before
+    // submit — so this branch is unreachable rather than optional. Assert the
+    // precondition instead of sending a null the column cannot hold.
+    if (!form.time) {
+      setError(t('create_match.time_required'))
+      setSubmitting(false)
+      return
+    }
     // match_time must be HH:MM:SS format for Postgres time column
-    const matchTime = form.time ? `${form.time.slice(0, 5)}:00` : null
+    const matchTime = `${form.time.slice(0, 5)}:00`
 
     const payload = {
       match_date:          form.date,
@@ -841,7 +851,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, d
         const { error: guestErr } = await supabase.rpc('create_match_guest_invite', {
           p_match_id: data.id,
           p_guest_name: g.name,
-          p_contact: null,
+          p_contact: undefined,
         })
         if (guestErr) console.warn('[CreateMatch] guest invite failed:', g.name, guestErr)
       }

@@ -68,6 +68,16 @@ async function runSearch(query: string): Promise<SearchResult[]> {
   const q = query.trim()
   if (q.length < 2) return []
 
+  /**
+   * PostgREST parses `or=(...)` as a comma-separated list, so a comma, paren or
+   * dot in the user's text would split the filter into garbage clauses. Strip
+   * them before interpolating. `%` and `_` are ilike wildcards — harmless here
+   * (a user typing `%` gets a broader match, not an error) but we drop them so
+   * search stays predictable.
+   */
+  const safe = q.replace(/[,().%_\\]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (safe.length < 2) return []
+
   const [players, groups, venues, matches, leagues] = await Promise.all([
     supabase
       .from('profiles')
@@ -79,22 +89,54 @@ async function runSearch(query: string): Promise<SearchResult[]> {
       .select('id, name, city')
       .ilike('name', `%${q}%`)
       .limit(4),
+    /**
+     * Venues were matched on `venue_name` only, so "BS1" returned nothing and
+     * "Bristol" found 10 of the 19 venues in the Bristol area — the ones lucky
+     * enough to carry the city in their name. Match the place fields too.
+     *
+     * Postcode lives in BOTH `postcode` and `postal_code` and the two disagree
+     * on a lot of rows; until that is consolidated we have to search both or we
+     * miss roughly half the UK estate.
+     */
     supabase
       .from('discoverable_venues')
-      .select('venue_id, venue_name, city')
-      .ilike('venue_name', `%${q}%`)
-      .limit(4),
+      .select('venue_id, venue_name, city, postcode, postal_code')
+      .eq('status', 'active')
+      // Venue results are places. Coaches have their own section and their own
+      // page; a coach in the venue list is the bug UAT reported.
+      .eq('venue_type', 'club')
+      .or(
+        [
+          `venue_name.ilike.%${safe}%`,
+          `city.ilike.%${safe}%`,
+          `postcode.ilike.${safe}%`,
+          `postal_code.ilike.${safe}%`,
+          `full_address.ilike.%${safe}%`,
+        ].join(','),
+      )
+      .limit(6),
     supabase
       .from('matches')
       .select('id, match_date, booked_venue_name, match_type')
       .or(`match_date.ilike.%${q}%,booked_venue_name.ilike.%${q}%`)
       .limit(4),
+    /**
+     * `leagues.season` does not exist — the columns are `season_start` and
+     * `season_end`. PostgREST rejected the whole select with a 400, the error
+     * was swallowed by `leagues.data ?? []`, and leagues silently never
+     * appeared in search results at all.
+     */
     supabase
       .from('leagues')
-      .select('id, name, season')
-      .ilike('name', `%${q}%`)
+      .select('id, name, city, status, season_start, season_end')
+      .ilike('name', `%${safe}%`)
       .limit(4),
   ])
+
+  // Surface what the swallowed `?? []` used to hide.
+  for (const [label, res] of Object.entries({ players, groups, venues, matches, leagues })) {
+    if (res.error) console.error(`[search] ${label} query failed:`, res.error)
+  }
 
   const results: SearchResult[] = []
 
@@ -105,7 +147,22 @@ async function runSearch(query: string): Promise<SearchResult[]> {
     results.push({ id: g.id, label: g.name, sublabel: g.city ?? 'Group', type: 'group' })
   }
   for (const v of venues.data ?? []) {
-    results.push({ id: v.venue_id, label: v.venue_name, sublabel: v.city ?? 'Venue', type: 'venue' })
+    /**
+     * discoverable_venues is a VIEW, and Postgres does not propagate NOT NULL
+     * through a view — so every column, venue_id included, is typed nullable
+     * even though the base table's primary key never is. Skip the impossible
+     * row rather than asserting it away with `!`: a result with no id would
+     * navigate to /venues/null.
+     */
+    if (!v.venue_id) continue
+    // Show where it is, so a postcode search explains why the row matched.
+    const place = [v.city, v.postcode ?? v.postal_code].filter(Boolean).join(' · ')
+    results.push({
+      id: v.venue_id,
+      label: v.venue_name ?? 'Unnamed venue',
+      sublabel: place || 'Venue',
+      type: 'venue',
+    })
   }
   for (const m of matches.data ?? []) {
     results.push({
@@ -116,7 +173,11 @@ async function runSearch(query: string): Promise<SearchResult[]> {
     })
   }
   for (const l of leagues.data ?? []) {
-    results.push({ id: l.id, label: l.name, sublabel: l.season ?? 'League', type: 'league' })
+    const year = l.season_start ? new Date(l.season_start).getFullYear() : null
+    const sub = [l.city, year ? `${year} season` : null, l.status === 'active' ? null : l.status]
+      .filter(Boolean)
+      .join(' · ')
+    results.push({ id: l.id, label: l.name, sublabel: sub || 'League', type: 'league' })
   }
 
   return results

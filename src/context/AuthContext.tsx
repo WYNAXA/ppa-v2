@@ -1,21 +1,9 @@
+import type { Profile } from '@/lib/types'
 import { createContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { unsubscribeFromPush } from '@/lib/push'
 import * as Sentry from '@sentry/react'
-
-interface Profile {
-  id: string
-  name: string
-  email: string
-  avatar_url?: string | null
-  playtomic_level?: number
-  internal_ranking?: number
-  city?: string | null
-  latitude?: number | null
-  longitude?: number | null
-  onboarding_completed_at?: string | null
-}
 
 interface AuthContextValue {
   session: Session | null

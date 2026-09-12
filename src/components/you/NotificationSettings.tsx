@@ -1,3 +1,4 @@
+import type { TableInsert } from '@/lib/types'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -81,9 +82,13 @@ export function NotificationSettings({ userId, pushEnabled }: { userId: string; 
       // Upsert rather than update: the row is created by a trigger on signup,
       // but a player predating that trigger has none and an update would
       // silently affect zero rows and report success.
+      // `key` is `keyof Prefs`, so this payload is valid by construction —
+      // TypeScript cannot narrow a computed key inside an object literal. The
+      // cast is on the payload only; the column types stay strict.
+      const patch = { user_id: userId, [key]: value } as TableInsert<'notification_preferences'>
       const { error } = await supabase
         .from('notification_preferences')
-        .upsert({ user_id: userId, [key]: value }, { onConflict: 'user_id' })
+        .upsert(patch, { onConflict: 'user_id' })
       if (error) throw error
     },
     onMutate: async ({ key, value }) => {

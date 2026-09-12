@@ -20,7 +20,7 @@ const ICON = {
       <path d="M5 9.5V21h14V9.5" />
     </>
   ),
-  people: (
+  community: (
     <>
       <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
       <circle cx="10" cy="8" r="3.5" />
@@ -71,22 +71,35 @@ type NavItem = {
   key: keyof typeof ICON
   path: string
   /**
-   * Every route that lights this tab. Compete and Leagues hang off `me`:
-   * Compete lost its tab in the redesign but is still a live route, reached
-   * from the Play sheet and from league deep links, and a tab bar with nothing
-   * lit is worse than an approximate match.
+   * Every route that lights this tab.
+   *
+   * Leagues and Compete now hang off Community, which is where they are
+   * actually reached from. They previously hung off `me` — a tab you could not
+   * reach them from — because the redesign dropped Compete's tab and left
+   * `/leagues` routed but unlinked. It was reachable only by deep link.
    */
   activePaths: string[]
 }
 
+/**
+ * The left tab is `/people` on the router but reads as "Community": it holds
+ * players, groups, events AND leagues, and "People" described only the first of
+ * those. The ROUTE is deliberately unchanged — shared links to
+ * `/people/groups/:id` are already out in the wild and renaming the path would
+ * break them. Renaming the URL is a separate change that needs redirects.
+ */
 const LEFT: NavItem[] = [
-  { key: 'today', path: '/home',      activePaths: ['/home'] },
-  { key: 'people', path: '/people', activePaths: ['/people', '/players'] },
+  { key: 'today', path: '/home', activePaths: ['/home'] },
+  {
+    key: 'community',
+    path: '/people',
+    activePaths: ['/people', '/players', '/leagues', '/compete'],
+  },
 ]
 
 const RIGHT: NavItem[] = [
   { key: 'courts', path: '/play/book-court', activePaths: ['/play/book-court', '/play/waitlist', '/venues', '/coaches'] },
-  { key: 'me',     path: '/you',             activePaths: ['/you', '/compete', '/leagues'] },
+  { key: 'me',     path: '/you',             activePaths: ['/you'] },
 ]
 
 function Tab({

@@ -66,13 +66,15 @@ interface Event {
   start_time: string
   end_time: string | null
   location: string | null
-  status: string
+  // events.status is nullable in the database (defaults to 'draft').
+  status: string | null
 }
 
 interface League {
   id: string
   name: string
-  status: string
+  // leagues.status is nullable in the database (defaults to 'draft').
+  status: string | null
   city: string | null
 }
 
@@ -986,7 +988,7 @@ function LeaguesTab({ leagues, isLoading, groupId }: {
                     <p className="text-[11px] text-ink-2 mt-0.5">{league.city}</p>
                   )}
                 </div>
-                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold flex-shrink-0 capitalize ${STATUS_STYLE[league.status] ?? 'bg-hairline text-ink-2 border-hairline'}`}>
+                <span className={`rounded-full border px-2 py-0.5 text-[11px] font-bold flex-shrink-0 capitalize ${STATUS_STYLE[league.status ?? 'draft'] ?? 'bg-hairline text-ink-2 border-hairline'}`}>
                   {league.status}
                 </span>
               </div>

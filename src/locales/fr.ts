@@ -32,6 +32,8 @@ export default {
     "play": "Jouer",
     "compete": "Compétition",
     "people": "Personnes",
+    "community": "Communauté",
+    "leagues": "Ligues",
     "you": "Vous"
   },
   "courts": {
@@ -60,6 +62,7 @@ export default {
     "indoor": "Int\u00e9rieur",
     "outdoor": "Ext\u00e9rieur",
     "n_courts": "{{count}} terrains",
+    "courts_unconfirmed": "terrains non confirmés",
   },
   "club": {
     "ask": "Demander",
@@ -236,6 +239,7 @@ export default {
     "counter_submitted": "Contre-proposition envoyée",
     "submit_counter": "Envoyer la contre-proposition",
     "accept_failed": "Échec de l'acceptation",
+    "no_score_proposed": "Aucun score proposé",
     "proposal_accepted": "Proposition acceptée",
     "accept": "Accepter",
     "counter": "Contre-proposer",
@@ -681,6 +685,9 @@ export default {
     "decline": "Refuser",
     "requests_count": "Demandes ({{count}})",
     "my_connections_subtitle": "Les joueurs avec qui vous jouez régulièrement",
+    "my_leagues": "Mes ligues",
+    "my_leagues_subtitle": "Classements et saisons où vous jouez",
+    "my_leagues_empty": "Trouvez une ligue près de chez vous",
     "filter_welcomes_ringers": "Accueille les remplaçants",
     "offer_ringer": "Proposer d'être remplaçant",
     "offering": "Envoi…",
@@ -1076,6 +1083,7 @@ export default {
     "creating": "Création…",
     "conflict_title": "Vous avez déjà un match ce jour-là",
     "conflict_at": "Il y a un match à",
+    "time_required": "Choisissez une heure avant de créer le match",
     "conflict_date": "Un match est déjà prévu à cette date",
     "conflict_anyway": "En créer un autre quand même ?",
     "create_anyway": "Créer quand même",

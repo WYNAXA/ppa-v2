@@ -27,7 +27,8 @@ interface RankedProfile {
 interface MyLeague {
   id: string
   name: string
-  status: string
+  // leagues.status is nullable (defaults to 'draft', no NOT NULL).
+  status: string | null
   match_type: string | null
   city: string | null
   role: string
@@ -141,7 +142,8 @@ function useAchievementCount(userId: string) {
 }
 
 function useMyBadges(userId: string) {
-  return useQuery<Array<{ id: string; badge_key: string; earned_at: string }>>({
+  // earned_at is nullable in the database; see the note in You.tsx.
+  return useQuery<Array<{ id: string; badge_key: string; earned_at: string | null }>>({
     queryKey: ['my-badges-compete', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -239,7 +241,10 @@ function useMyLeagues(userId: string) {
         .eq('status', 'active')
 
       if (!memberships || memberships.length === 0) return []
-      const leagueIds = memberships.map((m) => m.league_id)
+      // league_members.league_id is nullable; PostgREST's .in() takes string[]
+      // and would send a null as the literal "null".
+      const leagueIds = memberships.map((m) => m.league_id).filter((x): x is string => !!x)
+      if (leagueIds.length === 0) return []
 
       const [{ data: leagues }, { data: allStandings }] = await Promise.all([
         supabase
@@ -305,7 +310,9 @@ function RankingCard({
   isLoading,
   achievementCount,
 }: {
-  profile: { name: string; avatar_url?: string | null; internal_ranking?: number } | null
+  // internal_ranking is nullable on profiles; the shared Profile type now
+  // says so, and this prop has to accept it.
+  profile: { name: string; avatar_url?: string | null; internal_ranking?: number | null } | null
   stats:   MyStats | undefined
   isLoading: boolean
   achievementCount: number
@@ -524,7 +531,7 @@ function LeagueCard({ league, index }: { league: MyLeague; index: number }) {
         <div className="flex items-center gap-2 flex-shrink-0">
           <span className={cn(
             'rounded-full border px-2 py-0.5 text-[11px] font-bold capitalize',
-            STATUS_STYLE[league.status] ?? 'bg-hairline text-ink-2 border-hairline'
+            STATUS_STYLE[league.status ?? 'draft'] ?? 'bg-hairline text-ink-2 border-hairline'
           )}>
             {league.status}
           </span>
@@ -564,7 +571,7 @@ export function CompetePage() {
   const [selectedGroupId, setSelectedGroupId]     = useState('')
   const myRowRef = useRef<HTMLDivElement>(null)
 
-  const { data: stats,            isLoading: loadingStats    } = useMyStats(userId, profile?.internal_ranking)
+  const { data: stats,            isLoading: loadingStats    } = useMyStats(userId, profile?.internal_ranking ?? undefined)
   const { data: achievementCount = 0 }                        = useAchievementCount(userId)
   const { data: myBadges = [] }                               = useMyBadges(userId)
   const { data: userGroups = [] }                              = useUserGroups(userId)

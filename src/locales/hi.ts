@@ -32,6 +32,8 @@ export default {
     "play": "खेलें",
     "compete": "प्रतिस्पर्धा",
     "people": "लोग",
+    "community": "समुदाय",
+    "leagues": "लीग",
     "you": "आप"
   },
   "courts": {
@@ -60,6 +62,7 @@ export default {
     "indoor": "\u0907\u0928\u0921\u094b\u0930",
     "outdoor": "\u0906\u0909\u091f\u0921\u094b\u0930",
     "n_courts": "{{count}} \u0915\u094b\u0930\u094d\u091f",
+    "courts_unconfirmed": "कोर्ट की पुष्टि नहीं",
   },
   "club": {
     "ask": "\u092a\u0942\u091b\u0947\u0902",
@@ -236,6 +239,7 @@ export default {
     "counter_submitted": "प्रति-प्रस्ताव भेजा गया",
     "submit_counter": "प्रति-प्रस्ताव भेजें",
     "accept_failed": "स्वीकार करने में विफल",
+    "no_score_proposed": "कोई स्कोर प्रस्तावित नहीं",
     "proposal_accepted": "प्रस्ताव स्वीकार किया गया",
     "accept": "स्वीकार करें",
     "counter": "प्रति-प्रस्ताव",
@@ -681,6 +685,9 @@ export default {
     "decline": "अस्वीकार करें",
     "requests_count": "अनुरोध ({{count}})",
     "my_connections_subtitle": "जिन खिलाड़ियों के साथ आप नियमित रूप से खेलते हैं",
+    "my_leagues": "मेरी लीग",
+    "my_leagues_subtitle": "लैडर और सीज़न जिनमें आप खेल रहे हैं",
+    "my_leagues_empty": "अपने पास एक लीग खोजें",
     "filter_welcomes_ringers": "रिंगर का स्वागत है",
     "offer_ringer": "रिंगर बनने की पेशकश करें",
     "offering": "पेशकश कर रहे हैं…",
@@ -1076,6 +1083,7 @@ export default {
     "creating": "बना रहे हैं…",
     "conflict_title": "इस दिन आपका पहले से एक मैच है",
     "conflict_at": "एक मैच है",
+    "time_required": "मैच बनाने से पहले समय चुनें",
     "conflict_date": "इस तारीख को पहले से एक मैच शेड्यूल है",
     "conflict_anyway": "फिर भी एक और बनाएं?",
     "create_anyway": "फिर भी बनाएं",

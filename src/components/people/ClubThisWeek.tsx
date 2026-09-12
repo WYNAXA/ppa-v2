@@ -78,6 +78,9 @@ function useClubWeek(groupId: string | null, userId: string) {
     enabled: !!groupId,
     staleTime: 30_000,
     queryFn: async () => {
+      // Gated by `enabled: !!groupId` above. Return the declared empty shape,
+      // not null — the query's type is { short: ShortMatch[] }.
+      if (!groupId) return { short: [] }
       const today = new Date().toISOString().split('T')[0]
       const weekEnd = format(addDays(new Date(), 14), 'yyyy-MM-dd', { locale: getDateLocale() })
 

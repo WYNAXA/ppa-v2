@@ -33,8 +33,13 @@ interface CourtBooking {
   id: string
   booking_reference: string
   venue_id: string
-  match_date: string
-  start_time: string
+  /**
+   * court_bookings stores ONE timestamptz, `start_at`. There is no `match_date`
+   * column and no `start_time` column. Selecting them made PostgREST reject the
+   * entire request with a 400, which `if (bErr || !b)` then rendered as
+   * "Booking not found." — so every split-payment link led to that message.
+   */
+  start_at: string
   duration_minutes: number | null
   player_ids: string[] | null
   guest_players: GuestPlayer[] | null
@@ -232,6 +237,10 @@ export function PayBookingPage() {
       setLoading(false)
       return
     }
+    // Narrowed above, but `load` is a nested function so TypeScript cannot carry
+    // that through. Capture the values rather than re-asserting with `!`.
+    const theBookingId: string = bookingId
+    const thePlayerId: string = playerId
 
     async function load() {
       try {
@@ -239,12 +248,26 @@ export function PayBookingPage() {
         const { data: b, error: bErr } = await supabase
           .from('court_bookings')
           .select(
-            'id, booking_reference, venue_id, match_date, start_time, duration_minutes, player_ids, guest_players, paid_player_ids, price_per_player_pence, price_currency'
+            'id, booking_reference, venue_id, start_at, duration_minutes, player_ids, guest_players, paid_player_ids, price_per_player_pence, price_currency'
           )
-          .eq('id', bookingId)
+          .eq('id', theBookingId)
           .single()
 
-        if (bErr || !b) {
+        /**
+         * A failed QUERY and a missing ROW are different problems and must not
+         * report as the same thing. Collapsing them into "Booking not found."
+         * is what hid the invalid `match_date` / `start_time` select: the
+         * request was 400-ing on every single booking and the page calmly said
+         * the booking did not exist. Log the real error; only call it
+         * not-found when the row genuinely is not there.
+         */
+        if (bErr) {
+          console.error('[PayBooking] court_bookings query failed:', bErr)
+          setError('We could not load this booking. Please try again, or contact the venue.')
+          setLoading(false)
+          return
+        }
+        if (!b) {
           setError('Booking not found.')
           setLoading(false)
           return
@@ -271,7 +294,7 @@ export function PayBookingPage() {
           const { data: profile } = await supabase
             .from('profiles')
             .select('name')
-            .eq('id', playerId)
+            .eq('id', thePlayerId)
             .single()
           resolvedName = profile?.name ?? 'Player'
           resolvedIsGuest = false
@@ -329,11 +352,15 @@ export function PayBookingPage() {
         setSelectedIds(new Set([playerId!]))
 
         // 5. Fetch venue
-        const { data: v } = await supabase
-          .from('padel_venues')
-          .select('venue_id, venue_name, city, full_address')
-          .eq('venues_id', b.venue_id)
-          .single()
+        // court_bookings.venue_id is nullable. No venue means nothing to
+        // render in the venue row, not a reason to query for `null`.
+        const { data: v } = b.venue_id
+          ? await supabase
+              .from('padel_venues')
+              .select('venue_id, venue_name, city, full_address')
+              .eq('venues_id', b.venue_id)
+              .single()
+          : { data: null }
 
         setVenue(v as PadelVenue | null)
         setLoading(false)
@@ -373,8 +400,12 @@ export function PayBookingPage() {
           player_id: playerId,
           booking_id: bookingId,
           venue_name: venue?.venue_name ?? 'Padel Court',
-          match_date: booking.match_date,
-          start_time: booking.start_time,
+          // The edge function takes these for Stripe metadata only — with a
+          // booking_id present the amount is derived server-side from the
+          // booking row — so the payload shape is kept exactly as it was and
+          // the two fields are derived from start_at.
+          match_date: format(parseISO(booking.start_at), 'yyyy-MM-dd'),
+          start_time: format(parseISO(booking.start_at), 'HH:mm'),
           ...(isGuest ? { guest_name: playerName } : {}),
         }),
       })
@@ -459,9 +490,12 @@ export function PayBookingPage() {
 
   if (!booking) return null
 
-  // ── Format date ──
+  // ── Format date & time from the single start_at timestamp ──
   const dateFormatted = (() => {
-    try { return format(parseISO(booking.match_date), 'EEEE d MMMM yyyy', { locale: getDateLocale() }) } catch { return booking.match_date }
+    try { return format(parseISO(booking.start_at), 'EEEE d MMMM yyyy', { locale: getDateLocale() }) } catch { return booking.start_at }
+  })()
+  const timeFormatted = (() => {
+    try { return format(parseISO(booking.start_at), 'HH:mm') } catch { return '' }
   })()
 
   return (
@@ -490,7 +524,7 @@ export function PayBookingPage() {
             </div>
             <div className="flex items-start justify-between gap-3">
               <span className="text-[13px] text-ink-2 flex-shrink-0">Time</span>
-              <span className="text-[13px] font-semibold text-ink">{booking.start_time}</span>
+              <span className="text-[13px] font-semibold text-ink">{timeFormatted}</span>
             </div>
             {booking.booking_reference && (
               <div className="flex items-start justify-between gap-3">

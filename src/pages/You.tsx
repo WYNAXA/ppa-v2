@@ -60,7 +60,9 @@ interface MatchHistoryItem {
 interface Achievement {
   id: string
   badge_key: string
-  earned_at: string
+  // Nullable in the database. Declaring it `string` broke the useQuery
+  // overload, which degraded `data` to never[] across this whole file.
+  earned_at: string | null
   tier: string | null
 }
 
@@ -1323,7 +1325,8 @@ export function YouPage() {
                     <p className="text-[24px] leading-none mb-1">{meta.emoji}</p>
                     <p className="text-[11px] font-semibold text-ink-2 leading-tight">{meta.label}</p>
                     <p className="text-[11px] text-ink-2 mt-0.5">
-                      {(() => { try { return format(parseISO(a.earned_at), 'd MMM', { locale }) } catch { return '' } })()}
+                      {(() => { if (!a.earned_at) return ''
+                        try { return format(parseISO(a.earned_at), 'd MMM', { locale }) } catch { return '' } })()}
                     </p>
                   </div>
                 )
@@ -1470,11 +1473,11 @@ export function YouPage() {
             </div>
 
             {/* Privacy settings */}
-            {[
-              { key: 'show_email',     tKey: 'you.show_email' },
-              { key: 'show_location',  tKey: 'you.show_location' },
-              { key: 'public_history', tKey: 'you.public_history' },
-            ].map(({ key, tKey }) => {
+            {([
+              { key: 'show_email' as const,     tKey: 'you.show_email' },
+              { key: 'show_location' as const,  tKey: 'you.show_location' },
+              { key: 'public_history' as const, tKey: 'you.public_history' },
+            ] satisfies { key: 'show_email' | 'show_location' | 'public_history'; tKey: string }[]).map(({ key, tKey }) => {
               const label = t(tKey)
               const currentVal = !!(fullProfile as any)?.[key]
               return (
@@ -1486,7 +1489,11 @@ export function YouPage() {
                     label={label}
                     onChange={async () => {
                       setSavingPrivacy(key)
-                      const { error } = await supabase.from('profiles').update({ [key]: !currentVal }).eq('id', userId)
+                      const patch =
+                        key === 'show_email'     ? { show_email: !currentVal } :
+                        key === 'show_location'  ? { show_location: !currentVal } :
+                                                   { public_history: !currentVal }
+                      const { error } = await supabase.from('profiles').update(patch).eq('id', userId)
                       setSavingPrivacy(null)
                       if (error) {
                         toast.error('Failed to update setting')

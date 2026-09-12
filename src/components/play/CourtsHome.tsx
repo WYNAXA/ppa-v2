@@ -41,7 +41,14 @@ type Venue = {
   outdoor: boolean
   lat: number | null
   lng: number | null
+  /** Confirmed court count, or null when the directory has none. */
   courts: number | null
+  /**
+   * Whether the court count is known at all. 5,816 of 6,099 directory rows have
+   * zero across every court column, and `courts: 0` rendered as "0 courts" —
+   * which reads as "this venue has no courts" rather than "we don't know".
+   */
+  courtsConfirmed: boolean
   distanceMiles: number | null
   pricePence: number | null
   bookable: boolean
@@ -94,22 +101,54 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
     queryKey: ['courts-home', lat, lng],
     staleTime: 5 * 60_000,
     queryFn: async () => {
-      const [{ data: bookable }, { data: nearby }, { count }] = await Promise.all([
-        // All three read discoverable_venues, not padel_venues. These are the lists a
-        // player picks from and the count shown beside them; a closed venue belongs in
-        // none of them, and a count that includes closed rows cannot match the list.
+      const hasLocation = lat != null && lng != null
+
+      /**
+       * "Also near you" used to be `.not('ppa_bookable','is',true).limit(200)`
+       * with NO geo filter and no ordering — 200 arbitrary rows out of 6,099,
+       * sorted by distance afterwards. Measured from Bristol, those 200 rows
+       * held 3 of the city's 16 venues and 67 Spanish ones. The list was not
+       * "near you" in any sense; it was whatever Postgres returned first.
+       *
+       * `venues_near` does the haversine, the radius and the ordering in the
+       * database, and filters to venue_type='club' so coaches stop appearing
+       * among venues. Without coordinates there is no "near", so that path
+       * falls back to an unordered directory slice — still club-only.
+       */
+      const [{ data: bookable }, othersRes, { count }] = await Promise.all([
+        // Partner venues are few and must show regardless of distance, so this
+        // one stays a plain directory read.
         supabase
           .from('discoverable_venues')
-          .select('venue_id, venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
+          .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
           .eq('ppa_bookable', true)
+          .eq('venue_type', 'club')
           .limit(20),
+        hasLocation
+          ? supabase.rpc('venues_near', {
+              p_lat: lat,
+              p_lng: lng,
+              p_radius_miles: 60,
+              p_limit: 200,
+              p_venue_type: 'club',
+            })
+          : supabase
+              .from('discoverable_venues')
+              .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
+              .not('ppa_bookable', 'is', true)
+              .eq('venue_type', 'club')
+              .limit(200),
         supabase
           .from('discoverable_venues')
-          .select('venue_id, venues_id, venue_name, city, indoor_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
-          .not('ppa_bookable', 'is', true)
-          .limit(200),
-        supabase.from('discoverable_venues').select('venues_id', { count: 'exact', head: true }),
+          .select('venue_id', { count: 'exact', head: true })
+          .eq('venue_type', 'club'),
       ])
+
+      if (othersRes.error) throw othersRes.error
+      // venues_near does not filter on ppa_bookable, so drop the partner rows
+      // here rather than listing them twice.
+      const nearby = ((othersRes.data ?? []) as Record<string, unknown>[])
+        .filter((v) => v.ppa_bookable !== true)
 
       // Which of these are already on Padel Players. Only a handful of the
       // 6,099 directory rows carry a `venues_id` at all, so this is one small
@@ -128,6 +167,18 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
       const shape = (v: Record<string, unknown>): Venue => {
         const vLat = v.latitude != null ? Number(v.latitude) : null
         const vLng = v.longitude != null ? Number(v.longitude) : null
+        // A court count is only real if some column carries a number. Treating
+        // 0 as a count is what produced "0 courts" on 95% of the directory.
+        const breakdown =
+          ((v.indoor_courts as number) ?? 0) +
+          ((v.outdoor_courts as number) ?? 0) +
+          ((v.covered_courts as number) ?? 0)
+        const confirmed =
+          breakdown > 0
+            ? breakdown
+            : ((v.number_of_courts as number) ?? 0) > 0
+              ? (v.number_of_courts as number)
+              : null
         return {
           id: v.venue_id as string,
           bookingId: (v.venues_id as string) ?? (v.venue_id as string),
@@ -135,14 +186,21 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
           name: (v.venue_name as string) ?? '—',
           city: (v.city as string) ?? null,
           indoor: ((v.indoor_courts as number) ?? 0) > 0,
-          outdoor: ((v.number_of_courts as number) ?? 0) > ((v.indoor_courts as number) ?? 0),
+          outdoor:
+            ((v.outdoor_courts as number) ?? 0) > 0 ||
+            ((v.number_of_courts as number) ?? 0) > ((v.indoor_courts as number) ?? 0),
           lat: vLat,
           lng: vLng,
-          courts: (v.number_of_courts as number) ?? null,
+          courts: confirmed,
+          courtsConfirmed: confirmed != null,
+          // venues_near computes distance in Postgres; only fall back to the
+          // client haversine on the no-coordinates directory path.
           distanceMiles:
-            lat != null && lng != null && vLat != null && vLng != null
-              ? haversineMiles(lat, lng, vLat, vLng)
-              : null,
+            v.distance_miles != null
+              ? Number(v.distance_miles)
+              : lat != null && lng != null && vLat != null && vLng != null
+                ? haversineMiles(lat, lng, vLat, vLng)
+                : null,
           pricePence: (v.price_pence as number) ?? ((v.price_per_hour as number) ?? null),
           bookable: v.ppa_bookable === true,
           onPpa: v.ppa_bookable === true || (!!v.venues_id && onPpaIds.has(v.venues_id as string)),
@@ -157,7 +215,7 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
       // rows that happened to be nearest, which is a filter that lies.
       return {
         partner: (bookable ?? []).map(shape).sort(byDistance),
-        others: (nearby ?? []).map(shape).sort(byDistance),
+        others: nearby.map(shape).sort(byDistance),
         total: count ?? 0,
       }
     },
@@ -239,7 +297,9 @@ export function CourtsHome({
     [
       v.city,
       v.indoor ? t('courts.indoor') : t('courts.outdoor'),
-      v.courts != null ? t('courts.n_courts', { count: v.courts }) : null,
+      v.courtsConfirmed && v.courts != null
+        ? t('courts.n_courts', { count: v.courts })
+        : t('courts.courts_unconfirmed'),
       v.distanceMiles != null ? formatDistance(v.distanceMiles) : null,
     ].filter(Boolean).join(' · ')
 

@@ -51,7 +51,15 @@ async function fetchAvailabilityHome(userId: string) {
 
   if (pollsErr) console.error('[availability] polls:', pollsErr)
 
-  const pollList = (polls ?? []) as Poll[]
+  /**
+   * `polls.time_slots` is jsonb, so it arrives as `Json` — a string or a number
+   * would satisfy the column just as well as the PollSlot[] this page needs.
+   * Narrow at the boundary rather than casting the whole row and hoping.
+   */
+  const pollList: Poll[] = (polls ?? []).map((p) => ({
+    ...p,
+    time_slots: Array.isArray(p.time_slots) ? (p.time_slots as unknown as PollSlot[]) : [],
+  })) as unknown as Poll[]
   const pollIds = pollList.map((p) => p.id)
   if (pollIds.length === 0) return { polls: [] as Poll[], responseCounts: {}, myResponses: [] }
 

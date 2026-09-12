@@ -42,6 +42,16 @@ interface PollAdminViewProps {
   onRefetch: () => void
 }
 
+/**
+ * The shape this component works with.
+ *
+ * `selected_slots`, `additional_responses`, `flexible_times` and
+ * `availability_ranges` are all jsonb on `poll_responses`, so Postgres hands
+ * them over as `Json` — which could be a string, a number or null just as
+ * easily as the object each one is expected to be. The interface below states
+ * what this component needs; `toResponse` at the fetch boundary is what makes
+ * that true, by checking each jsonb value rather than asserting it.
+ */
 interface ResponseWithProfile {
   user_id: string
   selected_slots: string[] | null
@@ -50,6 +60,16 @@ interface ResponseWithProfile {
   availability_ranges: Record<string, { start: string; end: string }[]> | null
   submitted_at: string | null
   profile: { id: string; name: string; avatar_url: string | null } | undefined
+}
+
+/** A jsonb value that really is a plain object, or null. */
+function asRecord<T>(v: unknown): T | null {
+  return v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as T) : null
+}
+
+/** A jsonb value that really is an array of strings, or null. */
+function asStringArray(v: unknown): string[] | null {
+  return Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : null
 }
 
 // ── Countdown Timer ─────────────────────────────────────────────────────────
@@ -227,7 +247,16 @@ export function PollAdminView({
         ? await supabase.from('profiles').select('id, name, avatar_url').in('id', userIds)
         : { data: [] as any[] }
       const profileMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p]))
-      return (data ?? []).map((r) => ({ ...r, profile: profileMap[r.user_id] }))
+      // jsonb -> typed, once, here. See the note on ResponseWithProfile.
+      return (data ?? []).map((r): ResponseWithProfile => ({
+        user_id: r.user_id,
+        selected_slots: asStringArray(r.selected_slots),
+        additional_responses: asRecord<Record<string, boolean>>(r.additional_responses),
+        flexible_times: asRecord<Record<string, any>>(r.flexible_times),
+        availability_ranges: asRecord<Record<string, { start: string; end: string }[]>>(r.availability_ranges),
+        submitted_at: r.submitted_at,
+        profile: profileMap[r.user_id],
+      }))
     },
   })
 
@@ -260,7 +289,7 @@ export function PollAdminView({
           const ranges = r.availability_ranges
           return ranges && typeof ranges === 'object' && Object.keys(ranges).length > 0
         }
-        const slots = Array.isArray(r.selected_slots) ? r.selected_slots : []
+        const slots = r.selected_slots ?? []
         const hasFlex = r.flexible_times && Object.keys(r.flexible_times).length > 0
         return slots.length > 0 || hasFlex
       }),
@@ -274,7 +303,7 @@ export function PollAdminView({
           const ranges = r.availability_ranges
           return !ranges || typeof ranges !== 'object' || Object.keys(ranges).length === 0
         }
-        const slots = Array.isArray(r.selected_slots) ? r.selected_slots : []
+        const slots = r.selected_slots ?? []
         const hasFlex = r.flexible_times && Object.keys(r.flexible_times).length > 0
         return slots.length === 0 && !hasFlex
       }),

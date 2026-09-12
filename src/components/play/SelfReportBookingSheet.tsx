@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Search, MapPin } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { usableVenues } from '@/lib/venueRows'
 
 interface Venue { venue_id: string; venue_name: string; city?: string | null }
 
@@ -45,7 +46,7 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
       .select('venue_id, venue_name, city')
       .or(`venue_name.ilike.%${debouncedQuery}%,city.ilike.%${debouncedQuery}%`)
       .limit(5)
-      .then(({ data }) => setVenueResults(data ?? []))
+      .then(({ data }) => setVenueResults(usableVenues(data)))
   }, [debouncedQuery])
 
   // Reset on close
@@ -77,11 +78,24 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
     setError(null)
     const { error: rpcErr } = await supabase.rpc('self_report_booking', {
       p_match_id: matchId,
-      p_venue_id: venueId,
+      /**
+       * Manual mode reports a venue by NAME with no id, so `venueId` is null —
+       * and that is correct: the function body only does
+       * `booked_venue_id = p_venue_id::text` into a nullable column.
+       *
+       * `p_venue_id uuid` carries no DEFAULT, so it is a required argument, and
+       * Supabase's generator types a required argument as non-null. It cannot
+       * express "required, but accepts NULL". Casting this single value keeps
+       * the correct runtime behaviour; changing the behaviour to satisfy the
+       * generator would break manual mode.
+       */
+      p_venue_id: venueId as unknown as string,
       p_venue_name: venueName.trim(),
-      p_court_number: courtNumber ? parseInt(courtNumber) || null : null,
-      p_booking_reference: bookingRef.trim() || null,
-      p_total_cost_pence: totalPence,
+      // These three DO carry DEFAULT NULL, so undefined omits the key and lets
+      // Postgres apply it.
+      p_court_number: courtNumber ? parseInt(courtNumber) || undefined : undefined,
+      p_booking_reference: bookingRef.trim() || undefined,
+      p_total_cost_pence: totalPence ?? undefined,
     })
     setSubmitting(false)
     if (rpcErr) {

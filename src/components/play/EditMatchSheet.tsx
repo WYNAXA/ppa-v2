@@ -4,6 +4,7 @@ import { X, MapPin, Search, Users, UserPlus, UserRound } from 'lucide-react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
+import { usableVenues } from '@/lib/venueRows'
 import { useAuth } from '@/hooks/useAuth'
 import { shareMatchInvite, pickContact, isContactPickerSupported } from '@/lib/invites'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
@@ -152,7 +153,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       .select('venue_id, venue_name, city')
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)
-      .then(({ data }) => { if (data) setVenues(data) })
+      .then(({ data }) => setVenues(usableVenues(data)))
   }, [debouncedQuery])
 
   // Courts for selected venue
@@ -184,7 +185,11 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
         .from('matches')
         .update({
           match_date:          date,
-          match_time:          time || null,
+          // `matches.match_time` is NOT NULL with no default, so clearing the
+          // time field and sending null made this update fail with a 23502.
+          // undefined omits the key, leaving the existing time in place —
+          // which is the only sane outcome for a column that cannot be null.
+          match_time:          time || undefined,
           match_type:          matchType,
           booked_venue_name:   selectedVenue?.venue_name ?? null,
           booked_court_number: resolvedCourtNumber,
@@ -214,8 +219,8 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       const { data, error } = await supabase.rpc('create_match_guest_invite', {
         p_match_id: match.id,
         p_guest_name: name,
-        p_contact: guestContact.trim() || null,
-        p_replace_player_id: replacePid,
+        p_contact: guestContact.trim() || undefined,
+        p_replace_player_id: replacePid ?? undefined,
       })
       if (error) throw error
       return { ...(data as { token?: string; slot?: string }), idx: replacingIdx, name, isAdd }

@@ -1,3 +1,4 @@
+import type { TableUpdate } from '@/lib/types'
 import { useState, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -70,7 +71,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
     mutationFn: async (player: PlayerResult) => {
       const newPlayerIds = [...currentPlayerIds, player.id]
       const willBeFull = newPlayerIds.length >= 4
-      const updates: Record<string, any> = { player_ids: newPlayerIds }
+      const updates: TableUpdate<'matches'> = { player_ids: newPlayerIds }
       if (willBeFull) {
         updates.is_open = false
         updates.open_elo_min = null
@@ -107,7 +108,7 @@ export function InvitePlayerSheet({ open, onClose, matchId, currentPlayerIds }: 
       const { data, error } = await supabase.rpc('create_match_guest_invite', {
         p_match_id: matchId,
         p_guest_name: name,
-        p_contact: guestContact.trim() || null,
+        p_contact: guestContact.trim() || undefined,
       })
       if (error) throw error
       return (data as { token?: string })?.token ?? null

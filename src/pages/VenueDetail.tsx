@@ -13,7 +13,6 @@ import { venueClaimUrl } from '@/lib/admin'
 import { money, currencySymbolFor } from '@/lib/money'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { cn } from '@/lib/utils'
-import { calculateDistance } from '@/lib/travelUtils'
 import { goBack } from '@/lib/navigation'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -126,6 +125,7 @@ export function VenueDetailPage() {
     queryKey: ['venue-detail', venueId],
     enabled: !!venueId,
     queryFn: async () => {
+      if (!venueId) return null
       const { data } = await supabase.from('padel_venues').select('*').eq('venue_id', venueId).single()
       return data
     },
@@ -176,25 +176,33 @@ export function VenueDetailPage() {
     },
   })
 
+  /**
+   * Nearby venues, by actual distance from THIS venue.
+   *
+   * This used to select 10 arbitrary rows from `discoverable_venues` with no
+   * geo filter and no ordering, then "sort" them client-side on `latitude` /
+   * `longitude` — which were never in the select list. Every distance came out
+   * `Infinity`, the comparator returned `NaN`, and the sort was a no-op, so the
+   * section showed whichever rows Postgres happened to return first. On an
+   * Ireland-weighted table that meant Dublin, from anywhere in the world.
+   *
+   * `venues_near` does the haversine in Postgres, filters to `status='active'`
+   * and orders by real distance. Radius is generous (60mi) so sparse regions
+   * still show something; we take the closest 3.
+   */
   const { data: nearbyVenues = [] } = useQuery({
     queryKey: ['nearby-venues', venueId, venue?.latitude, venue?.longitude],
-    enabled: !!venue?.latitude && !!venue?.longitude,
+    enabled: venue?.latitude != null && venue?.longitude != null,
     queryFn: async () => {
-      const { data } = await supabase
-        .from('discoverable_venues')
-        .select('venue_id, venue_name, city, indoor_courts, outdoor_courts, rating, ppa_bookable, photos')
-        .neq('venue_id', venueId!)
-        .limit(10)
+      const { data, error } = await supabase.rpc('venues_near', {
+        p_lat: Number(venue!.latitude),
+        p_lng: Number(venue!.longitude),
+        p_radius_miles: 60,
+        p_limit: 4, // 4 so we still have 3 after dropping this venue
+      })
+      if (error) throw error
       return (data ?? [])
-        .sort((a: any, b: any) => {
-          const dA = a.latitude && a.longitude
-            ? calculateDistance(venue!.latitude, venue!.longitude, a.latitude, a.longitude)
-            : Infinity
-          const dB = b.latitude && b.longitude
-            ? calculateDistance(venue!.latitude, venue!.longitude, b.latitude, b.longitude)
-            : Infinity
-          return dA - dB
-        })
+        .filter((v: any) => v.venue_id !== venueId)
         .slice(0, 3)
     },
   })
@@ -271,7 +279,12 @@ export function VenueDetailPage() {
       const ids = list.map((l: any) => l.id)
       const { data: m } = await supabase.from('league_members').select('league_id').in('league_id', ids).eq('status', 'active')
       const counts = new Map<string, number>()
-      for (const r of m ?? []) counts.set(r.league_id, (counts.get(r.league_id) ?? 0) + 1)
+      // league_members.league_id is nullable; a null key would collide all
+      // null-league rows into one bogus bucket.
+      for (const r of m ?? []) {
+        if (!r.league_id) continue
+        counts.set(r.league_id, (counts.get(r.league_id) ?? 0) + 1)
+      }
       return list.map((l: any) => ({ ...l, participants: counts.get(l.id) ?? 0 }))
     },
   })
@@ -333,7 +346,7 @@ export function VenueDetailPage() {
     >
       {/* 1. Hero */}
       <div className="relative h-56 overflow-hidden">
-        {venue.photos?.[0] ? (
+        {Array.isArray(venue.photos) && venue.photos[0] ? (
           <img
             src={(venue.photos as string[])[0]}
             alt={venue.venue_name}
@@ -495,19 +508,19 @@ export function VenueDetailPage() {
         <section className="px-5 mt-6">
           <h2 className="text-base font-semibold text-ink mb-3">Courts</h2>
           <div className="grid grid-cols-3 gap-2">
-            {venue.indoor_courts > 0 && (
+            {(venue.indoor_courts ?? 0) > 0 && (
               <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                 <div className="text-xl">{'\u{1F3E0}'}</div>
                 <div className="text-sm font-medium mt-1">{venue.indoor_courts} Indoor</div>
               </div>
             )}
-            {venue.outdoor_courts > 0 && (
+            {(venue.outdoor_courts ?? 0) > 0 && (
               <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                 <div className="text-xl">{'\u2600\uFE0F'}</div>
                 <div className="text-sm font-medium mt-1">{venue.outdoor_courts} Outdoor</div>
               </div>
             )}
-            {venue.covered_courts > 0 && (
+            {(venue.covered_courts ?? 0) > 0 && (
               <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                 <div className="text-xl">{'\u26FA'}</div>
                 <div className="text-sm font-medium mt-1">{venue.covered_courts} Covered</div>
@@ -519,7 +532,7 @@ export function VenueDetailPage() {
               Surface: <span className="capitalize">{venue.surface_type.replace(/_/g, ' ')}</span>
             </p>
           )}
-          {venue.singles_courts > 0 && (
+          {(venue.singles_courts ?? 0) > 0 && (
             <p className="text-sm text-court mt-1">Singles courts available</p>
           )}
         </section>
@@ -798,7 +811,14 @@ export function VenueDetailPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-ink truncate">{v.venue_name}</p>
-                  <p className="text-xs text-ink-2">{v.city}</p>
+                  <p className="text-xs text-ink-2 truncate">
+                    {v.city}
+                    {v.distance_miles != null && (
+                      <> &middot; {v.distance_miles < 10
+                        ? v.distance_miles.toFixed(1)
+                        : Math.round(v.distance_miles)} mi</>
+                    )}
+                  </p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-xs text-ink-2">
                       {(v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0)} courts

@@ -16,12 +16,19 @@ export async function checkSelfConflict(
   matchTime: string | null,
   excludeMatchId?: string,
 ): Promise<ConflictResult[]> {
+  // check_self_conflict(p_user_id uuid, p_match_date date, p_match_time time,
+  // p_exclude_match_id uuid DEFAULT NULL) — p_match_time carries NO default, so
+  // it is a required argument and cannot be omitted. The function looks for
+  // matches within a 2-hour window of that time; with no time there is no
+  // window, and therefore no time conflict to report.
+  if (!matchTime) return []
   try {
     const { data, error } = await supabase.rpc('check_self_conflict', {
       p_user_id: userId,
       p_match_date: matchDate,
       p_match_time: matchTime,
-      p_exclude_match_id: excludeMatchId ?? null,
+      // Optional: undefined omits the key so Postgres applies its DEFAULT NULL.
+      p_exclude_match_id: excludeMatchId ?? undefined,
     })
     if (error) {
       console.warn('[ConflictCheck] RPC error, skipping:', error.message)

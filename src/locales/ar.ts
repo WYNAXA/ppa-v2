@@ -32,6 +32,8 @@ export default {
     "play": "العب",
     "compete": "تنافس",
     "people": "الناس",
+    "community": "المجتمع",
+    "leagues": "الدوريات",
     "you": "أنت"
   },
   "courts": {
@@ -60,6 +62,7 @@ export default {
     "indoor": "\u0645\u063a\u0644\u0642",
     "outdoor": "\u0645\u0643\u0634\u0648\u0641",
     "n_courts": "{{count}} \u0645\u0644\u0627\u0639\u0628",
+    "courts_unconfirmed": "الملاعب غير مؤكدة",
   },
   "club": {
     "ask": "\u0627\u0637\u0644\u0628",
@@ -236,6 +239,7 @@ export default {
     "counter_submitted": "تم إرسال الاقتراح المضاد",
     "submit_counter": "إرسال الاقتراح المضاد",
     "accept_failed": "تعذّر القبول",
+    "no_score_proposed": "لم يُقترح أي نتيجة",
     "proposal_accepted": "تم قبول الاقتراح",
     "accept": "قبول",
     "counter": "اقتراح مضاد",
@@ -681,6 +685,9 @@ export default {
     "decline": "رفض",
     "requests_count": "طلبات ({{count}})",
     "my_connections_subtitle": "لاعبون تلعب معهم بانتظام",
+    "my_leagues": "دورياتي",
+    "my_leagues_subtitle": "السلالم والمواسم التي تلعب فيها",
+    "my_leagues_empty": "ابحث عن دوري بالقرب منك",
     "filter_welcomes_ringers": "يرحّب باللاعبين الاحتياطيين",
     "offer_ringer": "اعرض أن تكون لاعبًا احتياطيًا",
     "offering": "جارٍ العرض…",
@@ -1076,6 +1083,7 @@ export default {
     "creating": "جارٍ الإنشاء…",
     "conflict_title": "لديك مباراة بالفعل في هذا اليوم",
     "conflict_at": "هناك مباراة في",
+    "time_required": "اختر وقتًا قبل إنشاء المباراة",
     "conflict_date": "هناك مباراة مجدولة بالفعل في هذا التاريخ",
     "conflict_anyway": "إنشاء واحدة أخرى على أي حال؟",
     "create_anyway": "إنشاء على أي حال",

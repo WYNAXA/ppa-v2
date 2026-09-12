@@ -1,5 +1,0 @@
-src/lib/database.types.ts(1,7): error TS1434: Unexpected keyword or identifier.
-src/lib/database.types.ts(1,33): error TS1005: ';' expected.
-src/lib/database.types.ts(1,55): error TS1005: ';' expected.
-src/lib/database.types.ts(1,72): error TS1005: ';' expected.
-src/lib/database.types.ts(1,80): error TS1003: Identifier expected.

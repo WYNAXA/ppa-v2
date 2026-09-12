@@ -51,6 +51,7 @@ export default {
     "book_instantly": "Prenota subito",
     "ppa_venue": "SEDE PPA",
     "per_hour": "all\u2019ora",
+    "book_here": "Prenota",
     "split_four": "Diviso in 4 \u00b7",
     "each": "{{amount}} a testa",
     "also_near_you": "Anche vicino a te",

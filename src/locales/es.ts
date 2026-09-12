@@ -51,6 +51,7 @@ export default {
     "book_instantly": "Reserva al instante",
     "ppa_venue": "SEDE PPA",
     "per_hour": "por hora",
+    "book_here": "Reservar",
     "split_four": "Dividido entre 4 \u00b7",
     "each": "{{amount}} cada uno",
     "also_near_you": "Tambi\u00e9n cerca",

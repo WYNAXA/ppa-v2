@@ -51,6 +51,7 @@ export default {
     "book_instantly": "\u0627\u062d\u062c\u0632 \u0641\u0648\u0631\u0627\u064b",
     "ppa_venue": "\u0645\u0644\u0639\u0628 PPA",
     "per_hour": "\u0644\u0644\u0633\u0627\u0639\u0629",
+    "book_here": "احجز",
     "split_four": "\u0645\u0642\u0633\u0651\u0645 \u0639\u0644\u0649 4 \u00b7",
     "each": "{{amount}} \u0644\u0644\u0641\u0631\u062f",
     "also_near_you": "\u0623\u064a\u0636\u0627\u064b \u0628\u0627\u0644\u0642\u0631\u0628 \u0645\u0646\u0643",

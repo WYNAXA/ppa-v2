@@ -51,6 +51,7 @@ export default {
     "book_instantly": "Boka direkt",
     "ppa_venue": "PPA-ANL\u00c4GGNING",
     "per_hour": "per timme",
+    "book_here": "Boka",
     "split_four": "Delat p\u00e5 4 \u00b7",
     "each": "{{amount}} var",
     "also_near_you": "\u00c4ven n\u00e4ra dig",

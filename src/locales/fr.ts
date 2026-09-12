@@ -51,6 +51,7 @@ export default {
     "book_instantly": "R\u00e9servez imm\u00e9diatement",
     "ppa_venue": "CLUB PPA",
     "per_hour": "par heure",
+    "book_here": "Réserver",
     "split_four": "Divis\u00e9 \u00e0 4 \u00b7",
     "each": "{{amount}} chacun",
     "also_near_you": "\u00c9galement pr\u00e8s de vous",

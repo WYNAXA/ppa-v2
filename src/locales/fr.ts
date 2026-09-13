@@ -64,6 +64,8 @@ export default {
     "outdoor": "Ext\u00e9rieur",
     "n_courts": "{{count}} terrains",
     "courts_unconfirmed": "terrains non confirmés",
+    "section_title": "Terrains",
+    "courts_waiting": "Détails des terrains non confirmés — en attente du club.",
   },
   "club": {
     "ask": "Demander",

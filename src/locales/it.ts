@@ -64,6 +64,8 @@ export default {
     "outdoor": "Outdoor",
     "n_courts": "{{count}} campi",
     "courts_unconfirmed": "campi non confermati",
+    "section_title": "Campi",
+    "courts_waiting": "Dettagli dei campi non ancora confermati — in attesa del club.",
   },
   "club": {
     "ask": "Chiedi",

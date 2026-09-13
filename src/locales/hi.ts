@@ -64,6 +64,8 @@ export default {
     "outdoor": "\u0906\u0909\u091f\u0921\u094b\u0930",
     "n_courts": "{{count}} \u0915\u094b\u0930\u094d\u091f",
     "courts_unconfirmed": "कोर्ट की पुष्टि नहीं",
+    "section_title": "कोर्ट",
+    "courts_waiting": "कोर्ट विवरण अभी तक पुष्ट नहीं — क्लब से प्रतीक्षा में।",
   },
   "club": {
     "ask": "\u092a\u0942\u091b\u0947\u0902",

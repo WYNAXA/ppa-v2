@@ -64,6 +64,8 @@ export default {
     "outdoor": "\u0645\u0643\u0634\u0648\u0641",
     "n_courts": "{{count}} \u0645\u0644\u0627\u0639\u0628",
     "courts_unconfirmed": "الملاعب غير مؤكدة",
+    "section_title": "الملاعب",
+    "courts_waiting": "تفاصيل الملاعب غير مؤكدة بعد — بانتظار النادي.",
   },
   "club": {
     "ask": "\u0627\u0637\u0644\u0628",

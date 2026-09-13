@@ -6,6 +6,7 @@ import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, QrCode, X,
 import QRCodeSVG from 'react-qr-code'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
+import { useTranslation } from 'react-i18next'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -14,6 +15,7 @@ import { money, majorToMinor } from '@/lib/money'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 import { cn } from '@/lib/utils'
+import { confirmedCourtCount } from '@/lib/venueRows'
 import { goBack } from '@/lib/navigation'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -236,6 +238,7 @@ export function VenueDetailPage() {
   const { venueId } = useParams<{ venueId: string }>()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const { user } = useAuth()
   const userId = user?.id
 
@@ -443,8 +446,8 @@ export function VenueDetailPage() {
    * `number_of_courts` 14: the breakdown is partial, the total is right. Taking
    * the sum alone told a 14-court club it had 4.
    */
+  const totalCourts = (venue ? confirmedCourtCount(venue) : null) ?? 0
   const courtBreakdown = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
-  const totalCourts = Math.max(courtBreakdown, venue?.number_of_courts ?? 0)
   const breakdownIsPartial = totalCourts > courtBreakdown && courtBreakdown > 0
 
   const hoursConfirmed = !!venue?.opening_hours && !isSeedDefaultHours(venue.opening_hours as any)
@@ -584,9 +587,13 @@ export function VenueDetailPage() {
 
       {/* 2. Quick info chips */}
       <div className="flex gap-2 px-5 mt-3 overflow-x-auto scrollbar-hide">
-        {totalCourts > 0 && (
+        {totalCourts > 0 ? (
           <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
-            {'\u{1F3BE}'} {totalCourts} courts
+            {'\u{1F3BE}'} {t('courts.n_courts', { count: totalCourts })}
+          </div>
+        ) : (
+          <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm text-ink-3">
+            {'\u{1F3BE}'} {t('courts.courts_unconfirmed')}
           </div>
         )}
         {openStatus && (
@@ -771,49 +778,53 @@ export function VenueDetailPage() {
       )}
 
       {/* 4. Courts */}
-      {totalCourts > 0 && (
-        <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">
-            Courts <span className="font-normal text-ink-2">· {totalCourts}</span>
-          </h2>
-          <div className="grid grid-cols-3 gap-2">
-            {(venue.indoor_courts ?? 0) > 0 && (
-              <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
-                <div className="text-xl">{'\u{1F3E0}'}</div>
-                <div className="text-sm font-medium mt-1">{venue.indoor_courts} Indoor</div>
-              </div>
+      <section className="px-5 mt-6">
+        <h2 className="text-base font-semibold text-ink mb-3">
+          {t('courts.section_title')}{totalCourts > 0 && <span className="font-normal text-ink-2"> · {totalCourts}</span>}
+        </h2>
+        {totalCourts > 0 ? (
+          <>
+            <div className="grid grid-cols-3 gap-2">
+              {(venue.indoor_courts ?? 0) > 0 && (
+                <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
+                  <div className="text-xl">{'\u{1F3E0}'}</div>
+                  <div className="text-sm font-medium mt-1">{venue.indoor_courts} Indoor</div>
+                </div>
+              )}
+              {(venue.outdoor_courts ?? 0) > 0 && (
+                <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
+                  <div className="text-xl">{'\u2600\uFE0F'}</div>
+                  <div className="text-sm font-medium mt-1">{venue.outdoor_courts} Outdoor</div>
+                </div>
+              )}
+              {(venue.covered_courts ?? 0) > 0 && (
+                <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
+                  <div className="text-xl">{'\u26FA'}</div>
+                  <div className="text-sm font-medium mt-1">{venue.covered_courts} Covered</div>
+                </div>
+              )}
+            </div>
+            {breakdownIsPartial && (
+              <p className="text-xs text-ink-2 mt-2">
+                Indoor/outdoor split known for {courtBreakdown} of {totalCourts} courts.
+              </p>
             )}
-            {(venue.outdoor_courts ?? 0) > 0 && (
-              <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
-                <div className="text-xl">{'\u2600\uFE0F'}</div>
-                <div className="text-sm font-medium mt-1">{venue.outdoor_courts} Outdoor</div>
-              </div>
+            {surfaceType && (
+              <p className="text-sm text-ink-2 mt-2">
+                Surface: <span className="capitalize">{surfaceType.replace(/_/g, ' ')}</span>
+              </p>
             )}
-            {(venue.covered_courts ?? 0) > 0 && (
-              <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
-                <div className="text-xl">{'\u26FA'}</div>
-                <div className="text-sm font-medium mt-1">{venue.covered_courts} Covered</div>
-              </div>
+            {(venue.singles_courts ?? 0) > 0 && (
+              <p className="text-sm text-court mt-1">Singles courts available</p>
             )}
-          </div>
-          {breakdownIsPartial && (
-            <p className="text-xs text-ink-2 mt-2">
-              Indoor/outdoor split known for {courtBreakdown} of {totalCourts} courts.
-            </p>
-          )}
-          {surfaceType && (
-            <p className="text-sm text-ink-2 mt-2">
-              Surface: <span className="capitalize">{surfaceType.replace(/_/g, ' ')}</span>
-            </p>
-          )}
-          {(venue.singles_courts ?? 0) > 0 && (
-            <p className="text-sm text-court mt-1">Singles courts available</p>
-          )}
-          {(venue.panoramic_courts ?? 0) > 0 && (
-            <p className="text-sm text-court mt-1">{venue.panoramic_courts} panoramic</p>
-          )}
-        </section>
-      )}
+            {(venue.panoramic_courts ?? 0) > 0 && (
+              <p className="text-sm text-court mt-1">{venue.panoramic_courts} panoramic</p>
+            )}
+          </>
+        ) : (
+          <WaitingOnInfo text={t('courts.courts_waiting')} />
+        )}
+      </section>
 
       {/* Prices — real amounts where the venue has them, nothing where it doesn't. */}
       {(peakPrice || offpeakPrice) && (
@@ -1152,8 +1163,10 @@ export function VenueDetailPage() {
                     )}
                   </p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-xs text-ink-2">
-                      {(v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0)} courts
+                    <span className={cn('text-xs', confirmedCourtCount(v) != null ? 'text-ink-2' : 'text-ink-3')}>
+                      {confirmedCourtCount(v) != null
+                        ? t('courts.n_courts', { count: confirmedCourtCount(v) })
+                        : t('courts.courts_unconfirmed')}
                     </span>
                     {v.ppa_bookable && (
                       <span className="text-[11px] font-medium bg-court-50 text-court px-1.5 py-0.5 rounded-full">

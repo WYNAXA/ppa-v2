@@ -64,6 +64,8 @@ export default {
     "outdoor": "Utomhus",
     "n_courts": "{{count}} banor",
     "courts_unconfirmed": "banor ej bekräftade",
+    "section_title": "Banor",
+    "courts_waiting": "Banuppgifter ej bekräftade ännu — väntar på klubben.",
   },
   "club": {
     "ask": "Fr\u00e5ga",

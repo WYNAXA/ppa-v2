@@ -6,6 +6,7 @@ import { Search, MapPin, Users } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
+import { confirmedCourtCount } from '@/lib/venueRows'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 
 // Leaflet is ~150KB and most sessions never open the map, so it loads on demand.
@@ -167,18 +168,12 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
       const shape = (v: Record<string, unknown>): Venue => {
         const vLat = v.latitude != null ? Number(v.latitude) : null
         const vLng = v.longitude != null ? Number(v.longitude) : null
-        // A court count is only real if some column carries a number. Treating
-        // 0 as a count is what produced "0 courts" on 95% of the directory.
-        const breakdown =
-          ((v.indoor_courts as number) ?? 0) +
-          ((v.outdoor_courts as number) ?? 0) +
-          ((v.covered_courts as number) ?? 0)
-        const confirmed =
-          breakdown > 0
-            ? breakdown
-            : ((v.number_of_courts as number) ?? 0) > 0
-              ? (v.number_of_courts as number)
-              : null
+        const confirmed = confirmedCourtCount({
+          indoor_courts: v.indoor_courts as number | null,
+          outdoor_courts: v.outdoor_courts as number | null,
+          covered_courts: v.covered_courts as number | null,
+          number_of_courts: v.number_of_courts as number | null,
+        })
         return {
           id: v.venue_id as string,
           bookingId: (v.venues_id as string) ?? (v.venue_id as string),
@@ -544,6 +539,9 @@ export function CourtsHome({
                 <span className="num truncate text-[12px] leading-4 text-ink-2">
                   {[
                     v.distanceMiles != null ? formatDistance(v.distanceMiles) : v.city,
+                    v.courtsConfirmed && v.courts != null
+                      ? t('courts.n_courts', { count: v.courts })
+                      : t('courts.courts_unconfirmed'),
                     v.onPpa
                       ? t('courts.booking_coming_soon')
                       : v.platform && v.platform !== 'Own'

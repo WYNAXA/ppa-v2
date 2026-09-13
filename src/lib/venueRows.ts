@@ -43,3 +43,25 @@ export function usableVenues<T extends VenueRowLike>(
     (r): r is UsableVenue<T> => !!r.venue_id && !!r.venue_name,
   )
 }
+
+/**
+ * The confirmed court count for a venue, or null if no column carries data.
+ *
+ * `number_of_courts` is the authoritative total (Rocket Padel Bristol: 14).
+ * The indoor/outdoor/covered breakdown is often partial (same venue: indoor 4,
+ * the other 10 unclassified). `Math.max` picks whichever is larger, so a
+ * partial breakdown never understates the total, and a venue with nothing
+ * returns null rather than 0 — "0 courts" reads as "this venue has none"
+ * rather than "we don't know".
+ */
+export function confirmedCourtCount(v: {
+  indoor_courts?: number | null
+  outdoor_courts?: number | null
+  covered_courts?: number | null
+  number_of_courts?: number | null
+}): number | null {
+  const breakdown =
+    (v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0) + (v.covered_courts ?? 0)
+  const total = Math.max(breakdown, v.number_of_courts ?? 0)
+  return total > 0 ? total : null
+}

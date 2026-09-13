@@ -64,6 +64,8 @@ export default {
     "outdoor": "Exterior",
     "n_courts": "{{count}} pistas",
     "courts_unconfirmed": "pistas sin confirmar",
+    "section_title": "Pistas",
+    "courts_waiting": "Datos de las pistas aún no confirmados — esperando al club.",
   },
   "club": {
     "ask": "Pedir",

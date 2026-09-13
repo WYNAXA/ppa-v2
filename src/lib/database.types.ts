@@ -3416,7 +3416,6 @@ export type Database = {
           booked_at: string | null
           booked_by: string | null
           booked_court_number: number | null
-          booked_venue_id: string | null
           booked_venue_name: string | null
           booking_claimed_at: string | null
           booking_claimed_by: string | null
@@ -3486,7 +3485,6 @@ export type Database = {
           booked_at?: string | null
           booked_by?: string | null
           booked_court_number?: number | null
-          booked_venue_id?: string | null
           booked_venue_name?: string | null
           booking_claimed_at?: string | null
           booking_claimed_by?: string | null
@@ -3556,7 +3554,6 @@ export type Database = {
           booked_at?: string | null
           booked_by?: string | null
           booked_court_number?: number | null
-          booked_venue_id?: string | null
           booked_venue_name?: string | null
           booking_claimed_at?: string | null
           booking_claimed_by?: string | null

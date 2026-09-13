@@ -67,6 +67,8 @@ export default {
     outdoor: 'Outdoor',
     n_courts: '{{count}} courts',
     courts_unconfirmed: 'courts not confirmed',
+    section_title: 'Courts',
+    courts_waiting: 'Court details not confirmed yet — waiting on the venue.',
   },
   club: {
     ask: 'Ask',

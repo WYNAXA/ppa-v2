@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { Plus, Users, MapPin, ChevronRight, Trophy } from 'lucide-react'
+import { Plus, Users, MapPin, ChevronRight } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -391,12 +391,17 @@ export function PeoplePage() {
       </div>
 
       <div className="px-5 space-y-6 pt-4">
-        {/* Directory — the five things you come here to find. */}
+        {/* Directory — the six things you come here to find. */}
         <DirectoryGrid
           counts={{
             groups: allMyGroups.length || undefined,
             players: playerCount || undefined,
             venues: venueCount || undefined,
+            // The count here is the leagues YOU are in, not every league that
+            // exists — same as groups. Zero is left undefined so the tile reads
+            // "Leagues" rather than "0 Leagues", which would look like a dead
+            // end on the one screen meant to get you into a league.
+            leagues: myLeagueCount || undefined,
           }}
         />
 
@@ -446,29 +451,17 @@ export function PeoplePage() {
           </div>
         </button>
 
-        {/* My Leagues link — the app's only entry point to league discovery. */}
-        <button
-          onClick={() => navigate('/leagues')}
-          className="w-full flex items-center gap-3 rounded-2xl border border-court-100 bg-court-50/50 px-4 py-3 text-left active:scale-[0.98] transition-transform"
-        >
-          <div className="h-9 w-9 rounded-xl bg-court-100 flex items-center justify-center flex-shrink-0">
-            <Trophy className="h-4.5 w-4.5 text-court" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-[13px] font-bold text-ink">{t('people.my_leagues')}</p>
-            <p className="text-[11px] text-ink-2">
-              {myLeagueCount > 0
-                ? t('people.my_leagues_subtitle')
-                : t('people.my_leagues_empty')}
-            </p>
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {myLeagueCount > 0 && (
-              <span className="text-[12px] font-semibold text-court">{myLeagueCount}</span>
-            )}
-            <ChevronRight className="h-4 w-4 text-ink-3" />
-          </div>
-        </button>
+        {/*
+          The "My leagues" row that used to sit here has gone into the directory
+          grid above as a tile.
+
+          UAT: *"instead of putting it under community in the same buttons as
+          Groups, Players, Coaches, venues and events you put it below in my
+          leagues. so it means i still cant easily access or see them or create
+          one."* Keeping both would have left two controls to the same place,
+          which is how the grid ended up replacing the old chip row in the first
+          place.
+        */}
 
         {/* ── Connection requests ──
             What was a full "Connections" section here duplicated the My

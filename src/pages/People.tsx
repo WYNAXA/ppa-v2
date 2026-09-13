@@ -383,14 +383,7 @@ export function PeoplePage() {
 
   return (
     <div className="min-h-full bg-surface pb-32">
-      <div className="px-5 pb-2 pt-14">
-        <ClubThisWeek
-          groups={allMyGroups.map((g) => ({ id: g.id, name: g.name }))}
-          userId={userId}
-        />
-      </div>
-
-      <div className="px-5 space-y-6 pt-4">
+      <div className="px-5 space-y-6 pt-14">
         {/* Directory — the six things you come here to find. */}
         <DirectoryGrid
           counts={{
@@ -403,6 +396,11 @@ export function PeoplePage() {
             // end on the one screen meant to get you into a league.
             leagues: myLeagueCount || undefined,
           }}
+        />
+
+        <ClubThisWeek
+          groups={allMyGroups.map((g) => ({ id: g.id, name: g.name }))}
+          userId={userId}
         />
 
         {/* Open Matches link.

@@ -54,6 +54,7 @@ export default {
     book_instantly: 'Book instantly',
     ppa_venue: 'PPA VENUE',
     per_hour: 'per hour',
+    book_here: 'Book',
     split_four: 'Split 4 ways ·',
     each: '{{amount}} each',
     also_near_you: 'Also near you',

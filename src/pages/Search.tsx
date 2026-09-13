@@ -78,7 +78,7 @@ async function runSearch(query: string): Promise<SearchResult[]> {
   const safe = q.replace(/[,().%_\\]/g, ' ').replace(/\s+/g, ' ').trim()
   if (safe.length < 2) return []
 
-  const [players, groups, venues, matches, leagues] = await Promise.all([
+  const [players, groups, venues, matches, leagues, nearby] = await Promise.all([
     supabase
       .from('profiles')
       .select('id, name, avatar_url, city')
@@ -131,14 +131,42 @@ async function runSearch(query: string): Promise<SearchResult[]> {
       .select('id, name, city, status, season_start, season_end')
       .ilike('name', `%${safe}%`)
       .limit(4),
+    /**
+     * Venues NEAR the place typed, which is the half of the UAT complaint a
+     * text match cannot answer: *"i would not give me any closeby"*.
+     *
+     * Bristol holds 17 venues spread across BS1, BS3, BS5, BS6, BS7, BS9, BS13,
+     * BS16, BS34 and BS37. Matching "BS1" as text returns the three in BS1 and
+     * misses Padel Hub Bristol and The Padel Team Bristol, both four minutes'
+     * drive away, because a postcode is a label and not a location.
+     *
+     * `venues_near_place` resolves the typed place to a coordinate off our own
+     * venue rows — every active venue carries a latitude and longitude, so no
+     * geocoder, key or rate limit is involved — and then orders by real
+     * distance. It returns nothing for a query that is not a place, so this
+     * runs on every search without needing to guess first.
+     */
+    supabase.rpc('venues_near_place', {
+      p_query: safe,
+      p_radius_miles: 25,
+      p_limit: 12,
+      p_venue_type: 'club',
+    }),
   ])
 
   // Surface what the swallowed `?? []` used to hide.
-  for (const [label, res] of Object.entries({ players, groups, venues, matches, leagues })) {
+  for (const [label, res] of Object.entries({ players, groups, venues, matches, leagues, nearby })) {
     if (res.error) console.error(`[search] ${label} query failed:`, res.error)
   }
 
   const results: SearchResult[] = []
+  /**
+   * A venue can match by name AND be near the place typed ("Rocket Padel
+   * Bristol" for "Bristol"). Text hits are listed first because they are what
+   * the player literally asked for; the proximity pass then fills in the
+   * neighbours it could not have found.
+   */
+  const seenVenues = new Set<string>()
 
   for (const p of players.data ?? []) {
     results.push({ id: p.id, label: p.name, sublabel: p.city ?? 'Player', type: 'player', avatarUrl: p.avatar_url, avatarName: p.name })
@@ -157,6 +185,21 @@ async function runSearch(query: string): Promise<SearchResult[]> {
     if (!v.venue_id) continue
     // Show where it is, so a postcode search explains why the row matched.
     const place = [v.city, v.postcode ?? v.postal_code].filter(Boolean).join(' · ')
+    seenVenues.add(v.venue_id)
+    results.push({
+      id: v.venue_id,
+      label: v.venue_name ?? 'Unnamed venue',
+      sublabel: place || 'Venue',
+      type: 'venue',
+    })
+  }
+  for (const v of nearby.data ?? []) {
+    if (!v.venue_id || seenVenues.has(v.venue_id)) continue
+    seenVenues.add(v.venue_id)
+    const miles = v.distance_miles == null
+      ? null
+      : `${v.distance_miles < 10 ? v.distance_miles.toFixed(1) : Math.round(v.distance_miles)} mi from ${v.place_label}`
+    const place = [v.city, v.postcode, miles].filter(Boolean).join(' · ')
     results.push({
       id: v.venue_id,
       label: v.venue_name ?? 'Unnamed venue',

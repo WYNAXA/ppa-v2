@@ -192,6 +192,11 @@ function Step2({ form, setForm }: { form: FormState; setForm: (f: FormState) => 
       // pick, and a closed one must never be on that list.
       .from('discoverable_venues')
       .select('venue_id, venue_name, city')
+      // Clubs only, for the same reason: `padel_venues` also holds coach
+      // listings (`venue_type = 'coach'`, zero courts) and a coach is not a
+      // place you can play a match. That is the UAT report — "some venues show
+      // up but is coaching with the name of the person, with zero courts".
+      .eq('venue_type', 'club')
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)
       .then(({ data, error }) => {

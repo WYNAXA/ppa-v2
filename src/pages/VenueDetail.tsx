@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, QrCode, X } from 'lucide-react'
+import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, QrCode, X, MessageCircle } from 'lucide-react'
 import QRCodeSVG from 'react-qr-code'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
@@ -10,8 +10,9 @@ import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { venueClaimUrl } from '@/lib/admin'
-import { money, currencySymbolFor } from '@/lib/money'
+import { money, majorToMinor } from '@/lib/money'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
 
@@ -34,9 +35,133 @@ const FACILITY_MAP: Record<string, { icon: string; label: string }> = {
   viewing_area: { icon: '\u{1F441}', label: 'Viewing Area' },
 }
 
-const ALL_FACILITY_KEYS = Object.keys(FACILITY_MAP)
+/** Display order for the facility grid — FACILITY_MAP's own key order. */
+const FACILITY_ORDER = Object.keys(FACILITY_MAP)
+
+/**
+ * The five boolean facility columns, and the FACILITY_MAP key each one means.
+ *
+ * Each of these columns is `DEFAULT false`, and 5,8xx of the 6,099 rows sit on
+ * that default. So `false` means "nobody has told us", NOT "this venue has
+ * none" — which is why only `true` puts a tile on the page. The previous
+ * Facilities grid rendered a greyed-out tile for every key the venue did not
+ * list, i.e. it asserted the absence of ten facilities on the strength of a
+ * column default. Same class of error as the fabricated seed opening hours.
+ *
+ * `cafe_bar` is one column covering both, and maps to `cafe`; a venue that
+ * genuinely has a bar carries `bar` in `amenities` (Rocket Padel does), which
+ * adds the Bar tile on its own.
+ */
+const FACILITY_FLAGS = [
+  { column: 'parking_available', key: 'parking' },
+  { column: 'changing_rooms', key: 'changing_rooms' },
+  { column: 'cafe_bar', key: 'cafe' },
+  { column: 'coaching_available', key: 'coaching' },
+  { column: 'equipment_rental', key: 'equipment_hire' },
+] as const
+
+/**
+ * Free-form `amenities` tags that mean the same thing as a facility tile.
+ *
+ * `amenities` is enrichment output: 57 distinct tags across 276 venues, with a
+ * long tail. The ones below duplicate a facility we already have an icon for,
+ * so they fold into the grid instead of appearing twice.
+ */
+const AMENITY_TO_FACILITY: Record<string, string> = {
+  parking: 'parking',
+  free_parking: 'parking',
+  // `parking_nearby` and `limited_parking` deliberately do NOT fold into the
+  // Parking tile: a player choosing between two clubs is asking whether they
+  // can park, and both of those answers are "sort of". They render as their own
+  // chips instead, saying what the venue actually said.
+  changing_rooms: 'changing_rooms',
+  luxury_changing_rooms: 'changing_rooms',
+  showers: 'showers',
+  lockers: 'lockers',
+  cafe: 'cafe',
+  bistro: 'cafe',
+  restaurant: 'cafe',
+  bar: 'bar',
+  lounge: 'bar',
+  pro_shop: 'pro_shop',
+  shop: 'pro_shop',
+  retail: 'pro_shop',
+  coaching: 'coaching',
+  equipment_hire: 'equipment_hire',
+  equipment_rental: 'equipment_hire',
+  viewing_area: 'viewing_area',
+  spectator_stands: 'viewing_area',
+  mezzanine: 'viewing_area',
+}
+
+/** Amenity tags the Courts section already states — dropped to avoid saying it twice. */
+const COURT_SHAPE_AMENITIES = new Set(['indoor', 'outdoor', 'covered', 'panoramic'])
+
+/**
+ * Tags that are the venue's own marketing rather than a fact a player can act
+ * on. We are not a venue's copywriter: repeating "Luxury" as though the app had
+ * checked is how a directory stops being trusted.
+ */
+const PUFFERY_AMENITIES = new Set(['luxury', 'prestigious', 'boutique'])
+
+/** Tags whose snake_case does not title-case into something readable or honest. */
+const AMENITY_LABELS: Record<string, string> = {
+  ac: 'Air conditioning',
+  wifi: 'Wi-Fi',
+  '24hrs': 'Open 24 hours',
+  sea_view: 'Sea view',
+  sea_views: 'Sea view',
+  city_views: 'City views',
+  river_view: 'River view',
+  ladies_only: 'Ladies only',
+  olympic_venue: 'Olympic venue',
+  ice_bath: 'Ice bath',
+  swimming_pool: 'Pool',
+  pool: 'Pool',
+  pool_nearby: 'Pool nearby',
+  beach_nearby: 'Beach nearby',
+  parking_nearby: 'Parking nearby',
+  limited_parking: 'Limited parking',
+  shopping_mall: 'In a shopping centre',
+  mall: 'In a shopping centre',
+  free_courts: 'Free to play',
+  public: 'Public courts',
+  stadium_court: 'Stadium court',
+  meeting_rooms: 'Meeting rooms',
+  sports_complex: 'Part of a sports complex',
+  sports_club: 'Part of a sports club',
+  arts_district: 'Arts district',
+}
+
+/**
+ * `surface_type` is `DEFAULT 'artificial_grass'` and 5,882 of 6,099 rows carry
+ * exactly that, so the value tells you nothing about the venue. The page used
+ * to print it as fact ("Surface: artificial grass") on every one of them.
+ */
+const DEFAULT_SURFACE = 'artificial_grass'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * A jsonb tag column (`facilities`, `amenities`) as a string list.
+ *
+ * Three rows store amenities DOUBLE-ENCODED — a jsonb string containing a JSON
+ * array — which is a data defect, fixed by migration
+ * `20260912_fix_double_encoded_amenities`. This function deliberately does not
+ * parse strings: papering over it here would hide the next row that lands
+ * malformed.
+ */
+function tagList(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((v): v is string => typeof v === 'string')
+}
+
+function amenityLabel(tag: string): string {
+  const override = AMENITY_LABELS[tag]
+  if (override) return override
+  const words = tag.replace(/_/g, ' ').trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
 
 function getOpenStatus(openingHours: Record<string, { open: string; close: string }> | null) {
   if (!openingHours) return { isOpen: false, label: 'Hours unknown', todayHours: null }
@@ -118,6 +243,7 @@ export function VenueDetailPage() {
   const [userRating, setUserRating] = useState(0)
   const [userReview, setUserReview] = useState('')
   const [showClaimQr, setShowClaimQr] = useState(false)
+  const [showAskVenue, setShowAskVenue] = useState(false)
 
   // ── Queries ──────────────────────────────────────────────────────────────
 
@@ -310,12 +436,85 @@ export function VenueDetailPage() {
   // Claim QR: shown to any signed-in user while the venue is unclaimed; hidden once
   // a claim exists (venues_id anchor set). Turns it into a self-serve growth loop.
   const canClaim = !!user && !!venueId && !((venue as { venues_id?: string | null } | null)?.venues_id)
-  const totalCourts = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
+
+  /**
+   * Court count, from two columns that disagree and neither of which is
+   * complete. Rocket Padel Bristol is indoor 4 / outdoor 0 / covered 0 with
+   * `number_of_courts` 14: the breakdown is partial, the total is right. Taking
+   * the sum alone told a 14-court club it had 4.
+   */
+  const courtBreakdown = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
+  const totalCourts = Math.max(courtBreakdown, venue?.number_of_courts ?? 0)
+  const breakdownIsPartial = totalCourts > courtBreakdown && courtBreakdown > 0
+
   const hoursConfirmed = !!venue?.opening_hours && !isSeedDefaultHours(venue.opening_hours as any)
   const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any) : null
-  const venueSymbol = currencySymbolFor(venue?.currency)
-  const pricingLabel = venue?.pricing_tier && venueSymbol ? venueSymbol.repeat(venue.pricing_tier) : null
-  const venueFacilities = (venue?.facilities as string[] | null) ?? []
+
+  /**
+   * Price. `typical_court_price_peak` / `_offpeak` are numeric in MAJOR units
+   * (28.00 = £28), unlike every `*_pence` column in the schema — so they go
+   * through `majorToMinor` before `money`, which keeps the symbol and the
+   * decimal exponent coming from the venue's own currency.
+   *
+   * The `pricing_tier` chip that used to sit here is gone: that column is
+   * `DEFAULT 2` and reads 2 on Padel Hub Bristol (no price data at all) and on
+   * Rocket Padel (£48 peak) alike. A £ £ £ indicator derived from a default is
+   * decoration, not information.
+   */
+  const peakPrice = venue?.typical_court_price_peak != null && venue.currency
+    ? money(majorToMinor(venue.typical_court_price_peak, venue.currency), venue.currency)
+    : null
+  const offpeakPrice = venue?.typical_court_price_offpeak != null && venue.currency
+    ? money(majorToMinor(venue.typical_court_price_offpeak, venue.currency), venue.currency)
+    : null
+  const priceRange = offpeakPrice && peakPrice && offpeakPrice !== peakPrice
+    ? `${offpeakPrice}–${peakPrice}`
+    : (peakPrice ?? offpeakPrice)
+
+  /**
+   * `total_reviews` is a count carried in from the venue's public listing, and
+   * is `DEFAULT 0` — so 0 means "we hold no count", not "no one has reviewed
+   * it". 5,264 venues carry a real one and none of them showed it. Note this is
+   * NOT the in-app `venue_ratings` count rendered further down; `rating` itself
+   * is null on every row in the table, so no star average is claimed here.
+   */
+  const externalReviews = venue?.total_reviews && venue.total_reviews > 0 ? venue.total_reviews : null
+
+  const surfaceType = venue?.surface_type && venue.surface_type !== DEFAULT_SURFACE
+    ? venue.surface_type
+    : null
+
+  /**
+   * Facilities, unioned across the three columns that each carry part of the
+   * answer: five booleans (~240–274 rows each), `facilities` (14 rows) and
+   * `amenities` (276 rows). A venue can be described by any one of them, and
+   * de-duplication happens on the FACILITY_MAP key so `cafe_bar = true` and
+   * `amenities: ["cafe"]` produce one tile, not two.
+   */
+  const facilityKeys = (() => {
+    if (!venue) return [] as string[]
+    const keys = new Set<string>()
+    for (const { column, key } of FACILITY_FLAGS) if (venue[column] === true) keys.add(key)
+    for (const tag of tagList(venue.facilities)) if (FACILITY_MAP[tag]) keys.add(tag)
+    for (const tag of tagList(venue.amenities)) {
+      const mapped = AMENITY_TO_FACILITY[tag]
+      if (mapped) keys.add(mapped)
+    }
+    return FACILITY_ORDER.filter((k) => keys.has(k))
+  })()
+
+  /** The long tail of amenity tags that have no facility tile — rendered as chips. */
+  const amenityChips = (() => {
+    if (!venue) return [] as string[]
+    const labels = new Set<string>()
+    for (const tag of tagList(venue.amenities)) {
+      if (COURT_SHAPE_AMENITIES.has(tag)) continue
+      if (PUFFERY_AMENITIES.has(tag)) continue
+      if (AMENITY_TO_FACILITY[tag]) continue
+      labels.add(amenityLabel(tag))
+    }
+    return [...labels]
+  })()
 
   // ── Loading / error states ───────────────────────────────────────────────
 
@@ -400,14 +599,24 @@ export function VenueDetailPage() {
               : 'Closed'}
           </div>
         )}
-        {pricingLabel && (
+        {priceRange && (
           <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
-            {'\u{1F4B7}'} {pricingLabel}
+            {'\u{1F4B7}'} {priceRange}
           </div>
         )}
         {venue.rating && venue.rating > 0 && (
           <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
             {'\u2B50'} {venue.rating}
+          </div>
+        )}
+        {externalReviews != null && (
+          <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
+            {'\u{1F5E3}\uFE0F'} {externalReviews.toLocaleString()} reviews
+          </div>
+        )}
+        {venue.is_members_only && (
+          <div className="shrink-0 rounded-xl bg-warn-50 border border-warn px-3 py-2 text-sm text-warn">
+            {'\u{1F511}'} Members only
           </div>
         )}
       </div>
@@ -444,7 +653,25 @@ export function VenueDetailPage() {
           >
             Call venue
           </a>
-        ) : null}
+        ) : (
+          /**
+           * The terminal branch. This chain used to end in `null`, so a venue
+           * with no PPA booking, no booking_url, no website and no phone
+           * rendered NOTHING here — Padel Hub Bristol is exactly that row
+           * (booking_url is an empty string, the other three are null), which
+           * is why its drawer showed no way to act at all.
+           *
+           * Saying we do not have the details is honest and actionable. Asking
+           * the venue is also how the row gets filled in, so the dead end
+           * becomes the acquisition prompt.
+           */
+          <button
+            onClick={() => setShowAskVenue(true)}
+            className="flex-1 rounded-xl border border-dashed border-court-100 bg-court-50 text-court-700 font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
+          >
+            <Mail size={14} /> No booking details — ask them
+          </button>
+        )}
         <button
           onClick={() => window.open(googleMapsUrl(venue.latitude, venue.longitude, venue.full_address), '_blank')}
           className="flex-1 rounded-xl bg-hairline text-ink font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
@@ -452,6 +679,11 @@ export function VenueDetailPage() {
           <MapPin size={16} /> Directions
         </button>
       </div>
+
+      {/* How far ahead you can book — the venue's own words, where we hold them. */}
+      {venue.booking_advance_info?.trim() && (
+        <p className="px-5 mt-2 text-xs text-ink-2 leading-relaxed">{venue.booking_advance_info}</p>
+      )}
 
       {/* Claim CTA — shown to anyone while the venue is unclaimed; hides once claimed */}
       {canClaim && (
@@ -464,6 +696,19 @@ export function VenueDetailPage() {
           </button>
         </div>
       )}
+
+      {/*
+        Outreach sheet for a venue we hold no booking route for. It already
+        offers both a forwardable message and a QR for the desk — the two modes
+        this screen was missing.
+      */}
+      <AskVenueSheet
+        open={showAskVenue}
+        onClose={() => setShowAskVenue(false)}
+        venueName={venue.venue_name ?? 'this venue'}
+        city={venue.city}
+        email={venue.email}
+      />
 
       {/* Claim-QR modal */}
       {showClaimQr && venueId && (
@@ -491,6 +736,28 @@ export function VenueDetailPage() {
               Scan with a phone to claim it — or claim it right now. Manage courts, pricing,
               hours and bookings from Wynaxa Hub.
             </p>
+            {/*
+              The QR is for the moment you are standing at the desk. Away from
+              the club it is useless — you cannot scan a code at a venue you are
+              not at — so the same claim link is also offered as a message you
+              can send them. This modal used to be QR-only.
+            */}
+            <button
+              onClick={async () => {
+                const text = `Hi — ${venue.venue_name} isn't set up on Padel Players yet. `
+                  + `You can claim it here and manage courts, pricing and bookings: `
+                  + venueClaimUrl(venueId)
+                try {
+                  await navigator.clipboard.writeText(text)
+                  toast.success('Message copied — send it to the venue')
+                } catch {
+                  toast.error('Could not copy. Long-press the link above instead.')
+                }
+              }}
+              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl border border-court-100 bg-court-50 px-6 py-3 text-[14px] font-semibold text-court-700 active:scale-[0.98] transition-transform"
+            >
+              <Mail size={15} /> Copy a message to send them
+            </button>
             <a
               href={venueClaimUrl(venueId)}
               target="_blank"
@@ -506,7 +773,9 @@ export function VenueDetailPage() {
       {/* 4. Courts */}
       {totalCourts > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Courts</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">
+            Courts <span className="font-normal text-ink-2">· {totalCourts}</span>
+          </h2>
           <div className="grid grid-cols-3 gap-2">
             {(venue.indoor_courts ?? 0) > 0 && (
               <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
@@ -527,14 +796,46 @@ export function VenueDetailPage() {
               </div>
             )}
           </div>
-          {venue.surface_type && (
+          {breakdownIsPartial && (
+            <p className="text-xs text-ink-2 mt-2">
+              Indoor/outdoor split known for {courtBreakdown} of {totalCourts} courts.
+            </p>
+          )}
+          {surfaceType && (
             <p className="text-sm text-ink-2 mt-2">
-              Surface: <span className="capitalize">{venue.surface_type.replace(/_/g, ' ')}</span>
+              Surface: <span className="capitalize">{surfaceType.replace(/_/g, ' ')}</span>
             </p>
           )}
           {(venue.singles_courts ?? 0) > 0 && (
             <p className="text-sm text-court mt-1">Singles courts available</p>
           )}
+          {(venue.panoramic_courts ?? 0) > 0 && (
+            <p className="text-sm text-court mt-1">{venue.panoramic_courts} panoramic</p>
+          )}
+        </section>
+      )}
+
+      {/* Prices — real amounts where the venue has them, nothing where it doesn't. */}
+      {(peakPrice || offpeakPrice) && (
+        <section className="px-5 mt-6">
+          <h2 className="text-base font-semibold text-ink mb-3">Typical court price</h2>
+          <div className="grid grid-cols-2 gap-2">
+            {offpeakPrice && (
+              <div className="rounded-xl bg-surface border border-hairline p-3">
+                <div className="text-xs text-ink-2">Off-peak</div>
+                <div className="text-base font-semibold text-ink mt-0.5">{offpeakPrice}</div>
+              </div>
+            )}
+            {peakPrice && (
+              <div className="rounded-xl bg-surface border border-hairline p-3">
+                <div className="text-xs text-ink-2">Peak</div>
+                <div className="text-base font-semibold text-ink mt-0.5">{peakPrice}</div>
+              </div>
+            )}
+          </div>
+          <p className="text-xs text-ink-2 mt-2">
+            Per court. Confirm on the venue's own booking page before you play.
+          </p>
         </section>
       )}
 
@@ -666,32 +967,54 @@ export function VenueDetailPage() {
         )}
       </section>
 
-      {/* 6. Facilities */}
-      {venueFacilities.length > 0 && (
-        <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Facilities</h2>
-          <div className="grid grid-cols-3 gap-2">
-            {ALL_FACILITY_KEYS.map((key) => {
-              const f = FACILITY_MAP[key]
-              const available = venueFacilities.includes(key)
-              return (
-                <div
-                  key={key}
-                  className={cn(
-                    'rounded-xl border p-3 text-center text-sm',
-                    available
-                      ? 'bg-surface border-hairline'
-                      : 'bg-surface/50 border-hairline opacity-40',
-                  )}
-                >
-                  <div className="text-lg">{f.icon}</div>
-                  <div className="mt-1 text-xs">{f.label}</div>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-      )}
+      {/*
+        6. Facilities
+
+        Previously this section rendered only when the near-empty `facilities`
+        column was populated — 14 venues out of 6,099 — and then drew a
+        greyed-out tile for every facility the venue had not listed. Both halves
+        were wrong: it hid data held in the boolean columns and in `amenities`,
+        and for the handful it did render it asserted the ABSENCE of the rest
+        off the back of `DEFAULT false`.
+
+        Now: present facilities only, drawn from all three columns, and an
+        explicit "not confirmed" line where we hold nothing — the same honesty
+        the Opening Hours and About sections already use.
+      */}
+      <section className="px-5 mt-6">
+        <h2 className="text-base font-semibold text-ink mb-3">Facilities</h2>
+        {facilityKeys.length === 0 && amenityChips.length === 0 ? (
+          <WaitingOnInfo text="Facilities not confirmed yet — waiting on the venue." />
+        ) : (
+          <>
+            {facilityKeys.length > 0 && (
+              <div className="grid grid-cols-3 gap-2">
+                {facilityKeys.map((key) => {
+                  const f = FACILITY_MAP[key]
+                  return (
+                    <div key={key} className="rounded-xl border border-hairline bg-surface p-3 text-center text-sm">
+                      <div className="text-lg">{f.icon}</div>
+                      <div className="mt-1 text-xs">{f.label}</div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+            {amenityChips.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {amenityChips.map((label) => (
+                  <span
+                    key={label}
+                    className="rounded-full border border-court-100 bg-court-50 px-2.5 py-1 text-[12px] text-court-700"
+                  >
+                    {label}
+                  </span>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+      </section>
 
       {/* 7. About */}
       <section className="px-5 mt-6">
@@ -699,9 +1022,18 @@ export function VenueDetailPage() {
         {venue.description
           ? <p className="text-sm text-ink-2 leading-relaxed">{venue.description}</p>
           : <WaitingOnInfo />}
+        {/*
+          `membership_required` is a BOOLEAN. Interpolating it into a string
+          rendered the literal text "Members only \u2014 true" on every members-only
+          venue. `membership_note` is the text column that carries the actual
+          condition ("David Lloyd membership required") and was never read.
+
+          Fix class: root-cause \u2014 the wrong column was being printed, and the
+          right one existed. Suppressing the suffix would have been the patch.
+        */}
         {venue.is_members_only && (
           <div className="mt-3 rounded-xl bg-warn-50 border border-warn p-3 text-sm text-warn">
-            Members only {venue.membership_required ? `\u2014 ${venue.membership_required}` : ''}
+            Members only{venue.membership_note?.trim() ? ` \u2014 ${venue.membership_note.trim()}` : ''}
           </div>
         )}
       </section>
@@ -843,10 +1175,21 @@ export function VenueDetailPage() {
       )}
 
       {/* 11. Contact */}
-      {(venue.phone || venue.email || venue.instagram || venue.website) && (
+      {(venue.phone || venue.whatsapp_number || venue.email || venue.instagram || venue.website) && (
         <section className="px-5 mt-6 mb-6">
           <h2 className="text-base font-semibold text-ink mb-3">Contact</h2>
           <div className="space-y-2">
+            {venue.whatsapp_number?.trim() && (
+              <a
+                href={`https://wa.me/${venue.whatsapp_number.replace(/[^\d]/g, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-sm text-ink-2"
+              >
+                <MessageCircle size={16} className="text-court shrink-0" />
+                WhatsApp
+              </a>
+            )}
             {venue.phone && (
               <a
                 href={`tel:${venue.phone}`}

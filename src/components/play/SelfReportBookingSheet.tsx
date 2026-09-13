@@ -44,6 +44,11 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
       // pick, and a closed one must never be on that list.
       .from('discoverable_venues')
       .select('venue_id, venue_name, city')
+      // Clubs only: `padel_venues` also holds coach listings
+      // (`venue_type = 'coach'`, zero courts). This sheet records a court the
+      // player booked themselves, and you cannot book a court from a coach.
+      // The free-text fallback below still covers anything not in the list.
+      .eq('venue_type', 'club')
       .or(`venue_name.ilike.%${debouncedQuery}%,city.ilike.%${debouncedQuery}%`)
       .limit(5)
       .then(({ data }) => setVenueResults(usableVenues(data)))

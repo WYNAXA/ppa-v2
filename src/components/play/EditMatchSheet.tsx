@@ -151,6 +151,10 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       // pick, and a closed one must never be on that list.
       .from('discoverable_venues')
       .select('venue_id, venue_name, city')
+      // Clubs only: `padel_venues` also holds coach listings
+      // (`venue_type = 'coach'`, zero courts), and a coach is not a place you
+      // can move a match to.
+      .eq('venue_type', 'club')
       .ilike('venue_name', `%${debouncedQuery}%`)
       .limit(6)
       .then(({ data }) => setVenues(usableVenues(data)))

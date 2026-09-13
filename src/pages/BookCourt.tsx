@@ -718,6 +718,15 @@ export function BookCourtPage() {
       .select(
         'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, currency, website, phone',
       )
+      // Clubs only. `padel_venues` also holds coach listings — rows classified
+      // `venue_type = 'coach'` with zero courts, like "PadelwithPeter Coaching"
+      // — and offering one as a place to book a court produces a booking
+      // against a venue that has no courts. Coaches are reached through
+      // /coaches and their own sessions. The same reasoning as the status note
+      // above applies: the two reads that resolve an ALREADY chosen venue stay
+      // unfiltered, because a venue already referenced must keep resolving
+      // whatever its classification.
+      .eq('venue_type', 'club')
       .or(`venue_name.ilike.%${debouncedVenueQuery}%,city.ilike.%${debouncedVenueQuery}%`)
       .limit(15)
       .then(({ data }) => {

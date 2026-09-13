@@ -441,11 +441,26 @@ export function CourtsHome({
             const slots = slotsByVenue[v.id] ?? []
             const perPlayer = v.pricePence != null ? Math.round(v.pricePence / 4) : null
             return (
-              <button
+              /**
+               * Tapping a card means "show me this place", on every card.
+               *
+               * This card used to call onPickVenue directly, so tapping the one
+               * ppa_bookable venue (The Padel Team Bristol) dropped you into a
+               * slot picker with no way to see opening hours, facilities or
+               * photos first — while every other card in this screen opened
+               * VenueDetail. Two identical-looking cards, two behaviours.
+               *
+               * Booking is now an explicit action, so the money path is still
+               * one tap, and it is obvious which tap does which.
+               */
+              <div
                 key={v.id}
-                onClick={() => onPickVenue(v.bookingId)}
-                className="flex flex-col gap-3.5 rounded-panel border-[1.5px] border-court bg-card p-4 text-left"
+                className="flex flex-col gap-3.5 rounded-panel border-[1.5px] border-court bg-card p-4"
               >
+                <button
+                  onClick={() => navigate(`/venues/${v.id}`)}
+                  className="flex flex-col gap-3.5 text-left"
+                >
                 <div className="flex items-start justify-between gap-2.5">
                   <div className="flex min-w-0 flex-col gap-[3px]">
                     <p className="truncate text-[17px] font-bold leading-[21px] text-ink">{v.name}</p>
@@ -490,7 +505,15 @@ export function CourtsHome({
                     </p>
                   </div>
                 )}
-              </button>
+                </button>
+
+                <button
+                  onClick={() => onPickVenue(v.bookingId)}
+                  className="w-full rounded-control bg-court py-3 text-center text-[15px] font-bold text-white active:scale-[0.98] transition-transform"
+                >
+                  {t('courts.book_here')}
+                </button>
+              </div>
             )
           })}
         </section>

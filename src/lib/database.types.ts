@@ -8136,6 +8136,7 @@ export type Database = {
       populate_geometry_columns:
         | { Args: { tbl_oid: unknown; use_typmod?: boolean }; Returns: number }
         | { Args: { use_typmod?: boolean }; Returns: string }
+      postcode_outcode: { Args: { p_postcode: string }; Returns: string }
       postgis_constraint_dims: {
         Args: { geomcolumn: string; geomschema: string; geomtable: string }
         Returns: number
@@ -8235,6 +8236,16 @@ export type Database = {
           p_venue_id: string
         }
         Returns: Json
+      }
+      resolve_place: {
+        Args: { p_query: string }
+        Returns: {
+          label: string
+          lat: number
+          lng: number
+          match_count: number
+          match_kind: string
+        }[]
       }
       respond_household_link: {
         Args: { p_accept: boolean; p_request_id: string }
@@ -8959,6 +8970,40 @@ export type Database = {
           number_of_courts: number
           outdoor_courts: number
           photos: Json
+          postcode: string
+          ppa_bookable: boolean
+          price_pence: number
+          price_per_hour: number
+          rating: number
+          venue_id: string
+          venue_name: string
+          venue_type: string
+          venues_id: string
+        }[]
+      }
+      venues_near_place: {
+        Args: {
+          p_limit?: number
+          p_query: string
+          p_radius_miles?: number
+          p_venue_type?: string
+        }
+        Returns: {
+          booking_platform: string
+          booking_url: string
+          city: string
+          country_code: string
+          covered_courts: number
+          distance_miles: number
+          indoor_courts: number
+          latitude: number
+          longitude: number
+          needs_review: boolean
+          number_of_courts: number
+          outdoor_courts: number
+          photos: Json
+          place_kind: string
+          place_label: string
           postcode: string
           ppa_bookable: boolean
           price_pence: number

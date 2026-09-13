@@ -11,16 +11,35 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const specPath = 'scripts/codegen/set-classification.spec.ts'
 const WARN = '// !!! GENERATED FILE - DO NOT EDIT. Source: ' + specPath + '\n// Regenerate with: npm run codegen\n'
 
-// Vite kernel: re-export the spec. Vite resolves the cross-tree path fine.
-const viteKernel = WARN + '\nexport * from ' + JSON.stringify('../../scripts/codegen/set-classification.spec.ts') + '\n'
-writeFileSync(join(root, 'src/lib/setClassification.ts'), viteKernel)
-
-// Deno kernel: SELF-CONTAINED inline copy (no cross-tree import). The Supabase
-// edge bundler cannot reach outside supabase/functions/, so this file inlines
-// the constants + classifyKernel rather than re-exporting the spec. It is a
-// GENERATED copy — codegen:check + the drift test keep it in sync with the spec.
-const denoKernel = `${WARN}
-export const COMPLETED_MIN_GAMES = ${COMPLETED_MIN_GAMES}
+/**
+ * The kernel, emitted verbatim into BOTH runtime copies.
+ *
+ * BOTH targets are SELF-CONTAINED. The Vite copy used to be a re-export of the
+ * spec —
+ *   export * from '../../scripts/codegen/set-classification.spec.ts'
+ * — on the reasoning that "Vite resolves the cross-tree path fine". It does
+ * resolve. That was the defect, and it caused three things:
+ *
+ *  1. Vite followed the import out of `src/` and BUNDLED the spec, so every
+ *     production build shipped `dist/assets/set-classification.spec-*.js` to
+ *     players. Build tooling in the app bundle.
+ *
+ *  2. `tsconfig.app.json` has `"include": ["src"]`, so `scripts/` sits outside
+ *     the app project. The file actually executing the scoring rule was
+ *     therefore NEVER type-checked by `tsc -b` — while the four-line shim
+ *     inside `src/` compiled cleanly and made it look as though it were. This
+ *     rule decides whether a set counts, and it is imported by LeagueDetail
+ *     and You.
+ *
+ *  3. `codegen:check` diffs `src/lib/setClassification.ts`. When that file was
+ *     a shim, the check could only ever confirm the shim was unchanged — it
+ *     could not detect drift in the logic it was supposed to be guarding.
+ *
+ * Inlining fixes all three at once, and it is the pattern the Deno target
+ * already used successfully. One body, two writes, so the copies cannot
+ * disagree with each other by construction.
+ */
+const kernelBody = `export const COMPLETED_MIN_GAMES = ${COMPLETED_MIN_GAMES}
 export const COMPLETED_MIN_DIFF = ${COMPLETED_MIN_DIFF}
 export const TIEBREAK_HIGH = ${TIEBREAK_HIGH}
 export const TIEBREAK_LOW = ${TIEBREAK_LOW}
@@ -44,7 +63,14 @@ export function classifyKernel(g1: number, g2: number): SetClassification {
   return { completed, isVoid, winner }
 }
 `
-writeFileSync(join(root, 'supabase/functions/_shared/setClassification.ts'), denoKernel)
+
+// Vite / browser kernel. Inside src/, so `tsc -b` checks it and Vite bundles
+// nothing from scripts/.
+writeFileSync(join(root, 'src/lib/setClassification.ts'), WARN + '\n' + kernelBody)
+
+// Deno / edge kernel. The Supabase edge bundler cannot reach outside
+// supabase/functions/, which is why this one was always self-contained.
+writeFileSync(join(root, 'supabase/functions/_shared/setClassification.ts'), WARN + '\n' + kernelBody)
 
 // SQL function: templated from the SAME constants the TS executes.
 const sql = `-- !!! GENERATED FILE - DO NOT EDIT. Source: ${specPath}
@@ -67,4 +93,4 @@ $$;
 `
 writeFileSync(join(root, 'supabase/migrations/20260626000003_classify_set_sql.generated.sql'), sql)
 
-console.log('codegen OK: src/lib (re-export), supabase/functions/_shared (self-contained), migration SQL')
+console.log('codegen OK: src/lib + supabase/functions/_shared (both self-contained), migration SQL')

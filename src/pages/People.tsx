@@ -337,6 +337,10 @@ export function PeoplePage() {
       const { count } = await supabase
         .from('discoverable_venues')
         .select('venue_id', { count: 'exact', head: true })
+        // This number is labelled "venues", so it must count venues. 20 of the
+        // active rows are coach listings (`venue_type = 'coach'`) — they have
+        // their own page and their own count.
+        .eq('venue_type', 'club')
       return count ?? 0
     },
   })

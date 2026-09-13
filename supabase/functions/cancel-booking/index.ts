@@ -97,7 +97,7 @@ Deno.serve(async (req: Request) => {
         .from('matches')
         .update({
           booked_venue_name: null,
-          booked_venue_id: null,
+          padel_venue_id: null,
           booked_court_number: null,
           booking_reference: null,
           booked_at: null,

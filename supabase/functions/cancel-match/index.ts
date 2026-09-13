@@ -95,7 +95,7 @@ Deno.serve(async (req: Request) => {
         open_elo_min: null,
         open_elo_max: null,
         booked_venue_name: null,
-        booked_venue_id: null,
+        padel_venue_id: null,
         booked_court_number: null,
         booking_reference: null,
         booked_at: null,

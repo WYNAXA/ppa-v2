@@ -63,6 +63,7 @@ export interface Match {
   team2_player_ids: string[] | null
   context_type: string | null
   booked_venue_name: string | null
+  padel_venue_id: string | null
   booked_court_number: number | null
   created_by: string | null
   group_id: string | null

@@ -86,7 +86,7 @@ export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, on
       /**
        * Manual mode reports a venue by NAME with no id, so `venueId` is null —
        * and that is correct: the function body only does
-       * `booked_venue_id = p_venue_id::text` into a nullable column.
+       * `padel_venue_id = p_venue_id` into a nullable FK column.
        *
        * `p_venue_id uuid` carries no DEFAULT, so it is a required argument, and
        * Supabase's generator types a required argument as non-null. It cannot

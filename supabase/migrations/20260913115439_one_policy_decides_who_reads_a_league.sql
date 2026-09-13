@@ -1,0 +1,44 @@
+-- One policy decides who reads a league.
+--
+-- ROOT CAUSE
+--   public.leagues carried two permissive SELECT policies:
+--
+--     "Anyone can view open leagues"       USING (visibility = 'open'
+--                                                 OR created_by = auth.uid()
+--                                                 OR <is a league_member>)
+--     "Authenticated users can read leagues"  USING (true)
+--
+--   Postgres ORs permissive policies of the same command together, so the
+--   scoped policy was dead code and every authenticated user could read every
+--   league row. All three live leagues are visibility = 'group'; none of them
+--   should have been broadly readable.
+--
+--   This is also why nothing at the database layer stopped the Community tab
+--   rendering "PPAT Summer League 2026" to a user who is not a member of it.
+--   (The client-side cause — ClubThisWeek selecting on leagues.linked_group_ids
+--   rather than league_members — is a separate fix in ppa-v2.)
+--
+-- FIX CLASS: root-cause. The blanket policy is removed rather than the client
+--   query being tightened around it; a client filter would leave the row
+--   readable to anyone issuing their own PostgREST request.
+--
+-- BLAST RADIUS
+--   Every SELECT on public.leagues in ppa-v2 and venue-manager. After this a
+--   caller sees a league only when it is visibility='open', they created it, or
+--   they are in league_members — which is exactly what the surviving policy
+--   already said. League DETAIL pages reached from a group link will now 404
+--   for non-members of group-visibility leagues; that is the intended
+--   behaviour, not a regression.
+--
+--   league_members, league_standings, league_teams and league_invitations have
+--   their own policies and are unaffected.
+--
+-- Applied manually in the Supabase SQL editor on 2026-09-13; this file records
+-- it so the repo and the live database agree.
+
+DROP POLICY IF EXISTS "Authenticated users can read leagues" ON public.leagues;
+
+-- Two byte-identical INSERT policies also existed. Duplicated policy is not a
+-- security problem but it is the thing that produced the SELECT bug, so the
+-- redundant one goes too.
+DROP POLICY IF EXISTS "Authenticated can create leagues" ON public.leagues;

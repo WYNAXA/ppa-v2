@@ -1071,7 +1071,7 @@ export function BookCourtPage() {
           .from('matches')
           .update({
             booked_venue_name: selectedVenue.venue_name,
-            booked_venue_id: selectedVenue.venues_id ?? selectedVenue.venue_id,
+            padel_venue_id: selectedVenue.venue_id,
             booked_court_number: null,
             booked_at: new Date().toISOString(),
             booked_by: userId,
@@ -1093,6 +1093,7 @@ export function BookCourtPage() {
               group_id: selectedGroupId,
               context_type: selectedGroupId ? 'group' : 'open',
               booked_venue_name: selectedVenue.venue_name,
+              padel_venue_id: selectedVenue.venue_id,
               created_manually: false,
               created_by: userId,
             })

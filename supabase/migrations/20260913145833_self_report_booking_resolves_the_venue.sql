@@ -1,0 +1,44 @@
+-- self_report_booking() resolves the venue.
+--
+-- ROOT CAUSE
+--   This function was the single writer that made matches.booked_venue_id
+--   polymorphic. It took `p_venue_id uuid`, wrote `p_venue_id::text`, and never
+--   checked which table the uuid came from:
+--
+--       booked_venue_id = p_venue_id::text,
+--
+--   Callers passed padel_venues.venue_id (50 rows) or venues.id (2 rows) and
+--   both were accepted silently. Nothing else in the schema writes the column —
+--   no other function, trigger or view — so this one line produced the whole
+--   ambiguity that 20260913124419 had to measure and untangle.
+--
+-- FIX CLASS: root-cause. The patch would have been a CASE in the feed query
+--   that tries both tables at read time; that leaves every future caller free
+--   to write the wrong id space.
+--
+-- WHAT CHANGED
+--   p_venue_id is now resolved to exactly one padel_venues row, accepting
+--   either id space, and a uuid that matches neither raises 'unknown_venue'
+--   instead of being stored. A NULL p_venue_id still means "somewhere not in
+--   the directory" and keeps the free-text booked_venue_name.
+--
+-- BLAST RADIUS
+--   Callers: BookCourt (ppa-v2), Bookings.tsx (venue-manager), and the
+--   SelfReportBookingSheet flow. The signature is unchanged, so no caller
+--   needs editing to keep working; a caller passing a valid venue id in
+--   either space behaves exactly as before.
+--
+-- TRANSITIONAL, deliberately
+--   It writes BOTH padel_venue_id and the legacy booked_venue_id, because
+--   MatchDetail still reads the old column for its venue lat/lng lookup and
+--   the cancel-booking / cancel-match edge functions still null it. The
+--   follow-up migration stops writing booked_venue_id and drops it, once those
+--   readers have moved. Two writes to one fact is not the resting state.
+--
+-- STILL OPEN — a separate bug found while mapping the callers:
+--   VenueDetail decides "you have played here" with
+--   .eq('booked_venue_name', <name>) — string equality on a denormalised venue
+--   name. A rename, a trailing space or a case difference breaks it, and two
+--   venues sharing a name collide (four rows named "Filton Padel" existed
+--   until 20260913123921). That check belongs on padel_venue_id.
+-- function body follows, identical to what was applied:

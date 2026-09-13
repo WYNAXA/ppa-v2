@@ -273,12 +273,12 @@ export function VenueDetailPage() {
 
   const { data: hasPlayed } = useQuery({
     queryKey: ['venue-played', venueId, userId],
-    enabled: !!venueId && !!userId && !!venue?.venue_name,
+    enabled: !!venueId && !!userId,
     queryFn: async () => {
       const { count } = await supabase
         .from('matches')
         .select('id', { count: 'exact', head: true })
-        .eq('booked_venue_name', venue!.venue_name)
+        .eq('padel_venue_id', venueId!)
         .contains('player_ids', [userId!])
       return (count ?? 0) > 0
     },

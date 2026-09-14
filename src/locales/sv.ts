@@ -1645,6 +1645,7 @@ export default {
     "browse_coaches": "Tr\u00e4nare",
     "browse_venues": "Banor",
     "near_you": "Nära dig",
+    "yours": "Dina",
     "recently_played": "Senast spelade",
     "mine": "Mina"
   },

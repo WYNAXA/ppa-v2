@@ -1645,6 +1645,7 @@ export default {
     "browse_coaches": "Entrenadores",
     "browse_venues": "Pistas",
     "near_you": "Cerca de ti",
+    "yours": "Tuyo",
     "recently_played": "Jugados recientemente",
     "mine": "Míos"
   },

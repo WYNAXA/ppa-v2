@@ -1679,6 +1679,7 @@ export default {
     "browse_coaches": "مدربون",
     "browse_venues": "ملاعب",
     "near_you": "بالقرب منك",
+    "yours": "خاصتك",
     "recently_played": "لعبت مؤخرًا",
     "mine": "خاصتي"
   },

@@ -77,12 +77,21 @@ function useMineCounts(userId: string) {
   })
 
   const { data: eventCount = 0 } = useQuery<number>({
-    queryKey: ['discover-event-count', userId],
+    queryKey: ['my-event-count', userId],
     enabled: !!userId,
     staleTime: 60_000,
     queryFn: async () => {
+      // Events I am GOING to, not events I can see.
+      const { data: attending } = await supabase
+        .from('event_attendees')
+        .select('event_id')
+        .eq('user_id', userId)
+        .in('status', ['going', 'interested'])
+      if (!attending || attending.length === 0) return 0
+      const ids = attending.map(a => a.event_id).filter(Boolean) as string[]
       const { count } = await supabase
         .from('events').select('id', { count: 'exact', head: true })
+        .in('id', ids)
         .gte('start_time', new Date().toISOString())
       return count ?? 0
     },
@@ -176,8 +185,13 @@ export function DiscoverPage() {
       </div>
 
       <div className="flex flex-col gap-6 px-5">
-        {/* ── Directory grid — mine counts ── */}
-        <DirectoryGrid counts={counts} />
+        {/* ── Yours ── */}
+        <section>
+          <h2 className="mb-2.5 text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+            {t('discover.yours')}
+          </h2>
+          <DirectoryGrid counts={counts} />
+        </section>
 
         {/* ── Near you — the feed ── */}
         <section>

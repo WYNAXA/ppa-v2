@@ -1643,6 +1643,7 @@ export default {
     "browse_coaches": "Coach",
     "browse_venues": "Campi",
     "near_you": "Vicino a te",
+    "yours": "I tuoi",
     "recently_played": "Giocati di recente",
     "mine": "Miei"
   },

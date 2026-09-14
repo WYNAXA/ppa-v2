@@ -1643,6 +1643,7 @@ export default {
     "browse_coaches": "कोच",
     "browse_venues": "स्थान",
     "near_you": "आपके पास",
+    "yours": "आपके",
     "recently_played": "हाल ही में खेले गए",
     "mine": "मेरे"
   },

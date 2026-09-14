@@ -1961,6 +1961,7 @@ export default {
     browse_coaches: 'Coaches',
     browse_venues: 'Venues',
     near_you: 'Near you',
+    yours: 'Yours',
     recently_played: 'Recently played',
     mine: 'Mine',
   },

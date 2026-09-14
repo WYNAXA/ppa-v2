@@ -69,6 +69,9 @@ export default {
     "courts_unconfirmed": "banor ej bekräftade",
     "section_title": "Banor",
     "courts_waiting": "Banuppgifter ej bekräftade ännu — väntar på klubben.",
+    "clubs_within": "{{count}} banor inom {{radius}} miles",
+    "clubs_within_one": "{{count}} bana inom {{radius}} miles",
+    "and_more": "(och fler)"
   },
   "club": {
     "ask": "Fr\u00e5ga",
@@ -1630,6 +1633,7 @@ export default {
     "kind_coaching": "Lektion",
     "action_join": "G\u00e5 med",
     "action_view": "Visa",
+    "action_get_tickets": "Köp biljetter",
     "empty_title": "Det \u00e4r allt inom {{radius}} miles",
     "empty_subtitle": "Inget \u00f6ppet n\u00e4ra dig just nu \u2014 starta n\u00e5got.",
     "put_up_game": "L\u00e4gg upp en match",

@@ -69,6 +69,9 @@ export default {
     "courts_unconfirmed": "कोर्ट की पुष्टि नहीं",
     "section_title": "कोर्ट",
     "courts_waiting": "कोर्ट विवरण अभी तक पुष्ट नहीं — क्लब से प्रतीक्षा में।",
+    "clubs_within": "{{radius}} मील के भीतर {{count}} कोर्ट",
+    "clubs_within_one": "{{radius}} मील के भीतर {{count}} कोर्ट",
+    "and_more": "(और अधिक)"
   },
   "club": {
     "ask": "\u092a\u0942\u091b\u0947\u0902",
@@ -1628,6 +1631,7 @@ export default {
     "kind_coaching": "कोचिंग",
     "action_join": "शामिल हों",
     "action_view": "देखें",
+    "action_get_tickets": "टिकट प्राप्त करें",
     "empty_title": "{{radius}} मील के भीतर बस इतना ही",
     "empty_subtitle": "अभी आपके पास कुछ नहीं है \u2014 कुछ शुरू करें।",
     "put_up_game": "मैच बनाएं",

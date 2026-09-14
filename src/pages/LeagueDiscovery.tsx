@@ -236,6 +236,12 @@ export function LeagueDiscoveryPage() {
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
           <h1 className="text-xl font-bold text-ink flex-1">Leagues & Tournaments</h1>
+          <button
+            onClick={() => navigate('/compete?createLeague=true')}
+            className="h-8 w-8 rounded-full bg-court flex items-center justify-center flex-shrink-0"
+          >
+            <Plus className="h-4 w-4 text-white" />
+          </button>
         </div>
       </div>
 

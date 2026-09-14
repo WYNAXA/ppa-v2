@@ -69,6 +69,9 @@ export default {
     "courts_unconfirmed": "campi non confermati",
     "section_title": "Campi",
     "courts_waiting": "Dettagli dei campi non ancora confermati — in attesa del club.",
+    "clubs_within": "{{count}} campi entro {{radius}} miglia",
+    "clubs_within_one": "{{count}} campo entro {{radius}} miglia",
+    "and_more": "(e altri)"
   },
   "club": {
     "ask": "Chiedi",
@@ -1628,6 +1631,7 @@ export default {
     "kind_coaching": "Lezione",
     "action_join": "Unisciti",
     "action_view": "Vedi",
+    "action_get_tickets": "Acquista biglietti",
     "empty_title": "Questo \u00e8 tutto entro {{radius}} miglia",
     "empty_subtitle": "Niente di aperto vicino a te \u2014 crea qualcosa.",
     "put_up_game": "Crea una partita",

@@ -69,6 +69,9 @@ export default {
     "courts_unconfirmed": "pistas sin confirmar",
     "section_title": "Pistas",
     "courts_waiting": "Datos de las pistas aún no confirmados — esperando al club.",
+    "clubs_within": "{{count}} pistas en {{radius}} millas",
+    "clubs_within_one": "{{count}} pista en {{radius}} millas",
+    "and_more": "(y más)"
   },
   "club": {
     "ask": "Pedir",
@@ -1630,6 +1633,7 @@ export default {
     "kind_coaching": "Clase",
     "action_join": "Unirme",
     "action_view": "Ver",
+    "action_get_tickets": "Conseguir entradas",
     "empty_title": "Eso es todo en {{radius}} millas",
     "empty_subtitle": "Nada abierto cerca de ti ahora \u2014 crea algo.",
     "put_up_game": "Crear un partido",

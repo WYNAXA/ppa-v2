@@ -97,9 +97,9 @@ function haversineMiles(aLat: number, aLng: number, bLat: number, bLng: number) 
  *   points at nothing is treated as unclaimed, so the check is the row coming
  *   back rather than the column being non-null.
  */
-function useVenuesNearby(lat: number | null, lng: number | null) {
-  return useQuery<{ partner: Venue[]; others: Venue[]; total: number }>({
-    queryKey: ['courts-home', lat, lng],
+function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 60) {
+  return useQuery<{ partner: Venue[]; others: Venue[]; total: number; nearbyCount: number; capped: boolean }>({
+    queryKey: ['courts-home', lat, lng, radiusMiles],
     staleTime: 5 * 60_000,
     queryFn: async () => {
       const hasLocation = lat != null && lng != null
@@ -129,7 +129,7 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
           ? supabase.rpc('venues_near', {
               p_lat: lat,
               p_lng: lng,
-              p_radius_miles: 60,
+              p_radius_miles: radiusMiles,
               p_limit: 200,
               p_venue_type: 'club',
             })
@@ -208,10 +208,13 @@ function useVenuesNearby(lat: number | null, lng: number | null) {
       // Sorted but NOT sliced. The caller filters first and slices after —
       // slicing here would mean the indoor filter only ever searched the three
       // rows that happened to be nearest, which is a filter that lies.
+      const othersshaped = nearby.map(shape).sort(byDistance)
       return {
         partner: (bookable ?? []).map(shape).sort(byDistance),
-        others: nearby.map(shape).sort(byDistance),
+        others: othersshaped,
         total: count ?? 0,
+        nearbyCount: othersshaped.length,
+        capped: nearby.length >= 200,
       }
     },
   })
@@ -234,10 +237,16 @@ export interface CourtsHomeProps {
   onPickVenue: (venueId: string) => void
   /** Times the venue has free today, if the caller has already loaded them. */
   slotsByVenue?: Record<string, Array<{ time: string; available: boolean }>>
+  /** Radius in miles for the nearby query. Tappable to change. */
+  radiusMiles?: number
+  onRadiusChange?: (radius: number) => void
 }
+
+const RADIUS_OPTIONS = [25, 50, 100] as const
 
 export function CourtsHome({
   lat, lng, query, onQueryChange, onUseLocation, locating = false, onPickVenue, slotsByVenue = {},
+  radiusMiles, onRadiusChange,
 }: CourtsHomeProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -248,14 +257,17 @@ export function CourtsHome({
   const clearFilters = () => setFilters({ indoor: false, outdoor: false, bookable: false })
   const anyFilter = filters.indoor || filters.outdoor || filters.bookable
 
-  const { data } = useVenuesNearby(lat, lng)
+  const [localRadius, setLocalRadius] = useState(radiusMiles ?? 60)
+  const effectiveRadius = radiusMiles ?? localRadius
+  const { data } = useVenuesNearby(lat, lng, effectiveRadius)
 
   // NO_VENUES is a module-level constant, not a fresh []. A new empty array on
   // every render changes the identity of every memo below it, so the filtering
   // would re-run on each keystroke in the search box for no reason.
   const allPartner = data?.partner ?? NO_VENUES
   const allOthers = data?.others ?? NO_VENUES
-  const total = data?.total ?? 0
+  const nearbyCount = data?.nearbyCount ?? 0
+  const capped = data?.capped ?? false
 
   // Filter the whole sorted list, then take the top few. The other order — the
   // one this code used to have implicitly — filters a three-row window and
@@ -519,11 +531,19 @@ export function CourtsHome({
         <section className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
-              {t('courts.also_near_you')}
+              {t('courts.clubs_within', { count: nearbyCount, radius: effectiveRadius })}
+              {capped && ` ${t('courts.and_more')}`}
             </h2>
-            <p className="num text-[12px] font-semibold leading-[15px] text-ink-2">
-              {t('courts.n_venues', { count: total })}
-            </p>
+            <button
+              onClick={() => {
+                const next = RADIUS_OPTIONS[(RADIUS_OPTIONS.indexOf(effectiveRadius as typeof RADIUS_OPTIONS[number]) + 1) % RADIUS_OPTIONS.length] ?? 60
+                if (onRadiusChange) onRadiusChange(next)
+                else setLocalRadius(next)
+              }}
+              className="num flex-shrink-0 rounded-pill border border-hairline bg-card px-2.5 py-1 text-[11px] font-semibold text-ink-2"
+            >
+              {effectiveRadius} mi
+            </button>
           </div>
 
           {others.map((v) => (

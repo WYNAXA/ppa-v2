@@ -3,13 +3,15 @@ import { useTranslation } from 'react-i18next'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Clock, Calendar, Share2, Trash2 } from 'lucide-react'
+import { ChevronLeft, MapPin, Clock, Calendar, Share2, Trash2, ExternalLink, Tag } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
+import { money } from '@/lib/money'
+import { openUrl } from '@/lib/openUrl'
 import { goBack } from '@/lib/navigation'
 import { AddToCalendarSheet } from '@/components/shared/AddToCalendarSheet'
 import { confirmDialog } from '@/components/shared/ConfirmDialog'
@@ -29,6 +31,10 @@ interface EventDetail {
   // events.group_id is nullable.
   group_id: string | null
   created_by: string | null
+  external_link: string | null
+  entry_fee_pence: number | null
+  currency: string | null
+  padel_venue_id: string | null
 }
 
 function useEvent(id: string) {
@@ -38,7 +44,7 @@ function useEvent(id: string) {
     queryFn: async (): Promise<EventDetail | null> => {
       const { data, error } = await supabase
         .from('events')
-        .select('id, title, description, start_time, end_time, location, event_type, status, group_id, created_by')
+        .select('id, title, description, start_time, end_time, location, event_type, status, group_id, created_by, external_link, entry_fee_pence, currency, padel_venue_id')
         .eq('id', id)
         .single()
       if (error) throw error
@@ -279,7 +285,37 @@ export function EventDetailPage() {
             {event.event_type}
           </span>
         )}
+        {/* Price */}
+        {event.entry_fee_pence != null && event.entry_fee_pence > 0 && event.currency && (
+          <div className="flex items-center gap-2">
+            <Tag className="h-4 w-4 text-ink-2 flex-shrink-0" />
+            <p className="text-[13px] font-semibold text-ink">{money(event.entry_fee_pence, event.currency)}</p>
+          </div>
+        )}
+        {/* Venue */}
+        {event.padel_venue_id && (
+          <button
+            onClick={() => navigate(`/venues/${event.padel_venue_id}`)}
+            className="flex items-center gap-2 text-left"
+          >
+            <MapPin className="h-4 w-4 text-court flex-shrink-0" />
+            <p className="text-[13px] font-semibold text-court">{event.location ?? t('venue.this_venue')}</p>
+          </button>
+        )}
       </motion.div>
+
+      {/* Get tickets — external link */}
+      {event.external_link?.trim() && (
+        <div className="mx-5 mb-4">
+          <button
+            onClick={() => openUrl(event.external_link!)}
+            className="flex h-11 w-full items-center justify-center gap-2 rounded-card bg-court text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
+          >
+            {t('discover.action_get_tickets')}
+            <ExternalLink className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Description */}
       {event.description && (

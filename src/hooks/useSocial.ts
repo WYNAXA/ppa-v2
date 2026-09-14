@@ -187,3 +187,66 @@ export function useMyConnections(userId: string) {
     },
   })
 }
+
+export interface PlayedVenue {
+  venue_id: string
+  venue_name: string
+  city: string | null
+}
+
+/** Distinct venues the player has played at, most recent first. */
+export function useMyPlayedVenues(userId: string) {
+  return useQuery<PlayedVenue[]>({
+    queryKey: ['my-played-venues', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('padel_venue_id')
+        .contains('player_ids', [userId])
+        .not('padel_venue_id', 'is', null)
+        .order('match_date', { ascending: false })
+        .limit(50)
+
+      const venueIds = [...new Set((matches ?? []).map(m => m.padel_venue_id).filter(Boolean) as string[])]
+      if (venueIds.length === 0) return []
+
+      const { data: venues } = await supabase
+        .from('padel_venues')
+        .select('venue_id, venue_name, city')
+        .in('venue_id', venueIds)
+
+      const map = new Map((venues ?? []).map(v => [v.venue_id, v]))
+      return venueIds.map(id => map.get(id)).filter(Boolean) as PlayedVenue[]
+    },
+  })
+}
+
+/** Coaching sessions the player has booked. */
+export function useMyCoachBookings(userId: string) {
+  return useQuery({
+    queryKey: ['my-coaching-bookings', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('coaching_bookings')
+        .select('session_id, coaching_sessions(id, title, start_at, coach_user_id)')
+        .eq('player_id', userId)
+        .eq('status', 'booked')
+      if (!data || data.length === 0) return []
+      const coachIds = [...new Set(data.map((b: any) => b.coaching_sessions?.coach_user_id).filter(Boolean))]
+      const { data: profs } = coachIds.length
+        ? await supabase.from('profiles').select('id, name').in('id', coachIds)
+        : { data: [] }
+      const nameMap = new Map((profs ?? []).map((p: any) => [p.id, p.name]))
+      return data
+        .filter((b: any) => b.coaching_sessions)
+        .map((b: any) => ({
+          sessionId: b.coaching_sessions.id as string,
+          title: b.coaching_sessions.title as string,
+          startAt: b.coaching_sessions.start_at as string,
+          coachName: nameMap.get(b.coaching_sessions.coach_user_id) ?? 'Coach',
+        }))
+    },
+  })
+}

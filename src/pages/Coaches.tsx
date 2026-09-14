@@ -253,9 +253,10 @@ export function CoachesPage() {
             {directory.map((c) => {
               const link = c.booking_url || c.website || c.instagram
               return (
-                <div
+                <button
                   key={c.venue_id}
-                  className="flex items-center gap-3 rounded-2xl border border-hairline bg-card p-3"
+                  onClick={() => navigate(`/venues/${c.venue_id}`)}
+                  className="w-full flex items-center gap-3 rounded-2xl border border-hairline bg-card p-3 text-left active:scale-[0.99] transition-transform"
                 >
                   <div className="h-10 w-10 rounded-full bg-court-50 flex items-center justify-center flex-shrink-0">
                     <GraduationCap className="h-5 w-5 text-court" />
@@ -282,7 +283,7 @@ export function CoachesPage() {
                       <MapPin size={11} /> no contact listed
                     </span>
                   )}
-                </div>
+                </button>
               )
             })}
           </div>

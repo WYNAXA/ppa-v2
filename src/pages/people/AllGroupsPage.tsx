@@ -2,13 +2,14 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronLeft, Search, Users, MapPin, Lock, X, Globe, UserCheck, Info } from 'lucide-react'
+import { ChevronLeft, Search, Users, MapPin, Lock, X, Globe, UserCheck, Info, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useMyGroups } from '@/hooks/useSocial'
 import { MyGroupCard } from '@/components/people/MyGroupCard'
+import { CreateGroupSheet } from '@/components/people/CreateGroupSheet'
 
 interface DiscoverGroup {
   id: string; name: string; description: string | null; city: string | null
@@ -27,6 +28,7 @@ export function AllGroupsPage() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState('newest')
   const [previewGroup, setPreviewGroup] = useState<DiscoverGroup | null>(null)
+  const [showCreateGroup, setShowCreateGroup] = useState(false)
   const { data: myGroupsList = [] } = useMyGroups(userId)
   const myApproved = myGroupsList.filter(g => g.memberStatus === 'approved')
   const myRinger = myGroupsList.filter(g => g.memberStatus === 'ringer')
@@ -140,7 +142,13 @@ export function AllGroupsPage() {
           <button onClick={() => navigate('/discover')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink">{t('people.find_groups')}</h1>
+          <h1 className="text-xl font-bold text-ink flex-1">{t('people.find_groups')}</h1>
+          <button
+            onClick={() => setShowCreateGroup(true)}
+            className="h-8 w-8 rounded-full bg-court flex items-center justify-center flex-shrink-0"
+          >
+            <Plus className="h-4 w-4 text-white" />
+          </button>
         </div>
       </div>
       <div className="px-5 pt-4 space-y-3">
@@ -338,6 +346,8 @@ export function AllGroupsPage() {
           </>
         )}
       </AnimatePresence>
+
+      <CreateGroupSheet open={showCreateGroup} onClose={() => setShowCreateGroup(false)} />
     </div>
   )
 }

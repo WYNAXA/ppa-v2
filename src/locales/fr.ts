@@ -69,6 +69,9 @@ export default {
     "courts_unconfirmed": "terrains non confirmés",
     "section_title": "Terrains",
     "courts_waiting": "Détails des terrains non confirmés — en attente du club.",
+    "clubs_within": "{{count}} terrains dans {{radius}} miles",
+    "clubs_within_one": "{{count}} terrain dans {{radius}} miles",
+    "and_more": "(et plus)"
   },
   "club": {
     "ask": "Demander",
@@ -1630,6 +1633,7 @@ export default {
     "kind_coaching": "Cours",
     "action_join": "Rejoindre",
     "action_view": "Voir",
+    "action_get_tickets": "Obtenir des billets",
     "empty_title": "C'est tout dans un rayon de {{radius}} miles",
     "empty_subtitle": "Rien d'ouvert pr\u00e8s de vous \u2014 lancez quelque chose.",
     "put_up_game": "Proposer un match",

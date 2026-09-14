@@ -69,6 +69,9 @@ export default {
     "courts_unconfirmed": "campos não confirmados",
     "section_title": "Quadras",
     "courts_waiting": "Detalhes das quadras ainda não confirmados — aguardando o clube.",
+    "clubs_within": "{{count}} quadras em {{radius}} milhas",
+    "clubs_within_one": "{{count}} quadra em {{radius}} milhas",
+    "and_more": "(e mais)"
   },
   "club": {
     "ask": "Pedir",
@@ -1630,6 +1633,7 @@ export default {
     "kind_coaching": "Aula",
     "action_join": "Participar",
     "action_view": "Ver",
+    "action_get_tickets": "Comprar ingressos",
     "empty_title": "Isso \u00e9 tudo em {{radius}} milhas",
     "empty_subtitle": "Nada aberto perto de voc\u00ea agora \u2014 crie algo.",
     "put_up_game": "Criar um jogo",

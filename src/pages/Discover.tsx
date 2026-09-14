@@ -8,7 +8,7 @@ import { Search, ChevronRight, Clock, Tag, MapPin, ExternalLink } from 'lucide-r
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useMyGroups, useMyConnections } from '@/hooks/useSocial'
+import { useMyGroups, useMyConnections, useMyPlayedVenues, useMyCoachBookings } from '@/hooks/useSocial'
 import { money } from '@/lib/money'
 import { DirectoryGrid } from '@/components/people/DirectoryGrid'
 import { CreateEventSheet } from '@/components/people/CreateEventSheet'
@@ -62,6 +62,8 @@ function useDiscoverFeed(lat: number | null, lng: number | null, radius: number)
 function useMineCounts(userId: string) {
   const { data: groups = [] } = useMyGroups(userId)
   const { data: connections } = useMyConnections(userId)
+  const { data: playedVenues = [] } = useMyPlayedVenues(userId)
+  const { data: coachBookings = [] } = useMyCoachBookings(userId)
 
   const { data: leagueCount = 0 } = useQuery<number>({
     queryKey: ['my-league-count', userId],
@@ -70,18 +72,6 @@ function useMineCounts(userId: string) {
       const { count } = await supabase
         .from('league_members').select('id', { count: 'exact', head: true })
         .eq('user_id', userId).eq('status', 'active')
-      return count ?? 0
-    },
-  })
-
-  const { data: venueCount = 0 } = useQuery<number>({
-    queryKey: ['my-venue-count', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('matches').select('id', { count: 'exact', head: true })
-        .contains('player_ids', [userId])
-        .not('padel_venue_id', 'is', null)
       return count ?? 0
     },
   })
@@ -98,12 +88,15 @@ function useMineCounts(userId: string) {
     },
   })
 
+  // Every count is a real number. 0 means zero, not "hide the number".
+  // DirectoryGrid's `n != null` guard renders the number when present.
   return {
-    groups: groups.filter(g => g.memberStatus === 'approved').length || undefined,
-    players: (connections?.accepted.size ?? 0) || undefined,
-    venues: venueCount || undefined,
-    leagues: leagueCount || undefined,
-    events: eventCount || undefined,
+    groups: groups.filter(g => g.memberStatus === 'approved').length,
+    players: connections?.accepted.size ?? 0,
+    coaches: coachBookings.length,
+    venues: playedVenues.length,
+    leagues: leagueCount,
+    events: eventCount,
   }
 }
 

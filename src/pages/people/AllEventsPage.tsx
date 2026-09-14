@@ -1,13 +1,14 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Search, MapPin, Users } from 'lucide-react'
+import { ChevronLeft, Search, MapPin, Users, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useDateLocale } from '@/lib/dateLocale'
 import { discoverVenueEvents, type DiscoverableEvent } from '@/lib/venueEvents'
+import { CreateEventSheet } from '@/components/people/CreateEventSheet'
 import { formatMoney, money } from '@/lib/money'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
@@ -44,6 +45,7 @@ export function AllEventsPage() {
   const locale = useDateLocale()
   const userId = profile?.id ?? ''
   const [search, setSearch] = useState('')
+  const [showCreateEvent, setShowCreateEvent] = useState(false)
 
   const { data: groupEvents = [], isLoading: loadingGroup } = useQuery({
     queryKey: ['all-events-group', userId],
@@ -116,10 +118,13 @@ export function AllEventsPage() {
           >
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink">{t('people.upcoming_events')}</h1>
-          {rows.length > 0 && (
-            <span className="num ml-auto text-[12px] text-ink-2">{rows.length}</span>
-          )}
+          <h1 className="text-xl font-bold text-ink flex-1">{t('people.upcoming_events')}</h1>
+          <button
+            onClick={() => setShowCreateEvent(true)}
+            className="h-8 w-8 rounded-full bg-court flex items-center justify-center flex-shrink-0"
+          >
+            <Plus className="h-4 w-4 text-white" />
+          </button>
         </div>
       </div>
 
@@ -211,6 +216,7 @@ export function AllEventsPage() {
           )
         })()}
       </div>
+      <CreateEventSheet open={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
     </div>
   )
 }

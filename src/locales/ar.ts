@@ -69,6 +69,13 @@ export default {
     "courts_unconfirmed": "الملاعب غير مؤكدة",
     "section_title": "الملاعب",
     "courts_waiting": "تفاصيل الملاعب غير مؤكدة بعد — بانتظار النادي.",
+    "clubs_within_zero": "لا ملاعب ضمن {{radius}} ميل",
+    "clubs_within_one": "ملعب واحد ضمن {{radius}} ميل",
+    "clubs_within_two": "ملعبان ضمن {{radius}} ميل",
+    "clubs_within_few": "{{count}} ملاعب ضمن {{radius}} ميل",
+    "clubs_within_many": "{{count}} ملعبًا ضمن {{radius}} ميل",
+    "clubs_within_other": "{{count}} ملعب ضمن {{radius}} ميل",
+    "and_more": "(والمزيد)"
   },
   "club": {
     "ask": "\u0627\u0637\u0644\u0628",
@@ -1660,6 +1667,7 @@ export default {
     "kind_coaching": "تدريب",
     "action_join": "انضم",
     "action_view": "عرض",
+    "action_get_tickets": "احصل على تذاكر",
     "empty_title": "هذا كل شيء في نطاق {{radius}} ميل",
     "empty_subtitle": "لا شيء متاح بالقرب منك الآن \u2014 ابدأ شيئًا.",
     "put_up_game": "أنشئ مباراة",

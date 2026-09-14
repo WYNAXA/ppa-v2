@@ -1046,6 +1046,8 @@ export default {
     "uploading": "अपलोड हो रहा है…",
     "use_current_location": "मेरा वर्तमान स्थान उपयोग करें",
     "getting_location": "स्थान प्राप्त कर रहे हैं…",
+    "location_save_failed": "स्थान सहेजने में विफल",
+    "location_denied": "आपका स्थान प्राप्त नहीं हो सका",
     "save_changes": "परिवर्तन सहेजें",
     "saving": "सहेज रहे हैं…",
     "save_failed": "सहेजने में विफल। पुनः प्रयास करें।",

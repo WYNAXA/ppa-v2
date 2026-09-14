@@ -1048,6 +1048,8 @@ export default {
     "uploading": "Laddar upp…",
     "use_current_location": "Använd min nuvarande plats",
     "getting_location": "Hämtar plats…",
+    "location_save_failed": "Kunde inte spara platsen",
+    "location_denied": "Kunde inte hämta din plats",
     "save_changes": "Spara ändringar",
     "saving": "Sparar…",
     "save_failed": "Misslyckades att spara. Försök igen.",

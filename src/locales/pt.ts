@@ -1048,6 +1048,8 @@ export default {
     "uploading": "Enviando…",
     "use_current_location": "Usar minha localização atual",
     "getting_location": "Obtendo localização…",
+    "location_save_failed": "Erro ao salvar localização",
+    "location_denied": "Não foi possível obter sua localização",
     "save_changes": "Salvar alterações",
     "saving": "Salvando…",
     "save_failed": "Falha ao salvar. Tente novamente.",

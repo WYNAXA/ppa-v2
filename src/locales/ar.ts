@@ -1052,6 +1052,8 @@ export default {
     "uploading": "جاري الرفع…",
     "use_current_location": "استخدم موقعي الحالي",
     "getting_location": "جاري الحصول على الموقع…",
+    "location_save_failed": "فشل حفظ الموقع",
+    "location_denied": "تعذر الحصول على موقعك",
     "save_changes": "حفظ التغييرات",
     "saving": "جاري الحفظ…",
     "save_failed": "فشل الحفظ. حاول مرة أخرى.",

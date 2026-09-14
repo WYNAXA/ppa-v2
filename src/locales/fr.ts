@@ -1048,6 +1048,8 @@ export default {
     "uploading": "Téléversement…",
     "use_current_location": "Utiliser ma position actuelle",
     "getting_location": "Récupération de la position…",
+    "location_save_failed": "Impossible d'enregistrer la position",
+    "location_denied": "Impossible d'obtenir votre position",
     "save_changes": "Enregistrer les modifications",
     "saving": "Enregistrement…",
     "save_failed": "Échec de l'enregistrement. Réessaie.",

@@ -11,6 +11,7 @@ import imageCompression from 'browser-image-compression'
 import * as Sentry from '@sentry/react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useSetMyLocation } from '@/hooks/useSetMyLocation'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { confirmDialog } from '@/components/shared/ConfirmDialog'
 import { BADGE_DEFINITIONS, ACHIEVEMENT_LIBRARY, PEER_VOTE_CATEGORIES, COURT_TIME_TIERS, courtTimeTier } from '@/lib/achievements'
@@ -526,7 +527,7 @@ function EditProfileSheet({
   const [canDrive, setCanDrive]     = useState<boolean>(!!(profile as any)?.can_drive)
   const [maxPassengers, setMaxPassengers] = useState<number>((profile as any)?.max_passengers ?? 3)
   const [travelRadius, setTravelRadius]   = useState<number>((profile as any)?.travel_radius_miles ?? 5)
-  const [locating, setLocating]     = useState(false)
+  const locationHook = useSetMyLocation()
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [uploading, setUploading]   = useState(false)
   const fileInputRef                = useRef<HTMLInputElement>(null)
@@ -542,6 +543,17 @@ function EditProfileSheet({
     setMaxPassengers((profile as any).max_passengers ?? 3)
     setTravelRadius((profile as any).travel_radius_miles ?? 5)
   }, [profile?.id])
+
+  // When location detection succeeds, refresh the profile query and update the city field.
+  useEffect(() => {
+    if (locationHook.state.status === 'done') {
+      queryClient.invalidateQueries({ queryKey: ['full-profile', user?.id] })
+    } else if (locationHook.state.status === 'error') {
+      toast.error(t('you.location_save_failed'))
+    } else if (locationHook.state.status === 'denied') {
+      toast.error(t('you.location_denied'))
+    }
+  }, [locationHook.state.status])
 
   const COUNTRIES = ['UK', 'Ireland', 'Spain', 'Portugal', 'Italy', 'France', 'Germany', 'Netherlands', 'Belgium', 'Other']
 
@@ -768,26 +780,13 @@ function EditProfileSheet({
 
                 <button
                   type="button"
-                  disabled={locating}
+                  disabled={locationHook.state.status === 'pending'}
                   onClick={() => {
-                    if (!navigator.geolocation || !user) return
-                    setLocating(true)
-                    navigator.geolocation.getCurrentPosition(
-                      async (pos) => {
-                        const { error } = await supabase.from('profiles').update({
-                          latitude:  pos.coords.latitude,
-                          longitude: pos.coords.longitude,
-                        }).eq('id', user.id)
-                        setLocating(false)
-                        if (error) { toast.error('Failed to save location'); return }
-                        queryClient.invalidateQueries({ queryKey: ['full-profile', user.id] })
-                      },
-                      () => { setLocating(false); toast.error('Could not get your location') },
-                    )
+                    locationHook.detectLocation()
                   }}
                   className="w-full rounded-xl border border-hairline bg-card py-2 text-[12px] font-semibold text-ink-2 hover:bg-surface disabled:opacity-40 transition-colors"
                 >
-                  {locating ? t('you.getting_location') : t('you.use_current_location')}
+                  {locationHook.state.status === 'pending' ? t('you.getting_location') : t('you.use_current_location')}
                 </button>
               </div>
 

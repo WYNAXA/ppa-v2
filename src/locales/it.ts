@@ -1048,6 +1048,8 @@ export default {
     "uploading": "Caricamento…",
     "use_current_location": "Usa la mia posizione attuale",
     "getting_location": "Recupero della posizione…",
+    "location_save_failed": "Impossibile salvare la posizione",
+    "location_denied": "Impossibile ottenere la tua posizione",
     "save_changes": "Salva modifiche",
     "saving": "Salvataggio…",
     "save_failed": "Salvataggio fallito. Riprova.",

@@ -1074,6 +1074,8 @@ export default {
     avatar_upload_failed: 'Failed to upload photo. Please try again.',
     use_current_location: 'Use my current location',
     getting_location: 'Getting location…',
+    location_save_failed: 'Failed to save location',
+    location_denied: 'Could not get your location',
     save_changes: 'Save Changes',
     saving: 'Saving…',
     save_failed: 'Failed to save. Try again.',

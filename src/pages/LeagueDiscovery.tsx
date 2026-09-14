@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { useDiscoverList } from '@/hooks/useDiscoverList'
+import { useDiscoverList, useDiscoverRadius } from '@/hooks/useDiscoverList'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
@@ -61,6 +61,7 @@ export function LeagueDiscoveryPage() {
   const userId = profile?.id ?? ''
 
   const { data: nearYouLeagues = [], isLoading: loadingNearYou } = useDiscoverList('leagues')
+  const discoverRadius = useDiscoverRadius()
   const [searchQuery, setSearchQuery] = useState('')
 
   const filteredNearYou = useMemo(() => {
@@ -158,12 +159,15 @@ export function LeagueDiscoveryPage() {
       <div className="bg-card border-b border-hairline px-4 pt-12 pb-4">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => goBack(navigate, '/compete')}
+            onClick={() => goBack(navigate, '/discover')}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1"
           >
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink flex-1">Leagues & Tournaments</h1>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-ink">Leagues & Tournaments</h1>
+            <p className="text-[13px] text-ink-2">{t('discover.leagues_within', { count: nearYouLeagues.length, radius: discoverRadius })}</p>
+          </div>
           <button
             onClick={() => navigate('/compete?createLeague=true')}
             className="h-8 w-8 rounded-full bg-court flex items-center justify-center flex-shrink-0"
@@ -245,9 +249,6 @@ export function LeagueDiscoveryPage() {
 
         {/* ── Near you — from discover_list ───────────────────────────── */}
         <section className="px-4 pt-5">
-          <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">
-            {t('discover.near_you')} · {filteredNearYou.length}
-          </h2>
 
           {/* Search */}
           <div className="relative mb-3">

@@ -6,7 +6,8 @@ import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useDiscoverList } from '@/hooks/useDiscoverList'
+import { useDiscoverList, useDiscoverRadius } from '@/hooks/useDiscoverList'
+import { goBack } from '@/lib/navigation'
 import { useDateLocale } from '@/lib/dateLocale'
 import { CreateEventSheet } from '@/components/people/CreateEventSheet'
 
@@ -41,6 +42,7 @@ export function AllEventsPage() {
   const [showCreateEvent, setShowCreateEvent] = useState(false)
 
   const { data: nearYouEvents = [], isLoading: loadingNearYou } = useDiscoverList('events')
+  const discoverRadius = useDiscoverRadius()
 
   // Mine — events I created or am in a group that owns them
   const { data: groupEvents = [] } = useQuery({
@@ -69,13 +71,16 @@ export function AllEventsPage() {
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/discover')}
+            onClick={() => goBack(navigate, '/discover')}
             aria-label={t('common.back')}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1"
           >
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink flex-1">{t('people.upcoming_events')}</h1>
+          <div className="flex-1">
+            <h1 className="text-xl font-bold text-ink">{t('people.upcoming_events')}</h1>
+            <p className="text-[13px] text-ink-2">{t('discover.events_within', { count: nearYouEvents.length, radius: discoverRadius })}</p>
+          </div>
           <button
             onClick={() => setShowCreateEvent(true)}
             className="h-8 w-8 rounded-full bg-court flex items-center justify-center flex-shrink-0"
@@ -101,9 +106,6 @@ export function AllEventsPage() {
 
         {/* Near you — from discover_list */}
         <section className="mb-4">
-          <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
-            {t('discover.near_you')} · {filtered.length}
-          </h2>
           {loadingNearYou ? (
             <div className="h-16 rounded-2xl bg-hairline animate-pulse" />
           ) : filtered.length === 0 ? (

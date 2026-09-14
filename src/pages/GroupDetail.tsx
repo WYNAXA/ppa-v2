@@ -35,6 +35,7 @@ interface Group {
   max_members: number | null
   auto_approve: boolean | null
   allow_join_requests: boolean | null
+  join_mode: string | null
   allow_ringers: boolean | null
   ringer_approval: string | null
   auto_match_enabled: boolean | null
@@ -86,7 +87,7 @@ function useGroup(groupId: string) {
     queryFn: async (): Promise<Group | null> => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id, rules, max_members, auto_approve, allow_join_requests, allow_ringers, ringer_approval, auto_match_enabled, created_at, banner_url')
+        .select('id, name, description, city, visibility, admin_id, rules, max_members, auto_approve, allow_join_requests, join_mode, allow_ringers, ringer_approval, auto_match_enabled, created_at, banner_url')
         .eq('id', groupId)
         .maybeSingle()
       if (error) throw error
@@ -2117,6 +2118,37 @@ export function GroupDetailPage() {
         onClose={() => setCreateMatchOpen(false)}
         defaultGroupId={groupId}
       />
+
+      {/* Join bar for non-members — §3.4 / §0.3 fix */}
+      {group && !isMember && !isRinger && !isAdmin && group.join_mode !== 'closed' && (
+        <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-hairline bg-card px-5 py-3"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 12px)' }}>
+          <button
+            onClick={async () => {
+              const auto = group.auto_approve === true || group.join_mode === 'open'
+              const { error } = await supabase.from('group_members').insert({
+                group_id: groupId, user_id: userId, role: 'member',
+                status: auto ? 'approved' : 'pending',
+              })
+              if (error) {
+                if (error.code === '23505') toast.error(t('people.join_declined_contact_admin'))
+                else toast.error(error.message || t('people.join_error'))
+                return
+              }
+              toast.success(auto
+                ? t('people.joined_group_name', { name: group.name })
+                : t('people.request_sent'))
+              queryClient.invalidateQueries({ queryKey: ['group-detail', groupId] })
+              queryClient.invalidateQueries({ queryKey: ['user-membership', groupId, userId] })
+            }}
+            className="w-full rounded-2xl bg-court py-3.5 text-[14px] font-bold text-white"
+          >
+            {group.auto_approve === true || group.join_mode === 'open'
+              ? t('people.join_btn')
+              : t('people.request_to_join')}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

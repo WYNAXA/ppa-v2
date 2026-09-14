@@ -448,7 +448,8 @@ export function VenueDetailPage() {
    * `number_of_courts` 14: the breakdown is partial, the total is right. Taking
    * the sum alone told a 14-court club it had 4.
    */
-  const totalCourts = (venue ? confirmedCourtCount(venue) : null) ?? 0
+  const isCoach = venue?.venue_type === 'coach'
+  const totalCourts = (venue && !isCoach ? confirmedCourtCount(venue) : null) ?? 0
   const courtBreakdown = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
   const breakdownIsPartial = totalCourts > courtBreakdown && courtBreakdown > 0
 
@@ -589,13 +590,18 @@ export function VenueDetailPage() {
 
       {/* 2. Quick info chips */}
       <div className="flex gap-2 px-5 mt-3 overflow-x-auto scrollbar-hide">
-        {totalCourts > 0 ? (
+        {!isCoach && (totalCourts > 0 ? (
           <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
             {'\u{1F3BE}'} {t('courts.n_courts', { count: totalCourts })}
           </div>
         ) : (
           <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm text-ink-3">
             {'\u{1F3BE}'} {t('courts.courts_unconfirmed')}
+          </div>
+        ))}
+        {isCoach && (
+          <div className="shrink-0 rounded-xl bg-court-50 border border-court-100 px-3 py-2 text-sm text-court-700 font-medium">
+            {'\u{1F3BE}'} {t('people.badge_coach')}
           </div>
         )}
         {openStatus && (
@@ -776,8 +782,8 @@ export function VenueDetailPage() {
         </div>
       )}
 
-      {/* 4. Courts */}
-      <section className="px-5 mt-6">
+      {/* 4. Courts — hidden for coaches */}
+      {!isCoach && <section className="px-5 mt-6">
         <h2 className="text-base font-semibold text-ink mb-3">
           {t('courts.section_title')}{totalCourts > 0 && <span className="font-normal text-ink-2"> · {totalCourts}</span>}
         </h2>
@@ -823,7 +829,7 @@ export function VenueDetailPage() {
         ) : (
           <WaitingOnInfo text={t('courts.courts_waiting')} />
         )}
-      </section>
+      </section>}
 
       {/* Prices — real amounts where the venue has them, nothing where it doesn't. */}
       {(peakPrice || offpeakPrice) && (

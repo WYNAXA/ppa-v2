@@ -95,7 +95,11 @@ export function CoachesPage() {
 
   // Header subtitle.
   const headerSub = coachCount > 0 && clubCount > 0
-    ? t('discover.coaching_within_split', { coaches: coachCount, clubs: clubCount, radius })
+    ? t('discover.coaching_within_split', {
+        coaches: t('discover.n_coaches', { count: coachCount }),
+        clubs: t('discover.n_clubs_lessons', { count: clubCount }),
+        radius,
+      })
     : t('discover.coaching_within', { count: nearYou.length, radius })
 
   return (

@@ -1692,7 +1692,11 @@ export default {
     "groups_within_one": "{{count}} grupo en {{radius}} millas",
     "coaching_within": "{{count}} en {{radius}} millas",
     "coaching_within_one": "{{count}} en {{radius}} millas",
-    "coaching_within_split": "{{coaches}} entrenadores y {{clubs}} pistas en {{radius}} millas",
+    "coaching_within_split": "{{coaches}} y {{clubs}} en {{radius}} millas",
+    "n_coaches": "{{count}} entrenadores",
+    "n_coaches_one": "{{count}} entrenador",
+    "n_clubs_lessons": "{{count}} clubes",
+    "n_clubs_lessons_one": "{{count}} club",
     "hero_nearest_club": "Pista más cercana",
     "hero_nearest_player": "Jugador más cercano",
     "hero_closest_level": "Más cercano a tu nivel",
@@ -1714,7 +1718,10 @@ export default {
     "your_groups_elsewhere": "Tus grupos en otro lugar",
     "your_leagues": "Tus ligas",
     "played_before": "Jugado antes",
-    "badge_played_here": "Jugado aquí"
+    "badge_played_here": "Jugado aquí",
+    "leagues_title": "Ligas y Torneos",
+    "badge_admin": "Admin",
+    "pending_invitations": "Invitaciones pendientes"
   },
   "create_event": {
     "title": "Crear evento",

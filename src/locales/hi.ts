@@ -1690,7 +1690,11 @@ export default {
     "groups_within_one": "{{radius}} मील के भीतर {{count}} ग्रुप",
     "coaching_within": "{{radius}} मील के भीतर {{count}}",
     "coaching_within_one": "{{radius}} मील के भीतर {{count}}",
-    "coaching_within_split": "{{radius}} मील के भीतर {{coaches}} कोच और {{clubs}} क्लब",
+    "coaching_within_split": "{{radius}} मील के भीतर {{coaches}} और {{clubs}}",
+    "n_coaches": "{{count}} कोच",
+    "n_coaches_one": "{{count}} कोच",
+    "n_clubs_lessons": "{{count}} क्लब",
+    "n_clubs_lessons_one": "{{count}} क्लब",
     "hero_nearest_club": "सबसे करीबी क्लब",
     "hero_nearest_player": "सबसे करीबी खिलाड़ी",
     "hero_closest_level": "आपके स्तर के सबसे करीब",
@@ -1712,7 +1716,10 @@ export default {
     "your_groups_elsewhere": "आपके अन्य ग्रुप",
     "your_leagues": "आपकी लीग",
     "played_before": "पहले खेले",
-    "badge_played_here": "यहां खेले"
+    "badge_played_here": "यहां खेले",
+    "leagues_title": "लीग और टूर्नामेंट",
+    "badge_admin": "व्यवस्थापक",
+    "pending_invitations": "लंबित आमंत्रण"
   },
   "create_event": {
     "title": "इवेंट बनाएं",

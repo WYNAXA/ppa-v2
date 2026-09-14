@@ -165,7 +165,7 @@ export function LeagueDiscoveryPage() {
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-ink">Leagues & Tournaments</h1>
+            <h1 className="text-xl font-bold text-ink">{t('discover.leagues_title')}</h1>
             <p className="text-[13px] text-ink-2">{t('discover.leagues_within', { count: nearYouLeagues.length, radius: discoverRadius })}</p>
           </div>
           <button
@@ -205,7 +205,7 @@ export function LeagueDiscoveryPage() {
                         {league.status ?? 'draft'}
                       </span>
                       {league.role === 'admin' && (
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-warn-50 text-warn">Admin</span>
+                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-warn-50 text-warn">{t('discover.badge_admin')}</span>
                       )}
                     </div>
                   </div>
@@ -219,7 +219,7 @@ export function LeagueDiscoveryPage() {
         {/* ── Pending Invitations ────────────────────────────────────────── */}
         {invitations.length > 0 && (
           <section className="px-4 pt-5">
-            <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">Pending Invitations</h2>
+            <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">{t('discover.pending_invitations')}</h2>
             <div className="space-y-2">
               {invitations.map(inv => (
                 <div key={inv.id} className="rounded-2xl bg-card p-4 shadow-sm border border-hairline">

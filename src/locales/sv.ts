@@ -1692,7 +1692,11 @@ export default {
     "groups_within_one": "{{count}} grupp inom {{radius}} miles",
     "coaching_within": "{{count}} inom {{radius}} miles",
     "coaching_within_one": "{{count}} inom {{radius}} miles",
-    "coaching_within_split": "{{coaches}} tränare och {{clubs}} banor inom {{radius}} miles",
+    "coaching_within_split": "{{coaches}} och {{clubs}} inom {{radius}} miles",
+    "n_coaches": "{{count}} tränare",
+    "n_coaches_one": "{{count}} tränare",
+    "n_clubs_lessons": "{{count}} klubbar",
+    "n_clubs_lessons_one": "{{count}} klubb",
     "hero_nearest_club": "Närmaste bana",
     "hero_nearest_player": "Närmaste spelare",
     "hero_closest_level": "Närmast din nivå",
@@ -1714,7 +1718,10 @@ export default {
     "your_groups_elsewhere": "Dina grupper på andra ställen",
     "your_leagues": "Dina ligor",
     "played_before": "Spelat förut",
-    "badge_played_here": "Spelat här"
+    "badge_played_here": "Spelat här",
+    "leagues_title": "Ligor och Turneringar",
+    "badge_admin": "Admin",
+    "pending_invitations": "Väntande inbjudningar"
   },
   "create_event": {
     "title": "Skapa evenemang",

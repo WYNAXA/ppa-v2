@@ -31,7 +31,6 @@ interface Group {
   city: string | null
   visibility: string | null
   admin_id: string
-  invite_code: string | null
   rules: string | null
   max_members: number | null
   auto_approve: boolean | null
@@ -87,7 +86,7 @@ function useGroup(groupId: string) {
     queryFn: async (): Promise<Group | null> => {
       const { data, error } = await supabase
         .from('groups')
-        .select('id, name, description, city, visibility, admin_id, invite_code, rules, max_members, auto_approve, allow_join_requests, allow_ringers, ringer_approval, auto_match_enabled, created_at, banner_url')
+        .select('id, name, description, city, visibility, admin_id, rules, max_members, auto_approve, allow_join_requests, allow_ringers, ringer_approval, auto_match_enabled, created_at, banner_url')
         .eq('id', groupId)
         .maybeSingle()
       if (error) throw error

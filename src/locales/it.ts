@@ -610,7 +610,11 @@ export default {
     "no_leagues": "Nessuna lega ancora",
     "no_leagues_sub": "Creane una sopra per iniziare a competere",
     "create_league": "Crea lega",
-    "share": "Condividi gruppo"
+    "share": "Condividi gruppo",
+    "venue_search_placeholder": "Cerca un club",
+    "description_placeholder": "Di cosa tratta il tuo gruppo?",
+    "ringer_approval_label": "Chi può aggiungere sostituti?",
+    "create_error": "Errore nella creazione del gruppo. Riprova."
   },
   "people": {
     "search_all": "Cerca gruppi, giocatori, coach, sedi\u2026",
@@ -1643,9 +1647,28 @@ export default {
     "browse_coaches": "Coach",
     "browse_venues": "Campi",
     "near_you": "Vicino a te",
-    "yours": "I tuoi",
     "recently_played": "Giocati di recente",
-    "mine": "Miei"
+    "mine": "Miei",
+    "within_radius": "entro {{miles}} mi",
+    "tile_clubs": "Campi",
+    "tile_players": "Giocatori",
+    "tile_coaching": "Lezioni",
+    "tile_groups": "Gruppi",
+    "tile_leagues": "Leghe",
+    "tile_events": "Eventi",
+    "hero_open_games": "{{count}} partite aperte vicino a te",
+    "hero_open_games_one": "{{count}} partita aperta vicino a te",
+    "hero_open_games_zero": "Nessuna partita aperta vicino a te",
+    "hero_be_first_title": "Sii il primo a pubblicare",
+    "hero_be_first_body": "{{count}} giocatori entro {{miles}} miglia lo vedranno. Scegli un campo e un orario — vengono da te.",
+    "hero_be_first_body_one": "{{count}} giocatore entro {{miles}} miglia lo vedrà. Scegli un campo e un orario — vengono da te.",
+    "hero_put_up_a_game": "Crea una partita",
+    "hero_book_a_court": "Prenota un campo",
+    "hero_get_tickets": "Acquista biglietti",
+    "radius_widen": "Amplia a {{miles}} mi",
+    "no_location_title": "Dove giochi?",
+    "no_location_body": "Ti mostreremo campi, giocatori e partite vicino a te.",
+    "no_location_cta": "Imposta la tua posizione"
   },
   "create_event": {
     "title": "Crea evento",

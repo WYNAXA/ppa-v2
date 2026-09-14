@@ -610,7 +610,11 @@ export default {
     "no_leagues": "Inga ligor ännu",
     "no_leagues_sub": "Skapa en ovan för att börja tävla",
     "create_league": "Skapa liga",
-    "share": "Dela grupp"
+    "share": "Dela grupp",
+    "venue_search_placeholder": "Sök efter en anläggning",
+    "description_placeholder": "Vad handlar din grupp om?",
+    "ringer_approval_label": "Vem kan lägga till vikarier?",
+    "create_error": "Kunde inte skapa grupp. Försök igen."
   },
   "people": {
     "search_all": "S\u00f6k grupper, spelare, tr\u00e4nare, anl\u00e4ggningar\u2026",
@@ -1645,9 +1649,28 @@ export default {
     "browse_coaches": "Tr\u00e4nare",
     "browse_venues": "Banor",
     "near_you": "Nära dig",
-    "yours": "Dina",
     "recently_played": "Senast spelade",
-    "mine": "Mina"
+    "mine": "Mina",
+    "within_radius": "inom {{miles}} mi",
+    "tile_clubs": "Banor",
+    "tile_players": "Spelare",
+    "tile_coaching": "Lektioner",
+    "tile_groups": "Grupper",
+    "tile_leagues": "Ligor",
+    "tile_events": "Evenemang",
+    "hero_open_games": "{{count}} öppna matcher nära dig",
+    "hero_open_games_one": "{{count}} öppen match nära dig",
+    "hero_open_games_zero": "Inga öppna matcher nära dig",
+    "hero_be_first_title": "Var den som publicerar",
+    "hero_be_first_body": "{{count}} spelare inom {{miles}} miles ser det. Välj en bana och en tid — de kommer till dig.",
+    "hero_be_first_body_one": "{{count}} spelare inom {{miles}} miles ser det. Välj en bana och en tid — de kommer till dig.",
+    "hero_put_up_a_game": "Lägg upp en match",
+    "hero_book_a_court": "Boka en bana",
+    "hero_get_tickets": "Köp biljetter",
+    "radius_widen": "Utöka till {{miles}} mi",
+    "no_location_title": "Var spelar du?",
+    "no_location_body": "Vi visar banor, spelare och matcher nära dig.",
+    "no_location_cta": "Ange din plats"
   },
   "create_event": {
     "title": "Skapa evenemang",

@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Users, UserPlus, GraduationCap, MapPin, CalendarDays, Trophy, Search } from 'lucide-react'
+import { Users, UserPlus, GraduationCap, MapPin, CalendarDays, Trophy } from 'lucide-react'
 
 /**
  * The Community directory — six things you can go and find.
@@ -46,10 +46,9 @@ export type DirectoryCounts =
 type Tile = {
   key: keyof DirectoryCounts
   icon: typeof Users
-  /** Where tapping goes. Every tile navigates — three of them used to scroll
-      to a section further down Community instead, so the same control did two
-      different things with nothing to tell them apart. */
   to: string
+  /** i18n key for the tile label. */
+  labelKey: string
 }
 
 export interface DirectoryGridProps {
@@ -61,26 +60,18 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
   const { t } = useTranslation()
 
   const tiles: Tile[] = [
-    { key: 'groups',  icon: Users,         to: '/discover/groups' },
-    { key: 'players', icon: UserPlus,      to: '/discover/players' },
-    { key: 'coaches', icon: GraduationCap, to: '/coaches' },
-    { key: 'venues',  icon: MapPin,        to: '/discover/venues' },
-    { key: 'leagues', icon: Trophy,        to: '/leagues' },
-    { key: 'events',  icon: CalendarDays,  to: '/discover/events' },
+    { key: 'venues',  icon: MapPin,        to: '/discover/venues',  labelKey: 'discover.tile_clubs' },
+    { key: 'players', icon: UserPlus,      to: '/discover/players', labelKey: 'discover.tile_players' },
+    { key: 'coaches', icon: GraduationCap, to: '/coaches',          labelKey: 'discover.tile_coaching' },
+    { key: 'groups',  icon: Users,         to: '/discover/groups',  labelKey: 'discover.tile_groups' },
+    { key: 'leagues', icon: Trophy,        to: '/leagues',          labelKey: 'discover.tile_leagues' },
+    { key: 'events',  icon: CalendarDays,  to: '/discover/events',  labelKey: 'discover.tile_events' },
   ]
 
   const fmt = new Intl.NumberFormat()
 
   return (
-    <div className="flex flex-col gap-3">
-      <button
-        onClick={() => navigate('/search')}
-        className="flex h-12 w-full items-center gap-2.5 rounded-control border border-hairline bg-card px-4 text-left transition-transform active:scale-[0.99]"
-      >
-        <Search className="h-4 w-4 flex-shrink-0 text-ink-2" strokeWidth={2} />
-        <span className="truncate text-[13px] text-ink-2">{t('people.search_all')}</span>
-      </button>
-
+    <div>
       <div className="grid grid-cols-3 gap-2">
         {tiles.map((tile) => {
           const Icon = tile.icon
@@ -96,10 +87,10 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
               </span>
               <span className="flex items-baseline gap-1.5">
                 {n != null && (
-                  <span className="num text-[17px] font-extrabold leading-5 text-ink">{fmt.format(n)}</span>
+                  <span className={`num text-[17px] font-extrabold leading-5 ${n === 0 ? 'text-ink-4' : 'text-ink'}`}>{fmt.format(n)}</span>
                 )}
                 <span className="truncate text-[12px] font-semibold leading-4 text-ink-2">
-                  {t(`people.nav_${tile.key}`)}
+                  {t(tile.labelKey)}
                 </span>
               </span>
             </button>

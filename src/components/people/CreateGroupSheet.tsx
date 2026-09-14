@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Globe, Lock } from 'lucide-react'
-import { useMutation } from '@tanstack/react-query'
+import { X, Globe, Lock, MapPin } from 'lucide-react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useTranslation } from 'react-i18next'
 import { cn } from '@/lib/utils'
 import { Toggle as SharedToggle } from '@/components/shared/Toggle'
 
@@ -37,6 +38,7 @@ function Toggle({ enabled, onChange, label }: { enabled: boolean; onChange: (v: 
 export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
   const { user, profile } = useAuth()
   const navigate  = useNavigate()
+  const { t } = useTranslation()
 
   const [name, setName]               = useState('')
   const [description, setDescription] = useState('')
@@ -48,6 +50,23 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
   const [autoApprove, setAutoApprove]               = useState(false)
   const [allowRingers, setAllowRingers]             = useState(true)
   const [ringerApproval, setRingerApproval]         = useState<'admin' | 'any_member'>('admin')
+  const [venueId, setVenueId]           = useState<string | null>(null)
+  const [venueName, setVenueName]       = useState('')
+  const [venueQuery, setVenueQuery]     = useState('')
+
+  const { data: venueResults = [] } = useQuery({
+    queryKey: ['group-venue-search', venueQuery],
+    enabled: venueQuery.length >= 2,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('discoverable_venues')
+        .select('venue_id, venue_name, city')
+        .eq('venue_type', 'club')
+        .ilike('venue_name', `%${venueQuery}%`)
+        .limit(5)
+      return (data ?? []).filter(v => v.venue_id)
+    },
+  })
 
   function reset() {
     setName('')
@@ -58,6 +77,9 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
     setAutoApprove(false)
     setAllowRingers(true)
     setRingerApproval('admin')
+    setVenueId(null)
+    setVenueName('')
+    setVenueQuery('')
   }
 
   const createMutation = useMutation({
@@ -77,6 +99,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
           auto_approve:          visibility === 'private' ? autoApprove : true,
           allow_ringers:         allowRingers,
           ringer_approval:       ringerApproval,
+          padel_venue_id:        venueId,
         })
         .select('id')
         .single()
@@ -102,7 +125,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
       navigate(`/discover/groups/${group.id}`)
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to create group — please try again')
+      toast.error(err.message || t('group.create_error'))
     },
   })
 
@@ -170,7 +193,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="What's your group about?"
+                  placeholder={t('group.description_placeholder')}
                   rows={2}
                   style={{ fontSize: '16px' }}
                   className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20 resize-none"
@@ -190,6 +213,38 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
                   style={{ fontSize: '16px' }}
                   className="w-full rounded-xl border border-hairline px-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
                 />
+              </div>
+
+              {/* Where you play */}
+              <div>
+                <label className="block text-[13px] font-medium text-ink-2 mb-1.5">
+                  Where you play <span className="text-ink-2 font-normal">(optional)</span>
+                </label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
+                  <input
+                    type="text"
+                    value={venueId ? venueName : venueQuery}
+                    onChange={(e) => { setVenueQuery(e.target.value); setVenueId(null); setVenueName('') }}
+                    placeholder={t('group.venue_search_placeholder')}
+                    style={{ fontSize: '16px' }}
+                    className="w-full rounded-xl border border-hairline pl-9 pr-3 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20"
+                  />
+                </div>
+                {venueResults.length > 0 && !venueId && (
+                  <div className="mt-1 rounded-xl border border-hairline bg-card shadow-sm overflow-hidden">
+                    {venueResults.map((v: any) => (
+                      <button
+                        key={v.venue_id}
+                        onClick={() => { setVenueId(v.venue_id); setVenueName(v.venue_name ?? ''); setVenueQuery('') }}
+                        className="w-full px-3 py-2 text-left text-[13px] hover:bg-surface border-b border-hairline last:border-0"
+                      >
+                        <span className="font-medium text-ink">{v.venue_name}</span>
+                        {v.city && <span className="text-ink-2"> · {v.city}</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Visibility */}
@@ -260,7 +315,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
                       />
                       {allowRingers && (
                         <div>
-                          <p className="text-[12px] text-ink-2 mb-2">Who can add ringers?</p>
+                          <p className="text-[12px] text-ink-2 mb-2">{t('group.ringer_approval_label')}</p>
                           <div className="flex gap-2">
                             {(['admin', 'any_member'] as const).map((opt) => (
                               <button
@@ -286,7 +341,7 @@ export function CreateGroupSheet({ open, onClose }: CreateGroupSheetProps) {
               </AnimatePresence>
 
               {createMutation.isError && (
-                <p className="text-[12px] text-alert text-center">Failed to create group. Try again.</p>
+                <p className="text-[12px] text-alert text-center">{t('group.create_error')}</p>
               )}
 
               <button

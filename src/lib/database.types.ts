@@ -1414,6 +1414,7 @@ export type Database = {
           max_playtomic_level: number | null
           min_playtomic_level: number | null
           name: string
+          padel_venue_id: string | null
           ringer_approval: string | null
           rules: string | null
           updated_at: string | null
@@ -1444,6 +1445,7 @@ export type Database = {
           max_playtomic_level?: number | null
           min_playtomic_level?: number | null
           name: string
+          padel_venue_id?: string | null
           ringer_approval?: string | null
           rules?: string | null
           updated_at?: string | null
@@ -1474,6 +1476,7 @@ export type Database = {
           max_playtomic_level?: number | null
           min_playtomic_level?: number | null
           name?: string
+          padel_venue_id?: string | null
           ringer_approval?: string | null
           rules?: string | null
           updated_at?: string | null
@@ -1493,6 +1496,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles_with_privacy"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "groups_padel_venue_id_fkey"
+            columns: ["padel_venue_id"]
+            isOneToOne: false
+            referencedRelation: "discoverable_venues"
+            referencedColumns: ["venue_id"]
+          },
+          {
+            foreignKeyName: "groups_padel_venue_id_fkey"
+            columns: ["padel_venue_id"]
+            isOneToOne: false
+            referencedRelation: "padel_venues"
+            referencedColumns: ["venue_id"]
           },
         ]
       }
@@ -7585,6 +7602,14 @@ export type Database = {
     }
     Functions: {
       _is_active_owner: { Args: { p_venue_id: string }; Returns: boolean }
+      _merge_venues: {
+        Args: {
+          p_actor?: string
+          p_loser_venue_id: string
+          p_survivor_venue_id: string
+        }
+        Returns: Json
+      }
       _postgis_deprecate: {
         Args: { newname: string; oldname: string; version: string }
         Returns: undefined
@@ -7893,6 +7918,10 @@ export type Database = {
         Args: { games_diff: number }
         Returns: number
       }
+      can_see_group: {
+        Args: { _group_id: string; _user_id?: string }
+        Returns: boolean
+      }
       cancel_class: { Args: { p_session_id: string }; Returns: Json }
       change_plan_contract: {
         Args: { p_plan_key: string; p_venue_id: string }
@@ -7986,6 +8015,21 @@ export type Database = {
       delete_match_cascade: { Args: { p_match_id: string }; Returns: undefined }
       delete_user: { Args: never; Returns: Json }
       disablelongtransactions: { Args: never; Returns: string }
+      discover_counts: {
+        Args: { p_lat?: number; p_lng?: number; p_radius_miles?: number }
+        Returns: {
+          coaching: number
+          events: number
+          groups: number
+          lat: number
+          leagues: number
+          lng: number
+          open_games: number
+          players: number
+          radius_miles: number
+          venues: number
+        }[]
+      }
       discover_feed: {
         Args: {
           p_days?: number

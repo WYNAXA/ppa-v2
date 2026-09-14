@@ -610,7 +610,11 @@ export default {
     "no_leagues": "Sin ligas todavía",
     "no_leagues_sub": "Crea una arriba para empezar a competir",
     "create_league": "Crear liga",
-    "share": "Compartir grupo"
+    "share": "Compartir grupo",
+    "venue_search_placeholder": "Buscar un club",
+    "description_placeholder": "¿De qué trata tu grupo?",
+    "ringer_approval_label": "¿Quién puede agregar suplentes?",
+    "create_error": "Error al crear el grupo. Inténtalo de nuevo."
   },
   "people": {
     "search_all": "Buscar grupos, jugadores, entrenadores, pistas\u2026",
@@ -1645,9 +1649,28 @@ export default {
     "browse_coaches": "Entrenadores",
     "browse_venues": "Pistas",
     "near_you": "Cerca de ti",
-    "yours": "Tuyo",
     "recently_played": "Jugados recientemente",
-    "mine": "Míos"
+    "mine": "Míos",
+    "within_radius": "en {{miles}} mi",
+    "tile_clubs": "Pistas",
+    "tile_players": "Jugadores",
+    "tile_coaching": "Clases",
+    "tile_groups": "Grupos",
+    "tile_leagues": "Ligas",
+    "tile_events": "Eventos",
+    "hero_open_games": "{{count}} partidos abiertos cerca de ti",
+    "hero_open_games_one": "{{count}} partido abierto cerca de ti",
+    "hero_open_games_zero": "Sin partidos abiertos cerca de ti",
+    "hero_be_first_title": "Sé el primero en publicar",
+    "hero_be_first_body": "{{count}} jugadores en {{miles}} millas lo verán. Elige una pista y una hora — ellos vienen a ti.",
+    "hero_be_first_body_one": "{{count}} jugador en {{miles}} millas lo verá. Elige una pista y una hora — ellos vienen a ti.",
+    "hero_put_up_a_game": "Crear un partido",
+    "hero_book_a_court": "Reservar una pista",
+    "hero_get_tickets": "Conseguir entradas",
+    "radius_widen": "Ampliar a {{miles}} mi",
+    "no_location_title": "¿Dónde juegas?",
+    "no_location_body": "Te mostraremos las pistas, jugadores y partidos cerca de ti.",
+    "no_location_cta": "Establecer tu ubicación"
   },
   "create_event": {
     "title": "Crear evento",

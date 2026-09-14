@@ -608,7 +608,11 @@ export default {
     "no_leagues": "अभी तक कोई लीग नहीं",
     "no_leagues_sub": "प्रतिस्पर्धा शुरू करने के लिए ऊपर एक बनाएं",
     "create_league": "लीग बनाएं",
-    "share": "ग्रुप शेयर करें"
+    "share": "ग्रुप शेयर करें",
+    "venue_search_placeholder": "स्थान खोजें",
+    "description_placeholder": "आपका ग्रुप किस बारे में है?",
+    "ringer_approval_label": "रिंगर कौन जोड़ सकता है?",
+    "create_error": "ग्रुप बनाने में विफल। पुनः प्रयास करें।"
   },
   "people": {
     "search_all": "\u0917\u094d\u0930\u0941\u092a, \u0916\u093f\u0932\u093e\u0921\u093c\u0940, \u0915\u094b\u091a, \u0935\u0947\u0928\u094d\u092f\u0942 \u0916\u094b\u091c\u0947\u0902\u2026",
@@ -1643,9 +1647,28 @@ export default {
     "browse_coaches": "कोच",
     "browse_venues": "स्थान",
     "near_you": "आपके पास",
-    "yours": "आपके",
     "recently_played": "हाल ही में खेले गए",
-    "mine": "मेरे"
+    "mine": "मेरे",
+    "within_radius": "{{miles}} मील के भीतर",
+    "tile_clubs": "कोर्ट",
+    "tile_players": "खिलाड़ी",
+    "tile_coaching": "कोचिंग",
+    "tile_groups": "ग्रुप",
+    "tile_leagues": "लीग",
+    "tile_events": "इवेंट",
+    "hero_open_games": "{{count}} खुले मैच आपके पास",
+    "hero_open_games_one": "{{count}} खुला मैच आपके पास",
+    "hero_open_games_zero": "आपके पास कोई खुला मैच नहीं",
+    "hero_be_first_title": "पहले पोस्ट करने वाले बनें",
+    "hero_be_first_body": "{{count}} खिलाड़ी {{miles}} मील के भीतर इसे देखेंगे। कोर्ट और समय चुनें — वे आपके पास आएंगे।",
+    "hero_be_first_body_one": "{{count}} खिलाड़ी {{miles}} मील के भीतर इसे देखेगा। कोर्ट और समय चुनें — वे आपके पास आएंगे।",
+    "hero_put_up_a_game": "मैच बनाएं",
+    "hero_book_a_court": "कोर्ट बुक करें",
+    "hero_get_tickets": "टिकट प्राप्त करें",
+    "radius_widen": "{{miles}} मील तक बढ़ाएं",
+    "no_location_title": "आप कहाँ खेलते हैं?",
+    "no_location_body": "हम आपको आपके पास के कोर्ट, खिलाड़ी और मैच दिखाएंगे।",
+    "no_location_cta": "अपना स्थान सेट करें"
   },
   "create_event": {
     "title": "इवेंट बनाएं",

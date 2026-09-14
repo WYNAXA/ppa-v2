@@ -610,7 +610,11 @@ export default {
     "no_leagues": "Aucune ligue pour le moment",
     "no_leagues_sub": "Créez-en une ci-dessus pour commencer la compétition",
     "create_league": "Créer une ligue",
-    "share": "Partager le groupe"
+    "share": "Partager le groupe",
+    "venue_search_placeholder": "Chercher un club",
+    "description_placeholder": "De quoi parle votre groupe ?",
+    "ringer_approval_label": "Qui peut ajouter des remplaçants ?",
+    "create_error": "Échec de la création du groupe. Réessayez."
   },
   "people": {
     "search_all": "Rechercher groupes, joueurs, coachs, clubs\u2026",
@@ -1645,9 +1649,28 @@ export default {
     "browse_coaches": "Coachs",
     "browse_venues": "Terrains",
     "near_you": "Près de vous",
-    "yours": "Les vôtres",
     "recently_played": "Joués récemment",
-    "mine": "Mes"
+    "mine": "Mes",
+    "within_radius": "dans {{miles}} mi",
+    "tile_clubs": "Terrains",
+    "tile_players": "Joueurs",
+    "tile_coaching": "Cours",
+    "tile_groups": "Groupes",
+    "tile_leagues": "Ligues",
+    "tile_events": "Événements",
+    "hero_open_games": "{{count}} matchs ouverts près de vous",
+    "hero_open_games_one": "{{count}} match ouvert près de vous",
+    "hero_open_games_zero": "Aucun match ouvert près de vous",
+    "hero_be_first_title": "Soyez le premier à publier",
+    "hero_be_first_body": "{{count}} joueurs dans {{miles}} miles le verront. Choisissez un terrain et une heure — ils viennent à vous.",
+    "hero_be_first_body_one": "{{count}} joueur dans {{miles}} miles le verra. Choisissez un terrain et une heure — ils viennent à vous.",
+    "hero_put_up_a_game": "Proposer un match",
+    "hero_book_a_court": "Réserver un terrain",
+    "hero_get_tickets": "Obtenir des billets",
+    "radius_widen": "Élargir à {{miles}} mi",
+    "no_location_title": "Où jouez-vous ?",
+    "no_location_body": "Nous vous montrerons les terrains, joueurs et matchs près de vous.",
+    "no_location_cta": "Définir votre position"
   },
   "create_event": {
     "title": "Cr\u00e9er un \u00e9v\u00e9nement",

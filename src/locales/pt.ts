@@ -610,7 +610,11 @@ export default {
     "no_leagues": "Sem ligas ainda",
     "no_leagues_sub": "Crie uma acima para começar a competir",
     "create_league": "Criar liga",
-    "share": "Compartilhar grupo"
+    "share": "Compartilhar grupo",
+    "venue_search_placeholder": "Pesquisar um clube",
+    "description_placeholder": "Sobre o que é o seu grupo?",
+    "ringer_approval_label": "Quem pode adicionar reservas?",
+    "create_error": "Erro ao criar grupo. Tente novamente."
   },
   "people": {
     "search_all": "Procurar grupos, jogadores, treinadores, locais\u2026",
@@ -1645,9 +1649,28 @@ export default {
     "browse_coaches": "Treinadores",
     "browse_venues": "Quadras",
     "near_you": "Perto de você",
-    "yours": "Seus",
     "recently_played": "Jogados recentemente",
-    "mine": "Meus"
+    "mine": "Meus",
+    "within_radius": "em {{miles}} mi",
+    "tile_clubs": "Quadras",
+    "tile_players": "Jogadores",
+    "tile_coaching": "Aulas",
+    "tile_groups": "Grupos",
+    "tile_leagues": "Ligas",
+    "tile_events": "Eventos",
+    "hero_open_games": "{{count}} jogos abertos perto de você",
+    "hero_open_games_one": "{{count}} jogo aberto perto de você",
+    "hero_open_games_zero": "Nenhum jogo aberto perto de você",
+    "hero_be_first_title": "Seja o primeiro a publicar",
+    "hero_be_first_body": "{{count}} jogadores em {{miles}} milhas verão. Escolha uma quadra e um horário — eles vêm até você.",
+    "hero_be_first_body_one": "{{count}} jogador em {{miles}} milhas verá. Escolha uma quadra e um horário — eles vêm até você.",
+    "hero_put_up_a_game": "Criar um jogo",
+    "hero_book_a_court": "Reservar uma quadra",
+    "hero_get_tickets": "Comprar ingressos",
+    "radius_widen": "Ampliar para {{miles}} mi",
+    "no_location_title": "Onde você joga?",
+    "no_location_body": "Mostraremos as quadras, jogadores e jogos perto de você.",
+    "no_location_cta": "Definir sua localização"
   },
   "create_event": {
     "title": "Criar evento",

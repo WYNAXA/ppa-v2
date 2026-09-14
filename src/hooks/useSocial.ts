@@ -222,31 +222,3 @@ export function useMyPlayedVenues(userId: string) {
   })
 }
 
-/** Coaching sessions the player has booked. */
-export function useMyCoachBookings(userId: string) {
-  return useQuery({
-    queryKey: ['my-coaching-bookings', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('coaching_bookings')
-        .select('session_id, coaching_sessions(id, title, start_at, coach_user_id)')
-        .eq('player_id', userId)
-        .eq('status', 'booked')
-      if (!data || data.length === 0) return []
-      const coachIds = [...new Set(data.map((b: any) => b.coaching_sessions?.coach_user_id).filter(Boolean))]
-      const { data: profs } = coachIds.length
-        ? await supabase.from('profiles').select('id, name').in('id', coachIds)
-        : { data: [] }
-      const nameMap = new Map((profs ?? []).map((p: any) => [p.id, p.name]))
-      return data
-        .filter((b: any) => b.coaching_sessions)
-        .map((b: any) => ({
-          sessionId: b.coaching_sessions.id as string,
-          title: b.coaching_sessions.title as string,
-          startAt: b.coaching_sessions.start_at as string,
-          coachName: nameMap.get(b.coaching_sessions.coach_user_id) ?? 'Coach',
-        }))
-    },
-  })
-}

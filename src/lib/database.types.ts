@@ -1090,6 +1090,7 @@ export type Database = {
           entry_notes: string | null
           event_type: string | null
           external_link: string | null
+          external_ref: string | null
           group_id: string | null
           id: string
           image_url: string | null
@@ -1114,6 +1115,7 @@ export type Database = {
           target_radius_miles: number | null
           ticket_price_pence: number | null
           title: string
+          visibility: string
         }
         Insert: {
           capacity?: number | null
@@ -1127,6 +1129,7 @@ export type Database = {
           entry_notes?: string | null
           event_type?: string | null
           external_link?: string | null
+          external_ref?: string | null
           group_id?: string | null
           id?: string
           image_url?: string | null
@@ -1151,6 +1154,7 @@ export type Database = {
           target_radius_miles?: number | null
           ticket_price_pence?: number | null
           title: string
+          visibility?: string
         }
         Update: {
           capacity?: number | null
@@ -1164,6 +1168,7 @@ export type Database = {
           entry_notes?: string | null
           event_type?: string | null
           external_link?: string | null
+          external_ref?: string | null
           group_id?: string | null
           id?: string
           image_url?: string | null
@@ -1188,6 +1193,7 @@ export type Database = {
           target_radius_miles?: number | null
           ticket_price_pence?: number | null
           title?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -2680,7 +2686,9 @@ export type Database = {
           id: string
           is_official: boolean | null
           is_open_registration: boolean | null
+          latitude: number | null
           linked_group_ids: string[] | null
+          longitude: number | null
           match_duration_mins: number | null
           match_type: string | null
           max_elo: number | null
@@ -2690,6 +2698,7 @@ export type Database = {
           min_sets_per_fixture: number
           name: string
           open_join_approval: boolean | null
+          padel_venue_id: string | null
           prize_scheme: Json | null
           prizes: string | null
           scoring_format: string | null
@@ -2722,7 +2731,9 @@ export type Database = {
           id?: string
           is_official?: boolean | null
           is_open_registration?: boolean | null
+          latitude?: number | null
           linked_group_ids?: string[] | null
+          longitude?: number | null
           match_duration_mins?: number | null
           match_type?: string | null
           max_elo?: number | null
@@ -2732,6 +2743,7 @@ export type Database = {
           min_sets_per_fixture?: number
           name: string
           open_join_approval?: boolean | null
+          padel_venue_id?: string | null
           prize_scheme?: Json | null
           prizes?: string | null
           scoring_format?: string | null
@@ -2764,7 +2776,9 @@ export type Database = {
           id?: string
           is_official?: boolean | null
           is_open_registration?: boolean | null
+          latitude?: number | null
           linked_group_ids?: string[] | null
+          longitude?: number | null
           match_duration_mins?: number | null
           match_type?: string | null
           max_elo?: number | null
@@ -2774,6 +2788,7 @@ export type Database = {
           min_sets_per_fixture?: number
           name?: string
           open_join_approval?: boolean | null
+          padel_venue_id?: string | null
           prize_scheme?: Json | null
           prizes?: string | null
           scoring_format?: string | null
@@ -2800,6 +2815,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles_with_privacy"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "leagues_padel_venue_id_fkey"
+            columns: ["padel_venue_id"]
+            isOneToOne: false
+            referencedRelation: "discoverable_venues"
+            referencedColumns: ["venue_id"]
+          },
+          {
+            foreignKeyName: "leagues_padel_venue_id_fkey"
+            columns: ["padel_venue_id"]
+            isOneToOne: false
+            referencedRelation: "padel_venues"
+            referencedColumns: ["venue_id"]
           },
         ]
       }
@@ -7957,6 +7986,30 @@ export type Database = {
       delete_match_cascade: { Args: { p_match_id: string }; Returns: undefined }
       delete_user: { Args: never; Returns: Json }
       disablelongtransactions: { Args: never; Returns: string }
+      discover_feed: {
+        Args: {
+          p_days?: number
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_radius_miles?: number
+        }
+        Returns: {
+          currency: string
+          distance_miles: number
+          id: string
+          kind: string
+          latitude: number
+          longitude: number
+          price_pence: number
+          spots_left: number
+          starts_at: string
+          subtitle: string
+          title: string
+          venue_id: string
+          venue_name: string
+        }[]
+      }
       dropgeometrycolumn:
         | {
             Args: {
@@ -8151,7 +8204,9 @@ export type Database = {
           id: string
           is_official: boolean | null
           is_open_registration: boolean | null
+          latitude: number | null
           linked_group_ids: string[] | null
+          longitude: number | null
           match_duration_mins: number | null
           match_type: string | null
           max_elo: number | null
@@ -8161,6 +8216,7 @@ export type Database = {
           min_sets_per_fixture: number
           name: string
           open_join_approval: boolean | null
+          padel_venue_id: string | null
           prize_scheme: Json | null
           prizes: string | null
           scoring_format: string | null
@@ -8202,7 +8258,9 @@ export type Database = {
           id: string
           is_official: boolean | null
           is_open_registration: boolean | null
+          latitude: number | null
           linked_group_ids: string[] | null
+          longitude: number | null
           match_duration_mins: number | null
           match_type: string | null
           max_elo: number | null
@@ -8212,6 +8270,7 @@ export type Database = {
           min_sets_per_fixture: number
           name: string
           open_join_approval: boolean | null
+          padel_venue_id: string | null
           prize_scheme: Json | null
           prizes: string | null
           scoring_format: string | null

@@ -17,6 +17,11 @@ import { useAuth } from '@/hooks/useAuth'
 import { useUserMatchesSubscription, useNotificationsSubscription } from '@/hooks/useRealtimeSubscription'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
+import { CreateGroupSheet } from '@/components/people/CreateGroupSheet'
+import { ClubThisWeek } from '@/components/people/ClubThisWeek'
+import { ConnectionRequestCard } from '@/components/people/ConnectionRequestCard'
+import { MyGroupCard } from '@/components/people/MyGroupCard'
+import { useMyGroups, useMyConnections, usePendingRequests } from '@/hooks/useSocial'
 import { cn } from '@/lib/utils'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -652,13 +657,13 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                     <p className="text-[11px] text-ink-2 mt-0.5">Groups let you find times to play and schedule matches</p>
                     <div className="flex gap-2 mt-2">
                       <button
-                        onClick={() => navigate('/people', { state: { openCreateGroup: true } })}
+                        onClick={() => navigate('/discover/groups')}
                         className="rounded-lg bg-court px-3 py-1.5 text-[12px] font-bold text-white"
                       >
                         Create a group
                       </button>
                       <button
-                        onClick={() => navigate('/people')}
+                        onClick={() => navigate('/discover/groups')}
                         className="rounded-lg border border-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2"
                       >
                         Browse groups
@@ -671,7 +676,7 @@ function GettingStartedCard({ progress }: { progress: SetupProgress }) {
                     <p className="text-[13px] font-semibold text-warn">Group created — invite a friend to get started</p>
                     <p className="text-[11px] text-ink-2 mt-0.5">You need at least one other member to schedule matches</p>
                     <button
-                      onClick={() => navigate('/people')}
+                      onClick={() => navigate('/discover/groups')}
                       className="mt-2 rounded-lg bg-warn px-3 py-1.5 text-[12px] font-bold text-white"
                     >
                       Invite friends
@@ -753,14 +758,14 @@ function EmptyMatchCard({ onCreateMatch, hasUsableGroup }: { onCreateMatch: () =
       ) : (
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => navigate('/people', { state: { openCreateGroup: true } })}
+            onClick={() => navigate('/discover/groups')}
             className="flex items-center justify-center gap-1.5 rounded-xl bg-court py-2.5 text-[13px] font-bold text-white"
           >
             <Users className="h-3.5 w-3.5" />
             Create a group
           </button>
           <button
-            onClick={() => navigate('/people')}
+            onClick={() => navigate('/discover/groups')}
             className="rounded-xl border border-hairline py-2.5 text-[13px] font-semibold text-ink-2"
           >
             Browse groups
@@ -787,7 +792,7 @@ function ActivityFeed({ items }: { items: ActivityItem[] }) {
     if (!item.related_id) return
     if (item.type.includes('match')) navigate(`/matches/${item.related_id}`)
     else if (item.type.includes('league')) navigate(`/compete/leagues/${item.related_id}`)
-    else if (item.type.includes('group')) navigate(`/people/groups/${item.related_id}`)
+    else if (item.type.includes('group')) navigate(`/discover/groups/${item.related_id}`)
     else if (item.type.includes('poll')) navigate(`/play/availability/${item.related_id}`)
   }
 
@@ -844,6 +849,19 @@ export function HomePage() {
   const { data: week }            = useYourWeek(userId)
   const { data: activity = [] }   = useRecentActivity(userId)
   const { data: setupProgress }   = useSetupProgress(userId)
+
+  // Social sections — moved from People.tsx. "What's mine, now."
+  const { data: allMyGroups = [], isLoading: loadingGroups } = useMyGroups(userId)
+  const { data: connectionsData } = useMyConnections(userId)
+  const connections = connectionsData ?? { accepted: new Set<string>(), acceptedProfiles: [], pendingOutgoing: new Set<string>(), incomingRequests: [] }
+  const { data: pendingRequests = [] } = usePendingRequests(userId)
+  const [showCreateGroup, setShowCreateGroup] = useState(false)
+  const myGroups = allMyGroups.filter(g => g.memberStatus === 'approved')
+  const ringerGroups = allMyGroups.filter(g => g.memberStatus === 'ringer')
+  const mergedGroups = [
+    ...myGroups.map(g => ({ ...g, badge: undefined as string | undefined })),
+    ...ringerGroups.map(g => ({ ...g, badge: t('people.badge_ringer') as string | undefined })),
+  ]
 
   const setupComplete = setupProgress
     ? setupProgress.groupState === 'usable' && setupProgress.hasPollOrMatch
@@ -937,12 +955,98 @@ export function HomePage() {
           )}
         </section>
 
+        {/* ── Club this week ── */}
+        <ClubThisWeek
+          groups={allMyGroups.map((g) => ({ id: g.id, name: g.name }))}
+          userId={userId}
+        />
+
+        {/* ── Connection requests — something waiting on you ── */}
+        {connections.incomingRequests.length > 0 && (
+          <section>
+            <p className="mb-2 text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+              {t('people.connection_requests', { count: connections.incomingRequests.length })}
+            </p>
+            <div className="space-y-2">
+              {connections.incomingRequests.map((req) => (
+                <ConnectionRequestCard key={req.user_id} request={req} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── My Groups ── */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-[16px] font-bold text-ink">{t('people.my_groups')}</h2>
+            {mergedGroups.length > 0 && (
+              <span className="text-[12px] text-ink-2">
+                {mergedGroups.length} {mergedGroups.length === 1 ? t('people.member', { count: 1 }) : t('people.group_count', { count: mergedGroups.length })}
+              </span>
+            )}
+          </div>
+
+          {loadingGroups ? (
+            <div className="space-y-3">
+              {[0, 1].map((i) => (
+                <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />
+              ))}
+            </div>
+          ) : mergedGroups.length === 0 && pendingRequests.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
+              <div className="h-10 w-10 rounded-2xl bg-hairline flex items-center justify-center mx-auto mb-3">
+                <Users className="h-5 w-5 text-ink-2" />
+              </div>
+              <p className="text-[14px] font-semibold text-ink-2 mb-1">{t('people.no_groups')}</p>
+              <p className="text-[12px] text-ink-2 mb-4">{t('people.no_groups_sub')}</p>
+              <button
+                onClick={() => setShowCreateGroup(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                {t('people.create_group')}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {mergedGroups.map((group, i) => (
+                <MyGroupCard key={group.id} group={group} index={i} badge={group.badge} />
+              ))}
+              {pendingRequests.map((req) => (
+                <div key={req.id} className="flex items-center justify-between gap-3 rounded-2xl border border-warn-100 bg-warn-50 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-ink truncate">{req.groupName}</p>
+                    {req.groupCity && <p className="text-[11px] text-ink-2">{req.groupCity}</p>}
+                    <span className="inline-flex items-center mt-1 rounded-full bg-warn-100 px-2 py-0.5 text-[11px] font-semibold text-warn">
+                      {t('people.pending_approval')}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
         <div className="h-2" />
       </div>
 
-<CreateMatchSheet
+      {/* Create Group FAB */}
+      <motion.button
+        onClick={() => setShowCreateGroup(true)}
+        whileTap={{ scale: 0.9 }}
+        className="fixed bottom-[calc(80px+env(safe-area-inset-bottom)+16px)] right-5 z-40 h-14 w-14 rounded-full bg-court shadow-lg flex items-center justify-center"
+      >
+        <Plus className="h-6 w-6 text-white" />
+      </motion.button>
+
+      <CreateMatchSheet
         open={createMatchOpen}
         onClose={() => setCreateMatchOpen(false)}
+      />
+
+      <CreateGroupSheet
+        open={showCreateGroup}
+        onClose={() => setShowCreateGroup(false)}
       />
     </div>
   )

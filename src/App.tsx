@@ -28,7 +28,7 @@ import { ForVenuesPage } from '@/pages/ForVenues'
 const HomePage = lazy(() => import('@/pages/Home').then(m => ({ default: m.HomePage })))
 const PlayPage = lazy(() => import('@/pages/Play').then(m => ({ default: m.PlayPage })))
 const CompetePage = lazy(() => import('@/pages/Compete').then(m => ({ default: m.CompetePage })))
-const PeoplePage = lazy(() => import('@/pages/People').then(m => ({ default: m.PeoplePage })))
+const DiscoverPage = lazy(() => import('@/pages/Discover').then(m => ({ default: m.DiscoverPage })))
 const GroupDetailPage = lazy(() => import('@/pages/GroupDetail').then(m => ({ default: m.GroupDetailPage })))
 const EventDetailPage = lazy(() => import('@/pages/EventDetail').then(m => ({ default: m.EventDetailPage })))
 const YouPage = lazy(() => import('@/pages/You').then(m => ({ default: m.YouPage })))
@@ -51,7 +51,6 @@ const AllGroupsPage = lazy(() => import('@/pages/people/AllGroupsPage').then(m =
 const AllPlayersPage = lazy(() => import('@/pages/people/AllPlayersPage').then(m => ({ default: m.AllPlayersPage })))
 const AllEventsPage = lazy(() => import('@/pages/people/AllEventsPage').then(m => ({ default: m.AllEventsPage })))
 const MyConnectionsPage = lazy(() => import('@/pages/people/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
-const OpenMatchesPage = lazy(() => import('@/pages/OpenMatches').then(m => ({ default: m.OpenMatchesPage })))
 const VenueEventDetailPage = lazy(() => import('@/pages/VenueEventDetail').then(m => ({ default: m.VenueEventDetailPage })))
 const JoinMatchPage = lazy(() => import('@/pages/JoinMatch').then(m => ({ default: m.JoinMatchPage })))
 
@@ -80,17 +79,21 @@ function Guard({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * /community/... -> /people/...
+ * /community/* and /people/* both redirect to /discover/* in ONE hop.
  *
  * A splat route gives us `*` as the remainder, but not the search or hash, so
- * both are read off `useLocation` and reattached. Dropping them would turn
- * /community#connections — the destination of every connection-request push
- * notification ever sent — into a link that lands on the wrong part of the page.
+ * both are read off `useLocation` and reattached. Hash must survive: 67
+ * delivered notifications point at /community#connections.
  */
-function RedirectCommunity() {
+function RedirectToDiscover() {
   const location = useLocation()
-  const rest = location.pathname.replace(/^\/community/, '')
-  return <Navigate to={`/people${rest}${location.search}${location.hash}`} replace />
+  const rest = location.pathname.replace(/^\/(community|people)/, '')
+  return <Navigate to={`/discover${rest}${location.search}${location.hash}`} replace />
+}
+
+/** /open-matches → /discover?filter=games */
+function RedirectOpenMatches() {
+  return <Navigate to="/discover?filter=games" replace />
 }
 
 
@@ -273,27 +276,26 @@ function AppShell() {
             <Route path="/home"      element={<Guard><HomePage /></Guard>} />
             <Route path="/play"      element={<Guard><PlayPage /></Guard>} />
             <Route path="/compete"   element={<Guard><CompetePage /></Guard>} />
-            <Route path="/people"             element={<Guard><PeoplePage /></Guard>} />
-            <Route path="/people/groups"      element={<Guard><AllGroupsPage /></Guard>} />
-            <Route path="/people/players"     element={<Guard><AllPlayersPage /></Guard>} />
-            <Route path="/people/events"      element={<Guard><AllEventsPage /></Guard>} />
-            <Route path="/people/connections"  element={<Guard><MyConnectionsPage /></Guard>} />
-            <Route path="/people/groups/:id"  element={<Guard><GroupDetailPage /></Guard>} />
-            <Route path="/people/events/:id"  element={<Guard><EventDetailPage /></Guard>} />
+            <Route path="/discover"              element={<Guard><DiscoverPage /></Guard>} />
+            <Route path="/discover/groups"       element={<Guard><AllGroupsPage /></Guard>} />
+            <Route path="/discover/players"      element={<Guard><AllPlayersPage /></Guard>} />
+            <Route path="/discover/events"       element={<Guard><AllEventsPage /></Guard>} />
+            <Route path="/discover/connections"   element={<Guard><MyConnectionsPage /></Guard>} />
+            <Route path="/discover/groups/:id"   element={<Guard><GroupDetailPage /></Guard>} />
+            <Route path="/discover/events/:id"   element={<Guard><EventDetailPage /></Guard>} />
             <Route path="/you"       element={<Guard><YouPage /></Guard>} />
 
-            {/* The tab was called Community until September 2026. These URLs are
-                in people's bookmarks, in shared group links and in push
-                notifications already delivered, so they redirect rather than
-                404. `RedirectCommunity` preserves the rest of the path, the
-                query string and the hash — a shared link to
-                /community/groups/<id> has to land on that group, not on the
-                tab. */}
-            <Route path="/community/*" element={<RedirectCommunity />} />
-            <Route path="/community"   element={<RedirectCommunity />} />
+            {/* /people and /community both redirect to /discover in one hop.
+                These URLs are in push notifications (67 to /community#connections,
+                62 to /community/groups/<id>), bookmarks, and shared links.
+                Path, query string and hash all survive. */}
+            <Route path="/people/*"    element={<RedirectToDiscover />} />
+            <Route path="/people"      element={<RedirectToDiscover />} />
+            <Route path="/community/*" element={<RedirectToDiscover />} />
+            <Route path="/community"   element={<RedirectToDiscover />} />
 
-            {/* Open matches */}
-            <Route path="/open-matches" element={<Guard><OpenMatchesPage /></Guard>} />
+            {/* /open-matches → discover with games filter */}
+            <Route path="/open-matches" element={<RedirectOpenMatches />} />
 
             {/* Matches */}
             <Route path="/matches"     element={<Guard><MatchesPage /></Guard>} />

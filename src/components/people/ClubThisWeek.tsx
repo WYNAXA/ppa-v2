@@ -136,27 +136,36 @@ function useClubLeague(groupId: string | null, userId: string) {
     enabled: !!groupId,
     staleTime: 60_000,
     queryFn: async () => {
-      // Leagues link to groups through an array column, not a foreign key.
-      // A group can carry several active leagues — this club has two, plus a
-      // couple of test ones — so picking "newest" showed a table the player
-      // wasn't in, which is why the snapshot rendered as two strangers and no
-      // "You" row. Prefer a league the player actually competes in.
+      // "My league" means a league I am competing in, not one linked to a
+      // group I happen to be in. The previous code queried
+      // leagues.linked_group_ids and fell back to leagues[0], which showed a
+      // league table for a league the user was not in — the reported bug.
+      const { data: myMemberships } = await supabase
+        .from('league_members')
+        .select('league_id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+      if (!myMemberships || myMemberships.length === 0) return null
+
+      const myLeagueIds = myMemberships.map((m) => m.league_id).filter(Boolean) as string[]
+      if (myLeagueIds.length === 0) return null
+
+      // Of the leagues I am in, prefer one linked to this group.
       const { data: leagues } = await supabase
         .from('leagues')
-        .select('id, name, created_at')
-        .contains('linked_group_ids', [groupId])
+        .select('id, name, created_at, linked_group_ids')
+        .in('id', myLeagueIds)
         .eq('status', 'active')
         .order('created_at', { ascending: false })
         .limit(6)
       if (!leagues || leagues.length === 0) return null
 
-      const { data: myLeagueRows } = await supabase
-        .from('league_standings')
-        .select('league_id')
-        .eq('user_id', userId)
-        .in('league_id', leagues.map((l) => l.id))
-      const imIn = new Set((myLeagueRows ?? []).map((r) => r.league_id as string))
-      const league = leagues.find((l) => imIn.has(l.id as string)) ?? leagues[0]
+      const league = (groupId
+        ? leagues.find((l) => {
+            const linked = (l as Record<string, unknown>).linked_group_ids as string[] | null
+            return linked?.includes(groupId)
+          })
+        : null) ?? leagues[0]
 
       const { data: rows } = await supabase
         .from('league_standings')

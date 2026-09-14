@@ -61,8 +61,8 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
   const { t } = useTranslation()
 
   const tiles: Tile[] = [
-    { key: 'groups',  icon: Users,         to: '/people/groups' },
-    { key: 'players', icon: UserPlus,      to: '/people/players' },
+    { key: 'groups',  icon: Users,         to: '/discover/groups' },
+    { key: 'players', icon: UserPlus,      to: '/discover/players' },
     { key: 'coaches', icon: GraduationCap, to: '/coaches' },
     // Courts is a whole tab — the tile is a shortcut to it, not a scroll.
     { key: 'venues',  icon: MapPin,        to: '/play/book-court' },

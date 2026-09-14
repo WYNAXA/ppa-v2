@@ -20,12 +20,10 @@ const ICON = {
       <path d="M5 9.5V21h14V9.5" />
     </>
   ),
-  community: (
+  discover: (
     <>
-      <path d="M16 20v-1.5a3.5 3.5 0 0 0-3.5-3.5h-5A3.5 3.5 0 0 0 4 18.5V20" />
-      <circle cx="10" cy="8" r="3.5" />
-      <path d="M19 20v-1.5a3.5 3.5 0 0 0-2.5-3.35" />
-      <path d="M15 4.6a3.5 3.5 0 0 1 0 6.8" />
+      <circle cx="12" cy="12" r="9" />
+      <path d="M16.24 7.76l-2.12 6.36-6.36 2.12 2.12-6.36z" />
     </>
   ),
   courts: (
@@ -70,30 +68,16 @@ type NavItem = {
   /** i18n key under `nav.` */
   key: keyof typeof ICON
   path: string
-  /**
-   * Every route that lights this tab.
-   *
-   * Leagues and Compete now hang off Community, which is where they are
-   * actually reached from. They previously hung off `me` — a tab you could not
-   * reach them from — because the redesign dropped Compete's tab and left
-   * `/leagues` routed but unlinked. It was reachable only by deep link.
-   */
+  /** Every route that lights this tab. */
   activePaths: string[]
 }
 
-/**
- * The left tab is `/people` on the router but reads as "Community": it holds
- * players, groups, events AND leagues, and "People" described only the first of
- * those. The ROUTE is deliberately unchanged — shared links to
- * `/people/groups/:id` are already out in the wild and renaming the path would
- * break them. Renaming the URL is a separate change that needs redirects.
- */
 const LEFT: NavItem[] = [
   { key: 'today', path: '/home', activePaths: ['/home'] },
   {
-    key: 'community',
-    path: '/people',
-    activePaths: ['/people', '/players', '/leagues', '/compete'],
+    key: 'discover',
+    path: '/discover',
+    activePaths: ['/discover', '/leagues', '/compete', '/players'],
   },
 ]
 

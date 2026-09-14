@@ -708,6 +708,7 @@ export default {
     "ringer_offer_sent": "Vous avez proposé d'être remplaçant pour {{name}}. L'admin vous tiendra informé.",
     "ringer_offer_pending": "Offre de remplaçant en attente",
     "already_ringer": "Vous êtes remplaçant pour ce groupe",
+    "already_member": "Vous êtes déjà membre",
     "join_btn": "Rejoindre",
     "joining": "Adhésion…",
     "joined_group": "Vous avez rejoint le groupe !",

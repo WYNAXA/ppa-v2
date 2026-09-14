@@ -706,6 +706,7 @@ export default {
     "ringer_offer_sent": "आपने {{name}} के लिए रिंगर बनने की पेशकश की है। एडमिन आपको बता देगा।",
     "ringer_offer_pending": "रिंगर पेशकश लंबित",
     "already_ringer": "आप इस ग्रुप के लिए रिंगर हैं",
+    "already_member": "आप पहले से सदस्य हैं",
     "join_btn": "शामिल हों",
     "joining": "शामिल हो रहे हैं…",
     "joined_group": "आप ग्रुप में शामिल हो गए!",

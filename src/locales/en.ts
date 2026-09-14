@@ -685,6 +685,7 @@ export default {
     ringer_offer_sent: "You've offered to be a ringer for {{name}}. The admin will let you know.",
     ringer_offer_pending: 'Ringer offer pending',
     already_ringer: 'You are a ringer for this group',
+    already_member: "You're already a member",
     badge_ringer: 'Ringer',
     badge_official: 'OFFICIAL',
     badge_free: 'Free',

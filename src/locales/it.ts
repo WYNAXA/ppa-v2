@@ -708,6 +708,7 @@ export default {
     "ringer_offer_sent": "Ti sei offerto come ringer per {{name}}. L'admin ti farà sapere.",
     "ringer_offer_pending": "Offerta come ringer in attesa",
     "already_ringer": "Sei un ringer per questo gruppo",
+    "already_member": "Sei già membro",
     "join_btn": "Unisciti",
     "joining": "Iscrizione in corso…",
     "joined_group": "Ti sei unito al gruppo!",

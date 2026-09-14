@@ -103,23 +103,35 @@ export function AllGroupsPage() {
         status: autoApprove ? 'approved' : 'pending',
       })
       if (error) {
-        if (error.code === '23505') throw new Error('duplicate')
+        if (error.code === '23505') {
+          // Row already exists — read what it says and tell the truth.
+          const { data: existing } = await supabase
+            .from('group_members').select('status')
+            .eq('group_id', groupId).eq('user_id', userId).maybeSingle()
+          const s = existing?.status as string | null
+          if (s === 'pending') toast(t('people.requested'))
+          else if (s === 'pending_ringer') toast(t('people.ringer_offer_pending'))
+          else if (s === 'approved') toast.success(t('people.already_member'))
+          else if (s === 'ringer') toast.success(t('people.already_ringer'))
+          else toast.error(t('people.join_declined_contact_admin'))
+          queryClient.invalidateQueries({ queryKey: ['discover-list', 'groups'] })
+          return null
+        }
         throw error
       }
       const group = nearYouGroups.find(g => g.id === groupId)
       return { autoApprove, groupName: group?.title }
     },
     onSuccess: (data) => {
-      toast.success(data?.autoApprove
+      if (!data) return // 23505 already toasted
+      toast.success(data.autoApprove
         ? t('people.joined_group_name', { name: data.groupName ?? '' })
         : t('people.request_sent'))
       queryClient.invalidateQueries({ queryKey: ['discover-list', 'groups'] })
       queryClient.invalidateQueries({ queryKey: ['my-groups'] })
     },
     onError: (err: Error) => {
-      toast.error(err.message === 'duplicate'
-        ? t('people.join_declined_contact_admin')
-        : err.message || t('people.join_error'))
+      toast.error(err.message || t('people.join_error'))
     },
   })
 

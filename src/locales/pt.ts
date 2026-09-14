@@ -708,6 +708,7 @@ export default {
     "ringer_offer_sent": "Ofereceste-te como reforço para {{name}}. O admin vai dar-te uma resposta.",
     "ringer_offer_pending": "Oferta de reforço pendente",
     "already_ringer": "És reforço deste grupo",
+    "already_member": "Já és membro",
     "join_btn": "Aderir",
     "joining": "A aderir…",
     "joined_group": "Aderiste ao grupo!",

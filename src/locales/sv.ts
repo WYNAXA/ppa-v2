@@ -708,6 +708,7 @@ export default {
     "ringer_offer_sent": "Du har erbjudit dig som inhoppare för {{name}}. Adminen hör av sig.",
     "ringer_offer_pending": "Inhopparerbjudande väntar",
     "already_ringer": "Du är inhoppare för denna grupp",
+    "already_member": "Du är redan medlem",
     "join_btn": "Gå med",
     "joining": "Går med…",
     "joined_group": "Du har gått med i gruppen!",

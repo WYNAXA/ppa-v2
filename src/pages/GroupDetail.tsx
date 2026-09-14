@@ -1722,7 +1722,18 @@ export function GroupDetailPage() {
         group_id: groupId, user_id: userId, role: 'member', status: memberStatus,
       })
       if (error) {
-        if (error.code === '23505') throw new Error('rejected')
+        if (error.code === '23505') {
+          // Row exists — read its status and say what is true.
+          const { data: existing } = await supabase
+            .from('group_members').select('status')
+            .eq('group_id', groupId).eq('user_id', userId).maybeSingle()
+          const s = existing?.status as string | null
+          if (s === 'approved') { toast.success(t('people.already_member')); return }
+          if (s === 'ringer') { toast.success(t('people.already_ringer')); return }
+          if (s === 'pending') { toast(t('people.requested')); return }
+          if (s === 'pending_ringer') { toast(t('people.ringer_offer_pending')); return }
+          throw new Error('rejected')
+        }
         throw error
       }
       await supabase.from('notifications').update({ read: true }).eq('id', effectiveInviteData.notificationId)
@@ -2131,8 +2142,21 @@ export function GroupDetailPage() {
                 status: auto ? 'approved' : 'pending',
               })
               if (error) {
-                if (error.code === '23505') toast.error(t('people.join_declined_contact_admin'))
-                else toast.error(error.message || t('people.join_error'))
+                if (error.code === '23505') {
+                  const { data: existing } = await supabase
+                    .from('group_members').select('status')
+                    .eq('group_id', groupId).eq('user_id', userId).maybeSingle()
+                  const s = existing?.status as string | null
+                  if (s === 'pending') toast(t('people.requested'))
+                  else if (s === 'pending_ringer') toast(t('people.ringer_offer_pending'))
+                  else if (s === 'approved') toast.success(t('people.already_member'))
+                  else if (s === 'ringer') toast.success(t('people.already_ringer'))
+                  else toast.error(t('people.join_declined_contact_admin'))
+                } else {
+                  toast.error(error.message || t('people.join_error'))
+                }
+                queryClient.invalidateQueries({ queryKey: ['group-detail', groupId] })
+                queryClient.invalidateQueries({ queryKey: ['user-membership', groupId, userId] })
                 return
               }
               toast.success(auto

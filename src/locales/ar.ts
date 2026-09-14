@@ -712,6 +712,7 @@ export default {
     "ringer_offer_sent": "لقد عرضت أن تكون لاعبًا احتياطيًا لدى {{name}}. سيُعلمك المشرف بذلك.",
     "ringer_offer_pending": "عرض اللاعب الاحتياطي قيد الانتظار",
     "already_ringer": "أنت لاعب احتياطي لهذه المجموعة",
+    "already_member": "أنت عضو بالفعل",
     "join_btn": "انضمام",
     "joining": "جارٍ الانضمام…",
     "joined_group": "لقد انضممت إلى المجموعة!",

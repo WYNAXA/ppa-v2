@@ -708,6 +708,7 @@ export default {
     "ringer_offer_sent": "Te has ofrecido como suplente para {{name}}. El administrador te avisará.",
     "ringer_offer_pending": "Oferta de suplente pendiente",
     "already_ringer": "Eres suplente de este grupo",
+    "already_member": "Ya eres miembro",
     "join_btn": "Unirse",
     "joining": "Uniéndose…",
     "joined_group": "¡Te has unido al grupo!",

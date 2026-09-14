@@ -1670,7 +1670,10 @@ export default {
     "radius_widen": "Ampliar para {{miles}} mi",
     "no_location_title": "Onde você joga?",
     "no_location_body": "Mostraremos as quadras, jogadores e jogos perto de você.",
-    "no_location_cta": "Definir sua localização"
+    "no_location_cta": "Usar minha localização",
+    "no_location_city_placeholder": "Digite sua cidade",
+    "no_location_confirm": "Definir localização",
+    "no_location_profile_link": "Definir no seu perfil"
   },
   "create_event": {
     "title": "Criar evento",

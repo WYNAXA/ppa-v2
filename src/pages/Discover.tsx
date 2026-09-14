@@ -8,6 +8,7 @@ import { Search, ChevronRight, Clock, Tag, ExternalLink, Plus } from 'lucide-rea
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useSetMyLocation } from '@/hooks/useSetMyLocation'
 import { money } from '@/lib/money'
 import { openUrl } from '@/lib/openUrl'
 import { DirectoryGrid } from '@/components/people/DirectoryGrid'
@@ -147,6 +148,10 @@ export function DiscoverPage() {
   const days = useMemo(() => groupByDay(feed), [feed])
   const firstFeedRow = feed[0] ?? null
 
+  // C0: no-location inline card
+  const location = useSetMyLocation()
+  const [manualCity, setManualCity] = useState('')
+
   return (
     <div className="min-h-full bg-surface pb-32">
       {/* ── Header ── */}
@@ -168,8 +173,8 @@ export function DiscoverPage() {
       </div>
 
       <div className="flex flex-col gap-6 px-5">
-        {/* ── C0: No location ── */}
-        {!loadingCounts && !hasLocation && (
+        {/* ── C0: No location — inline, no navigation ── */}
+        {!loadingCounts && !hasLocation && location.state.status !== 'done' && (
           <div className="rounded-panel bg-ink p-4">
             <p className="text-[24px] font-extrabold leading-[26px] text-white">
               {t('discover.no_location_title')}
@@ -177,12 +182,49 @@ export function DiscoverPage() {
             <p className="mt-2 text-[13px] leading-[18px] text-[#8C9A95]">
               {t('discover.no_location_body')}
             </p>
-            <button
-              onClick={() => navigate('/you')}
-              className="mt-3 flex h-11 w-full items-center justify-center rounded-control bg-ball text-[14px] font-extrabold leading-[18px] text-ink"
-            >
-              {t('discover.no_location_cta')}
-            </button>
+
+            {/* Moment 1: geolocation button (or pending) */}
+            {location.state.status !== 'denied' && (
+              <button
+                onClick={location.detectLocation}
+                disabled={location.state.status === 'pending'}
+                className="mt-3 flex h-11 w-full items-center justify-center rounded-control bg-ball text-[14px] font-extrabold leading-[18px] text-ink disabled:opacity-60"
+              >
+                {location.state.status === 'pending'
+                  ? t('common.loading')
+                  : t('discover.no_location_cta')}
+              </button>
+            )}
+
+            {/* Moment 2: permission denied — inline city input */}
+            {location.state.status === 'denied' && (
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={manualCity}
+                  onChange={(e) => setManualCity(e.target.value)}
+                  placeholder={t('discover.no_location_city_placeholder')}
+                  className="w-full rounded-control border border-[#2A3833] bg-white/10 px-3 py-2.5 text-[14px] text-white placeholder:text-white/40 outline-none"
+                />
+                <button
+                  onClick={() => manualCity.trim() && location.setFromCity(manualCity.trim())}
+                  disabled={!manualCity.trim()}
+                  className="mt-2 flex h-11 w-full items-center justify-center rounded-control bg-ball text-[14px] font-extrabold leading-[18px] text-ink disabled:opacity-40"
+                >
+                  {t('discover.no_location_confirm')}
+                </button>
+              </div>
+            )}
+
+            {/* Moment 3: tertiary fallback */}
+            {location.state.status === 'error' && (
+              <button
+                onClick={() => navigate('/you')}
+                className="mt-2 text-[12px] font-semibold text-white/50 underline"
+              >
+                {t('discover.no_location_profile_link')}
+              </button>
+            )}
           </div>
         )}
 

@@ -1670,7 +1670,10 @@ export default {
     "radius_widen": "Utöka till {{miles}} mi",
     "no_location_title": "Var spelar du?",
     "no_location_body": "Vi visar banor, spelare och matcher nära dig.",
-    "no_location_cta": "Ange din plats"
+    "no_location_cta": "Använd min plats",
+    "no_location_city_placeholder": "Skriv din stad",
+    "no_location_confirm": "Ange plats",
+    "no_location_profile_link": "Ange i din profil istället"
   },
   "create_event": {
     "title": "Skapa evenemang",

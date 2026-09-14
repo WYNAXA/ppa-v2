@@ -1670,7 +1670,10 @@ export default {
     "radius_widen": "Élargir à {{miles}} mi",
     "no_location_title": "Où jouez-vous ?",
     "no_location_body": "Nous vous montrerons les terrains, joueurs et matchs près de vous.",
-    "no_location_cta": "Définir votre position"
+    "no_location_cta": "Utiliser ma position",
+    "no_location_city_placeholder": "Tapez votre ville",
+    "no_location_confirm": "Définir la position",
+    "no_location_profile_link": "Le définir dans votre profil"
   },
   "create_event": {
     "title": "Cr\u00e9er un \u00e9v\u00e9nement",

@@ -140,14 +140,62 @@ know", broken on the first screen.
 **So: branch on `lat === null` before rendering anything.**
 
 - The grid does not render. Not greyed out, not zeroed — absent.
-- The hero becomes a third state: "Where do you play?" / "We'll show you the
-  clubs, players and games near you." / `ball` action → the location step of
-  the profile.
+- The hero becomes a third state: "Where do you play?"
 - The radius chip is hidden. There is no radius without a centre.
 
-This is not an error state and must not read like one. It is the first thing
-half of new users will ever see on this tab, so it gets written as a welcome,
-not as a failure.
+This is not an error state and must not read like one.
+
+#### C0.1 — THE CARD SETS THE LOCATION. IT DOES NOT NAVIGATE.
+
+**This corrects the first version of this brief, which said the `ball` action
+should go to "the location step of the profile". That shipped as
+`navigate('/you')` and it is wrong.** Tapping "Set your location" dropped the
+user on the whole Me tab with no indication of what to do or how to get back.
+Ejecting someone from the surface they are trying to use, to a page that does
+not explain itself, is the worst thing this tab does.
+
+The fix: the card sets the location **in place**. The user never leaves
+Discover, and the grid fills in behind the card the moment it succeeds.
+
+Everything needed already exists at `Onboarding.tsx:117-153` —
+`navigator.geolocation.getCurrentPosition`, `reverseGeocode()` from
+`lib/geocode.ts`, and the profile write. **Extract it, do not rewrite it:**
+
+```
+useSetMyLocation()   // new shared hook
+  → navigator.geolocation.getCurrentPosition
+  → reverseGeocode(lat, lng)  → city
+  → update profiles { city, latitude, longitude }
+  → invalidate ['discover-counts'] and ['discover-feed']
+```
+
+Used by **both** Onboarding and the Discover hero. One implementation.
+
+The card's three moments:
+
+1. **Primary `ball`: "Use my location."** Tap → permission prompt → button
+   shows a pending state → on success the card disappears and the grid is
+   there. No navigation, no toast, no "now go to your profile".
+2. **Permission denied, or no geolocation API:** the same card swaps to an
+   inline text input — "Type your town or city" — in place. Still no
+   navigation.
+3. Only if both fail does a small tertiary link to the profile appear.
+
+#### C0.2 — why 49% was really 49%, and the client half of that fix
+
+Of the 46 accounts with no coordinates, **34 had a city and no point.**
+Onboarding's manual city field writes `city` alone; only the geolocation branch
+writes latitude and longitude (`Onboarding.tsx:117-153`). So most of those users
+*did* say where they were and the answer was discarded.
+
+Migration `n_a_city_you_typed_is_still_a_place` backfilled 32 of the 34 from
+this database's own venue centroids. **46 → 14 (15%).** Players near the UAT
+account went 33 → 57.
+
+**The client half is required or this decays again:** `lib/geocode.ts` has
+`reverseGeocode` only. Add `forwardGeocode(query)` against Nominatim's search
+endpoint, and make Onboarding's manual city field use it, so typing a city
+writes a point. Same hook, same file, no second implementation.
 
 ### C1. The counts come from one RPC
 

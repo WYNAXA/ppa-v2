@@ -1668,7 +1668,10 @@ export default {
     "radius_widen": "{{miles}} मील तक बढ़ाएं",
     "no_location_title": "आप कहाँ खेलते हैं?",
     "no_location_body": "हम आपको आपके पास के कोर्ट, खिलाड़ी और मैच दिखाएंगे।",
-    "no_location_cta": "अपना स्थान सेट करें"
+    "no_location_cta": "मेरा स्थान उपयोग करें",
+    "no_location_city_placeholder": "अपना शहर लिखें",
+    "no_location_confirm": "स्थान सेट करें",
+    "no_location_profile_link": "इसे अपनी प्रोफ़ाइल में सेट करें"
   },
   "create_event": {
     "title": "इवेंट बनाएं",

@@ -1986,7 +1986,10 @@ export default {
     radius_widen: 'Widen to {{miles}} mi',
     no_location_title: 'Where do you play?',
     no_location_body: "We'll show you the clubs, players and games near you.",
-    no_location_cta: 'Set your location',
+    no_location_cta: 'Use my location',
+    no_location_city_placeholder: 'Type your town or city',
+    no_location_confirm: 'Set location',
+    no_location_profile_link: 'Set it in your profile instead',
   },
   create_event: {
     title: 'Create Event',

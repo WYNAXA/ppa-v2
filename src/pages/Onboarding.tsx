@@ -7,7 +7,7 @@ import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy,
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
-import { reverseGeocode } from '@/lib/geocode'
+import { reverseGeocode, forwardGeocode } from '@/lib/geocode'
 import { isPushSupported, subscribeToPush } from '@/lib/push'
 import { GetTheAppCard } from '@/components/shared/GetTheAppCard'
 import { shouldShowGetTheApp } from '@/lib/appInstall'
@@ -146,11 +146,28 @@ export function OnboardingPage() {
   async function handleLocationContinue() {
     if (!user) return
     setSaving(true)
+
+    let lat = locationLat
+    let lng = locationLng
+    let city = locationCity.trim() || null
+
+    // If the user typed a city but geolocation was not used, forward-geocode
+    // so the profile gets coordinates. Without this, typing a city writes a
+    // string with no point — the root cause of 34 of 46 null-coordinate profiles.
+    if (lat == null && lng == null && city) {
+      const geo = await forwardGeocode(city)
+      if (geo) {
+        lat = geo.lat
+        lng = geo.lng
+        city = geo.displayName
+      }
+    }
+
     const { error } = await supabase.from('profiles').update({
-      city: locationCity.trim() || null,
+      city,
       postal_code: locationPostcode.trim() || null,
-      latitude: locationLat,
-      longitude: locationLng,
+      latitude: lat,
+      longitude: lng,
     }).eq('id', user.id)
     setSaving(false)
     if (error) { toast.error('Failed to save location'); return }

@@ -1711,7 +1711,10 @@ export default {
     "radius_widen": "توسيع إلى {{miles}} ميل",
     "no_location_title": "أين تلعب؟",
     "no_location_body": "سنعرض لك الملاعب واللاعبين والمباريات القريبة منك.",
-    "no_location_cta": "حدد موقعك"
+    "no_location_cta": "استخدم موقعي",
+    "no_location_city_placeholder": "اكتب مدينتك",
+    "no_location_confirm": "تحديد الموقع",
+    "no_location_profile_link": "حدده في ملفك الشخصي"
   },
   "create_event": {
     "title": "إنشاء فعالية",

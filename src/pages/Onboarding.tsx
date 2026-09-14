@@ -7,7 +7,7 @@ import { ChevronRight, ChevronLeft, MapPin, Calendar, TrendingUp, Users, Trophy,
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { setLanguage, SUPPORTED_LANGUAGES } from '@/i18n'
-import { reverseGeocode, forwardGeocode } from '@/lib/geocode'
+import { useSetMyLocation } from '@/hooks/useSetMyLocation'
 import { isPushSupported, subscribeToPush } from '@/lib/push'
 import { GetTheAppCard } from '@/components/shared/GetTheAppCard'
 import { shouldShowGetTheApp } from '@/lib/appInstall'
@@ -77,14 +77,21 @@ export function OnboardingPage() {
   // Language
   const [selectedLang, setSelectedLang] = useState(i18n.language?.slice(0, 2) ?? 'en')
 
-  // Location
-  const [locationLoading, setLocationLoading] = useState(false)
+  // Location — shared hook, deferred write so the user can edit before Continue.
+  const loc = useSetMyLocation({ deferWrite: true })
   const [locationCity, setLocationCity] = useState('')
   const [locationPostcode, setLocationPostcode] = useState('')
-  const [locationLat, setLocationLat] = useState<number | null>(null)
-  const [locationLng, setLocationLng] = useState<number | null>(null)
-  const [locationError, setLocationError] = useState<string | null>(null)
-  const [locationDetected, setLocationDetected] = useState(false)
+  const locationDetected = loc.state.status === 'ready'
+  const locationLoading = loc.state.status === 'pending'
+  const locationError = loc.state.status === 'error' ? loc.state.message
+    : loc.state.status === 'denied' ? t('onboarding.location_permission_denied')
+    : null
+
+  // Sync hook result into local editable state when detection succeeds.
+  if (loc.state.status === 'ready' && !locationCity && loc.state.city) {
+    setLocationCity(loc.state.city)
+    if (loc.state.postcode) setLocationPostcode(loc.state.postcode)
+  }
 
   // Level
   const [levelBranch, setLevelBranch] = useState<'new' | 'playtomic' | 'skip' | null>(null)
@@ -114,63 +121,25 @@ export function OnboardingPage() {
   }
 
   function handleDetectLocation() {
-    if (!navigator.geolocation) {
-      setLocationError(t('onboarding.location_unavailable'))
-      return
-    }
-    setLocationLoading(true)
-    setLocationError(null)
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords
-        setLocationLat(latitude)
-        setLocationLng(longitude)
-        const geo = await reverseGeocode(latitude, longitude)
-        if (geo.city) setLocationCity(geo.city)
-        if (geo.postcode) setLocationPostcode(geo.postcode)
-        setLocationDetected(true)
-        setLocationLoading(false)
-      },
-      (err) => {
-        setLocationLoading(false)
-        if (err.code === err.PERMISSION_DENIED) {
-          setLocationError(t('onboarding.location_permission_denied'))
-        } else {
-          setLocationError(t('onboarding.location_unavailable'))
-        }
-      },
-      { enableHighAccuracy: false, timeout: 10000 },
-    )
+    loc.detectLocation()
   }
 
   async function handleLocationContinue() {
     if (!user) return
     setSaving(true)
 
-    let lat = locationLat
-    let lng = locationLng
-    let city = locationCity.trim() || null
-
-    // If the user typed a city but geolocation was not used, forward-geocode
-    // so the profile gets coordinates. Without this, typing a city writes a
-    // string with no point — the root cause of 34 of 46 null-coordinate profiles.
-    if (lat == null && lng == null && city) {
-      const geo = await forwardGeocode(city)
-      if (geo) {
-        lat = geo.lat
-        lng = geo.lng
-        city = geo.displayName
+    if (loc.state.status === 'ready') {
+      // Geolocation was used — save with any edits the user made to the city.
+      await loc.save({ city: locationCity.trim() || undefined })
+    } else {
+      // Manual city only — setFromCity forward-geocodes and writes.
+      const city = locationCity.trim()
+      if (city) {
+        await loc.setFromCity(city)
       }
     }
 
-    const { error } = await supabase.from('profiles').update({
-      city,
-      postal_code: locationPostcode.trim() || null,
-      latitude: lat,
-      longitude: lng,
-    }).eq('id', user.id)
     setSaving(false)
-    if (error) { toast.error('Failed to save location'); return }
     goNext()
   }
 

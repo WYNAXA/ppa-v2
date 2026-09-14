@@ -7,6 +7,7 @@ import QRCodeSVG from 'react-qr-code'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
@@ -21,20 +22,19 @@ import { goBack } from '@/lib/navigation'
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const DAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const
-const DAY_LABELS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'] as const
 const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const
 
-const FACILITY_MAP: Record<string, { icon: string; label: string }> = {
-  parking: { icon: '\u{1F17F}\uFE0F', label: 'Parking' },
-  changing_rooms: { icon: '\u{1F6BF}', label: 'Changing Rooms' },
-  bar: { icon: '\u{1F37A}', label: 'Bar' },
-  pro_shop: { icon: '\u{1F6D2}', label: 'Pro Shop' },
-  coaching: { icon: '\u{1F3BE}', label: 'Coaching' },
-  equipment_hire: { icon: '\u{1F3D3}', label: 'Equipment Hire' },
-  cafe: { icon: '\u2615', label: 'Caf\u00E9' },
-  showers: { icon: '\u{1F6BF}', label: 'Showers' },
-  lockers: { icon: '\u{1F510}', label: 'Lockers' },
-  viewing_area: { icon: '\u{1F441}', label: 'Viewing Area' },
+const FACILITY_MAP: Record<string, { icon: string }> = {
+  parking: { icon: '\u{1F17F}\uFE0F' },
+  changing_rooms: { icon: '\u{1F6BF}' },
+  bar: { icon: '\u{1F37A}' },
+  pro_shop: { icon: '\u{1F6D2}' },
+  coaching: { icon: '\u{1F3BE}' },
+  equipment_hire: { icon: '\u{1F3D3}' },
+  cafe: { icon: '\u2615' },
+  showers: { icon: '\u{1F6BF}' },
+  lockers: { icon: '\u{1F510}' },
+  viewing_area: { icon: '\u{1F441}' },
 }
 
 /** Display order for the facility grid — FACILITY_MAP's own key order. */
@@ -158,19 +158,19 @@ function tagList(value: unknown): string[] {
   return value.filter((v): v is string => typeof v === 'string')
 }
 
-function amenityLabel(tag: string): string {
+function amenityLabel(tag: string, t: TFunction): string {
   const override = AMENITY_LABELS[tag]
-  if (override) return override
+  if (override) return t(`venue.amenity_${tag}`, { defaultValue: override })
   const words = tag.replace(/_/g, ' ').trim()
   return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-function getOpenStatus(openingHours: Record<string, { open: string; close: string }> | null) {
-  if (!openingHours) return { isOpen: false, label: 'Hours unknown', todayHours: null }
+function getOpenStatus(openingHours: Record<string, { open: string; close: string }> | null, t: TFunction) {
+  if (!openingHours) return { isOpen: false, label: t('venue.hours_unknown'), todayHours: null }
   const now = new Date()
   const dayKey = DAY_NAMES[now.getDay()]
   const hours = openingHours[dayKey]
-  if (!hours) return { isOpen: false, label: 'Closed', todayHours: null }
+  if (!hours) return { isOpen: false, label: t('venue.closed'), todayHours: null }
   const nowMinutes = now.getHours() * 60 + now.getMinutes()
   const [openH, openM] = hours.open.split(':').map(Number)
   const [closeH, closeM] = hours.close.split(':').map(Number)
@@ -185,7 +185,7 @@ function getOpenStatus(openingHours: Record<string, { open: string; close: strin
     : (nowMinutes >= openMin && nowMinutes < closeMin)
   return {
     isOpen,
-    label: isOpen ? `Open \u00B7 Closes at ${hours.close}` : `Closed \u00B7 Opens at ${hours.open}`,
+    label: isOpen ? t('venue.open_closes_at', { time: hours.close }) : t('venue.closed_opens_at', { time: hours.open }),
     todayHours: hours,
   }
 }
@@ -213,9 +213,10 @@ function isSeedDefaultHours(oh: Record<string, { open: string; close: string }> 
 }
 
 function WaitingOnInfo({ text }: { text?: string }) {
+  const { t } = useTranslation()
   return (
     <p className="text-sm text-ink-2 italic">
-      {text ?? 'Waiting on updated information from the venue.'}
+      {text ?? t('venue.waiting_default')}
     </p>
   )
 }
@@ -364,7 +365,7 @@ export function VenueDetailPage() {
       const coachAvatar = new Map((coaches ?? []).map((c: any) => [c.id, c.avatar_url]))
       const coachHeadline = new Map((cprofiles ?? []).map((c: any) => [c.user_id, c.headline]))
       const coachSpecialties = new Map((cprofiles ?? []).map((c: any) => [c.user_id, c.specialties]))
-      return list.map((s: any) => ({ ...s, booked: counts.get(s.id) ?? 0, mine: mine.has(s.id), coachName: coachName.get(s.coach_user_id) ?? 'Coach', coachAvatar: coachAvatar.get(s.coach_user_id) ?? null, coachHeadline: coachHeadline.get(s.coach_user_id) ?? null, coachSpecialties: coachSpecialties.get(s.coach_user_id) ?? null }))
+      return list.map((s: any) => ({ ...s, booked: counts.get(s.id) ?? 0, mine: mine.has(s.id), coachName: coachName.get(s.coach_user_id) ?? null, coachAvatar: coachAvatar.get(s.coach_user_id) ?? null, coachHeadline: coachHeadline.get(s.coach_user_id) ?? null, coachSpecialties: coachSpecialties.get(s.coach_user_id) ?? null }))
     },
   })
 
@@ -380,14 +381,14 @@ export function VenueDetailPage() {
       // …and tell the player what actually happened (a race can fill the last
       // spot between render and tap, so "booked" isn't guaranteed).
       switch (res?.status) {
-        case 'booked': toast.success('You’re booked in — see you on court!'); break
-        case 'already_booked': toast('You’re already booked in.'); break
-        case 'full': toast.error('Sorry — that class just filled up.'); break
-        case 'past': toast.error('That class has already started.'); break
-        default: toast.error('That class is no longer available.')
+        case 'booked': toast.success(t('venue.toast_class_booked')); break
+        case 'already_booked': toast(t('venue.toast_class_already')); break
+        case 'full': toast.error(t('venue.toast_class_full')); break
+        case 'past': toast.error(t('venue.toast_class_past')); break
+        default: toast.error(t('venue.toast_class_unavailable'))
       }
     },
-    onError: () => toast.error('Couldn’t book that class — please try again.'),
+    onError: () => toast.error(t('venue.toast_class_error')),
   })
 
   // Tournaments this venue is hosting (leagues run through the existing engine).
@@ -451,7 +452,7 @@ export function VenueDetailPage() {
   const breakdownIsPartial = totalCourts > courtBreakdown && courtBreakdown > 0
 
   const hoursConfirmed = !!venue?.opening_hours && !isSeedDefaultHours(venue.opening_hours as any)
-  const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any) : null
+  const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any, t) : null
 
   /**
    * Price. `typical_court_price_peak` / `_offpeak` are numeric in MAJOR units
@@ -514,7 +515,7 @@ export function VenueDetailPage() {
       if (COURT_SHAPE_AMENITIES.has(tag)) continue
       if (PUFFERY_AMENITIES.has(tag)) continue
       if (AMENITY_TO_FACILITY[tag]) continue
-      labels.add(amenityLabel(tag))
+      labels.add(amenityLabel(tag, t))
     }
     return [...labels]
   })()
@@ -532,9 +533,9 @@ export function VenueDetailPage() {
   if (!venue) {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-3 px-6 text-center">
-        <p className="text-ink-2">Venue not found</p>
+        <p className="text-ink-2">{t('venue.not_found')}</p>
         <button onClick={() => goBack(navigate, '/play')} className="text-court font-medium">
-          Go back
+          {t('venue.go_back')}
         </button>
       </div>
     )
@@ -573,12 +574,12 @@ export function VenueDetailPage() {
           <div className="flex gap-2 mt-2">
             {venue.ppa_bookable && (
               <span className="text-xs font-medium bg-court text-white px-2 py-0.5 rounded-full">
-                Book via PPA
+                {t('venue.book_via_ppa')}
               </span>
             )}
             {venue.is_verified && (
               <span className="text-xs font-medium bg-court text-white px-2 py-0.5 rounded-full">
-                Verified \u2713
+                {t('venue.verified')}
               </span>
             )}
           </div>
@@ -602,8 +603,8 @@ export function VenueDetailPage() {
             !openStatus.isOpen && 'text-alert',
           )}>
             {'\u{1F550}'} {openStatus.todayHours
-              ? (openStatus.isOpen ? `Open until ${openStatus.todayHours.close}` : 'Closed')
-              : 'Closed'}
+              ? (openStatus.isOpen ? t('venue.open_until', { time: openStatus.todayHours.close }) : t('venue.closed'))
+              : t('venue.closed')}
           </div>
         )}
         {priceRange && (
@@ -618,12 +619,12 @@ export function VenueDetailPage() {
         )}
         {externalReviews != null && (
           <div className="shrink-0 rounded-xl bg-surface border border-hairline px-3 py-2 text-sm">
-            {'\u{1F5E3}\uFE0F'} {externalReviews.toLocaleString()} reviews
+            {'\u{1F5E3}\uFE0F'} {t('venue.n_reviews', { count: externalReviews })}
           </div>
         )}
         {venue.is_members_only && (
           <div className="shrink-0 rounded-xl bg-warn-50 border border-warn px-3 py-2 text-sm text-warn">
-            {'\u{1F511}'} Members only
+            {'\u{1F511}'} {t('venue.members_only')}
           </div>
         )}
       </div>
@@ -635,14 +636,14 @@ export function VenueDetailPage() {
             onClick={() => navigate(`/play/book-court?venue_id=${venueId}`)}
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm active:scale-[0.98] transition-transform"
           >
-            Book via PPA
+            {t('venue.book_via_ppa')}
           </button>
         ) : venue.booking_url?.trim() ? (
           <button
             onClick={() => window.open(venue.booking_url!, '_blank')}
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
-            Book via {venue.booking_platform ?? 'website'}
+            {t('venue.book_via_platform', { platform: venue.booking_platform ?? t('venue.website_fallback') })}
             <ExternalLink size={14} />
           </button>
         ) : venue.website?.trim() ? (
@@ -650,7 +651,7 @@ export function VenueDetailPage() {
             onClick={() => window.open(venue.website!, '_blank')}
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
-            Visit venue website
+            {t('venue.visit_website')}
             <ExternalLink size={14} />
           </button>
         ) : venue.phone?.trim() ? (
@@ -658,7 +659,7 @@ export function VenueDetailPage() {
             href={`tel:${venue.phone}`}
             className="flex-1 rounded-xl bg-hairline text-ink font-semibold py-3 text-sm text-center active:scale-[0.98] transition-transform"
           >
-            Call venue
+            {t('venue.call_venue')}
           </a>
         ) : (
           /**
@@ -676,14 +677,14 @@ export function VenueDetailPage() {
             onClick={() => setShowAskVenue(true)}
             className="flex-1 rounded-xl border border-dashed border-court-100 bg-court-50 text-court-700 font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
-            <Mail size={14} /> No booking details — ask them
+            <Mail size={14} /> {t('venue.no_booking_ask')}
           </button>
         )}
         <button
           onClick={() => window.open(googleMapsUrl(venue.latitude, venue.longitude, venue.full_address), '_blank')}
           className="flex-1 rounded-xl bg-hairline text-ink font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
         >
-          <MapPin size={16} /> Directions
+          <MapPin size={16} /> {t('venue.directions')}
         </button>
       </div>
 
@@ -699,7 +700,7 @@ export function VenueDetailPage() {
             onClick={() => setShowClaimQr(true)}
             className="w-full rounded-xl border border-dashed border-court-100 bg-court-50 text-court-700 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
           >
-            <QrCode size={16} /> Own this venue? Claim it
+            <QrCode size={16} /> {t('venue.own_claim')}
           </button>
         </div>
       )}
@@ -712,7 +713,7 @@ export function VenueDetailPage() {
       <AskVenueSheet
         open={showAskVenue}
         onClose={() => setShowAskVenue(false)}
-        venueName={venue.venue_name ?? 'this venue'}
+        venueName={venue.venue_name ?? t('venue.this_venue')}
         city={venue.city}
         email={venue.email}
       />
@@ -734,14 +735,13 @@ export function VenueDetailPage() {
             >
               <X size={20} />
             </button>
-            <p className="text-[13px] font-semibold text-court-700">Claim this venue on Wynaxa Hub</p>
+            <p className="text-[13px] font-semibold text-court-700">{t('venue.claim_hub_title')}</p>
             <h3 className="text-lg font-bold text-ink mt-0.5 mb-4">{venue.venue_name}</h3>
             <div className="bg-card p-4 rounded-2xl border border-hairline inline-block">
               <QRCodeSVG value={venueClaimUrl(venueId)} size={200} />
             </div>
             <p className="text-[12px] text-ink-2 mt-4 leading-relaxed">
-              Scan with a phone to claim it — or claim it right now. Manage courts, pricing,
-              hours and bookings from Wynaxa Hub.
+              {t('venue.claim_qr_desc')}
             </p>
             {/*
               The QR is for the moment you are standing at the desk. Away from
@@ -751,19 +751,17 @@ export function VenueDetailPage() {
             */}
             <button
               onClick={async () => {
-                const text = `Hi — ${venue.venue_name} isn't set up on Padel Players yet. `
-                  + `You can claim it here and manage courts, pricing and bookings: `
-                  + venueClaimUrl(venueId)
+                const text = t('venue.claim_outreach_message', { name: venue.venue_name, url: venueClaimUrl(venueId) })
                 try {
                   await navigator.clipboard.writeText(text)
-                  toast.success('Message copied — send it to the venue')
+                  toast.success(t('venue.message_copied'))
                 } catch {
-                  toast.error('Could not copy. Long-press the link above instead.')
+                  toast.error(t('venue.copy_failed'))
                 }
               }}
               className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl border border-court-100 bg-court-50 px-6 py-3 text-[14px] font-semibold text-court-700 active:scale-[0.98] transition-transform"
             >
-              <Mail size={15} /> Copy a message to send them
+              <Mail size={15} /> {t('venue.copy_message')}
             </button>
             <a
               href={venueClaimUrl(venueId)}
@@ -771,7 +769,7 @@ export function VenueDetailPage() {
               rel="noopener noreferrer"
               className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-court px-6 py-3 text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
             >
-              Claim it now →
+              {t('venue.claim_now')}
             </a>
           </div>
         </div>
@@ -788,37 +786,37 @@ export function VenueDetailPage() {
               {(venue.indoor_courts ?? 0) > 0 && (
                 <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                   <div className="text-xl">{'\u{1F3E0}'}</div>
-                  <div className="text-sm font-medium mt-1">{venue.indoor_courts} Indoor</div>
+                  <div className="text-sm font-medium mt-1">{t('venue.n_indoor', { count: venue.indoor_courts! })}</div>
                 </div>
               )}
               {(venue.outdoor_courts ?? 0) > 0 && (
                 <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                   <div className="text-xl">{'\u2600\uFE0F'}</div>
-                  <div className="text-sm font-medium mt-1">{venue.outdoor_courts} Outdoor</div>
+                  <div className="text-sm font-medium mt-1">{t('venue.n_outdoor', { count: venue.outdoor_courts! })}</div>
                 </div>
               )}
               {(venue.covered_courts ?? 0) > 0 && (
                 <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
                   <div className="text-xl">{'\u26FA'}</div>
-                  <div className="text-sm font-medium mt-1">{venue.covered_courts} Covered</div>
+                  <div className="text-sm font-medium mt-1">{t('venue.n_covered', { count: venue.covered_courts! })}</div>
                 </div>
               )}
             </div>
             {breakdownIsPartial && (
               <p className="text-xs text-ink-2 mt-2">
-                Indoor/outdoor split known for {courtBreakdown} of {totalCourts} courts.
+                {t('venue.split_known', { known: courtBreakdown, total: totalCourts })}
               </p>
             )}
             {surfaceType && (
               <p className="text-sm text-ink-2 mt-2">
-                Surface: <span className="capitalize">{surfaceType.replace(/_/g, ' ')}</span>
+                {t('venue.surface', { type: surfaceType.replace(/_/g, ' ') })}
               </p>
             )}
             {(venue.singles_courts ?? 0) > 0 && (
-              <p className="text-sm text-court mt-1">Singles courts available</p>
+              <p className="text-sm text-court mt-1">{t('venue.singles_available')}</p>
             )}
             {(venue.panoramic_courts ?? 0) > 0 && (
-              <p className="text-sm text-court mt-1">{venue.panoramic_courts} panoramic</p>
+              <p className="text-sm text-court mt-1">{t('venue.n_panoramic', { count: venue.panoramic_courts! })}</p>
             )}
           </>
         ) : (
@@ -829,23 +827,23 @@ export function VenueDetailPage() {
       {/* Prices — real amounts where the venue has them, nothing where it doesn't. */}
       {(peakPrice || offpeakPrice) && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Typical court price</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">{t('venue.typical_price')}</h2>
           <div className="grid grid-cols-2 gap-2">
             {offpeakPrice && (
               <div className="rounded-xl bg-surface border border-hairline p-3">
-                <div className="text-xs text-ink-2">Off-peak</div>
+                <div className="text-xs text-ink-2">{t('venue.off_peak')}</div>
                 <div className="text-base font-semibold text-ink mt-0.5">{offpeakPrice}</div>
               </div>
             )}
             {peakPrice && (
               <div className="rounded-xl bg-surface border border-hairline p-3">
-                <div className="text-xs text-ink-2">Peak</div>
+                <div className="text-xs text-ink-2">{t('venue.peak')}</div>
                 <div className="text-base font-semibold text-ink mt-0.5">{peakPrice}</div>
               </div>
             )}
           </div>
           <p className="text-xs text-ink-2 mt-2">
-            Per court. Confirm on the venue's own booking page before you play.
+            {t('venue.price_disclaimer')}
           </p>
         </section>
       )}
@@ -853,7 +851,7 @@ export function VenueDetailPage() {
       {/* Classes & coaching — bookable sessions run by the venue's coaches */}
       {classes.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Classes &amp; coaching</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">{t('venue.classes_coaching')}</h2>
           <div className="space-y-2">
             {classes.map((c: any) => {
               const full = c.booked >= c.capacity
@@ -874,7 +872,7 @@ export function VenueDetailPage() {
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-ink truncate">{c.title}</p>
                     <p className="text-xs text-ink-2 truncate">
-                      {format(new Date(c.start_at), 'EEE d MMM · HH:mm', { locale })} · {c.coachName}
+                      {format(new Date(c.start_at), 'EEE d MMM · HH:mm', { locale })} · {c.coachName ?? t('venue.coach_fallback')}
                     </p>
                     {c.coachHeadline && <p className="text-[11px] text-court truncate">{c.coachHeadline}</p>}
                     {Array.isArray(c.coachSpecialties) && c.coachSpecialties.length > 0 && (
@@ -891,18 +889,18 @@ export function VenueDetailPage() {
                         <span className="font-semibold text-ink-2">{money(c.price_pence, c.currency ?? venue.currency)}</span>
                       )}
                       {c.price_pence != null && <span className="text-ink-3"> · </span>}
-                      <span className="text-ink-2">{c.mine ? 'You’re booked' : full ? 'Full' : `${spots} spot${spots === 1 ? '' : 's'} left`}</span>
+                      <span className="text-ink-2">{c.mine ? t('venue.class_youre_booked') : full ? t('venue.class_full') : t('venue.class_spots_left', { count: spots })}</span>
                     </p>
                   </div>
                   {c.mine ? (
-                    <span className="text-[12px] font-semibold text-court flex-shrink-0">Booked ✓</span>
+                    <span className="text-[12px] font-semibold text-court flex-shrink-0">{t('venue.booked_check')}</span>
                   ) : (
                     <button
                       disabled={full || bookClass.isPending}
                       onClick={() => bookClass.mutate(c.id)}
                       className="h-8 px-3 rounded-lg bg-court text-white text-[12px] font-semibold disabled:opacity-40 flex-shrink-0 active:scale-95 transition-transform"
                     >
-                      Book
+                      {t('venue.book')}
                     </button>
                   )}
                 </div>
@@ -915,7 +913,7 @@ export function VenueDetailPage() {
       {/* Tournaments hosted here — tap through to the league to join & play */}
       {tournaments.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Tournaments</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">{t('venue.tournaments')}</h2>
           <div className="space-y-2">
             {tournaments.map((tn: any) => (
               <button key={tn.id} onClick={() => navigate(`/compete/leagues/${tn.id}`)}
@@ -925,7 +923,9 @@ export function VenueDetailPage() {
                   <p className="text-sm font-semibold text-ink truncate">{tn.name}</p>
                   <p className="text-xs text-ink-2 truncate">
                     {tn.tournament_start && format(new Date(tn.tournament_start), 'EEE d MMM · HH:mm', { locale })}
-                    {` · ${tn.participants}${tn.max_participants ? `/${tn.max_participants}` : ''} players`}
+                    {tn.max_participants
+                      ? ` · ${t('venue.tournament_players_of', { count: tn.participants, max: tn.max_participants })}`
+                      : ` · ${t('venue.tournament_players', { count: tn.participants })}`}
                     {tn.entry_fee_pence > 0 && ` · ${money(tn.entry_fee_pence, venue.currency)}`}
                   </p>
                 </div>
@@ -938,15 +938,15 @@ export function VenueDetailPage() {
 
       {/* 5. Opening Hours */}
       <section className="px-5 mt-6">
-        <h2 className="text-base font-semibold text-ink mb-3">Opening Hours</h2>
+        <h2 className="text-base font-semibold text-ink mb-3">{t('venue.opening_hours')}</h2>
         {!hoursConfirmed ? (
-          <WaitingOnInfo text="Opening hours not confirmed yet — waiting on the venue." />
+          <WaitingOnInfo text={t('venue.hours_not_confirmed')} />
         ) : (
           <div className="space-y-1">
             {DAY_ORDER.map((dayKey) => {
               const hours = (venue.opening_hours as any)?.[dayKey]
               const isToday = DAY_NAMES[new Date().getDay()] === dayKey
-              const dayLabel = DAY_LABELS[DAY_ORDER.indexOf(dayKey)]
+              const dayLabel = format(new Date(2024, 0, 1 + DAY_ORDER.indexOf(dayKey)), 'EEEE', { locale })
               return (
                 <div
                   key={dayKey}
@@ -964,12 +964,12 @@ export function VenueDetailPage() {
                           ? 'bg-court-50 text-court'
                           : 'bg-alert-50 text-alert',
                       )}>
-                        {openStatus.isOpen ? 'Open now' : 'Closed'}
+                        {openStatus.isOpen ? t('venue.open_now') : t('venue.closed')}
                       </span>
                     )}
                   </span>
                   <span className={cn(isToday ? 'text-court-700' : 'text-ink-2')}>
-                    {hours ? `${hours.open} - ${hours.close}` : 'Closed'}
+                    {hours ? `${hours.open} - ${hours.close}` : t('venue.closed')}
                   </span>
                 </div>
               )
@@ -993,9 +993,9 @@ export function VenueDetailPage() {
         the Opening Hours and About sections already use.
       */}
       <section className="px-5 mt-6">
-        <h2 className="text-base font-semibold text-ink mb-3">Facilities</h2>
+        <h2 className="text-base font-semibold text-ink mb-3">{t('venue.facilities')}</h2>
         {facilityKeys.length === 0 && amenityChips.length === 0 ? (
-          <WaitingOnInfo text="Facilities not confirmed yet — waiting on the venue." />
+          <WaitingOnInfo text={t('venue.facilities_not_confirmed')} />
         ) : (
           <>
             {facilityKeys.length > 0 && (
@@ -1005,7 +1005,7 @@ export function VenueDetailPage() {
                   return (
                     <div key={key} className="rounded-xl border border-hairline bg-surface p-3 text-center text-sm">
                       <div className="text-lg">{f.icon}</div>
-                      <div className="mt-1 text-xs">{f.label}</div>
+                      <div className="mt-1 text-xs">{t(`venue.facility_${key}`)}</div>
                     </div>
                   )
                 })}
@@ -1029,7 +1029,7 @@ export function VenueDetailPage() {
 
       {/* 7. About */}
       <section className="px-5 mt-6">
-        <h2 className="text-base font-semibold text-ink mb-2">About</h2>
+        <h2 className="text-base font-semibold text-ink mb-2">{t('venue.about')}</h2>
         {venue.description
           ? <p className="text-sm text-ink-2 leading-relaxed">{venue.description}</p>
           : <WaitingOnInfo />}
@@ -1044,7 +1044,7 @@ export function VenueDetailPage() {
         */}
         {venue.is_members_only && (
           <div className="mt-3 rounded-xl bg-warn-50 border border-warn p-3 text-sm text-warn">
-            Members only{venue.membership_note?.trim() ? ` \u2014 ${venue.membership_note.trim()}` : ''}
+            {t('venue.members_only')}{venue.membership_note?.trim() ? ` \u2014 ${venue.membership_note.trim()}` : ''}
           </div>
         )}
       </section>
@@ -1052,7 +1052,7 @@ export function VenueDetailPage() {
       {/* 8. Rate this venue */}
       {hasPlayed && userId && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Rate this venue</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">{t('venue.rate_venue')}</h2>
           <div className="flex gap-1 mb-3">
             {Array.from({ length: 5 }, (_, i) => (
               <button
@@ -1075,7 +1075,7 @@ export function VenueDetailPage() {
           <textarea
             value={userReview}
             onChange={(e) => setUserReview(e.target.value)}
-            placeholder="Write a review (optional)"
+            placeholder={t('venue.review_placeholder')}
             rows={3}
             className="w-full rounded-xl border border-hairline p-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-court/30 focus:border-court"
           />
@@ -1090,10 +1090,10 @@ export function VenueDetailPage() {
             )}
           >
             {submitRating.isPending
-              ? 'Submitting...'
+              ? t('venue.submitting')
               : existingRating
-                ? 'Update review'
-                : 'Submit review'}
+                ? t('venue.update_review')
+                : t('venue.submit_review')}
           </button>
         </section>
       )}
@@ -1101,19 +1101,19 @@ export function VenueDetailPage() {
       {/* 9. Reviews */}
       {ratings.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">What players say</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">{t('venue.what_players_say')}</h2>
           <div className="space-y-3">
             {ratings.map((r: any) => (
               <div key={r.id} className="rounded-xl bg-surface border border-hairline p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <PlayerAvatar
-                    name={r.profiles?.name ?? 'Player'}
+                    name={r.profiles?.name ?? t('venue.player_fallback')}
                     avatarUrl={r.profiles?.avatar_url}
                     size="sm"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-ink truncate">
-                      {r.profiles?.name ?? 'Player'}
+                      {r.profiles?.name ?? t('venue.player_fallback')}
                     </p>
                     <div className="flex items-center gap-0.5">{renderStars(r.rating)}</div>
                   </div>
@@ -1131,7 +1131,7 @@ export function VenueDetailPage() {
       {/* 10. Nearby Venues */}
       {nearbyVenues.length > 0 && (
         <section className="px-5 mt-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Nearby Venues</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">{t('venue.nearby_venues')}</h2>
           <div className="space-y-2">
             {nearbyVenues.map((v: any) => (
               <button
@@ -1190,7 +1190,7 @@ export function VenueDetailPage() {
       {/* 11. Contact */}
       {(venue.phone || venue.whatsapp_number || venue.email || venue.instagram || venue.website) && (
         <section className="px-5 mt-6 mb-6">
-          <h2 className="text-base font-semibold text-ink mb-3">Contact</h2>
+          <h2 className="text-base font-semibold text-ink mb-3">{t('venue.contact')}</h2>
           <div className="space-y-2">
             {venue.whatsapp_number?.trim() && (
               <a
@@ -1200,7 +1200,7 @@ export function VenueDetailPage() {
                 className="flex items-center gap-3 rounded-xl bg-surface border border-hairline p-3 text-sm text-ink-2"
               >
                 <MessageCircle size={16} className="text-court shrink-0" />
-                WhatsApp
+                {t('venue.whatsapp')}
               </a>
             )}
             {venue.phone && (

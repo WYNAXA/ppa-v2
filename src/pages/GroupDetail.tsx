@@ -487,7 +487,7 @@ function MembersTab({ members, isLoading, isAdmin, groupId, currentUserId }: {
   })
 
   async function shareOrCopyInvite() {
-    const url = `${window.location.origin}/people/groups/${groupId}`
+    const url = `${window.location.origin}/discover/groups/${groupId}`
     if (navigator.share) {
       try { await navigator.share({ title: t('group_detail.share_title'), url }) } catch { /* cancelled */ }
       return
@@ -915,7 +915,7 @@ function EventsTab({ events, isLoading, groupId, isAdmin }: {
           {events.map((event) => (
             <button
               key={event.id}
-              onClick={() => navigate(`/people/events/${event.id}`)}
+              onClick={() => navigate(`/discover/events/${event.id}`)}
               className="w-full text-left rounded-xl border border-hairline bg-surface px-4 py-3 hover:border-court-100 transition-colors"
             >
               <p className="text-[13px] font-semibold text-ink">{event.title}</p>
@@ -1111,7 +1111,7 @@ function SettingsTab({ group, members, isAdmin, currentUserId }: {
       const { error } = await supabase.from('group_members').delete().eq('group_id', group.id).eq('user_id', currentUserId)
       if (error) throw error
       queryClient.invalidateQueries({ queryKey: ['group-members', group.id] })
-      navigate('/people')
+      navigate('/discover')
     } catch {
       toast.error('Failed to leave group')
     } finally {
@@ -1597,7 +1597,7 @@ function LeaveGroupSection({ groupId, groupName, userId, isRinger }: { groupId: 
       queryClient.invalidateQueries({ queryKey: ['my-groups'] })
       queryClient.invalidateQueries({ queryKey: ['group-members', groupId] })
       queryClient.invalidateQueries({ queryKey: ['user-membership', groupId, userId] })
-      navigate('/people')
+      navigate('/discover')
     },
     onError: () => toast.error(t('group_detail.leave_failed')),
   })
@@ -1864,7 +1864,7 @@ export function GroupDetailPage() {
     return (
       <div className="flex h-full flex-col items-center justify-center px-8 text-center">
         <p className="text-[14px] font-semibold text-ink-2">{t('group_detail.group_not_found')}</p>
-        <button onClick={() => navigate('/people')} className="mt-4 text-[13px] text-court font-semibold">
+        <button onClick={() => navigate('/discover')} className="mt-4 text-[13px] text-court font-semibold">
           {t('group_detail.back_to_people')}
         </button>
       </div>
@@ -1884,7 +1884,7 @@ export function GroupDetailPage() {
       <div className={`px-5 pb-4 ${group.banner_url ? 'pt-4' : 'pt-14'}`}>
         <div className="flex items-center gap-3 mb-4">
           <button
-            onClick={() => navigate('/people')}
+            onClick={() => navigate('/discover')}
             className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
           >
             <ChevronLeft className="h-5 w-5 text-ink-2" />

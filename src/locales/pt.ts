@@ -21,6 +21,8 @@ export default {
     "guest": "Convidado",
     "try_again": "Tentar novamente",
     "go_back": "Voltar",
+    "page_not_found": "Página não encontrada",
+    "go_home": "Ir para Hoje",
     "get_started": "Começar",
     "see_all": "Ver tudo"
   },
@@ -354,6 +356,8 @@ export default {
     "ask_again": "Pedir novamente",
     "ask": "Pedir",
     "go_back": "Voltar",
+    "page_not_found": "Página não encontrada",
+    "go_home": "Ir para Hoje",
     "cancel_match_confirm": "Cancelar este jogo?",
     "cancel_match_sub": "Todos os jogadores serão notificados. O registo do jogo será mantido mas marcado como cancelado.",
     "cancelling": "A cancelar…",
@@ -1499,6 +1503,8 @@ export default {
     "no_online_booking": "Sem reserva online — contactar o clube",
     "not_found": "Clube não encontrado",
     "go_back": "Voltar",
+    "page_not_found": "Página não encontrada",
+    "go_home": "Ir para Hoje",
     "waiting_default": "A aguardar informações atualizadas do clube.",
     "hours_unknown": "Horário desconhecido",
     "closed": "Fechado",
@@ -1633,7 +1639,10 @@ export default {
     "browse_groups": "Grupos",
     "browse_players": "Jogadores",
     "browse_coaches": "Treinadores",
-    "browse_venues": "Quadras"
+    "browse_venues": "Quadras",
+    "near_you": "Perto de você",
+    "recently_played": "Jogados recentemente",
+    "mine": "Meus"
   },
   "create_event": {
     "title": "Criar evento",

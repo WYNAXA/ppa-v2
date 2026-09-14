@@ -18,6 +18,7 @@ import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
 import { goBack } from '@/lib/navigation'
+import { openUrl } from '@/lib/openUrl'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -640,7 +641,7 @@ export function VenueDetailPage() {
           </button>
         ) : venue.booking_url?.trim() ? (
           <button
-            onClick={() => window.open(venue.booking_url!, '_blank')}
+            onClick={() => openUrl(venue.booking_url!)}
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
             {t('venue.book_via_platform', { platform: venue.booking_platform ?? t('venue.website_fallback') })}
@@ -648,7 +649,7 @@ export function VenueDetailPage() {
           </button>
         ) : venue.website?.trim() ? (
           <button
-            onClick={() => window.open(venue.website!, '_blank')}
+            onClick={() => openUrl(venue.website!)}
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
             {t('venue.visit_website')}
@@ -681,7 +682,7 @@ export function VenueDetailPage() {
           </button>
         )}
         <button
-          onClick={() => window.open(googleMapsUrl(venue.latitude, venue.longitude, venue.full_address), '_blank')}
+          onClick={() => openUrl(googleMapsUrl(venue.latitude, venue.longitude, venue.full_address))}
           className="flex-1 rounded-xl bg-hairline text-ink font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
         >
           <MapPin size={16} /> {t('venue.directions')}

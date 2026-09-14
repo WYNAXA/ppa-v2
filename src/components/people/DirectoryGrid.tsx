@@ -64,12 +64,9 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
     { key: 'groups',  icon: Users,         to: '/discover/groups' },
     { key: 'players', icon: UserPlus,      to: '/discover/players' },
     { key: 'coaches', icon: GraduationCap, to: '/coaches' },
-    // Courts is a whole tab — the tile is a shortcut to it, not a scroll.
-    { key: 'venues',  icon: MapPin,        to: '/play/book-court' },
-    // /leagues is league discovery: the leagues you are in, and the control to
-    // start one. It was routed but unlinked — reachable only by deep link.
+    { key: 'venues',  icon: MapPin,        to: '/discover/venues' },
     { key: 'leagues', icon: Trophy,        to: '/leagues' },
-    { key: 'events',  icon: CalendarDays,  to: '/people/events' },
+    { key: 'events',  icon: CalendarDays,  to: '/discover/events' },
   ]
 
   const fmt = new Intl.NumberFormat()

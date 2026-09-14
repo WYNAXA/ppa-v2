@@ -11,7 +11,8 @@ import {
   CheckCircle, Share2, Copy, Search, X, Plus, ChevronRight,
 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { usableVenues } from '@/lib/venueRows'
+import { usableVenues, resolveVenue } from '@/lib/venueRows'
+import { openUrl } from '@/lib/openUrl'
 import { money } from '@/lib/money'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
@@ -135,10 +136,10 @@ function openVenueLink(url: string, appScheme?: string) {
     const t = Date.now()
     window.location.href = appScheme
     setTimeout(() => {
-      if (Date.now() - t < 1500) window.open(url, '_blank')
+      if (Date.now() - t < 1500) openUrl(url)
     }, 500)
   } else {
-    window.open(url, '_blank')
+    openUrl(url)
   }
 }
 
@@ -205,7 +206,7 @@ function ExternalVenuePanel({ venue, onClose }: { venue: Venue; onClose: () => v
               Not bookable through Padel Players yet. Check availability on their website.
             </p>
             <button
-              onClick={() => window.open(website, '_blank', 'noopener,noreferrer')}
+              onClick={() => openUrl(website)}
               className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-court px-4 py-2.5 text-[13px] font-bold text-white"
             >
               Visit venue website
@@ -434,8 +435,10 @@ export function BookCourtPage() {
   const userId = session?.user?.id ?? ''
   const [params] = useSearchParams()
   const matchId = params.get('match_id') ?? ''
-  // Deep-link from the embeddable widget: pre-select a venue (+ optional date).
-  const venueParam = params.get('venue') ?? ''
+  // Deep-link: pre-select a venue. The embed sends ?venue= (a venues.id);
+  // VenueDetail sends ?venue_id= (a padel_venues.venue_id). resolveVenue
+  // accepts either id space.
+  const venueParam = params.get('venue') ?? params.get('venue_id') ?? ''
   const dateParam = params.get('date') ?? ''
 
   // ── Step ────────────────────────────────────────────────────────────────────
@@ -750,23 +753,23 @@ export function BookCourtPage() {
       })
   }, [debouncedVenueQuery, userLocation])
 
-  // Pre-select a venue (+ date) from the embed widget deep-link → jump to slots.
+  // Pre-select a venue (+ date) from a deep-link. The id may be either a
+  // padel_venues.venue_id (from VenueDetail) or a venues.id (from the embed
+  // widget). resolveVenue tries both id spaces.
   useEffect(() => {
     if (prefilled || !venueParam) return
     setPrefilled(true)
-    supabase
-      .from('padel_venues')
-      .select('venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, currency, website, phone')
-      .eq('venues_id', venueParam)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!data) return
-        const v = data as Venue
-        setSelectedVenue(v)
-        setVenueQuery(v.venue_name)
-        if (dateParam) setSelectedDate(dateParam)
-        setStep('date-slot')
-      })
+    resolveVenue(
+      venueParam,
+      'venue_id, venues_id, venue_name, city, full_address, booking_url, booking_platform, number_of_courts, latitude, longitude, ppa_bookable, price_per_hour, price_pence, price_per_player_pence, currency, website, phone',
+    ).then((data) => {
+      if (!data) return
+      const v = data as unknown as Venue
+      setSelectedVenue(v)
+      setVenueQuery(v.venue_name)
+      if (dateParam) setSelectedDate(dateParam)
+      setStep('date-slot')
+    })
   }, [venueParam, dateParam, prefilled])
 
   // PPA user search

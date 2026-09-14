@@ -21,7 +21,6 @@ import { CoachDetailPage } from '@/pages/CoachDetail'
 import { WaitlistPage } from '@/pages/Waitlist'
 import { FAQPage } from '@/pages/FAQ'
 import { ContactPage } from '@/pages/Contact'
-import { ForVenuesPage } from '@/pages/ForVenues'
 
 // v1.1.3 — force WKWebView cache refresh to drop stale debug banner
 
@@ -34,7 +33,7 @@ const EventDetailPage = lazy(() => import('@/pages/EventDetail').then(m => ({ de
 const YouPage = lazy(() => import('@/pages/You').then(m => ({ default: m.YouPage })))
 const MatchDetailPage = lazy(() => import('@/pages/MatchDetail').then(m => ({ default: m.MatchDetailPage })))
 const LeagueDetailPage = lazy(() => import('@/pages/LeagueDetail').then(m => ({ default: m.LeagueDetailPage })))
-const MatchesPage = lazy(() => import('@/pages/Matches').then(m => ({ default: m.MatchesPage })))
+const NotFoundPage = lazy(() => import('@/pages/NotFound').then(m => ({ default: m.NotFoundPage })))
 const AvailabilityPage = lazy(() => import('@/pages/Availability').then(m => ({ default: m.AvailabilityPage })))
 const AvailabilityPollPage = lazy(() => import('@/pages/AvailabilityPoll').then(m => ({ default: m.AvailabilityPollPage })))
 const CreatePollPage = lazy(() => import('@/pages/CreatePoll').then(m => ({ default: m.CreatePollPage })))
@@ -50,7 +49,7 @@ const LeagueDiscoveryPage = lazy(() => import('@/pages/LeagueDiscovery').then(m 
 const AllGroupsPage = lazy(() => import('@/pages/people/AllGroupsPage').then(m => ({ default: m.AllGroupsPage })))
 const AllPlayersPage = lazy(() => import('@/pages/people/AllPlayersPage').then(m => ({ default: m.AllPlayersPage })))
 const AllEventsPage = lazy(() => import('@/pages/people/AllEventsPage').then(m => ({ default: m.AllEventsPage })))
-const MyConnectionsPage = lazy(() => import('@/pages/people/MyConnectionsPage').then(m => ({ default: m.MyConnectionsPage })))
+const VenuesPage = lazy(() => import('@/pages/people/VenuesPage').then(m => ({ default: m.VenuesPage })))
 const VenueEventDetailPage = lazy(() => import('@/pages/VenueEventDetail').then(m => ({ default: m.VenueEventDetailPage })))
 const JoinMatchPage = lazy(() => import('@/pages/JoinMatch').then(m => ({ default: m.JoinMatchPage })))
 
@@ -91,10 +90,11 @@ function RedirectToDiscover() {
   return <Navigate to={`/discover${rest}${location.search}${location.hash}`} replace />
 }
 
-/** /open-matches → /discover?filter=games */
+/** /open-matches → /discover */
 function RedirectOpenMatches() {
-  return <Navigate to="/discover?filter=games" replace />
+  return <Navigate to="/discover" replace />
 }
+
 
 
 function OnboardingGuard({ children }: { children: React.ReactNode }) {
@@ -257,7 +257,6 @@ function AppShell() {
             <Route path="/support" element={<SupportPage />} />
             <Route path="/faq" element={<FAQPage />} />
             <Route path="/contact" element={<ContactPage />} />
-            <Route path="/venues" element={<ForVenuesPage />} />
             <Route path="/pay/booking/:bookingId/player/:playerId" element={<PayBookingPage />} />
 
             {/* Guest match-invite deep link (public — new players land here) */}
@@ -280,7 +279,7 @@ function AppShell() {
             <Route path="/discover/groups"       element={<Guard><AllGroupsPage /></Guard>} />
             <Route path="/discover/players"      element={<Guard><AllPlayersPage /></Guard>} />
             <Route path="/discover/events"       element={<Guard><AllEventsPage /></Guard>} />
-            <Route path="/discover/connections"   element={<Guard><MyConnectionsPage /></Guard>} />
+            <Route path="/discover/venues"       element={<Guard><VenuesPage /></Guard>} />
             <Route path="/discover/groups/:id"   element={<Guard><GroupDetailPage /></Guard>} />
             <Route path="/discover/events/:id"   element={<Guard><EventDetailPage /></Guard>} />
             <Route path="/you"       element={<Guard><YouPage /></Guard>} />
@@ -294,11 +293,8 @@ function AppShell() {
             <Route path="/community/*" element={<RedirectToDiscover />} />
             <Route path="/community"   element={<RedirectToDiscover />} />
 
-            {/* /open-matches → discover with games filter */}
+            {/* /open-matches → discover */}
             <Route path="/open-matches" element={<RedirectOpenMatches />} />
-
-            {/* Matches */}
-            <Route path="/matches"     element={<Guard><MatchesPage /></Guard>} />
             <Route path="/matches/:id" element={<Guard><MatchDetailPage /></Guard>} />
 
             {/* Play sub-routes — /create MUST come before /:pollId */}
@@ -331,8 +327,11 @@ function AppShell() {
             {/* Notifications */}
             <Route path="/notifications" element={<Guard><NotificationsPage /></Guard>} />
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to={session ? '/home' : '/auth'} replace />} />
+            {/* / → home */}
+            <Route path="/" element={<Navigate to={session ? '/home' : '/auth'} replace />} />
+
+            {/* 404 — every broken link is now visible instead of silently landing on Today */}
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
           </Suspense>
         </main>

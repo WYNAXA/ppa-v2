@@ -1099,7 +1099,7 @@ export function PollAdminView({
                 {t('polls.matches_scheduled', { count: confirmResult.matchesCreated })}
               </p>
               <a
-                href={`/people/groups/${groupId}`}
+                href={`/discover/groups/${groupId}`}
                 className="inline-flex items-center gap-1 text-[12px] font-semibold text-court hover:text-court-700"
               >
                 {t('polls.view_matches')}

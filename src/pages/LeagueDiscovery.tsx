@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
@@ -73,6 +74,7 @@ function formatFee(minor: number | null | undefined, currency: string | null | u
 export function LeagueDiscoveryPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t } = useTranslation()
   const { profile } = useAuth()
   const userId = profile?.id ?? ''
 
@@ -238,10 +240,10 @@ export function LeagueDiscoveryPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-32">
-        {/* ── My Leagues ─────────────────────────────────────────────────── */}
+        {/* ── Mine ─────────────────────────────────────────────────────── */}
         {myLeagues.length > 0 && (
           <section className="px-4 pt-5">
-            <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">My Leagues</h2>
+            <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">{t('discover.mine')}</h2>
             <div className="space-y-2">
               {myLeagues.map(league => (
                 <motion.button
@@ -352,9 +354,9 @@ export function LeagueDiscoveryPage() {
           </section>
         )}
 
-        {/* ── Open Leagues ───────────────────────────────────────────────── */}
+        {/* ── Near you ─────────────────────────────────────────────────── */}
         <section className="px-4 pt-5">
-          <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">Open Leagues</h2>
+          <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">{t('discover.near_you')}</h2>
 
           {/* Filter chips */}
           <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3 pb-0.5">

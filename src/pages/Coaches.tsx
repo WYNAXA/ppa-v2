@@ -142,6 +142,34 @@ export function CoachesPage() {
     },
   })
 
+  // Mine — sessions the player has booked
+  const userId = profile?.id ?? ''
+  const { data: myBookings = [] } = useQuery({
+    queryKey: ['my-coaching-bookings', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('coaching_bookings')
+        .select('session_id, coaching_sessions(id, title, start_at, coach_user_id)')
+        .eq('player_id', userId)
+        .eq('status', 'booked')
+      if (!data || data.length === 0) return []
+      const coachIds = [...new Set(data.map((b: any) => b.coaching_sessions?.coach_user_id).filter(Boolean))]
+      const { data: profs } = coachIds.length
+        ? await supabase.from('profiles').select('id, name').in('id', coachIds)
+        : { data: [] }
+      const nameMap = new Map((profs ?? []).map((p: any) => [p.id, p.name]))
+      return data
+        .filter((b: any) => b.coaching_sessions)
+        .map((b: any) => ({
+          sessionId: b.coaching_sessions.id as string,
+          title: b.coaching_sessions.title as string,
+          startAt: b.coaching_sessions.start_at as string,
+          coachName: nameMap.get(b.coaching_sessions.coach_user_id) ?? 'Coach',
+        }))
+    },
+  })
+
   const nothingAtAll = coaches.length === 0 && directory.length === 0
 
   return (
@@ -165,7 +193,25 @@ export function CoachesPage() {
           <p className="text-[13px] text-ink-2 mt-1 max-w-xs mx-auto">Coaches appear here once venues add them and they schedule sessions.</p>
         </div>
       ) : (
-        <div className="px-5 space-y-2">
+        <div className="px-5 space-y-4">
+          {/* Mine — booked sessions. Omitted when empty. */}
+          {myBookings.length > 0 && (
+            <section>
+              <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+                My sessions
+              </h2>
+              <div className="space-y-2">
+                {myBookings.map((b: any) => (
+                  <div key={b.sessionId} className="rounded-card border border-hairline bg-card p-3">
+                    <p className="text-[13px] font-semibold text-ink">{b.title}</p>
+                    <p className="text-[11px] text-ink-2">{b.coachName} · {new Date(b.startAt).toLocaleDateString()}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <div className="space-y-2">
           {coaches.map((c) => (
             <button
               key={c.id}
@@ -191,6 +237,7 @@ export function CoachesPage() {
               <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
             </button>
           ))}
+          </div>
         </div>
       )}
 

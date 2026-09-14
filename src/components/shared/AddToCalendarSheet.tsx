@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, Download } from 'lucide-react'
+import { openUrl } from '@/lib/openUrl'
 
 export interface CalendarEvent {
   title: string
@@ -26,17 +27,6 @@ function isIOSStandalone(): boolean {
   )
 }
 
-/** Navigate to a URL via a real anchor click — iOS standalone honours this
- *  where it swallows window.open(). */
-function openUrl(url: string) {
-  const a = document.createElement('a')
-  a.href = url
-  a.target = '_blank'
-  a.rel = 'noopener noreferrer'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-}
 
 /** Build the .ics content string for an event. */
 function buildIcs(event: CalendarEvent): string {

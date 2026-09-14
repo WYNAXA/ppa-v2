@@ -21,6 +21,8 @@ export default {
     "guest": "Ospite",
     "try_again": "Riprova",
     "go_back": "Torna indietro",
+    "page_not_found": "Pagina non trovata",
+    "go_home": "Vai a Oggi",
     "get_started": "Inizia",
     "see_all": "Vedi tutto"
   },
@@ -354,6 +356,8 @@ export default {
     "ask_again": "Chiedi di nuovo",
     "ask": "Chiedi",
     "go_back": "Torna indietro",
+    "page_not_found": "Pagina non trovata",
+    "go_home": "Vai a Oggi",
     "cancel_match_confirm": "Annullare questa partita?",
     "cancel_match_sub": "Tutti i giocatori verranno avvisati. La partita resterà registrata ma segnata come annullata.",
     "cancelling": "Annullamento in corso…",
@@ -1633,7 +1637,10 @@ export default {
     "browse_groups": "Gruppi",
     "browse_players": "Giocatori",
     "browse_coaches": "Coach",
-    "browse_venues": "Campi"
+    "browse_venues": "Campi",
+    "near_you": "Vicino a te",
+    "recently_played": "Giocati di recente",
+    "mine": "Miei"
   },
   "create_event": {
     "title": "Crea evento",

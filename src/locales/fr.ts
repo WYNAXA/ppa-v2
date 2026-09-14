@@ -21,6 +21,8 @@ export default {
     "guest": "Invité",
     "try_again": "Réessayer",
     "go_back": "Retour",
+    "page_not_found": "Page introuvable",
+    "go_home": "Aller à Aujourd'hui",
     "get_started": "Commencer",
     "see_all": "Tout voir"
   },
@@ -354,6 +356,8 @@ export default {
     "ask_again": "Redemander",
     "ask": "Demander",
     "go_back": "Retour",
+    "page_not_found": "Page introuvable",
+    "go_home": "Aller à Aujourd'hui",
     "cancel_match_confirm": "Annuler ce match ?",
     "cancel_match_sub": "Tous les joueurs seront prévenus. Le match sera conservé mais marqué comme annulé.",
     "cancelling": "Annulation…",
@@ -1499,6 +1503,8 @@ export default {
     "no_online_booking": "Pas de r\u00E9servation en ligne \u2014 contacter le club",
     "not_found": "Club introuvable",
     "go_back": "Retour",
+    "page_not_found": "Page introuvable",
+    "go_home": "Aller à Aujourd'hui",
     "waiting_default": "En attente d\u2019informations mises \u00E0 jour du club.",
     "hours_unknown": "Horaires inconnus",
     "closed": "Ferm\u00E9",
@@ -1633,7 +1639,10 @@ export default {
     "browse_groups": "Groupes",
     "browse_players": "Joueurs",
     "browse_coaches": "Coachs",
-    "browse_venues": "Terrains"
+    "browse_venues": "Terrains",
+    "near_you": "Près de vous",
+    "recently_played": "Joués récemment",
+    "mine": "Mes"
   },
   "create_event": {
     "title": "Cr\u00e9er un \u00e9v\u00e9nement",

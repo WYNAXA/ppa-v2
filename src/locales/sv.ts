@@ -21,6 +21,8 @@ export default {
     "guest": "Gäst",
     "try_again": "Försök igen",
     "go_back": "Gå tillbaka",
+    "page_not_found": "Sidan hittades inte",
+    "go_home": "Gå till Idag",
     "get_started": "Kom igång",
     "see_all": "Visa alla"
   },
@@ -354,6 +356,8 @@ export default {
     "ask_again": "Fråga igen",
     "ask": "Fråga",
     "go_back": "Gå tillbaka",
+    "page_not_found": "Sidan hittades inte",
+    "go_home": "Gå till Idag",
     "cancel_match_confirm": "Avboka denna match?",
     "cancel_match_sub": "Alla spelare meddelas. Matchposten behålls men markeras som avbokad.",
     "cancelling": "Avbokar…",
@@ -1499,6 +1503,8 @@ export default {
     "no_online_booking": "Ingen onlinebokning — kontakta anläggningen",
     "not_found": "Anläggningen hittades inte",
     "go_back": "Gå tillbaka",
+    "page_not_found": "Sidan hittades inte",
+    "go_home": "Gå till Idag",
     "waiting_default": "Väntar på uppdaterad information från anläggningen.",
     "hours_unknown": "Öppettider okända",
     "closed": "Stängt",
@@ -1633,7 +1639,10 @@ export default {
     "browse_groups": "Grupper",
     "browse_players": "Spelare",
     "browse_coaches": "Tr\u00e4nare",
-    "browse_venues": "Banor"
+    "browse_venues": "Banor",
+    "near_you": "Nära dig",
+    "recently_played": "Senast spelade",
+    "mine": "Mina"
   },
   "create_event": {
     "title": "Skapa evenemang",

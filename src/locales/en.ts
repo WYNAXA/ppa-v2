@@ -21,6 +21,8 @@ export default {
     guest: 'Guest',
     try_again: 'Try again',
     go_back: 'Go back',
+    page_not_found: 'Page not found',
+    go_home: 'Go to Today',
     get_started: 'Get Started',
     see_all: 'See all',
     cannot_be_undone: 'This cannot be undone.',
@@ -1954,6 +1956,9 @@ export default {
     browse_players: 'Players',
     browse_coaches: 'Coaches',
     browse_venues: 'Venues',
+    near_you: 'Near you',
+    recently_played: 'Recently played',
+    mine: 'Mine',
   },
   create_event: {
     title: 'Create Event',

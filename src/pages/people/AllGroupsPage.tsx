@@ -7,6 +7,8 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useMyGroups } from '@/hooks/useSocial'
+import { MyGroupCard } from '@/components/people/MyGroupCard'
 
 interface DiscoverGroup {
   id: string; name: string; description: string | null; city: string | null
@@ -25,17 +27,9 @@ export function AllGroupsPage() {
   const [activeFilter, setActiveFilter] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState('newest')
   const [previewGroup, setPreviewGroup] = useState<DiscoverGroup | null>(null)
-
-  const { data: myGroupIds = [] } = useQuery({
-    queryKey: ['my-group-ids', userId],
-    enabled: !!userId,
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('group_members').select('group_id')
-        .eq('user_id', userId).in('status', ['approved', 'ringer'])
-      return (data ?? []).map((r: any) => r.group_id)
-    },
-  })
+  const { data: myGroupsList = [] } = useMyGroups(userId)
+  const myApproved = myGroupsList.filter(g => g.memberStatus === 'approved')
+  const myRinger = myGroupsList.filter(g => g.memberStatus === 'ringer')
 
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['all-groups', userId, search, activeFilter, sortBy],
@@ -58,22 +52,19 @@ export function AllGroupsPage() {
 
       const { data, error } = await q
       if (error) throw error
-      const filtered = (data ?? []).filter((g) => !myGroupIds.includes(g.id))
-      console.warn(`[AllGroups] query returned ${(data ?? []).length} groups, after excluding mine: ${filtered.length}`)
-      if (filtered.length === 0) return []
+      const all = data ?? []
+      if (all.length === 0) return []
 
-      const ids = filtered.map(g => g.id)
+      const ids = all.map(g => g.id)
       const { data: memberRows } = await supabase.from('group_members').select('group_id').in('group_id', ids).eq('status', 'approved')
       const countMap: Record<string, number> = {}
       for (const m of memberRows ?? []) countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
-      console.warn(`[AllGroups] member counts:`, Object.entries(countMap).map(([id, c]) => `${id.slice(0,8)}=${c}`).join(', ') || '(all zero)')
 
       const { data: statusRows } = await supabase.from('group_members').select('group_id, status').in('group_id', ids).eq('user_id', userId)
       const statusMap: Record<string, string> = {}
       for (const r of statusRows ?? []) statusMap[r.group_id] = r.status
 
-      const result = filtered
-        .filter(g => statusMap[g.id] !== 'approved' && statusMap[g.id] !== 'ringer')
+      const result = all
         .map(g => ({ ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: (statusMap[g.id] ?? 'none') as any }))
 
       if (sortBy === 'most_members') result.sort((a, b) => b.memberCount - a.memberCount)
@@ -146,7 +137,7 @@ export function AllGroupsPage() {
     <div className="min-h-full bg-card pb-32">
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/people')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+          <button onClick={() => navigate('/discover')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
           <h1 className="text-xl font-bold text-ink">{t('people.find_groups')}</h1>
@@ -174,6 +165,24 @@ export function AllGroupsPage() {
             </button>
           ))}
         </div>
+        {/* My groups — the Mine section, above Browse */}
+        {myApproved.length + myRinger.length > 0 && (
+          <section className="mb-4">
+            <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+              {t('people.my_groups')}
+            </h2>
+            <div className="space-y-2">
+              {myApproved.map((g, i) => (
+                <MyGroupCard key={g.id} group={g} index={i} />
+              ))}
+              {myRinger.map((g, i) => (
+                <MyGroupCard key={g.id} group={g} index={myApproved.length + i} badge={t('people.badge_ringer')} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Browse */}
         {isLoading ? (
           <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />)}</div>
         ) : groups.length === 0 ? (

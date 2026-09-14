@@ -21,6 +21,8 @@ export default {
     "guest": "ضيف",
     "try_again": "حاول مجدداً",
     "go_back": "العودة",
+    "page_not_found": "الصفحة غير موجودة",
+    "go_home": "الذهاب إلى اليوم",
     "get_started": "ابدأ الآن",
     "see_all": "عرض الكل"
   },
@@ -354,6 +356,8 @@ export default {
     "ask_again": "اطلب مجددًا",
     "ask": "اطلب",
     "go_back": "العودة",
+    "page_not_found": "الصفحة غير موجودة",
+    "go_home": "الذهاب إلى اليوم",
     "cancel_match_confirm": "إلغاء هذه المباراة؟",
     "cancel_match_sub": "سيتم إشعار جميع اللاعبين. سيُحتفظ بسجلّ المباراة لكن سيُعلَّم كملغى.",
     "cancelling": "جارٍ الإلغاء…",
@@ -1665,7 +1669,10 @@ export default {
     "browse_groups": "مجموعات",
     "browse_players": "لاعبون",
     "browse_coaches": "مدربون",
-    "browse_venues": "ملاعب"
+    "browse_venues": "ملاعب",
+    "near_you": "بالقرب منك",
+    "recently_played": "لعبت مؤخرًا",
+    "mine": "خاصتي"
   },
   "create_event": {
     "title": "إنشاء فعالية",

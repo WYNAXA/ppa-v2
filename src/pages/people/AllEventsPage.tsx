@@ -110,7 +110,7 @@ export function AllEventsPage() {
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate('/people')}
+            onClick={() => navigate('/discover')}
             aria-label={t('common.back')}
             className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1"
           >
@@ -137,83 +137,79 @@ export function AllEventsPage() {
           />
         </div>
 
-        <div className="space-y-2">
-          {loading ? (
-            <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
-          ) : rows.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
-              <p className="text-[13px] font-semibold text-ink-2">{t('people.no_upcoming_events')}</p>
-              <p className="text-[12px] text-ink-2 mt-1">{t('people.events_empty_hint')}</p>
-            </div>
-          ) : (
-            rows.map((r) => (
+        {loading ? (
+          <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
+        ) : rows.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
+            <p className="text-[13px] font-semibold text-ink-2">{t('people.no_upcoming_events')}</p>
+            <p className="text-[12px] text-ink-2 mt-1">{t('people.events_empty_hint')}</p>
+          </div>
+        ) : (() => {
+          const myEvents = rows.filter((r) => r.kind === 'group')
+          const nearYou = rows.filter((r) => r.kind === 'venue')
+
+          function EventRow({ r }: { r: Row }) {
+            return (
               <button
                 key={`${r.kind}-${r.id}`}
-                onClick={() =>
-                  navigate(r.kind === 'group' ? `/people/events/${r.id}` : `/play/events/${r.id}`)
-                }
+                onClick={() => navigate(r.kind === 'group' ? `/discover/events/${r.id}` : `/play/events/${r.id}`)}
                 className={cn(
                   'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
-                  r.kind === 'group' && r.official
-                    ? 'border-court-100 bg-court-50/30'
-                    : 'border-hairline bg-card',
+                  r.kind === 'group' && r.official ? 'border-court-100 bg-court-50/30' : 'border-hairline bg-card',
                 )}
               >
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
                   {r.kind === 'group' && r.official && (
-                    <span className="text-[11px] font-bold text-court bg-court-50 rounded-full px-2 py-0.5">
-                      {t('people.badge_official')}
-                    </span>
+                    <span className="text-[11px] font-bold text-court bg-court-50 rounded-full px-2 py-0.5">{t('people.badge_official')}</span>
                   )}
                   {r.kind === 'venue' && (
-                    <span className="text-[11px] font-bold text-court-700 bg-court-100 rounded-full px-2 py-0.5">
-                      {t('people.badge_at_a_venue')}
-                    </span>
+                    <span className="text-[11px] font-bold text-court-700 bg-court-100 rounded-full px-2 py-0.5">{t('people.badge_at_a_venue')}</span>
                   )}
                   {r.kind === 'group' ? (
-                    (r.pricePence ?? 0) > 0 ? (
-                      <span className="num text-[11px] font-semibold text-ink-2">
-                        {money(r.pricePence, r.currency)}
-                      </span>
-                    ) : (
-                      <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>
-                    )
+                    (r.pricePence ?? 0) > 0
+                      ? <span className="num text-[11px] font-semibold text-ink-2">{money(r.pricePence, r.currency)}</span>
+                      : <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>
                   ) : r.priceLabel ? (
                     <span className="num text-[11px] font-semibold text-ink-2">{r.priceLabel}</span>
                   ) : (
                     <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>
                   )}
                 </div>
-
                 <p className="text-[14px] font-bold text-ink">{r.title}</p>
-
                 <p className="num text-[12px] text-ink-2 mt-0.5">
-                  {(() => {
-                    try { return format(parseISO(r.at), 'EEE d MMM · HH:mm', { locale }) } catch { return r.at }
-                  })()}
+                  {(() => { try { return format(parseISO(r.at), 'EEE d MMM · HH:mm', { locale }) } catch { return r.at } })()}
                   {r.where && ` · ${r.where}`}
                 </p>
-
                 {r.kind === 'venue' && (r.spots || r.distanceMiles != null) && (
                   <div className="flex items-center gap-3 mt-1.5">
-                    {r.spots && (
-                      <span className="num flex items-center gap-1 text-[11px] text-ink-2">
-                        <Users className="h-3 w-3" />
-                        {r.spots}
-                      </span>
-                    )}
-                    {r.distanceMiles != null && (
-                      <span className="num flex items-center gap-1 text-[11px] font-semibold text-court">
-                        <MapPin className="h-3 w-3" />
-                        {formatDistance(r.distanceMiles)}
-                      </span>
-                    )}
+                    {r.spots && <span className="num flex items-center gap-1 text-[11px] text-ink-2"><Users className="h-3 w-3" />{r.spots}</span>}
+                    {r.distanceMiles != null && <span className="num flex items-center gap-1 text-[11px] font-semibold text-court"><MapPin className="h-3 w-3" />{formatDistance(r.distanceMiles)}</span>}
                   </div>
                 )}
               </button>
-            ))
-          )}
-        </div>
+            )
+          }
+
+          return (
+            <div className="space-y-4">
+              {/* My events */}
+              {myEvents.length > 0 && (
+                <section>
+                  <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">{t('discover.mine')}</h2>
+                  <div className="space-y-2">{myEvents.map((r) => <EventRow key={`${r.kind}-${r.id}`} r={r} />)}</div>
+                </section>
+              )}
+
+              {/* Near you */}
+              {nearYou.length > 0 && (
+                <section>
+                  <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">{t('discover.near_you')}</h2>
+                  <div className="space-y-2">{nearYou.map((r) => <EventRow key={`${r.kind}-${r.id}`} r={r} />)}</div>
+                </section>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </div>
   )

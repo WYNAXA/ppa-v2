@@ -42,7 +42,7 @@ const TYPE_META: Record<SearchResult['type'], {
     icon:  <Users className="h-4 w-4" />,
     color: 'bg-surface text-ink-2',
     label: 'Groups',
-    navFn: (id) => `/people/groups/${id}`,
+    navFn: (id) => `/discover/groups/${id}`,
   },
   venue: {
     icon:  <MapPin className="h-4 w-4" />,

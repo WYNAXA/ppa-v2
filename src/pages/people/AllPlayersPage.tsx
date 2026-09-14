@@ -7,7 +7,9 @@ import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
+import { useMyConnections } from '@/hooks/useSocial'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
+import { ConnectionRequestCard } from '@/components/people/ConnectionRequestCard'
 
 export function AllPlayersPage() {
   const { profile } = useAuth()
@@ -52,6 +54,11 @@ export function AllPlayersPage() {
 
   const conns = connectionData ?? { accepted: new Set<string>(), pendingOut: new Set<string>(), pendingIn: new Set<string>() }
 
+  // My connections — Mine section
+  const { data: myConns } = useMyConnections(userId)
+  const acceptedProfiles = myConns?.acceptedProfiles ?? []
+  const incomingRequests = myConns?.incomingRequests ?? []
+
   const connectMutation = useMutation({
     mutationFn: async (targetId: string) => {
       const { error } = await supabase.from('player_connections').insert({ user_id: userId, connected_user_id: targetId, status: 'pending' })
@@ -95,7 +102,7 @@ export function AllPlayersPage() {
     <div className="min-h-full bg-card pb-32">
       <div className="px-4 pt-12 pb-4 bg-card border-b border-hairline">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/people')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
+          <button onClick={() => navigate('/discover')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
           <h1 className="text-xl font-bold text-ink">{t('people.find_players')}</h1>
@@ -114,6 +121,42 @@ export function AllPlayersPage() {
             {t('people.near_me_city', { city: profile.city })}
           </button>
         )}
+        {/* Incoming requests — something waiting on you */}
+        {incomingRequests.length > 0 && (
+          <section id="connections" style={{ scrollMarginTop: '80px' }}>
+            <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+              {t('people.connection_requests', { count: incomingRequests.length })}
+            </h2>
+            <div className="space-y-2">
+              {incomingRequests.map((req) => (
+                <ConnectionRequestCard key={req.user_id} request={req} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* My connections */}
+        {acceptedProfiles.length > 0 && (
+          <section>
+            <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+              {t('people.my_connections')}
+            </h2>
+            <div className="space-y-2">
+              {acceptedProfiles.map((p) => (
+                <button key={p.user_id} onClick={() => navigate(`/players/${p.user_id}`)}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl bg-surface text-left">
+                  <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
+                    {p.city && <p className="text-[11px] text-ink-2">{p.city}</p>}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Browse */}
         <div className="space-y-2">
           {isError ? (
             <p className="text-center text-[13px] text-ink-2 py-8">{t('people.players_load_failed')}</p>

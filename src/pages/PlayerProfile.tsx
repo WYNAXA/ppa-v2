@@ -244,7 +244,7 @@ export function PlayerProfilePage() {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 px-8 text-center">
         <p className="text-[14px] text-ink-2">{t('player_profile.not_found')}</p>
-        <button onClick={() => goBack(navigate, '/people')} className="text-[13px] text-court font-semibold">{t('common.go_back')}</button>
+        <button onClick={() => goBack(navigate, '/discover')} className="text-[13px] text-court font-semibold">{t('common.go_back')}</button>
       </div>
     )
   }
@@ -259,7 +259,7 @@ export function PlayerProfilePage() {
       {/* Header */}
       <div className="flex items-center gap-3 px-5 pt-14 pb-4">
         <button
-          onClick={() => goBack(navigate, '/people')}
+          onClick={() => goBack(navigate, '/discover')}
           className="h-9 w-9 rounded-full bg-hairline flex items-center justify-center flex-shrink-0"
         >
           <ChevronLeft className="h-5 w-5 text-ink-2" />

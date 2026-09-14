@@ -21,6 +21,8 @@ export default {
     "guest": "गेस्ट",
     "try_again": "फिर कोशिश करें",
     "go_back": "वापस जाएं",
+    "page_not_found": "पेज नहीं मिला",
+    "go_home": "आज पर जाएं",
     "get_started": "शुरू करें",
     "see_all": "सभी देखें"
   },
@@ -1499,6 +1501,8 @@ export default {
     "no_online_booking": "ऑनलाइन बुकिंग उपलब्ध नहीं — वेन्यू से संपर्क करें",
     "not_found": "वेन्यू नहीं मिला",
     "go_back": "वापस जाएं",
+    "page_not_found": "पेज नहीं मिला",
+    "go_home": "आज पर जाएं",
     "waiting_default": "वेन्यू से अपडेटेड जानकारी की प्रतीक्षा है।",
     "hours_unknown": "समय अज्ञात",
     "closed": "बंद",
@@ -1633,7 +1637,10 @@ export default {
     "browse_groups": "ग्रुप",
     "browse_players": "खिलाड़ी",
     "browse_coaches": "कोच",
-    "browse_venues": "स्थान"
+    "browse_venues": "स्थान",
+    "near_you": "आपके पास",
+    "recently_played": "हाल ही में खेले गए",
+    "mine": "मेरे"
   },
   "create_event": {
     "title": "इवेंट बनाएं",

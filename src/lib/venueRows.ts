@@ -1,3 +1,5 @@
+import { supabase } from '@/lib/supabase'
+
 /**
  * Narrowing helpers for rows read from the `discoverable_venues` VIEW.
  *
@@ -64,4 +66,37 @@ export function confirmedCourtCount(v: {
     (v.indoor_courts ?? 0) + (v.outdoor_courts ?? 0) + (v.covered_courts ?? 0)
   const total = Math.max(breakdown, v.number_of_courts ?? 0)
   return total > 0 ? total : null
+}
+
+/**
+ * Resolve a venue id from EITHER id space to a padel_venues row.
+ *
+ * Four call sites need this: self_report_booking (DB), venue-manager
+ * Bookings.tsx (twice), and BookCourt.tsx. The id may be a
+ * `padel_venues.venue_id` or a `venues.id` (the Hub anchor stored in
+ * `padel_venues.venues_id`). Tries venue_id first (cheaper, indexed),
+ * then venues_id.
+ *
+ * Returns the selected columns or null if the id resolves to nothing in
+ * either space.
+ */
+export async function resolveVenue<T extends string>(
+  id: string,
+  select: T,
+): Promise<Record<string, unknown> | null> {
+  // Try padel_venues.venue_id first (the common case for player-app links).
+  const { data: byVenueId } = await supabase
+    .from('padel_venues')
+    .select(select)
+    .eq('venue_id', id)
+    .maybeSingle()
+  if (byVenueId) return byVenueId as Record<string, unknown>
+
+  // Fall back to venues_id (the Hub anchor, used by the embed widget).
+  const { data: byVenuesId } = await supabase
+    .from('padel_venues')
+    .select(select)
+    .eq('venues_id', id)
+    .maybeSingle()
+  return (byVenuesId as Record<string, unknown>) ?? null
 }

@@ -53,9 +53,11 @@ type Tile = {
 
 export interface DirectoryGridProps {
   counts: DirectoryCounts
+  /** Current radius from the Discover tab, appended as ?r= to tile links. */
+  radius?: number
 }
 
-export function DirectoryGrid({ counts }: DirectoryGridProps) {
+export function DirectoryGrid({ counts, radius }: DirectoryGridProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
 
@@ -79,7 +81,7 @@ export function DirectoryGrid({ counts }: DirectoryGridProps) {
           return (
             <button
               key={tile.key}
-              onClick={() => navigate(tile.to)}
+              onClick={() => navigate(radius ? `${tile.to}${tile.to.includes('?') ? '&' : '?'}r=${radius}` : tile.to)}
               className="flex min-h-[86px] flex-col justify-between overflow-hidden rounded-card border border-hairline bg-card p-3 text-left transition-colors active:bg-court-50"
             >
               <span className="flex h-8 w-8 items-center justify-center rounded-control bg-court-50">

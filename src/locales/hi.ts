@@ -1673,7 +1673,13 @@ export default {
     "no_location_cta": "मेरा स्थान उपयोग करें",
     "no_location_city_placeholder": "अपना शहर लिखें",
     "no_location_confirm": "स्थान सेट करें",
-    "no_location_profile_link": "इसे अपनी प्रोफ़ाइल में सेट करें"
+    "no_location_profile_link": "इसे अपनी प्रोफ़ाइल में सेट करें",
+    "coaches_subtitle": "कोच खोजें और सत्र बुक करें",
+    "invited_by_team": "टीम सदस्य द्वारा आमंत्रित",
+    "start_your_league": "अपनी लीग शुरू करें",
+    "start_league_desc": "अपने ग्रुप के लिए लीग बनाएं और स्वचालित रूप से स्टैंडिंग ट्रैक करें।",
+    "search_groups_placeholder": "ग्रुप खोजें\u2026",
+    "join_league_failed": "लीग में शामिल होने में विफल"
   },
   "create_event": {
     "title": "इवेंट बनाएं",

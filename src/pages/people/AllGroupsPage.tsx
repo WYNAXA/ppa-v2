@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronLeft, Search, Users, MapPin, Lock, X, Globe, UserCheck, Info, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { useMyGroups } from '@/hooks/useSocial'
+import { useDiscoverList } from '@/hooks/useDiscoverList'
 import { MyGroupCard } from '@/components/people/MyGroupCard'
 import { CreateGroupSheet } from '@/components/people/CreateGroupSheet'
 
@@ -33,53 +34,18 @@ export function AllGroupsPage() {
   const myApproved = myGroupsList.filter(g => g.memberStatus === 'approved')
   const myRinger = myGroupsList.filter(g => g.memberStatus === 'ringer')
 
-  const { data: groups = [], isLoading } = useQuery({
-    queryKey: ['all-groups', userId, search, activeFilter, sortBy],
-    enabled: !!userId,
-    queryFn: async (): Promise<DiscoverGroup[]> => {
-      let q = supabase.from('groups')
-        .select('id, name, description, city, visibility, admin_id, auto_approve, banner_url, allow_ringers')
-        .limit(100)
+  const { data: nearYouGroups = [], isLoading: loadingNearYou } = useDiscoverList('groups')
 
-      if (sortBy === 'newest') q = q.order('created_at', { ascending: false })
-      else q = q.order('name')
-
-      if (search.trim()) q = q.or(`name.ilike.%${search.trim()}%,description.ilike.%${search.trim()}%,city.ilike.%${search.trim()}%`)
-      if (activeFilter === 'near_me' && profile?.city) {
-        const cityName = (profile.city ?? '').split(',')[0].split(' ')[0].trim()
-        if (cityName.length >= 3) q = q.ilike('city', `%${cityName}%`)
-      }
-      if (activeFilter === 'open_to_join') q = q.or('visibility.in.(open,public),auto_approve.eq.true')
-      if (activeFilter === 'welcomes_ringers') q = q.eq('allow_ringers', true)
-
-      const { data, error } = await q
-      if (error) throw error
-      const all = data ?? []
-      if (all.length === 0) return []
-
-      const ids = all.map(g => g.id)
-      const { data: memberRows } = await supabase.from('group_members').select('group_id').in('group_id', ids).eq('status', 'approved')
-      const countMap: Record<string, number> = {}
-      for (const m of memberRows ?? []) countMap[m.group_id] = (countMap[m.group_id] ?? 0) + 1
-
-      const { data: statusRows } = await supabase.from('group_members').select('group_id, status').in('group_id', ids).eq('user_id', userId)
-      const statusMap: Record<string, string> = {}
-      for (const r of statusRows ?? []) statusMap[r.group_id] = r.status
-
-      const result = all
-        .map(g => ({ ...g, memberCount: countMap[g.id] ?? 0, membershipStatus: (statusMap[g.id] ?? 'none') as any }))
-
-      if (sortBy === 'most_members') result.sort((a, b) => b.memberCount - a.memberCount)
-      console.warn(`[AllGroups] final result: ${result.length} groups, sort=${sortBy}, counts=[${result.map(g => g.memberCount).join(',')}]`)
-      return result
-    },
-  })
+  // Filter near-you by search
+  const filteredGroups = search.trim()
+    ? nearYouGroups.filter(g => g.title.toLowerCase().includes(search.trim().toLowerCase()) || (g.subtitle ?? '').toLowerCase().includes(search.trim().toLowerCase()))
+    : nearYouGroups
 
   const joinMutation = useMutation({
     mutationFn: async (groupId: string) => {
-      const group = groups.find(g => g.id === groupId)
-      const isOpen = group?.visibility === 'open' || group?.visibility === 'public'
-      const autoApprove = isOpen || group?.auto_approve === true
+      const group = nearYouGroups.find(g => g.id === groupId)
+      const joinMode = group?.meta.join_mode as string | null
+      const autoApprove = joinMode === 'open'
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId, user_id: userId, role: 'member', status: autoApprove ? 'approved' : 'pending',
       })
@@ -87,14 +53,14 @@ export function AllGroupsPage() {
         if (error.code === '23505') throw new Error('duplicate')
         throw error
       }
-      return { autoApprove, groupName: group?.name }
+      return { autoApprove, groupName: group?.title }
     },
     onSuccess: (data) => {
       const msg = data?.autoApprove
         ? t('people.joined_group_name', { name: data.groupName ?? '' })
         : t('people.request_sent')
       toast.success(msg)
-      queryClient.invalidateQueries({ queryKey: ['all-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['discover-list', 'groups'] })
       queryClient.invalidateQueries({ queryKey: ['my-groups'] })
     },
     onError: (err: Error) => {
@@ -108,7 +74,7 @@ export function AllGroupsPage() {
 
   const ringerOfferMutation = useMutation({
     mutationFn: async (groupId: string) => {
-      const group = groups.find(g => g.id === groupId)
+      const group = nearYouGroups.find(g => g.id === groupId)
       const { error } = await supabase.from('group_members').insert({
         group_id: groupId, user_id: userId, role: 'member', status: 'pending_ringer',
       })
@@ -116,11 +82,11 @@ export function AllGroupsPage() {
         if (error.code === '23505') throw new Error('duplicate')
         throw error
       }
-      return group?.name
+      return group?.title
     },
     onSuccess: (name, groupId) => {
       toast.success(t('people.ringer_offer_sent', { name: name ?? '' }))
-      queryClient.invalidateQueries({ queryKey: ['all-groups'] })
+      queryClient.invalidateQueries({ queryKey: ['discover-list', 'groups'] })
       setPreviewGroup(prev => prev?.id === groupId ? { ...prev, membershipStatus: 'pending_ringer' } : prev)
     },
     onError: (err: Error) => {
@@ -154,7 +120,7 @@ export function AllGroupsPage() {
       <div className="px-5 pt-4 space-y-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-2" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search groups..."
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder={t('discover.search_groups_placeholder')}
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20" />
         </div>
@@ -190,51 +156,49 @@ export function AllGroupsPage() {
           </section>
         )}
 
-        {/* Browse */}
-        {isLoading ? (
-          <div className="space-y-3">{[0, 1, 2].map(i => <div key={i} className="h-20 rounded-2xl bg-hairline animate-pulse" />)}</div>
-        ) : groups.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
-            <p className="text-[13px] font-semibold text-ink-2">{t('people.no_groups_found')}</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {groups.map((g, i) => (
-              <motion.div key={g.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
-                onClick={() => setPreviewGroup(g)}
-                className="bg-card rounded-2xl border border-hairline px-4 py-3.5 cursor-pointer active:scale-[0.98] transition-transform">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-[14px] font-bold text-ink truncate">{g.name}</h3>
-                    {g.city && <div className="flex items-center gap-1 mt-0.5"><MapPin className="h-3 w-3 text-ink-2" /><p className="text-[12px] text-ink-2">{g.city}</p></div>}
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className="inline-flex items-center gap-1 text-[12px] text-ink-2">
-                        <Users className="h-3 w-3 text-ink-2" /> {g.memberCount === 1 ? t('people.member', { count: 1 }) : t('people.members', { count: g.memberCount })}
-                      </span>
-                      {g.visibility === 'private' && (
-                        <span className="inline-flex items-center gap-0.5 text-[11px] font-semibold text-ink-2 bg-hairline rounded-full px-1.5 py-0.5">
-                          <Lock className="h-2.5 w-2.5" /> {t('people.group_private')}
-                        </span>
-                      )}
+        {/* Near you — from discover_list */}
+        <section className="mb-4">
+          <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+            {t('discover.near_you')} · {filteredGroups.length}
+          </h2>
+          {loadingNearYou ? (
+            <div className="h-20 rounded-2xl bg-hairline animate-pulse" />
+          ) : filteredGroups.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">{t('people.no_groups_found')}</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {filteredGroups.map((g) => {
+                const myStatus = g.meta.my_status as string | null
+                const joinMode = g.meta.join_mode as string | null
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => navigate(`/discover/groups/${g.id}`)}
+                    className="w-full flex items-center gap-3 rounded-2xl border border-hairline bg-card p-3 text-left active:scale-[0.99] transition-transform"
+                  >
+                    <div className="h-10 w-10 rounded-full bg-court-50 flex items-center justify-center flex-shrink-0">
+                      <Users className="h-5 w-5 text-court" />
                     </div>
-                    {g.description && <p className="text-[12px] text-ink-2 mt-1 line-clamp-2">{g.description}</p>}
-                  </div>
-                  {g.membershipStatus === 'pending' ? (
-                    <span className="rounded-xl bg-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-2 flex-shrink-0">{t('people.group_requested')}</span>
-                  ) : (() => {
-                    const isAutoJoin = g.visibility === 'open' || g.visibility === 'public' || g.auto_approve === true
-                    return (
-                      <button onClick={(e) => { e.stopPropagation(); joinMutation.mutate(g.id) }} disabled={joinMutation.isPending && joinMutation.variables === g.id}
-                        className="rounded-xl bg-court px-3 py-1.5 text-[12px] font-bold text-white flex-shrink-0 active:scale-95 transition-transform disabled:opacity-50">
-                        {joinMutation.isPending && joinMutation.variables === g.id ? t('people.joining') : isAutoJoin ? t('people.join_btn') : t('people.request_to_join')}
-                      </button>
-                    )
-                  })()}
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[14px] font-semibold text-ink truncate">{g.title}</p>
+                      <p className="text-[12px] text-ink-2 truncate">
+                        {[g.subtitle, g.distance_miles != null ? `${g.distance_miles < 10 ? g.distance_miles.toFixed(1) : Math.round(g.distance_miles)} mi` : null].filter(Boolean).join(' · ')}
+                      </p>
+                    </div>
+                    {myStatus === 'approved' || myStatus === 'ringer' ? (
+                      <span className="text-[11px] font-bold text-court">{t('people.connected')}</span>
+                    ) : joinMode !== 'closed' ? (
+                      <span className="text-[11px] font-bold text-court bg-court-50 border border-court-100 rounded-full px-2 py-0.5">{t('people.join')}</span>
+                    ) : null}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
       </div>
 
       {/* Group Preview Sheet */}

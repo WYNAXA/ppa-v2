@@ -1673,7 +1673,13 @@ export default {
     "no_location_cta": "Usa la mia posizione",
     "no_location_city_placeholder": "Scrivi la tua città",
     "no_location_confirm": "Imposta posizione",
-    "no_location_profile_link": "Impostalo nel tuo profilo"
+    "no_location_profile_link": "Impostalo nel tuo profilo",
+    "coaches_subtitle": "Trova un coach e prenota una lezione",
+    "invited_by_team": "Invitato da un membro del team",
+    "start_your_league": "Crea la tua lega",
+    "start_league_desc": "Crea una lega per il tuo gruppo e segui le classifiche automaticamente.",
+    "search_groups_placeholder": "Cerca gruppi\u2026",
+    "join_league_failed": "Impossibile unirsi alla lega"
   },
   "create_event": {
     "title": "Crea evento",

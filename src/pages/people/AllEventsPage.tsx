@@ -1,17 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, Search, MapPin, Users, Plus } from 'lucide-react'
+import { ChevronLeft, Search, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { format, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
+import { useDiscoverList } from '@/hooks/useDiscoverList'
 import { useDateLocale } from '@/lib/dateLocale'
-import { discoverVenueEvents, type DiscoverableEvent } from '@/lib/venueEvents'
 import { CreateEventSheet } from '@/components/people/CreateEventSheet'
-import { formatMoney, money } from '@/lib/money'
-import { formatDistance } from '@/lib/travelUtils'
-import { cn } from '@/lib/utils'
 
 /**
  * Every event a player can get to, from both places they come from.
@@ -34,10 +31,6 @@ import { cn } from '@/lib/utils'
  *   for something to enter does not care which of our two tables it came from.
  */
 
-type Row =
-  | { kind: 'group'; id: string; at: string; title: string; where: string | null; pricePence: number | null; currency: string | null; official: boolean }
-  | { kind: 'venue'; id: string; at: string; title: string; where: string | null; priceLabel: string | null; spots: string | null; distanceMiles: number | null }
-
 export function AllEventsPage() {
   const { profile } = useAuth()
   const navigate = useNavigate()
@@ -47,65 +40,29 @@ export function AllEventsPage() {
   const [search, setSearch] = useState('')
   const [showCreateEvent, setShowCreateEvent] = useState(false)
 
-  const { data: groupEvents = [], isLoading: loadingGroup } = useQuery({
-    queryKey: ['all-events-group', userId],
+  const { data: nearYouEvents = [], isLoading: loadingNearYou } = useDiscoverList('events')
+
+  // Mine — events I created or am in a group that owns them
+  const { data: groupEvents = [] } = useQuery({
+    queryKey: ['my-events', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data: memberships } = await supabase
-        .from('group_members').select('group_id').eq('user_id', userId).eq('status', 'approved')
-      const groupIds = (memberships ?? []).map((m) => m.group_id as string)
-
-      const filters = ['is_official.eq.true', `created_by.eq.${userId}`]
-      if (groupIds.length > 0) filters.push(`group_id.in.(${groupIds.join(',')})`)
-
       const { data } = await supabase
         .from('events')
-        .select('id, title, start_time, location, entry_fee_pence, currency, is_official')
+        .select('id, title, start_time, location')
+        .eq('created_by', userId)
         .gte('start_time', new Date().toISOString().split('T')[0])
-        .or(filters.join(','))
         .order('start_time', { ascending: true })
-        .limit(100)
+        .limit(20)
       return data ?? []
     },
   })
 
-  const { data: venueEvents = [], isLoading: loadingVenue } = useQuery<DiscoverableEvent[]>({
-    queryKey: ['all-events-venue', profile?.latitude, profile?.longitude],
-    queryFn: () => discoverVenueEvents(profile?.latitude ?? null, profile?.longitude ?? null),
-  })
+  // Filter near-you by search
+  const filtered = search.trim()
+    ? nearYouEvents.filter(e => e.title.toLowerCase().includes(search.trim().toLowerCase()) || (e.subtitle ?? '').toLowerCase().includes(search.trim().toLowerCase()))
+    : nearYouEvents
 
-  const rows = useMemo<Row[]>(() => {
-    const g: Row[] = groupEvents.map((e) => ({
-      kind: 'group',
-      id: e.id as string,
-      at: e.start_time as string,
-      title: e.title as string,
-      where: (e.location as string) ?? null,
-      pricePence: (e.entry_fee_pence as number) ?? null,
-      currency: (e.currency as string) ?? null,
-      official: e.is_official === true,
-    }))
-    const v: Row[] = venueEvents.map((e) => ({
-      kind: 'venue',
-      id: e.occurrence_id,
-      at: e.starts_at,
-      title: e.event_name,
-      where: [e.venue_name, e.venue_city].filter(Boolean).join(' · ') || null,
-      priceLabel:
-        e.price_per_player != null && e.price_per_player > 0
-          ? formatMoney(e.price_per_player, e.currency)
-          : null,
-      spots:
-        e.capacity != null ? `${Math.max(0, e.capacity - e.spots_taken)} of ${e.capacity} left` : null,
-      distanceMiles: e.distance_miles,
-    }))
-    const all = [...g, ...v].sort((a, b) => a.at.localeCompare(b.at))
-    const q = search.trim().toLowerCase()
-    if (!q) return all
-    return all.filter((r) => r.title.toLowerCase().includes(q) || (r.where ?? '').toLowerCase().includes(q))
-  }, [groupEvents, venueEvents, search])
-
-  const loading = loadingGroup || loadingVenue
 
   return (
     <div className="min-h-full bg-card pb-32">
@@ -142,79 +99,59 @@ export function AllEventsPage() {
           />
         </div>
 
-        {loading ? (
-          <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
-        ) : rows.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-hairline p-6 text-center">
-            <p className="text-[13px] font-semibold text-ink-2">{t('people.no_upcoming_events')}</p>
-            <p className="text-[12px] text-ink-2 mt-1">{t('people.events_empty_hint')}</p>
-          </div>
-        ) : (() => {
-          const myEvents = rows.filter((r) => r.kind === 'group')
-          const nearYou = rows.filter((r) => r.kind === 'venue')
-
-          function EventRow({ r }: { r: Row }) {
-            return (
-              <button
-                key={`${r.kind}-${r.id}`}
-                onClick={() => navigate(r.kind === 'group' ? `/discover/events/${r.id}` : `/play/events/${r.id}`)}
-                className={cn(
-                  'w-full text-left rounded-2xl border px-4 py-3 active:scale-[0.98] transition-transform',
-                  r.kind === 'group' && r.official ? 'border-court-100 bg-court-50/30' : 'border-hairline bg-card',
-                )}
-              >
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  {r.kind === 'group' && r.official && (
-                    <span className="text-[11px] font-bold text-court bg-court-50 rounded-full px-2 py-0.5">{t('people.badge_official')}</span>
-                  )}
-                  {r.kind === 'venue' && (
-                    <span className="text-[11px] font-bold text-court-700 bg-court-100 rounded-full px-2 py-0.5">{t('people.badge_at_a_venue')}</span>
-                  )}
-                  {r.kind === 'group' ? (
-                    (r.pricePence ?? 0) > 0
-                      ? <span className="num text-[11px] font-semibold text-ink-2">{money(r.pricePence, r.currency)}</span>
-                      : <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>
-                  ) : r.priceLabel ? (
-                    <span className="num text-[11px] font-semibold text-ink-2">{r.priceLabel}</span>
-                  ) : (
-                    <span className="text-[11px] font-semibold text-court">{t('people.badge_free')}</span>
-                  )}
-                </div>
-                <p className="text-[14px] font-bold text-ink">{r.title}</p>
-                <p className="num text-[12px] text-ink-2 mt-0.5">
-                  {(() => { try { return format(parseISO(r.at), 'EEE d MMM · HH:mm', { locale }) } catch { return r.at } })()}
-                  {r.where && ` · ${r.where}`}
-                </p>
-                {r.kind === 'venue' && (r.spots || r.distanceMiles != null) && (
-                  <div className="flex items-center gap-3 mt-1.5">
-                    {r.spots && <span className="num flex items-center gap-1 text-[11px] text-ink-2"><Users className="h-3 w-3" />{r.spots}</span>}
-                    {r.distanceMiles != null && <span className="num flex items-center gap-1 text-[11px] font-semibold text-court"><MapPin className="h-3 w-3" />{formatDistance(r.distanceMiles)}</span>}
-                  </div>
-                )}
-              </button>
-            )
-          }
-
-          return (
-            <div className="space-y-4">
-              {/* My events */}
-              {myEvents.length > 0 && (
-                <section>
-                  <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">{t('discover.mine')}</h2>
-                  <div className="space-y-2">{myEvents.map((r) => <EventRow key={`${r.kind}-${r.id}`} r={r} />)}</div>
-                </section>
-              )}
-
-              {/* Near you */}
-              {nearYou.length > 0 && (
-                <section>
-                  <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">{t('discover.near_you')}</h2>
-                  <div className="space-y-2">{nearYou.map((r) => <EventRow key={`${r.kind}-${r.id}`} r={r} />)}</div>
-                </section>
-              )}
+        {/* Near you — from discover_list */}
+        <section className="mb-4">
+          <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+            {t('discover.near_you')} · {filtered.length}
+          </h2>
+          {loadingNearYou ? (
+            <div className="h-16 rounded-2xl bg-hairline animate-pulse" />
+          ) : filtered.length === 0 ? (
+            <p className="text-[13px] text-ink-2 py-4">{t('discover.empty_subtitle')}</p>
+          ) : (
+            <div className="space-y-2">
+              {filtered.map((e) => {
+                const route = (e.meta.route as string) ?? `/discover/events/${e.id}`
+                return (
+                  <button
+                    key={e.id}
+                    onClick={() => navigate(route)}
+                    className="w-full text-left rounded-2xl border border-hairline bg-card px-4 py-3 active:scale-[0.98] transition-transform"
+                  >
+                    <p className="text-[14px] font-bold text-ink">{e.title}</p>
+                    <p className="text-[12px] text-ink-2 mt-0.5">
+                      {[e.subtitle, e.distance_miles != null ? `${e.distance_miles < 10 ? e.distance_miles.toFixed(1) : Math.round(e.distance_miles)} mi` : null].filter(Boolean).join(' · ')}
+                    </p>
+                  </button>
+                )
+              })}
             </div>
-          )
-        })()}
+          )}
+        </section>
+
+        {/* Mine — events I created */}
+        {groupEvents.length > 0 && (
+          <section>
+            <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+              {t('discover.mine')}
+            </h2>
+            <div className="space-y-2">
+              {groupEvents.map((e: any) => (
+                <button
+                  key={e.id}
+                  onClick={() => navigate(`/discover/events/${e.id}`)}
+                  className="w-full text-left rounded-2xl border border-hairline bg-card px-4 py-3 active:scale-[0.98] transition-transform"
+                >
+                  <p className="text-[14px] font-bold text-ink">{e.title}</p>
+                  <p className="text-[12px] text-ink-2 mt-0.5">
+                    {(() => { try { return format(parseISO(e.start_time), 'EEE d MMM · HH:mm', { locale }) } catch { return '' } })()}
+                    {e.location && ` · ${e.location}`}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
       <CreateEventSheet open={showCreateEvent} onClose={() => setShowCreateEvent(false)} />
     </div>

@@ -8054,6 +8054,23 @@ export type Database = {
           venue_name: string
         }[]
       }
+      discover_list: {
+        Args: {
+          p_kind: string
+          p_lat?: number
+          p_limit?: number
+          p_lng?: number
+          p_offset?: number
+          p_radius_miles?: number
+        }
+        Returns: {
+          distance_miles: number
+          id: string
+          meta: Json
+          subtitle: string
+          title: string
+        }[]
+      }
       dropgeometrycolumn:
         | {
             Args: {

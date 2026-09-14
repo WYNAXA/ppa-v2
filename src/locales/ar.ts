@@ -1716,7 +1716,13 @@ export default {
     "no_location_cta": "استخدم موقعي",
     "no_location_city_placeholder": "اكتب مدينتك",
     "no_location_confirm": "تحديد الموقع",
-    "no_location_profile_link": "حدده في ملفك الشخصي"
+    "no_location_profile_link": "حدده في ملفك الشخصي",
+    "coaches_subtitle": "ابحث عن مدرب واحجز جلسة",
+    "invited_by_team": "مدعو من عضو في الفريق",
+    "start_your_league": "أنشئ دوريك الخاص",
+    "start_league_desc": "أنشئ دوريًا لمجموعتك وتابع الترتيب تلقائيًا.",
+    "search_groups_placeholder": "ابحث عن مجموعات\u2026",
+    "join_league_failed": "فشل الانضمام إلى الدوري"
   },
   "create_event": {
     "title": "إنشاء فعالية",

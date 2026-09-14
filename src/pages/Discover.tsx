@@ -253,7 +253,7 @@ export function DiscoverPage() {
                 {t('discover.within_radius', { miles: scope.radius })}
               </span>
             </div>
-            <DirectoryGrid counts={{
+            <DirectoryGrid radius={scope.radius} counts={{
               venues: counts.venues,
               players: counts.players,
               coaches: counts.coaching,

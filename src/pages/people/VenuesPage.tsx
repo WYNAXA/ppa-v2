@@ -1,11 +1,12 @@
-import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
 import { useAuth } from '@/hooks/useAuth'
 import { useMyPlayedVenues } from '@/hooks/useSocial'
-import { CourtsHome } from '@/components/play/CourtsHome'
+import { useDiscoverList } from '@/hooks/useDiscoverList'
+import { openUrl } from '@/lib/openUrl'
+import { formatDistance } from '@/lib/travelUtils'
+import { confirmedCourtCount } from '@/lib/venueRows'
 
 export function VenuesPage() {
   const { profile } = useAuth()
@@ -13,35 +14,12 @@ export function VenuesPage() {
   const { t } = useTranslation()
   const userId = profile?.id ?? ''
 
-  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(() => {
-    // Restore from session so a second visit doesn't re-prompt.
-    try {
-      const s = sessionStorage.getItem('ppa_user_coords')
-      return s ? JSON.parse(s) : null
-    } catch { return null }
-  })
-  const lat = coords?.lat ?? profile?.latitude ?? null
-  const lng = coords?.lng ?? profile?.longitude ?? null
-
-  const [query, setQuery] = useState('')
-  const [radius, setRadius] = useState(60)
-  const [locating, setLocating] = useState(false)
+  const { data: nearYou = [], isLoading } = useDiscoverList('venues')
   const { data: recentlyPlayed = [] } = useMyPlayedVenues(userId)
 
-  const requestLocation = useCallback(() => {
-    if (!('geolocation' in navigator)) { toast.error(t('common.error')); return }
-    setLocating(true)
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude }
-        setCoords(c)
-        sessionStorage.setItem('ppa_user_coords', JSON.stringify(c))
-        setLocating(false)
-      },
-      () => { setLocating(false); toast.error(t('common.error')) },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 },
-    )
-  }, [t])
+  // Split: partner venues (ppa_bookable) first, then the rest.
+  const partners = nearYou.filter(v => v.meta.ppa_bookable === true)
+  const others = nearYou.filter(v => v.meta.ppa_bookable !== true)
 
   return (
     <div className="min-h-full bg-surface pb-32">
@@ -50,39 +28,121 @@ export function VenuesPage() {
           <button onClick={() => navigate('/discover')} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-hairline -ml-1">
             <ChevronLeft className="w-5 h-5 text-ink-2" />
           </button>
-          <h1 className="text-xl font-bold text-ink">{t('people.nav_venues')}</h1>
+          <h1 className="text-xl font-bold text-ink flex-1">{t('discover.tile_clubs')}</h1>
         </div>
       </div>
 
       <div className="px-5 pt-4 space-y-4">
         {/* Recently played — compact horizontal strip */}
         {recentlyPlayed.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
-            {recentlyPlayed.map((v) => (
-              <button
-                key={v.venue_id}
-                onClick={() => navigate(`/venues/${v.venue_id}`)}
-                className="flex-shrink-0 rounded-pill border border-hairline bg-card px-3 py-1.5 text-[12px] font-semibold text-ink-2"
-              >
-                {v.venue_name}
-              </button>
-            ))}
-          </div>
+          <section>
+            <h2 className="mb-2 text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+              {t('discover.mine')}
+            </h2>
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+              {recentlyPlayed.map((v) => (
+                <button
+                  key={v.venue_id}
+                  onClick={() => navigate(`/venues/${v.venue_id}`)}
+                  className="flex-shrink-0 rounded-pill border border-hairline bg-card px-3 py-1.5 text-[12px] font-semibold text-ink-2"
+                >
+                  {v.venue_name}
+                </button>
+              ))}
+            </div>
+          </section>
         )}
 
-        {/* Browse — the main content. Booking is why people open this page. */}
-        <CourtsHome
-          lat={lat}
-          lng={lng}
-          query={query}
-          onQueryChange={setQuery}
-          onUseLocation={requestLocation}
-          locating={locating}
-          onPickVenue={(id) => navigate(`/venues/${id}`)}
-          radiusMiles={radius}
-          onRadiusChange={setRadius}
-        />
+        {/* Near you */}
+        <section>
+          <h2 className="mb-2 text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+            {t('discover.near_you')} · {nearYou.length}
+          </h2>
+
+          {isLoading && (
+            <div className="flex items-center justify-center py-12">
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-court border-t-transparent" />
+            </div>
+          )}
+
+          {!isLoading && nearYou.length === 0 && (
+            <div className="rounded-card border border-dashed border-hairline p-5 text-center">
+              <p className="text-[13px] font-semibold text-ink-2">
+                {t('discover.empty_subtitle')}
+              </p>
+            </div>
+          )}
+
+          {/* Partners first */}
+          {partners.length > 0 && (
+            <div className="space-y-2 mb-3">
+              {partners.map((v) => (
+                <VenueRow key={v.id} row={v} navigate={navigate} t={t} partner />
+              ))}
+            </div>
+          )}
+
+          {/* Others */}
+          {others.length > 0 && (
+            <div className="space-y-2">
+              {others.map((v) => (
+                <VenueRow key={v.id} row={v} navigate={navigate} t={t} />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
+    </div>
+  )
+}
+
+function VenueRow({ row, navigate, t, partner }: {
+  row: { id: string; title: string; subtitle: string | null; distance_miles: number | null; meta: Record<string, unknown> }
+  navigate: (to: string) => void
+  t: (k: string, o?: Record<string, unknown>) => string
+  partner?: boolean
+}) {
+  const courts = confirmedCourtCount({
+    indoor_courts: row.meta.indoor_courts as number | null,
+    outdoor_courts: row.meta.outdoor_courts as number | null,
+    covered_courts: row.meta.covered_courts as number | null,
+    number_of_courts: row.meta.number_of_courts as number | null,
+  })
+  const bookingUrl = row.meta.booking_url as string | null
+  const platform = row.meta.booking_platform as string | null
+
+  const meta = [
+    row.subtitle,
+    row.distance_miles != null ? formatDistance(row.distance_miles) : null,
+    courts != null ? t('courts.n_courts', { count: courts }) : t('courts.courts_unconfirmed'),
+  ].filter(Boolean).join(' · ')
+
+  return (
+    <div className={`flex items-center gap-3 rounded-[16px] border bg-card p-3.5 ${partner ? 'border-court' : 'border-hairline'}`}>
+      <button
+        onClick={() => navigate(`/venues/${row.id}`)}
+        className="flex min-w-0 flex-grow flex-col gap-0.5 text-left"
+      >
+        <span className="truncate text-[15px] font-semibold leading-[19px] text-ink">{row.title}</span>
+        <span className="num truncate text-[12px] leading-4 text-ink-2">{meta}</span>
+      </button>
+      {partner ? (
+        <button
+          onClick={() => navigate(`/play/book-court?venue_id=${row.id}`)}
+          className="flex-shrink-0 whitespace-nowrap rounded-control bg-court px-3 py-2.5 text-[12px] font-bold text-white"
+        >
+          {t('courts.book_here')}
+        </button>
+      ) : bookingUrl?.trim() ? (
+        <button
+          onClick={() => openUrl(bookingUrl!)}
+          className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold text-ink-2"
+        >
+          {platform ?? t('venue.visit_website')} <ExternalLink className="h-3 w-3" />
+        </button>
+      ) : (
+        <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
+      )}
     </div>
   )
 }

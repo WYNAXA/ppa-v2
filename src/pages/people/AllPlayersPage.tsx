@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { sendNotification } from '@/lib/notifications'
 import { useAuth } from '@/hooks/useAuth'
 import { useMyConnections } from '@/hooks/useSocial'
+import { useDiscoverList } from '@/hooks/useDiscoverList'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { ConnectionRequestCard } from '@/components/people/ConnectionRequestCard'
 
@@ -18,22 +19,8 @@ export function AllPlayersPage() {
   const { t } = useTranslation()
   const userId = profile?.id ?? ''
   const [search, setSearch] = useState('')
-  // Default "near me" on once the profile (which loads async) has a city; null = not yet chosen by the user.
-  const [cityFilterOverride, setCityFilterOverride] = useState<boolean | null>(null)
-  const cityFilter = cityFilterOverride ?? !!profile?.city
 
-  const { data: players = [], isLoading, isError } = useQuery({
-    queryKey: ['all-players', userId, search, cityFilter],
-    enabled: !!userId,
-    queryFn: async () => {
-      let q = supabase.from('profiles').select('id, name, avatar_url, city, internal_ranking')
-        .neq('id', userId).order('internal_ranking', { ascending: false }).limit(100)
-      if (search.trim()) q = q.ilike('name', `%${search.trim()}%`)
-      if (cityFilter && profile?.city && !search.trim()) q = q.ilike('city', `%${profile.city}%`)
-      const { data } = await q
-      return data ?? []
-    },
-  })
+  const { data: nearYouRaw = [], isLoading } = useDiscoverList('players')
 
   const { data: connectionData } = useQuery({
     queryKey: ['my-connections-status', userId],
@@ -115,12 +102,6 @@ export function AllPlayersPage() {
             style={{ fontSize: '16px' }}
             className="w-full rounded-xl border border-hairline pl-9 pr-4 py-2.5 outline-none focus:border-court focus:ring-2 focus:ring-court/20" />
         </div>
-        {profile?.city && (
-          <button onClick={() => setCityFilterOverride(!cityFilter)}
-            className={`rounded-full px-3 py-1 text-[12px] font-semibold border transition-colors ${cityFilter ? 'bg-court text-white border-court' : 'bg-card text-ink-2 border-hairline'}`}>
-            {t('people.near_me_city', { city: profile.city })}
-          </button>
-        )}
         {/* Incoming requests — something waiting on you */}
         {incomingRequests.length > 0 && (
           <section id="connections" style={{ scrollMarginTop: '80px' }}>
@@ -156,54 +137,60 @@ export function AllPlayersPage() {
           </section>
         )}
 
-        {/* Browse */}
-        <div className="space-y-2">
-          {isError ? (
-            <p className="text-center text-[13px] text-ink-2 py-8">{t('people.players_load_failed')}</p>
-          ) : isLoading ? (
-            <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
-          ) : players.length === 0 ? (
-            <p className="text-center text-[13px] text-ink-2 py-8">{t('people.no_players_found')}</p>
-          ) : players.map(p => {
-            const state = getState(p.id)
-            return (
-              <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface">
-                <button onClick={() => navigate(`/players/${p.id}`)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
-                  <PlayerAvatar name={p.name} avatarUrl={p.avatar_url} size="sm" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-semibold text-ink truncate">{p.name}</p>
-                    {p.city && <p className="text-[11px] text-ink-2">{p.city}</p>}
-                  </div>
-                </button>
-                {p.internal_ranking != null && (
-                  <span className="text-[11px] font-bold text-court-700 bg-court-50 border border-court-100 rounded-full px-2 py-0.5 flex-shrink-0">{p.internal_ranking} ELO</span>
-                )}
-                {state === 'none' && (
-                  <button onClick={() => connectMutation.mutate(p.id)} disabled={connectMutation.isPending}
-                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
-                    <UserPlus className="h-3 w-3" /> {t('people.connect')}
+        {/* Near you */}
+        <section>
+          <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2 mb-2">
+            {t('discover.near_you')} · {nearYouRaw.length}
+          </h2>
+          <div className="space-y-2">
+            {isLoading ? (
+              <p className="text-center text-[13px] text-ink-2 py-8">{t('common.loading')}</p>
+            ) : nearYouRaw.length === 0 ? (
+              <p className="text-center text-[13px] text-ink-2 py-8">{t('people.no_players_found')}</p>
+            ) : nearYouRaw.filter(p => !search.trim() || p.title.toLowerCase().includes(search.trim().toLowerCase())).map(p => {
+              const state = getState(p.id)
+              const avatarUrl = p.meta.avatar_url as string | null
+              const ranking = p.meta.internal_ranking as number | null
+              return (
+                <div key={p.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-surface">
+                  <button onClick={() => navigate(`/players/${p.id}`)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                    <PlayerAvatar name={p.title} avatarUrl={avatarUrl} size="sm" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold text-ink truncate">{p.title}</p>
+                      {p.subtitle && <p className="text-[11px] text-ink-2">{p.subtitle}</p>}
+                    </div>
                   </button>
-                )}
-                {state === 'pending_out' && (
-                  <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
-                    <Clock className="h-3 w-3" /> {t('people.pending')}
-                  </span>
-                )}
-                {state === 'pending_in' && (
-                  <button onClick={() => acceptMutation.mutate(p.id)} disabled={acceptMutation.isPending}
-                    className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
-                    <Check className="h-3 w-3" /> {t('people.accept')}
-                  </button>
-                )}
-                {state === 'accepted' && (
-                  <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
-                    <Check className="h-3 w-3" /> {t('people.connected')}
-                  </span>
-                )}
-              </div>
-            )
-          })}
-        </div>
+                  {ranking != null && (
+                    <span className="text-[11px] font-bold text-court-700 bg-court-50 border border-court-100 rounded-full px-2 py-0.5 flex-shrink-0">{ranking} ELO</span>
+                  )}
+                  {state === 'none' && (
+                    <button onClick={() => connectMutation.mutate(p.id)} disabled={connectMutation.isPending}
+                      className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
+                      <UserPlus className="h-3 w-3" /> {t('people.connect')}
+                    </button>
+                  )}
+                  {state === 'pending_out' && (
+                    <span className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
+                      <Clock className="h-3 w-3" /> {t('people.pending')}
+                    </span>
+                  )}
+                  {state === 'pending_in' && (
+                    <button onClick={() => acceptMutation.mutate(p.id)} disabled={acceptMutation.isPending}
+                      className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-court text-white">
+                      <Check className="h-3 w-3" /> {t('people.accept')}
+                    </button>
+                  )}
+                  {state === 'accepted' && (
+                    <button onClick={() => navigate(`/players/${p.id}`)}
+                      className="flex-shrink-0 flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-[11px] font-bold bg-hairline text-ink-2">
+                      <Check className="h-3 w-3" /> {t('people.connected')}
+                    </button>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </section>
       </div>
     </div>
   )

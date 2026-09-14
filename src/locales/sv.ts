@@ -1675,7 +1675,13 @@ export default {
     "no_location_cta": "Använd min plats",
     "no_location_city_placeholder": "Skriv din stad",
     "no_location_confirm": "Ange plats",
-    "no_location_profile_link": "Ange i din profil istället"
+    "no_location_profile_link": "Ange i din profil istället",
+    "coaches_subtitle": "Hitta en tränare och boka en lektion",
+    "invited_by_team": "Inbjuden av en lagmedlem",
+    "start_your_league": "Starta din egen liga",
+    "start_league_desc": "Skapa en liga för din grupp och följ ställningen automatiskt.",
+    "search_groups_placeholder": "Sök grupper\u2026",
+    "join_league_failed": "Kunde inte gå med i ligan"
   },
   "create_event": {
     "title": "Skapa evenemang",

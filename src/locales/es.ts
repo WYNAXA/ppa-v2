@@ -1675,7 +1675,13 @@ export default {
     "no_location_cta": "Usar mi ubicación",
     "no_location_city_placeholder": "Escribe tu ciudad",
     "no_location_confirm": "Establecer ubicación",
-    "no_location_profile_link": "Configúralo en tu perfil"
+    "no_location_profile_link": "Configúralo en tu perfil",
+    "coaches_subtitle": "Encuentra un entrenador y reserva una sesión",
+    "invited_by_team": "Invitado por un miembro del equipo",
+    "start_your_league": "Crea tu propia liga",
+    "start_league_desc": "Crea una liga para tu grupo y sigue las clasificaciones automáticamente.",
+    "search_groups_placeholder": "Buscar grupos\u2026",
+    "join_league_failed": "Error al unirse a la liga"
   },
   "create_event": {
     "title": "Crear evento",

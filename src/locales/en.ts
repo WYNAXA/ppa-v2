@@ -1992,6 +1992,12 @@ export default {
     no_location_city_placeholder: 'Type your town or city',
     no_location_confirm: 'Set location',
     no_location_profile_link: 'Set it in your profile instead',
+    coaches_subtitle: 'Find a coach and book a session',
+    invited_by_team: 'Invited by a team member',
+    start_your_league: 'Start your own league',
+    start_league_desc: 'Create a league for your group and track standings automatically.',
+    search_groups_placeholder: 'Search groups\u2026',
+    join_league_failed: 'Failed to join league',
   },
   create_event: {
     title: 'Create Event',

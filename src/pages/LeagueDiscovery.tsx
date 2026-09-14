@@ -1,12 +1,12 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
+import { useDiscoverList } from '@/hooks/useDiscoverList'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { ChevronLeft, Search, Trophy, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, Trophy, ChevronRight, Plus, Search } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
-import { money } from '@/lib/money'
 import { useAuth } from '@/hooks/useAuth'
 import { cn } from '@/lib/utils'
 import { goBack } from '@/lib/navigation'
@@ -38,19 +38,6 @@ interface Invitation {
   leagues: { id: string; name: string; match_type: string | null; format: string | null } | null
 }
 
-interface OpenLeague {
-  id: string
-  name: string
-  match_type: string | null
-  format: string | null
-  // Nullable in the database. See the note on MyLeague.status.
-  status: string | null
-  is_open_registration: boolean | null
-  entry_fee_pence: number | null
-  currency: string | null
-  max_participants: number | null
-  is_official: boolean | null
-}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -63,11 +50,6 @@ const STATUS_COLORS: Record<string, string> = {
 
 // Entry fees carry their own currency (leagues.currency). An amount with no
 // currency renders as a dash — printing it with a pound sign, as this did, is a
-// guess dressed up as a fact.
-function formatFee(minor: number | null | undefined, currency: string | null | undefined): string | null {
-  if (!minor) return null
-  return money(minor, currency)
-}
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -78,7 +60,15 @@ export function LeagueDiscoveryPage() {
   const { profile } = useAuth()
   const userId = profile?.id ?? ''
 
+  const { data: nearYouLeagues = [], isLoading: loadingNearYou } = useDiscoverList('leagues')
   const [searchQuery, setSearchQuery] = useState('')
+
+  const filteredNearYou = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase()
+    if (!q) return nearYouLeagues
+    return nearYouLeagues.filter(l => l.title.toLowerCase().includes(q) || (l.subtitle ?? '').toLowerCase().includes(q))
+  }, [nearYouLeagues, searchQuery])
+
 
   // ── My Leagues ───────────────────────────────────────────────────────────
 
@@ -140,7 +130,7 @@ export function LeagueDiscoveryPage() {
       queryClient.invalidateQueries({ queryKey: ['league-invitations-discovery'] })
     },
     onError: (err: Error) => {
-      toast.error(err.message || 'Failed to join league')
+      toast.error(err.message || t('discover.join_league_failed'))
     },
   })
 
@@ -158,69 +148,7 @@ export function LeagueDiscoveryPage() {
 
   // ── Open Leagues ─────────────────────────────────────────────────────────
 
-  const [leagueFilter, setLeagueFilter] = useState('all')
-  const userCity = profile?.city?.split(',')[0]?.trim() ?? ''
 
-  const LEAGUE_FILTERS = [
-    { id: 'all', label: 'All' },
-    { id: 'open', label: 'Open to join' },
-    { id: 'near_me', label: 'Near me' },
-    { id: 'competitive', label: 'Competitive' },
-    { id: 'friendly', label: 'Friendly' },
-    { id: 'mexicano', label: 'Mexicano' },
-    { id: 'round_robin', label: 'Round Robin' },
-    { id: 'free', label: 'Free entry' },
-  ]
-
-  const { data: openLeagues = [] } = useQuery<OpenLeague[]>({
-    // myLeagues is read inside the queryFn to exclude leagues you are already
-    // in, so it belongs in the key — without it the list is computed once
-    // against an empty myLeagues and never recomputed, showing leagues you
-    // have already joined.
-    queryKey: ['open-leagues', searchQuery, leagueFilter, myLeagues.map(l => l.id).join(',')],
-    queryFn: async () => {
-      let q = supabase
-        .from('leagues')
-        .select('id, name, match_type, format, status, is_open_registration, entry_fee_pence, currency, max_participants, is_official, city')
-        .eq('status', 'active')
-        .or('is_open_registration.eq.true,visibility.eq.public')
-        .order('created_at', { ascending: false })
-        .limit(30)
-      if (searchQuery.trim()) q = q.ilike('name', `%${searchQuery.trim()}%`)
-      if (leagueFilter === 'open') q = q.eq('is_open_registration', true)
-      if (leagueFilter === 'near_me' && userCity) q = q.ilike('city', `%${userCity}%`)
-      if (leagueFilter === 'competitive') q = q.eq('match_type', 'competitive')
-      if (leagueFilter === 'friendly') q = q.eq('match_type', 'friendly')
-      if (leagueFilter === 'mexicano') q = q.eq('format', 'mexicano')
-      if (leagueFilter === 'round_robin') q = q.eq('format', 'round_robin')
-      if (leagueFilter === 'free') q = q.or('entry_fee_pence.eq.0,entry_fee_pence.is.null')
-      const { data } = await q
-      const myIds = new Set(myLeagues.map(l => l.id))
-      return (data ?? []).filter(l => !myIds.has(l.id))
-    },
-  })
-
-  const joinMutation = useMutation({
-    mutationFn: async (leagueId: string) => {
-      const { error } = await supabase.rpc('join_league', {
-        p_league_id: leagueId,
-        p_user_id: userId,
-      })
-      if (error) throw new Error(error.message)
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-leagues-discovery'] })
-      queryClient.invalidateQueries({ queryKey: ['open-leagues'] })
-    },
-    onError: (err: Error) => {
-      toast.error(err.message || 'Failed to join league')
-    },
-  })
-
-  // ── Derived ──────────────────────────────────────────────────────────────
-
-  const officialTournaments = openLeagues.filter(l => l.is_official)
-  const communityLeagues = openLeagues.filter(l => !l.is_official)
 
   // ── Render ───────────────────────────────────────────────────────────────
 
@@ -292,7 +220,7 @@ export function LeagueDiscoveryPage() {
               {invitations.map(inv => (
                 <div key={inv.id} className="rounded-2xl bg-card p-4 shadow-sm border border-hairline">
                   <p className="text-[14px] font-semibold text-ink">{inv.leagues?.name ?? 'League'}</p>
-                  <p className="text-[12px] text-ink-2 mt-0.5">Invited by a team member</p>
+                  <p className="text-[12px] text-ink-2 mt-0.5">{t('discover.invited_by_team')}</p>
                   <div className="flex gap-2 mt-3">
                     <button
                       onClick={() => acceptMutation.mutate(inv)}
@@ -315,70 +243,11 @@ export function LeagueDiscoveryPage() {
           </section>
         )}
 
-        {/* ── Official Tournaments ───────────────────────────────────────── */}
-        {officialTournaments.length > 0 && (
-          <section className="px-4 pt-5">
-            <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">Official Tournaments</h2>
-            <div className="space-y-2">
-              {officialTournaments.map(league => (
-                <motion.button
-                  key={league.id}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(`/compete/leagues/${league.id}`)}
-                  className="w-full flex items-center gap-3 rounded-2xl bg-card p-4 shadow-sm border border-hairline text-left"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-court-50 flex items-center justify-center shrink-0">
-                    <Trophy className="w-5 h-5 text-court" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[14px] font-semibold text-ink truncate">{league.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-court-50 text-court">Official</span>
-                      {league.format && (
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-hairline text-ink-2 capitalize">
-                          {league.format}
-                        </span>
-                      )}
-                      {formatFee(league.entry_fee_pence, league.currency) && (
-                        <span className="text-[11px] text-ink-2">{formatFee(league.entry_fee_pence, league.currency)}</span>
-                      )}
-                    </div>
-                  </div>
-                  <button
-                    onClick={e => {
-                      e.stopPropagation()
-                      joinMutation.mutate(league.id)
-                    }}
-                    disabled={joinMutation.isPending}
-                    className="shrink-0 rounded-xl bg-court px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
-                  >
-                    Join
-                  </button>
-                </motion.button>
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* ── Near you ─────────────────────────────────────────────────── */}
+        {/* ── Near you — from discover_list ───────────────────────────── */}
         <section className="px-4 pt-5">
-          <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">{t('discover.near_you')}</h2>
-
-          {/* Filter chips */}
-          <div className="flex gap-2 overflow-x-auto scrollbar-none mb-3 pb-0.5">
-            {LEAGUE_FILTERS.map(f => (
-              <button
-                key={f.id}
-                onClick={() => setLeagueFilter(f.id)}
-                className={cn(
-                  'flex-shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors',
-                  leagueFilter === f.id ? 'bg-court border-court text-white' : 'border-hairline text-ink-2 bg-card'
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
+          <h2 className="text-sm font-semibold text-ink-2 uppercase tracking-wide mb-3">
+            {t('discover.near_you')} · {filteredNearYou.length}
+          </h2>
 
           {/* Search */}
           <div className="relative mb-3">
@@ -387,16 +256,18 @@ export function LeagueDiscoveryPage() {
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search leagues..."
+              placeholder={t('discover.search_placeholder')}
               className="w-full rounded-xl border border-hairline bg-card py-2.5 pl-9 pr-4 text-[14px] text-ink placeholder:text-ink-2 focus:outline-none focus:ring-2 focus:ring-court/30 focus:border-court"
             />
           </div>
 
-          {communityLeagues.length === 0 ? (
-            <p className="text-center text-[13px] text-ink-2 py-8">No open leagues found</p>
+          {loadingNearYou ? (
+            <div className="h-16 rounded-2xl bg-hairline animate-pulse" />
+          ) : filteredNearYou.length === 0 ? (
+            <p className="text-center text-[13px] text-ink-2 py-8">{t('discover.empty_subtitle')}</p>
           ) : (
             <div className="space-y-2">
-              {communityLeagues.map(league => (
+              {filteredNearYou.map(league => (
                 <motion.div
                   key={league.id}
                   whileTap={{ scale: 0.98 }}
@@ -409,25 +280,12 @@ export function LeagueDiscoveryPage() {
                     className="flex-1 min-w-0 cursor-pointer"
                     onClick={() => navigate(`/compete/leagues/${league.id}`)}
                   >
-                    <p className="text-[14px] font-semibold text-ink truncate">{league.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {league.format && (
-                        <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-hairline text-ink-2 capitalize">
-                          {league.format}
-                        </span>
-                      )}
-                      {formatFee(league.entry_fee_pence, league.currency) && (
-                        <span className="text-[11px] text-ink-2">{formatFee(league.entry_fee_pence, league.currency)}</span>
-                      )}
-                    </div>
+                    <p className="text-[14px] font-semibold text-ink truncate">{league.title}</p>
+                    <p className="text-[12px] text-ink-2 truncate">
+                      {[league.subtitle, league.distance_miles != null ? `${league.distance_miles < 10 ? league.distance_miles.toFixed(1) : Math.round(league.distance_miles)} mi` : null].filter(Boolean).join(' · ')}
+                    </p>
                   </div>
-                  <button
-                    onClick={() => joinMutation.mutate(league.id)}
-                    disabled={joinMutation.isPending}
-                    className="shrink-0 rounded-xl bg-court px-4 py-1.5 text-[12px] font-bold text-white disabled:opacity-50"
-                  >
-                    Join
-                  </button>
+                  <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
                 </motion.div>
               ))}
             </div>
@@ -440,8 +298,8 @@ export function LeagueDiscoveryPage() {
             <div className="w-12 h-12 rounded-full bg-court-50 flex items-center justify-center mx-auto mb-3">
               <Plus className="w-6 h-6 text-court" />
             </div>
-            <h3 className="text-[15px] font-bold text-ink">Start your own league</h3>
-            <p className="text-[13px] text-ink-2 mt-1">Create a league for your group and track standings automatically.</p>
+            <h3 className="text-[15px] font-bold text-ink">{t('discover.start_your_league')}</h3>
+            <p className="text-[13px] text-ink-2 mt-1">{t('discover.start_league_desc')}</p>
             <button
               onClick={() => navigate('/compete?createLeague=true')}
               className="mt-4 w-full rounded-2xl bg-court py-3 text-[14px] font-bold text-white"

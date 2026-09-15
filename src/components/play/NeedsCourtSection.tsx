@@ -13,6 +13,7 @@ import { format, parseISO } from 'date-fns'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { WhoseTurnSheet } from '@/components/play/WhoseTurnSheet'
+import { SelfReportBookingSheet } from '@/components/play/SelfReportBookingSheet'
 
 interface UnbookedMatch {
   id: string
@@ -84,33 +85,38 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
   const queryClient = useQueryClient()
   const locale = useDateLocale()
   const [whoseTurnMatch, setWhoseTurnMatch] = useState<UnbookedMatch | null>(null)
+  const [selfReportMatch, setSelfReportMatch] = useState<UnbookedMatch | null>(null)
 
   if (isLoading || matches.length === 0) return null
 
+  function bookingUrl(match: UnbookedMatch) {
+    return `/play/book-court?match_id=${match.id}&date=${match.match_date}`
+  }
+
   async function handleClaim(matchId: string) {
+    const match = matches.find(m => m.id === matchId)
     const { data, error } = await (supabase.rpc as any)('claim_match_booking', { p_match_id: matchId })
     if (error) {
       console.error('claim_match_booking error:', error)
       return
     }
-    // D1: claim_match_booking returns { success: false, error: 'already_claimed' }
-    // when someone else holds the claim. Refresh so the card shows the correct state.
     if (data && !data.success && data.error === 'already_claimed') {
       queryClient.invalidateQueries({ queryKey: ['unbooked-matches'] })
       return
     }
     queryClient.invalidateQueries({ queryKey: ['unbooked-matches'] })
-    navigate(`/book-court?match_id=${matchId}`)
+    if (match) navigate(bookingUrl(match))
   }
 
   async function handleTakeOver(matchId: string) {
+    const match = matches.find(m => m.id === matchId)
     const { error } = await (supabase.rpc as any)('take_over_match_booking', { p_match_id: matchId })
     if (error) {
       console.error('take_over_match_booking error:', error)
       return
     }
     queryClient.invalidateQueries({ queryKey: ['unbooked-matches'] })
-    navigate(`/book-court?match_id=${matchId}`)
+    if (match) navigate(bookingUrl(match))
   }
 
   return (
@@ -156,38 +162,46 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
               </div>
 
               {isClaimed && !isMyClaimk ? (
-                // Someone else claimed it — show who + option to take over
-                <div className="flex items-center justify-between gap-2">
+                // Someone else claimed it — show who + option to take over or self-report
+                <div className="flex flex-col gap-2">
                   <span className="text-[13px] font-medium text-ink-2">
                     {match.claimant_name} {t('home.is_booking', { defaultValue: 'is booking this' })}
                   </span>
                   <div className="flex gap-1.5">
+                    <button
+                      onClick={() => setSelfReportMatch(match)}
+                      className="rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-semibold text-ink-2"
+                    >
+                      {t('home.already_booked', { defaultValue: 'Already booked' })}
+                    </button>
                     <button
                       onClick={() => handleTakeOver(match.id)}
                       className="rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-semibold text-ink-2"
                     >
                       {t('home.take_over', { defaultValue: 'Take over' })}
                     </button>
-                    <button
-                      onClick={() => navigate(`/matches/${match.id}`)}
-                      className="rounded-control px-3 py-2 text-[13px] font-semibold text-ink bg-hairline"
-                    >
-                      {t('home.view', { defaultValue: 'View' })}
-                    </button>
                   </div>
                 </div>
               ) : isClaimed && isMyClaimk ? (
-                // I claimed it — go book
-                <div className="flex items-center justify-between gap-2">
+                // I claimed it — go book, or self-report if already done outside the app
+                <div className="flex flex-col gap-2">
                   <span className="text-[13px] font-medium text-ink-2">
                     {t('home.you_claimed', { defaultValue: "You're booking this" })}
                   </span>
-                  <button
-                    onClick={() => navigate(`/book-court?matchId=${match.id}`)}
-                    className="rounded-control bg-ball px-3.5 py-2.5 text-[13px] font-semibold text-ink"
-                  >
-                    {t('home.find_court', { defaultValue: 'Find a court' })}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigate(bookingUrl(match))}
+                      className="rounded-control bg-ball px-3.5 py-2.5 text-[13px] font-semibold text-ink"
+                    >
+                      {t('home.find_court', { defaultValue: 'Find a court' })}
+                    </button>
+                    <button
+                      onClick={() => setSelfReportMatch(match)}
+                      className="rounded-control border border-hairline bg-card px-3 py-2.5 text-[12px] font-semibold text-ink-2"
+                    >
+                      {t('home.already_booked', { defaultValue: 'Already booked' })}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 // Unclaimed
@@ -202,10 +216,16 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
                     >
                       {t('home.ill_book_it', { defaultValue: "I'll book it" })}
                     </button>
+                    <button
+                      onClick={() => setSelfReportMatch(match)}
+                      className="rounded-control border border-hairline bg-card px-3 py-2.5 text-[12px] font-semibold text-ink-2"
+                    >
+                      {t('home.already_booked', { defaultValue: 'Already booked' })}
+                    </button>
                     {match.group_id && (
                       <button
                         onClick={() => setWhoseTurnMatch(match)}
-                        className="rounded-control border border-hairline bg-card px-3.5 py-2.5 text-[13px] font-semibold text-ink-2"
+                        className="rounded-control border border-hairline bg-card px-3 py-2.5 text-[12px] font-semibold text-ink-2"
                       >
                         {t('home.whose_turn', { defaultValue: 'Whose turn?' })}
                       </button>
@@ -226,6 +246,20 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
           onClaim={() => {
             setWhoseTurnMatch(null)
             handleClaim(whoseTurnMatch.id)
+          }}
+        />
+      )}
+
+      {selfReportMatch && (
+        <SelfReportBookingSheet
+          open={!!selfReportMatch}
+          onClose={() => setSelfReportMatch(null)}
+          matchId={selfReportMatch.id}
+          playerCount={selfReportMatch.player_count}
+          onSuccess={() => {
+            setSelfReportMatch(null)
+            queryClient.invalidateQueries({ queryKey: ['unbooked-matches'] })
+            queryClient.invalidateQueries({ queryKey: ['home-next-match'] })
           }}
         />
       )}

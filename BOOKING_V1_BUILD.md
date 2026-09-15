@@ -229,6 +229,16 @@ p_booking_reference, p_total_cost_pence)` already exists, already resolves the
 venue across both id spaces, and already guards that the caller is a player in
 the match. Use it. Do not write a second one.
 
+**Two routes into self-report, not one.** The handoff prompt is for tier-2/3
+bookings that went through the app. But most real bookings never touch the app:
+a phone call, WhatsApp, a laptop, a mate who already had the court. Every
+"Needs a court" card — unclaimed, claimed by someone else, or claimed by you —
+carries an **Already booked** button that opens `SelfReportBookingSheet` with
+the match pre-filled and the venue empty for the user to pick. It is secondary
+to "I'll book it" (which stays bg-ball primary) because the claim-then-book
+path is the differentiator, but the self-report path is the one that covers
+reality.
+
 ---
 
 ## §4 Path B — I want to play

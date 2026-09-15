@@ -818,7 +818,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, d
       status:              playerIds.length >= 4 ? 'scheduled' : 'pending',
       player_ids:          playerIds,
       group_id:            form.group?.id ?? defaultGroupId ?? null,
-      booked_venue_name:   form.venue?.venue_name ?? null,
+      preferred_venue_name: form.venue?.venue_name ?? null,
       created_manually:    true,
       created_by:          user.id,
       notes:               finalNotes,
@@ -841,7 +841,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, d
 
       const { data, error: insertError } = await supabase
         .from('matches')
-        .insert(payload)
+        .insert(payload as any)
         .select('id')
         .single()
 

@@ -1471,6 +1471,34 @@ export function MatchDetailPage() {
             )}
           </div>
         )}
+        {/* C2: Booker name + settle-up ledger */}
+        {(match as any).booking_status === 'booked' && (match as any).booked_by && (() => {
+          const bookerProfile = players.find(p => p.id === (match as any).booked_by)
+          const bookerName = bookerProfile?.name ?? 'Someone'
+          const perPlayer = (match as any).booking_per_player_pence as number | null
+          const isBooker = (match as any).booked_by === profile?.id
+          const otherCount = (match.player_ids?.length ?? 4) - 1
+          const fmt = (pence: number) =>
+            new Intl.NumberFormat(undefined, { style: 'currency', currency: 'GBP', minimumFractionDigits: 2 }).format(pence / 100)
+
+          return (
+            <div className="mt-2 rounded-card bg-surface px-3 py-2.5">
+              <p className="text-[13px] text-ink-2">
+                {bookerName} {t('match.booked_this', { defaultValue: 'booked this' })}
+                {(match as any).booking_reference ? ` · ref: ${(match as any).booking_reference}` : ''}
+              </p>
+              {perPlayer != null && perPlayer > 0 && (
+                <p className="text-[13px] font-semibold text-ink mt-1">
+                  {isBooker
+                    ? `${otherCount} ${t('match.players_owe_you', { defaultValue: 'players owe you' })} ${fmt(perPlayer)} ${t('match.each', { defaultValue: 'each' })}`
+                    : `${t('match.you_owe', { defaultValue: 'You owe' })} ${bookerName} ${fmt(perPlayer)}`
+                  }
+                </p>
+              )}
+            </div>
+          )
+        })()}
+
         {displayNotes && (
           <p className="mt-2 text-[12px] text-ink-2 italic">{displayNotes}</p>
         )}

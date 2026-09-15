@@ -180,26 +180,16 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       const guestsLine = legacyGuests.length ? `Guests: ${legacyGuests.join(', ')}` : ''
       const savedNotes = [notes.trim(), guestsLine].filter(Boolean).join('\n') || null
 
-      let resolvedCourtNumber: number | null = null
-      if (courtNumber) {
-        resolvedCourtNumber = parseInt(courtNumber) || null
-      }
-
       const { error } = await supabase
         .from('matches')
         .update({
           match_date:          date,
-          // `matches.match_time` is NOT NULL with no default, so clearing the
-          // time field and sending null made this update fail with a 23502.
-          // undefined omits the key, leaving the existing time in place —
-          // which is the only sane outcome for a column that cannot be null.
           match_time:          time || undefined,
           match_type:          matchType,
-          booked_venue_name:   selectedVenue?.venue_name ?? null,
-          booked_court_number: resolvedCourtNumber,
+          preferred_venue_name: selectedVenue?.venue_name ?? null,
           notes:               savedNotes,
           player_ids:          playerIds,
-        })
+        } as any)
         .eq('id', match.id)
       if (error) throw error
     },

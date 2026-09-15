@@ -745,11 +745,11 @@ export function RecordResultSheet({ open, onClose, match, players, currentUserId
                               team1_player_ids: (match as any).team1_player_ids ?? null,
                               team2_player_ids: (match as any).team2_player_ids ?? null,
                               group_id: match.group_id ?? null,
-                              booked_venue_name: match.booked_venue_name ?? null,
+                              preferred_venue_name: match.booked_venue_name ?? (match as any).preferred_venue_name ?? null,
                               created_by: currentUserId,
                               created_manually: true,
                               context_type: 'open' as const,
-                            })
+                            } as any)
                             .select('id')
                             .single()
                           setCreatingNext(false)

@@ -239,6 +239,13 @@ to "I'll book it" (which stays bg-ball primary) because the claim-then-book
 path is the differentiator, but the self-report path is the one that covers
 reality.
 
+**The booking belongs to the MATCH, not the roster.** If the booker leaves the
+game, the match stays booked and the debt stays with the players who were in it
+when the cost was recorded. `booking_per_player_pence` is calculated once at
+booking time from the player count at that moment. A player joining or leaving
+afterwards does not recalculate the split — that is a conversation, not a
+formula.
+
 ---
 
 ## §4 Path B — I want to play

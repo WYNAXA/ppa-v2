@@ -38,7 +38,7 @@ function useUnbookedMatches(userId: string) {
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      const { data, error } = await supabase
+      const { data: rawData, error } = await supabase
         .from('matches')
         .select('id, match_date, match_time, booking_status, booking_claimed_by, booking_claimed_at, player_ids, group_id, booked_venue_name')
         .contains('player_ids', [userId])
@@ -49,11 +49,17 @@ function useUnbookedMatches(userId: string) {
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true, nullsFirst: false })
 
-      if (error || !data) return []
+      if (error || !rawData) return []
+      const data = rawData as Array<Record<string, unknown>>
+
+      // C3: A 1-player match is a stub, not a real game that needs a court.
+      // Minimum 2 players: at that point someone committed to play and a court
+      // is a reasonable ask. 1 player is the creator alone — no game to book for.
+      const filtered = data.filter(m => ((m.player_ids as string[]) ?? []).length >= 2)
 
       // Resolve claimant names and group names
-      const claimantIds = [...new Set(data.filter(m => m.booking_claimed_by).map(m => m.booking_claimed_by as string))]
-      const groupIds = [...new Set(data.filter(m => m.group_id).map(m => m.group_id as string))]
+      const claimantIds = [...new Set(filtered.filter(m => m.booking_claimed_by).map(m => m.booking_claimed_by as string))]
+      const groupIds = [...new Set(filtered.filter(m => m.group_id).map(m => m.group_id as string))]
 
       const [claimants, groups] = await Promise.all([
         claimantIds.length > 0
@@ -67,12 +73,19 @@ function useUnbookedMatches(userId: string) {
       const claimantMap = new Map(claimants.map(c => [c.id, c.name]))
       const groupMap = new Map(groups.map(g => [g.id, g.name]))
 
-      return data.map(m => ({
-        ...m,
-        booking_status: m.booking_status ?? 'not_booked',
-        claimant_name: m.booking_claimed_by ? (claimantMap.get(m.booking_claimed_by) ?? 'Someone') : null,
-        player_count: (m.player_ids as string[]).length,
-        group_name: m.group_id ? (groupMap.get(m.group_id) ?? null) : null,
+      return filtered.map(m => ({
+        id: m.id as string,
+        match_date: m.match_date as string,
+        match_time: m.match_time as string | null,
+        booking_status: (m.booking_status as string) ?? 'not_booked',
+        booking_claimed_by: m.booking_claimed_by as string | null,
+        booking_claimed_at: m.booking_claimed_at as string | null,
+        player_ids: m.player_ids as string[],
+        group_id: m.group_id as string | null,
+        booked_venue_name: m.booked_venue_name as string | null,
+        claimant_name: m.booking_claimed_by ? (claimantMap.get(m.booking_claimed_by as string) ?? 'Someone') : null,
+        player_count: ((m.player_ids as string[]) ?? []).length,
+        group_name: m.group_id ? (groupMap.get(m.group_id as string) ?? null) : null,
       }))
     },
   })

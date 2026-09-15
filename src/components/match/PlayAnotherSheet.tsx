@@ -51,11 +51,11 @@ export function PlayAnotherSheet({ open, onClose, match, players, currentUserId 
           team1_player_ids: team1,
           team2_player_ids: team2,
           group_id: match.group_id ?? null,
-          booked_venue_name: match.booked_venue_name ?? null,
+          preferred_venue_name: match.booked_venue_name ?? (match as any).preferred_venue_name ?? null,
           created_by: currentUserId,
           created_manually: true,
           context_type: 'open' as const,
-        })
+        } as any)
         .select('id')
         .single()
       if (error) throw error

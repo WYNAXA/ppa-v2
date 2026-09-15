@@ -1097,6 +1097,9 @@ export function BookCourtPage() {
               context_type: selectedGroupId ? 'group' : 'open',
               booked_venue_name: selectedVenue.venue_name,
               padel_venue_id: selectedVenue.venue_id,
+              booking_status: 'booked',
+              booked_by: userId,
+              booked_at: new Date().toISOString(),
               created_manually: false,
               created_by: userId,
             })

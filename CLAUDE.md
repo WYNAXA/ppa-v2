@@ -38,7 +38,23 @@ SQL Editor. Do not use `db query -f` followed by a manual INSERT.
 
 ## Testing against live data
 
-Never gate-test by writing to live matches with real players. Notifications
-trigger real OneSignal pushes via the `dispatch_notification_to_onesignal`
-trigger. Use disposable test matches with test accounts, or run the function
-inside a transaction that is rolled back.
+1. Never gate-test by writing to live matches with real players. Notifications
+   trigger real OneSignal pushes via the `dispatch_notification_to_onesignal`
+   trigger. Use disposable test matches with test accounts, or run the function
+   inside a transaction that is rolled back.
+
+2. **Never write sentinel values into production rows.** Any write intended to
+   prove a constraint or trigger behaves correctly MUST be wrapped so it cannot
+   persist. Use one of:
+     - `BEGIN; <the test write>; ROLLBACK;` with the result read INSIDE the
+       transaction
+     - A single `DO` block that raises at the end to force the rollback
+   Never "clean up afterwards" — cleanup is what damaged match
+   `6b25bb1f-749f-4faf-bcfd-30d75451adee` on 15 Sep 2026 (booked_venue_name
+   overwritten with 'should fail', then NULLed by cleanup, leaving a booked
+   match with no venue name). The incident was only caught because a human
+   queried the row.
+
+3. If the tooling (e.g. `supabase db query --linked`) cannot hold a transaction
+   across statements, the test is not safe to run against production. Use a
+   local database or a `DO` block instead.

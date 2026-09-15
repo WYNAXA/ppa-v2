@@ -89,6 +89,7 @@ interface FixtureMatch {
   match_time: string | null
   status: string
   booked_venue_name: string | null
+  preferred_venue_name?: string | null
   player_ids: string[]
   players?: Array<{ id: string; name: string; avatar_url: string | null }>
 }
@@ -507,13 +508,13 @@ function useFixtures(leagueId: string, _groupIds: string[]) {
       let matches: FixtureMatch[] | null = null
 
       // Try league_id column first
-      const { data: byLeague } = await supabase
+      const { data: byLeague } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, status, booked_venue_name, player_ids')
+        .select('id, match_date, match_time, status, booked_venue_name, preferred_venue_name, player_ids')
         .eq('league_id', leagueId)
         .not('status', 'in', '("completed","cancelled")')
         .order('match_date', { ascending: true })
-        .limit(20)
+        .limit(20) as any)
 
       if (byLeague && byLeague.length > 0) {
         matches = byLeague
@@ -3168,8 +3169,8 @@ export function LeagueDetailPage() {
                           {match.status}
                         </span>
                       </div>
-                      {match.booked_venue_name && (
-                        <p className="text-[11px] text-ink-2">{match.booked_venue_name}</p>
+                      {(match.booked_venue_name ?? match.preferred_venue_name) && (
+                        <p className="text-[11px] text-ink-2">{(match.booked_venue_name ?? match.preferred_venue_name)}</p>
                       )}
                       {match.players && match.players.length > 0 && (
                         <div className="flex -space-x-1 mt-2">

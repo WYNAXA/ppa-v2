@@ -25,6 +25,7 @@ interface UnbookedMatch {
   player_ids: string[]
   group_id: string | null
   booked_venue_name: string | null
+  preferred_venue_name?: string | null
   claimant_name: string | null
   player_count: number
   group_name: string | null
@@ -38,16 +39,16 @@ function useUnbookedMatches(userId: string) {
     queryFn: async () => {
       const today = new Date().toISOString().split('T')[0]
 
-      const { data: rawData, error } = await supabase
+      const { data: rawData, error } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, booking_status, booking_claimed_by, booking_claimed_at, player_ids, group_id, booked_venue_name')
+        .select('id, match_date, match_time, booking_status, booking_claimed_by, booking_claimed_at, player_ids, group_id, booked_venue_name, preferred_venue_name')
         .contains('player_ids', [userId])
         .gte('match_date', today)
         .neq('booking_status', 'booked')
         .eq('court_requirement', 'needed')
         .not('status', 'in', '("completed","cancelled","open")')
         .order('match_date', { ascending: true })
-        .order('match_time', { ascending: true, nullsFirst: false })
+        .order('match_time', { ascending: true, nullsFirst: false }) as any)
 
       if (error || !rawData) return []
       const data = rawData as Array<Record<string, unknown>>
@@ -82,7 +83,7 @@ function useUnbookedMatches(userId: string) {
         booking_claimed_at: m.booking_claimed_at as string | null,
         player_ids: m.player_ids as string[],
         group_id: m.group_id as string | null,
-        booked_venue_name: m.booked_venue_name as string | null,
+        booked_venue_name: (m.booked_venue_name ?? m.preferred_venue_name) as string | null,
         claimant_name: m.booking_claimed_by ? (claimantMap.get(m.booking_claimed_by as string) ?? 'Someone') : null,
         player_count: ((m.player_ids as string[]) ?? []).length,
         group_name: m.group_id ? (groupMap.get(m.group_id as string) ?? null) : null,

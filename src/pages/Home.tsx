@@ -91,16 +91,16 @@ function useNextMatch(userId: string) {
     queryKey: ['home-next-match', userId],
     enabled: !!userId,
     queryFn: async () => {
-      const { data: match } = await supabase
+      const { data: match } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, match_type, status, player_ids, booked_venue_name, booked_court_number')
+        .select('id, match_date, match_time, match_type, status, player_ids, booked_venue_name, preferred_venue_name, booked_court_number')
         .contains('player_ids', [userId])
         .gte('match_date', todayStr())
         .not('status', 'in', '("completed","cancelled","open")')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true, nullsFirst: false })
         .limit(1)
-        .maybeSingle()
+        .maybeSingle() as any)
 
       if (!match) return null
 
@@ -307,16 +307,16 @@ function useNeedsYou(userId: string, t: (k: string, o?: Record<string, unknown>)
 
       if (groupIds.length > 0) {
         const weekEnd = format(addDays(new Date(), 7), 'yyyy-MM-dd', { locale: getDateLocale() })
-        const { data: matches } = await supabase
+        const { data: matches } = await (supabase
           .from('matches')
-          .select('id, match_date, match_time, booked_venue_name, player_ids')
+          .select('id, match_date, match_time, booked_venue_name, preferred_venue_name, player_ids')
           .in('group_id', groupIds)
           .gte('match_date', today).lte('match_date', weekEnd)
           .not('status', 'in', '(cancelled,completed)')
           .order('match_date', { ascending: true })
-          .limit(10)
-        const short = (matches ?? []).filter(
-          (m) => !((m.player_ids as string[]) ?? []).includes(userId)
+          .limit(10) as any)
+        const short = (matches as any[] ?? []).filter(
+          (m: any) => !((m.player_ids as string[]) ?? []).includes(userId)
             && ((m.player_ids as string[]) ?? []).length < 4,
         )
         for (const m of short.slice(0, 2)) {
@@ -330,7 +330,7 @@ function useNeedsYou(userId: string, t: (k: string, o?: Record<string, unknown>)
             tone: 'alert',
             icon: 'user-plus',
             title: t('home.needs_spots', { day, count: spots }),
-            detail: [m.match_time?.slice(0, 5), m.booked_venue_name].filter(Boolean).join(' · '),
+            detail: [m.match_time?.slice(0, 5), (m.booked_venue_name ?? (m as any).preferred_venue_name)].filter(Boolean).join(' · '),
             cta: t('home.needs_im_in'),
             ctaTone: 'ink',
             to: `/matches/${m.id}`,
@@ -553,7 +553,7 @@ function NextMatchCard({
     catch { return match.match_date }
   })()
   const venueLine = [
-    match.booked_venue_name,
+    (match.booked_venue_name ?? (match as any).preferred_venue_name),
     match.booked_court_number != null ? t('home.court_n', { n: match.booked_court_number }) : null,
   ].filter(Boolean).join(' · ')
 

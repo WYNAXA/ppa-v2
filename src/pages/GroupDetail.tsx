@@ -304,14 +304,14 @@ function useGroupMatches(groupId: string) {
         .in('id', allPlayerIds)
 
       return attachGuestPlayers(matches.map((m) => ({
-        id:                m.id,
-        match_date:        m.match_date,
-        match_time:        m.match_time,
-        booked_venue_name: m.booked_venue_name,
-        player_ids:        m.player_ids ?? [],
-        match_type:        m.match_type,
-        status:            m.status,
-        players:           (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
+        id:                   m.id,
+        match_date:           m.match_date,
+        match_time:           m.match_time,
+        booked_venue_name:    (m.booked_venue_name ?? (m as any).preferred_venue_name),
+        player_ids:           m.player_ids ?? [],
+        match_type:           m.match_type,
+        status:               m.status,
+        players:              (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
       })))
     },
   })
@@ -362,14 +362,14 @@ function useGroupPastMatches(groupId: string, userId: string) {
           }
         }
         return {
-          id:                m.id,
-          match_date:        m.match_date,
-          match_time:        m.match_time,
-          booked_venue_name: m.booked_venue_name,
-          player_ids:        m.player_ids ?? [],
-          match_type:        m.match_type,
-          status:            m.status,
-          players:           (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
+          id:                   m.id,
+          match_date:           m.match_date,
+          match_time:           m.match_time,
+          booked_venue_name:    (m.booked_venue_name ?? (m as any).preferred_venue_name),
+          player_ids:           m.player_ids ?? [],
+          match_type:           m.match_type,
+          status:               m.status,
+          players:              (profiles ?? []).filter((p) => m.player_ids?.includes(p.id)),
           didWin,
         }
       }))

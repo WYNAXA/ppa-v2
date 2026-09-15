@@ -194,8 +194,8 @@ function RingerOfferSheet({ match, userId, onClose }: {
             {format(parseISO(match.match_date), 'EEEE d MMM', { locale })}
             {match.match_time && ` · ${match.match_time.slice(0, 5)}`}
           </p>
-          {match.booked_venue_name && (
-            <p className="text-[12px] text-ink-2">{match.booked_venue_name}</p>
+          {(match.booked_venue_name ?? (match as any).preferred_venue_name) && (
+            <p className="text-[12px] text-ink-2">{(match.booked_venue_name ?? (match as any).preferred_venue_name)}</p>
           )}
           <div className="flex -space-x-1.5 mt-1">
             {match.players?.slice(0, 4).map((p) => (
@@ -307,14 +307,14 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     queryKey: ['week-group-matches', fetchStart, userId, userGroupIds],
     enabled: !!userId && userGroupIds.length > 0 && viewTab === 'group',
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id')
+        .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, preferred_venue_name, created_manually, poll_id')
         .in('group_id', userGroupIds)
         .gte('match_date', fetchStart).lte('match_date', fetchEnd)
         .not('status', 'in', '(cancelled,open)')
         .order('match_date', { ascending: true })
-        .order('match_time', { ascending: true })
+        .order('match_time', { ascending: true }) as any)
       if (error) throw error
       return enrichMatches(data ?? [], userId)
     },
@@ -326,23 +326,23 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     queryKey: ['week-open-matches', fetchStart, userId, userElo],
     enabled: !!userId && viewTab === 'open',
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id, is_open, open_elo_min, open_elo_max')
+        .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, preferred_venue_name, created_manually, poll_id, is_open, open_elo_min, open_elo_max')
         .eq('is_open', true)
         .gte('match_date', format(today, 'yyyy-MM-dd', { locale }))
         .not('status', 'in', '(cancelled,open)')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true })
-        .limit(30)
+        .limit(30) as any)
       if (error) throw error
       // Exclude matches user is already in, then ELO-filter client-side
-      const filtered = (data ?? [])
-        .filter(m => !(m.player_ids as string[])?.includes(userId))
-        .filter(m => {
+      const filtered = (data as any[] ?? [])
+        .filter((m: any) => !(m.player_ids as string[])?.includes(userId))
+        .filter((m: any) => {
           if (userElo == null) return true
-          if ((m as any).open_elo_min != null && userElo < (m as any).open_elo_min) return false
-          if ((m as any).open_elo_max != null && userElo > (m as any).open_elo_max) return false
+          if (m.open_elo_min != null && userElo < m.open_elo_min) return false
+          if (m.open_elo_max != null && userElo > m.open_elo_max) return false
           return true
         })
       return enrichMatches(filtered, userId)
@@ -366,6 +366,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       match_type: m.match_type, status: m.status,
       player_ids: (m.player_ids as string[]) ?? [],
       booked_venue_name: m.booked_venue_name,
+      preferred_venue_name: m.preferred_venue_name,
       players: (profiles ?? []).filter((p) => ((m.player_ids as string[]) ?? []).includes(p.id)),
       group_id: m.group_id, group_name: m.group_id ? groupMap[m.group_id]?.name : null,
       created_manually: m.created_manually, poll_id: m.poll_id,
@@ -374,14 +375,14 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
 
   // ── Fetch my matches directly (without the shared function since query differs) ──
   async function fetchMatches(_filter: string, start: string, end: string, uid: string): Promise<EnrichedMatch[]> {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase
       .from('matches')
-      .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, created_manually, poll_id')
+      .select('id, match_date, match_time, match_type, status, player_ids, group_id, booked_venue_name, preferred_venue_name, created_manually, poll_id')
       .contains('player_ids', [uid])
       .gte('match_date', start).lte('match_date', end)
       .not('status', 'in', '(cancelled,open)')
       .order('match_date', { ascending: true })
-      .order('match_time', { ascending: true })
+      .order('match_time', { ascending: true }) as any)
     if (error) throw error
     return enrichMatches(data ?? [], uid)
   }
@@ -423,6 +424,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     match_date: string
     match_time: string | null
     booked_venue_name: string | null
+    preferred_venue_name?: string | null
     verification_status: string
     submitted_by: string | null
     team1_players: string[]
@@ -439,18 +441,18 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
     enabled: !!userId,
     queryFn: async () => {
       // Step 1: completed matches the user is in, last 30 days
-      const { data: matches } = await supabase
+      const { data: matches } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, booked_venue_name')
+        .select('id, match_date, match_time, booked_venue_name, preferred_venue_name')
         .contains('player_ids', [userId])
         .eq('status', 'completed')
         .gte('match_date', thirtyDaysAgo)
         .order('match_date', { ascending: false })
-        .limit(20)
+        .limit(20) as any)
       if (!matches || matches.length === 0) return []
 
       // Step 2: fetch result details for those match ids
-      const matchIds = matches.map((m) => m.id)
+      const matchIds = (matches as any[]).map((m: any) => m.id)
       const { data: results } = await supabase
         .from('match_results')
         .select('id, match_id, verification_status, submitted_by, team1_players, team2_players, created_at')
@@ -486,12 +488,12 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
       const nameMap = Object.fromEntries((profiles ?? []).map((p) => [p.id, p.name]))
 
       // Only include matches where result is pending or disputed (not verified)
-      return matches
-        .filter((m) => {
+      return (matches as any[])
+        .filter((m: any) => {
           const r = resultByMatch[m.id]
           return r && r.verification_status !== 'verified'
         })
-        .map((m): PendingResultMatch => {
+        .map((m: any): PendingResultMatch => {
           const r = resultByMatch[m.id]
           const t1 = (r.team1_players ?? []) as string[]
           const t2 = (r.team2_players ?? []) as string[]
@@ -511,6 +513,7 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
             match_date: m.match_date,
             match_time: m.match_time,
             booked_venue_name: m.booked_venue_name,
+            preferred_venue_name: (m as any).preferred_venue_name,
             verification_status: r.verification_status as string,
             submitted_by: submittedBy,
             team1_players: t1,
@@ -639,8 +642,8 @@ export function WeekMatchView({ onCreateMatch }: WeekMatchViewProps) {
                         {(() => { try { return format(parseISO(m.match_date), 'EEE d MMM', { locale }) } catch { return m.match_date } })()}
                         {m.match_time && ` · ${m.match_time.slice(0, 5)}`}
                       </p>
-                      {m.booked_venue_name && (
-                        <p className="text-[11px] text-ink-2 truncate">{m.booked_venue_name}</p>
+                      {(m.booked_venue_name ?? m.preferred_venue_name) && (
+                        <p className="text-[11px] text-ink-2 truncate">{(m.booked_venue_name ?? m.preferred_venue_name)}</p>
                       )}
                       {hoursLeft > 0 && (
                         <p className="text-[11px] text-ink-2">Auto-confirms in {hoursLeft}h</p>

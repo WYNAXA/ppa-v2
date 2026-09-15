@@ -115,11 +115,11 @@ async function runSearch(query: string): Promise<SearchResult[]> {
         ].join(','),
       )
       .limit(6),
-    supabase
+    (supabase
       .from('matches')
-      .select('id, match_date, booked_venue_name, match_type')
+      .select('id, match_date, booked_venue_name, preferred_venue_name, match_type')
       .or(`match_date.ilike.%${q}%,booked_venue_name.ilike.%${q}%`)
-      .limit(4),
+      .limit(4) as any),
     /**
      * `leagues.season` does not exist — the columns are `season_start` and
      * `season_end`. PostgREST rejected the whole select with a 400, the error
@@ -211,7 +211,7 @@ async function runSearch(query: string): Promise<SearchResult[]> {
     results.push({
       id:       m.id,
       label:    m.match_date,
-      sublabel: m.booked_venue_name ?? m.match_type ?? 'Match',
+      sublabel: (m.booked_venue_name ?? (m as any).preferred_venue_name) ?? m.match_type ?? 'Match',
       type:     'match',
     })
   }

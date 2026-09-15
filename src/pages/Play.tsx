@@ -139,27 +139,27 @@ function JoinMatchSheet({ open, onClose, userId, queryClient, onCreateMatch }: {
     queryKey: ['join-open-matches', userId, userElo],
     enabled: open && !!userId,
     queryFn: async () => {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, player_ids, match_type, status, is_open, open_elo_min, open_elo_max, group_id')
+        .select('id, match_date, match_time, booked_venue_name, preferred_venue_name, player_ids, match_type, status, is_open, open_elo_min, open_elo_max, group_id')
         .eq('is_open', true)
         .gte('match_date', today)
         .order('match_date', { ascending: true })
-        .limit(20)
+        .limit(20) as any)
       if (error) throw error
-      const filtered = (data ?? [])
-        .filter((m) => !(m.player_ids as string[]).includes(userId))
+      const filtered = (data as any[] ?? [])
+        .filter((m: any) => !(m.player_ids as string[]).includes(userId))
         .filter((m: any) => {
           if (userElo == null) return true
           if (m.open_elo_min != null && userElo < m.open_elo_min) return false
           if (m.open_elo_max != null && userElo > m.open_elo_max) return false
           return true
         })
-      const allIds = [...new Set(filtered.flatMap((m) => m.player_ids as string[]))].slice(0, 40)
+      const allIds = [...new Set(filtered.flatMap((m: any) => m.player_ids as string[]))].slice(0, 40)
       const { data: profiles } = allIds.length > 0
         ? await supabase.from('profiles').select('id, name, avatar_url').in('id', allIds)
         : { data: [] }
-      return attachGuestPlayers(filtered.map((m) => ({
+      return attachGuestPlayers(filtered.map((m: any) => ({
         ...m,
         players: (profiles ?? []).filter((p) => (m.player_ids as string[]).includes(p.id)),
       })))

@@ -39,7 +39,7 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   const [date, setDate]               = useState(match.match_date)
   const [time, setTime]               = useState(match.match_time?.slice(0, 5) ?? '')
   const [matchType, setMatchType]     = useState(match.match_type ?? 'casual')
-  const [venueQuery, setVenueQuery]   = useState(match.booked_venue_name ?? '')
+  const [venueQuery, setVenueQuery]   = useState((match.booked_venue_name ?? (match as any).preferred_venue_name) ?? '')
 
   // Block match_type changes when a result exists (is_friendly is derived from it)
   const { data: hasResult } = useQuery({
@@ -56,7 +56,9 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
   const matchTypeLocked = !!hasResult
   const [venues, setVenues]           = useState<Venue[]>([])
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(
-    match.booked_venue_name ? { venue_id: '', venue_name: match.booked_venue_name } : null
+    (match.booked_venue_name ?? (match as any).preferred_venue_name)
+      ? { venue_id: '', venue_name: (match.booked_venue_name ?? (match as any).preferred_venue_name)! }
+      : null
   )
   const [showVenues, setShowVenues]   = useState(false)
   const [selectedCourtId, setSelectedCourtId] = useState<string>('')
@@ -101,8 +103,10 @@ export function EditMatchSheet({ open, onClose, match }: EditMatchSheetProps) {
       setDate(match.match_date)
       setTime(match.match_time?.slice(0, 5) ?? '')
       setMatchType(match.match_type ?? 'casual')
-      setVenueQuery(match.booked_venue_name ?? '')
-      setSelectedVenue(match.booked_venue_name ? { venue_id: '', venue_name: match.booked_venue_name } : null)
+      setVenueQuery((match.booked_venue_name ?? (match as any).preferred_venue_name) ?? '')
+      setSelectedVenue((match.booked_venue_name ?? (match as any).preferred_venue_name)
+        ? { venue_id: '', venue_name: (match.booked_venue_name ?? (match as any).preferred_venue_name)! }
+        : null)
       setNotes(match.notes?.split('\n').filter((line) => !line.startsWith('Guests:')).join('\n') ?? '')
       setVenues([])
       setSelectedCourtId('')

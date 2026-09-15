@@ -84,16 +84,16 @@ function useClubWeek(groupId: string | null, userId: string) {
       const today = new Date().toISOString().split('T')[0]
       const weekEnd = format(addDays(new Date(), 14), 'yyyy-MM-dd', { locale: getDateLocale() })
 
-      const { data: matches } = await supabase
+      const { data: matches } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, booked_venue_name, booked_court_number, player_ids')
+        .select('id, match_date, match_time, booked_venue_name, preferred_venue_name, booked_court_number, player_ids')
         .eq('group_id', groupId)
         .gte('match_date', today).lte('match_date', weekEnd)
         .not('status', 'in', '(cancelled,completed,open)')
         .order('match_date', { ascending: true })
-        .limit(12)
+        .limit(12) as any)
 
-      const shortRaw = (matches ?? []).filter((m) => ((m.player_ids as string[]) ?? []).length < 4)
+      const shortRaw = (matches as any[] ?? []).filter((m: any) => ((m.player_ids as string[]) ?? []).length < 4)
 
       // Everyone in the group, so we can name the players in each fixture.
       const { data: members } = await supabase
@@ -103,21 +103,21 @@ function useClubWeek(groupId: string | null, userId: string) {
         .eq('status', 'approved')
       const memberIds = (members ?? []).map((m) => m.user_id as string)
 
-      const involved = [...new Set(shortRaw.flatMap((m) => (m.player_ids as string[]) ?? []))]
+      const involved = [...new Set(shortRaw.flatMap((m: any) => (m.player_ids as string[]) ?? []))]
       const allIds = [...new Set([...memberIds, ...involved])]
       const { data: profiles } = allIds.length
         ? await supabase.from('profiles').select('id, name, internal_ranking').in('id', allIds)
         : { data: [] }
       const pmap = new Map((profiles ?? []).map((p) => [p.id as string, p]))
 
-      const short: ShortMatch[] = shortRaw.map((m) => {
+      const short: ShortMatch[] = shortRaw.map((m: any) => {
         const ids = (m.player_ids as string[]) ?? []
         const ratings = ids.map((id) => pmap.get(id)?.internal_ranking as number | null).filter((v): v is number => v != null)
         return {
           id: m.id as string,
           match_date: m.match_date as string,
           match_time: m.match_time as string | null,
-          venue: m.booked_venue_name as string | null,
+          venue: ((m.booked_venue_name ?? (m as any).preferred_venue_name) as string | null),
           court: m.booked_court_number as number | null,
           players: ids.map((id) => ({ id, name: (pmap.get(id)?.name as string) ?? null })),
           spots: 4 - ids.length,

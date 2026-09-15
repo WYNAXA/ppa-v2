@@ -74,14 +74,14 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
     queryKey: ['invite-to-match-options', userId],
     enabled: open && !!userId,
     queryFn: async () => {
-      const { data } = await supabase
+      const { data } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, player_ids, status, booked_venue_name, group_id')
+        .select('id, match_date, match_time, player_ids, status, booked_venue_name, preferred_venue_name, group_id')
         .contains('player_ids', [userId])
         .gte('match_date', today)
         .not('status', 'in', '("completed","cancelled")')
         .order('match_date', { ascending: true })
-        .limit(20)
+        .limit(20) as any)
       return (data ?? []).filter((m: any) => (m.player_ids?.length ?? 0) < 4 && !m.player_ids?.includes(playerId))
     },
   })
@@ -200,7 +200,7 @@ export function InviteToMatchSheet({ open, onClose, playerId, playerName }: Invi
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-semibold text-ink">{dateStr}{timeStr && ` · ${timeStr}`}</p>
                           <p className="text-[11px] text-ink-2">
-                            {m.booked_venue_name ?? 'Venue TBC'} · {slots} slot{slots !== 1 ? 's' : ''} open
+                            {(m.booked_venue_name ?? (m as any).preferred_venue_name) ?? 'Venue TBC'} · {slots} slot{slots !== 1 ? 's' : ''} open
                           </p>
                         </div>
                       </button>

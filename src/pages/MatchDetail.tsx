@@ -459,7 +459,7 @@ export function MatchDetailPage() {
       guestName: inv.name,
       inviterName: profile?.name,
       matchDate: match?.match_date,
-      venue: match?.booked_venue_name,
+      venue: (match?.booked_venue_name ?? (match as any)?.preferred_venue_name),
     })
     if (res === 'copied') toast.success(t('invite.link_copied', 'Invite link copied — paste it to them'))
   }
@@ -1137,8 +1137,8 @@ export function MatchDetailPage() {
     )
   })()
 
-  const googleMapsUrl = match.booked_venue_name
-    ? `https://maps.google.com/?q=${encodeURIComponent(match.booked_venue_name)}`
+  const googleMapsUrl = (match.booked_venue_name ?? (match as any).preferred_venue_name)
+    ? `https://maps.google.com/?q=${encodeURIComponent(match.booked_venue_name ?? (match as any).preferred_venue_name)}`
     : null
   const currentUserId = profile?.id ?? ''
   const playerIds     = match.player_ids ?? []
@@ -1196,13 +1196,13 @@ export function MatchDetailPage() {
       title:    opponentNames ? t('match.calendar_title', { opponents: opponentNames }) : t('match.share_title'),
       start,
       end:      new Date(start.getTime() + 90 * 60 * 1000),
-      location: match.booked_venue_name ?? '',
+      location: (match.booked_venue_name ?? (match as any).preferred_venue_name) ?? '',
     }
   })() : null
 
   const handleShare = async () => {
     const url   = `${window.location.origin}/matches/${id}`
-    const venue = match.booked_venue_name ?? t('match.venue_tbc')
+    const venue = (match.booked_venue_name ?? (match as any).preferred_venue_name) ?? t('match.venue_tbc')
     if (navigator.share) {
       try {
         await navigator.share({ title: t('match.share_title'), text: t('match.share_text', { date: formattedDate, venue }), url })
@@ -1361,7 +1361,7 @@ export function MatchDetailPage() {
         team1_player_ids: m.team1_player_ids ?? null,
         team2_player_ids: m.team2_player_ids ?? null,
         group_id: m.group_id ?? null,
-        booked_venue_name: m.booked_venue_name ?? null,
+        booked_venue_name: (m.booked_venue_name ?? (m as any).preferred_venue_name) ?? null,
         created_by: currentUserId,
         created_manually: true,
         context_type: 'open' as const,
@@ -1444,12 +1444,12 @@ export function MatchDetailPage() {
             <p className="text-[13px] text-ink-2">{match.match_time.slice(0, 5)}</p>
           </div>
         )}
-        {match.booked_venue_name && (
+        {(match.booked_venue_name ?? (match as any).preferred_venue_name) && (
           <div className="flex items-start gap-2 mb-2">
             <MapPin className="h-4 w-4 text-ink-2 flex-shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-[13px] text-ink-2 truncate">
-                {match.booked_venue_name}
+                {(match.booked_venue_name ?? (match as any).preferred_venue_name)}
                 {match.booked_court_number != null && ` · ${t('match.court_number', { number: match.booked_court_number })}`}
               </p>
               {venueDistance != null && (

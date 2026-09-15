@@ -12,6 +12,7 @@ export interface MatchCardData {
   match_date: string
   match_time: string | null
   booked_venue_name: string | null
+  preferred_venue_name?: string | null
   player_ids: string[]
   match_type: string | null
   status: string
@@ -91,10 +92,10 @@ export function MatchCard({ match, currentUserId: _currentUserId, action = 'view
           </p>
 
           {/* Venue */}
-          {match.booked_venue_name && (
+          {(match.booked_venue_name ?? match.preferred_venue_name) && (
             <div className="flex items-center gap-1 mt-1">
               <MapPin className="h-3 w-3 text-ink-2 flex-shrink-0" />
-              <p className="text-[12px] text-ink-2 truncate">{match.booked_venue_name}</p>
+              <p className="text-[12px] text-ink-2 truncate">{(match.booked_venue_name ?? match.preferred_venue_name)}</p>
             </div>
           )}
 

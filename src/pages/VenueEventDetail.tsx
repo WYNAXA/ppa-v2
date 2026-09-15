@@ -128,9 +128,7 @@ export function VenueEventDetailPage() {
           occurrence_id: occurrenceId,
           venue_id: detail.event.venue_id,
           event_name: detail.event.name,
-          amount_minor: detail.event.price_per_player,
-          currency: detail.venue.currency,
-          user_id: userId,
+          // amount and user_id are derived server-side. Do not send them.
         }),
       })
       const json = await resp.json()

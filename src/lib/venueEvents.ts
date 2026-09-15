@@ -344,19 +344,49 @@ export async function joinVenueEvent(occurrenceId: string) {
   return data
 }
 
+/**
+ * Finalise a paid event entry:
+ *   1. confirm-event-payment verifies the PI with Stripe and marks the
+ *      order_item paid. This is the fast path; the webhook is the authority.
+ *   2. join_venue_event checks the paid order_item and reserves the spot.
+ *
+ * If join_venue_event returns 'payment_required', the confirm call failed
+ * or the webhook hasn't landed yet. The caller should show a retry.
+ */
 export async function finaliseEventPayment(
   occurrenceId: string,
   orderItemId: string,
-  stripePaymentIntentId: string,
+  paymentIntentId: string,
 ) {
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+
+  // Step 1: verify + mark paid via the edge function.
+  const session = (await supabase.auth.getSession()).data.session
+  const confirmResp = await fetch(`${SUPABASE_URL}/functions/v1/confirm-event-payment`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${session?.access_token}`,
+    },
+    body: JSON.stringify({ payment_intent_id: paymentIntentId }),
+  })
+  const confirmResult = await confirmResp.json()
+  if (!confirmResult.success) {
+    throw new Error(confirmResult.error ?? 'Payment confirmation failed')
+  }
+
+  // Step 2: reserve the spot — the RPC checks the paid order_item.
   const { data, error } = await supabase.rpc('join_venue_event', {
     p_occurrence_id: occurrenceId,
     p_order_item_id: orderItemId,
-    p_stripe_pi_id: stripePaymentIntentId,
   })
   if (error) throw error
   if (!(data as any)?.success) {
-    throw new Error((data as any)?.error ?? 'Failed to finalise payment')
+    const rpcError = (data as any)?.error
+    if (rpcError === 'payment_required') {
+      throw new Error('Payment is still processing — please try again in a moment.')
+    }
+    throw new Error(rpcError ?? 'Failed to join event')
   }
   return data
 }

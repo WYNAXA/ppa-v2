@@ -1,14 +1,15 @@
-// Deploy with: supabase functions deploy create-event-payment --no-verify-jwt
+// Deploy with: supabase functions deploy create-event-payment
+// verify_jwt: true — user_id comes from the JWT, never the body.
 //
-// Creates a Stripe PaymentIntent for a venue-event entry via the venue's
-// Connect account. Also creates an order_items row (status 'pending') so the
-// purchase is tracked before payment completes.
+// Creates a Stripe PaymentIntent for a venue-event entry. Amount is derived
+// server-side from venue_events.price_per_player — the client cannot name
+// the price.
 //
-// MONEY: amount_minor is in the venue currency's minor units (pence for GBP,
-// cents for EUR, whole units for JPY). Passed directly to Stripe — no *100.
-//
-// After the client confirms payment, the app calls the join_venue_event RPC
-// with the order_item_id + stripe PI to atomically reserve the spot.
+// Idempotent per (user_id, occurrence_id): a second call reuses the existing
+// pending order_item and its PI rather than creating a duplicate charge. The
+// partial unique index order_items_one_pending_per_user_occurrence enforces
+// this at the DB level; a 23505 on insert means the race loser re-reads the
+// winner's row.
 
 import Stripe from 'https://esm.sh/stripe@14.21.0?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -18,7 +19,7 @@ const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') ?? '', {
   httpClient: Stripe.createFetchHttpClient(),
 })
 
-const supabase = createClient(
+const admin = createClient(
   Deno.env.get('SUPABASE_URL') ?? '',
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
 )
@@ -28,54 +29,122 @@ const cors = {
   'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info',
 }
 
+/** Try to reuse an existing pending order_item's PI. */
+async function reuseExisting(
+  userId: string,
+  occurrenceId: string,
+): Promise<Response | null> {
+  const { data: existing } = await admin
+    .from('order_items')
+    .select('id, stripe_payment_intent_id')
+    .eq('user_id', userId)
+    .eq('occurrence_id', occurrenceId)
+    .eq('status', 'pending')
+    .maybeSingle()
+
+  if (!existing?.stripe_payment_intent_id) return null
+
+  try {
+    const existingPi = await stripe.paymentIntents.retrieve(existing.stripe_payment_intent_id)
+    const reusable = ['requires_payment_method', 'requires_confirmation', 'requires_action']
+    if (reusable.includes(existingPi.status)) {
+      return Response.json(
+        {
+          client_secret: existingPi.client_secret,
+          payment_intent_id: existingPi.id,
+          order_item_id: existing.id,
+        },
+        { headers: cors },
+      )
+    }
+    // PI is in a terminal state — cancel if possible and supersede the order item.
+    if (existingPi.status !== 'canceled' && existingPi.status !== 'succeeded') {
+      await stripe.paymentIntents.cancel(existingPi.id).catch(() => {})
+    }
+  } catch {
+    // PI retrieval failed — fall through.
+  }
+
+  // Mark the stale order item superseded so the unique index slot is freed.
+  await admin
+    .from('order_items')
+    .update({ status: 'superseded' })
+    .eq('id', existing.id)
+    .eq('status', 'pending')
+
+  return null
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors })
 
   try {
+    // ── Auth: user_id from the JWT, never the body ──────────────────────────
+    const authHeader = req.headers.get('authorization') ?? ''
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user }, error: authErr } = await admin.auth.getUser(token)
+    if (authErr || !user) {
+      return Response.json({ error: 'Not authenticated' }, { status: 401, headers: cors })
+    }
+    const userId = user.id
+
     const body = await req.json()
-    const { occurrence_id, venue_id, event_name, user_id } = body
-    // amount_minor: price in the currency's minor units (already stored that way)
-    const amount_minor: number = body.amount_minor ?? body.amount_pence ?? 0
-    // currency: ISO 4217 code from the venue, default GBP
-    const currency: string = (body.currency ?? 'GBP').toLowerCase()
+    const { occurrence_id, venue_id, event_name } = body
 
-    if (!occurrence_id || !venue_id || !amount_minor || !user_id) {
+    if (!occurrence_id || !venue_id) {
       return Response.json(
-        { error: 'occurrence_id, venue_id, amount_minor, and user_id are required' },
+        { error: 'occurrence_id and venue_id are required' },
         { status: 400, headers: cors },
       )
     }
 
-    // Validate amount: positive integer, sane range (1–1_000_000 minor units)
-    if (
-      !Number.isInteger(amount_minor) ||
-      amount_minor < 1 ||
-      amount_minor > 1_000_000
-    ) {
-      return Response.json(
-        { error: 'Invalid amount' },
-        { status: 400, headers: cors },
-      )
-    }
+    // ── Idempotency: reuse existing pending order_item ──────────────────────
+    const reused = await reuseExisting(userId, occurrence_id)
+    if (reused) return reused
 
-    // ── Pre-flight capacity check (non-authoritative, the RPC is the truth) ──
-    // capacity lives on venue_events, not occurrences — join to check
-    const { data: occ } = await supabase
+    // ── Derive amount SERVER-SIDE from venue_events.price_per_player ────────
+    // Currency lives on venues, not venue_events.
+    const { data: occ } = await admin
       .from('venue_event_occurrences')
-      .select('spots_taken, venue_events!inner ( capacity )')
+      .select('spots_taken, event_id, venue_events!inner ( capacity, price_per_player )')
       .eq('id', occurrence_id)
       .maybeSingle()
 
     if (!occ) {
       return Response.json({ error: 'Occurrence not found' }, { status: 404, headers: cors })
     }
-    const evCapacity = (occ as any).venue_events?.capacity
-    if (evCapacity != null && occ.spots_taken >= evCapacity) {
+
+    const ev = (occ as any).venue_events
+    const pricePence: number = ev?.price_per_player ?? 0
+
+    if (pricePence < 1) {
+      return Response.json({ error: 'This event is free — no payment needed' }, { status: 400, headers: cors })
+    }
+
+    // Pre-flight capacity check (non-authoritative, the RPC is the truth).
+    if (ev?.capacity != null && occ.spots_taken >= ev.capacity) {
       return Response.json({ error: 'Event is full' }, { status: 409, headers: cors })
     }
 
-    // ── Look up venue's Stripe Connect account ──────────────────────────────
-    const { data: acct } = await supabase
+    // ── Venue: currency and commission from the row, no defaults ────────────
+    const { data: venueRow } = await admin
+      .from('venues')
+      .select('currency, commission_rate_bps')
+      .eq('id', venue_id)
+      .maybeSingle()
+
+    if (!venueRow) {
+      return Response.json({ error: 'Venue not found' }, { status: 404, headers: cors })
+    }
+    if (venueRow.commission_rate_bps == null) {
+      return Response.json({ error: 'Venue has no commission rate configured' }, { status: 400, headers: cors })
+    }
+
+    const currency: string = (venueRow.currency ?? 'GBP').toLowerCase()
+    const rate_bps: number = venueRow.commission_rate_bps
+
+    // ── Stripe Connect account ──────────────────────────────────────────────
+    const { data: acct } = await admin
       .from('venue_stripe_accounts')
       .select('stripe_account_id, charges_enabled')
       .eq('venue_id', venue_id)
@@ -88,27 +157,31 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    // ── Find or create an event_entry product ───────────────────────────────
+    // ── Product: one per venue of type 'event_entry' ────────────────────────
+    // price_pence is 0 — a placeholder. The real price is order_items.
+    // unit_price_pence, which differs per event. Do not sum products.price_pence
+    // as revenue; it is not revenue.
     let productId: string
-    const { data: existing } = await supabase
+    const { data: existingProduct } = await admin
       .from('products')
       .select('id')
       .eq('venue_id', venue_id)
-      .eq('product_type', 'event_entry')
-      .eq('reference_id', occurrence_id)
+      .eq('type', 'event_entry')
+      .limit(1)
       .maybeSingle()
 
-    if (existing) {
-      productId = existing.id
+    if (existingProduct) {
+      productId = existingProduct.id
     } else {
-      const { data: created, error: pErr } = await supabase
+      const { data: created, error: pErr } = await admin
         .from('products')
         .insert({
           venue_id,
-          product_type: 'event_entry',
+          type: 'event_entry',
           name: `Event entry: ${event_name ?? 'Venue event'}`,
-          price_pence: amount_minor,
-          reference_id: occurrence_id,
+          // Placeholder — real price is on order_items.unit_price_pence.
+          // Do not treat this as revenue.
+          price_pence: 0,
         })
         .select('id')
         .single()
@@ -118,37 +191,47 @@ Deno.serve(async (req: Request) => {
       productId = created.id
     }
 
-    // ── Create order_items row (pending) ────────────────────────────────────
-    const { data: orderItem, error: oiErr } = await supabase
+    // ── Order item (pending) ────────────────────────────────────────────────
+    // The partial unique index order_items_one_pending_per_user_occurrence
+    // prevents a race: if two concurrent calls both pass the reuseExisting
+    // check, the loser gets 23505 and retries.
+    let orderItem: { id: string } | null = null
+    const insertPayload = {
+      product_id: productId,
+      user_id: userId,
+      venue_id,
+      occurrence_id,
+      quantity: 1,
+      unit_price_pence: pricePence,
+      total_pence: pricePence,
+      status: 'pending',
+    }
+
+    const { data: inserted, error: oiErr } = await admin
       .from('order_items')
-      .insert({
-        product_id: productId,
-        user_id,
-        quantity: 1,
-        amount_pence: amount_minor,
-        currency: currency.toUpperCase(),
-        status: 'pending',
-      })
+      .insert(insertPayload)
       .select('id')
       .single()
 
-    if (oiErr || !orderItem) {
-      return Response.json({ error: 'Failed to create order item' }, { status: 500, headers: cors })
+    if (oiErr && (oiErr as { code?: string }).code === '23505') {
+      // Race loser: the winner's row exists. Reuse it.
+      const retried = await reuseExisting(userId, occurrence_id)
+      if (retried) return retried
+      // If reuse still fails (PI cancelled between the two calls), error out.
+      return Response.json({ error: 'Concurrent payment in progress — please retry' }, { status: 409, headers: cors })
     }
 
-    // ── Create Stripe PaymentIntent (destination charge) ────────────────────
-    // Per-venue platform commission in basis points (default 350 = 3.5%);
-    // tier/founding venues pay less. Set via set_venue_commission().
-    const { data: venueRate } = await supabase
-      .from('venues')
-      .select('commission_rate_bps')
-      .eq('id', venue_id)
-      .maybeSingle()
-    const rate_bps = venueRate?.commission_rate_bps ?? 350
-    const application_fee_amount = Math.round(amount_minor * rate_bps / 10000)
+    if (oiErr || !inserted) {
+      console.error('order_items insert error:', oiErr)
+      return Response.json({ error: 'Failed to create order item' }, { status: 500, headers: cors })
+    }
+    orderItem = inserted
+
+    // ── Stripe PaymentIntent ────────────────────────────────────────────────
+    const application_fee_amount = Math.round(pricePence * rate_bps / 10000)
 
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount_minor,
+      amount: pricePence,
       currency,
       application_fee_amount,
       transfer_data: { destination: acct.stripe_account_id },
@@ -156,17 +239,17 @@ Deno.serve(async (req: Request) => {
         type: 'event_entry',
         occurrence_id,
         venue_id,
-        user_id,
+        user_id: userId,
         order_item_id: orderItem.id,
         event_name: event_name ?? '',
       },
       automatic_payment_methods: { enabled: true },
     })
 
-    // Update order_items with the PI id
-    await supabase
+    // Store the PI id on the order item.
+    await admin
       .from('order_items')
-      .update({ stripe_pi_id: paymentIntent.id })
+      .update({ stripe_payment_intent_id: paymentIntent.id })
       .eq('id', orderItem.id)
 
     return Response.json(

@@ -271,6 +271,9 @@ export interface CourtsHomeProps {
   /** §3.4: match context for path A — venue selection with the game in hand.
       When set, ranking uses group history and tier headings are shown. */
   matchGroupId?: string | null
+  /** When true, forces match-context mode even before group_id loads.
+      This prevents the normal list flashing before the tiered list appears. */
+  isMatchMode?: boolean
   /** Called when the claimant taps through to an external venue. */
   onHandoff?: (venueId: string) => void
 }
@@ -279,7 +282,7 @@ const RADIUS_OPTIONS = [25, 50, 100] as const
 
 export function CourtsHome({
   lat, lng, query, onQueryChange, onUseLocation, locating = false, onPickVenue, slotsByVenue = {},
-  radiusMiles, onRadiusChange, matchGroupId, onHandoff,
+  radiusMiles, onRadiusChange, matchGroupId, isMatchMode = false, onHandoff,
 }: CourtsHomeProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -294,7 +297,9 @@ export function CourtsHome({
   const effectiveRadius = radiusMiles ?? localRadius
   const { data } = useVenuesNearby(lat, lng, effectiveRadius)
   const { data: groupHistory = new Set() } = useGroupVenueHistory(matchGroupId ?? null)
-  const isMatchContext = !!matchGroupId
+  // §3.4: match context is true when we're in match mode OR have a group_id.
+  // isMatchMode prevents the normal list flashing before matchData loads.
+  const isMatchContext = isMatchMode || !!matchGroupId
 
   // NO_VENUES is a module-level constant, not a fresh []. A new empty array on
   // every render changes the identity of every memo below it, so the filtering

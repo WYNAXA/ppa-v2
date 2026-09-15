@@ -1375,7 +1375,8 @@ export function BookCourtPage() {
                 onUseLocation={requestLocation}
                 locating={locating}
                 onPickVenue={(venueId) => { void resolveAndSelectVenue(venueId) }}
-                matchGroupId={matchData?.group_id as string | null ?? undefined}
+                matchGroupId={(matchData?.group_id as string) ?? undefined}
+                isMatchMode={!!matchId}
                 onHandoff={matchId ? async (venueId) => {
                   await (supabase.rpc as any)('record_booking_handoff', {
                     p_match_id: matchId,

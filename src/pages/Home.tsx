@@ -22,6 +22,8 @@ import { ClubThisWeek } from '@/components/people/ClubThisWeek'
 import { ConnectionRequestCard } from '@/components/people/ConnectionRequestCard'
 import { MyGroupCard } from '@/components/people/MyGroupCard'
 import { useMyGroups, useMyConnections, usePendingRequests } from '@/hooks/useSocial'
+import { NeedsCourtSection } from '@/components/play/NeedsCourtSection'
+import { DidYouBookPrompt } from '@/components/play/DidYouBookSheet'
 import { cn } from '@/lib/utils'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -901,6 +903,12 @@ export function HomePage() {
       </div>
 
       <div className="flex flex-col gap-6 px-5">
+
+        {/* §3.5 — Did you get the court? (handoff prompt) */}
+        <DidYouBookPrompt userId={userId} />
+
+        {/* §3.1 — Games that need a court, above everything else. */}
+        <NeedsCourtSection userId={userId} />
 
         {/* Onboarding, only while setup is incomplete. */}
         {!setupComplete && setupProgress && <GettingStartedCard progress={setupProgress} />}

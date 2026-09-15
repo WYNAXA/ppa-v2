@@ -36,13 +36,18 @@ export function useSetMyLocation(opts?: SetMyLocationOptions) {
   const queryClient = useQueryClient()
   const [state, setState] = useState<LocationState>({ status: 'idle' })
 
-  async function writeProfile(city: string | null, lat: number | null, lng: number | null) {
+  async function writeProfile(
+    city: string | null,
+    lat: number | null,
+    lng: number | null,
+    country?: string | null,
+    countryCode?: string | null,
+  ) {
     if (!user) return
-    await supabase.from('profiles').update({
-      city,
-      latitude: lat,
-      longitude: lng,
-    }).eq('id', user.id)
+    const patch: Record<string, unknown> = { city, latitude: lat, longitude: lng }
+    if (country !== undefined) patch.country = country
+    if (countryCode !== undefined) patch.country_code = countryCode
+    await supabase.from('profiles').update(patch as any).eq('id', user.id)
     await refreshProfile()
     queryClient.invalidateQueries({ queryKey: ['discover-counts'] })
     queryClient.invalidateQueries({ queryKey: ['discover-feed'] })
@@ -71,7 +76,7 @@ export function useSetMyLocation(opts?: SetMyLocationOptions) {
               lng: longitude,
             })
           } else {
-            await writeProfile(geo.city, latitude, longitude)
+            await writeProfile(geo.city, latitude, longitude, geo.country, geo.countryCode)
           }
         } catch {
           setState({ status: 'error', message: 'Failed to save location' })
@@ -107,7 +112,7 @@ export function useSetMyLocation(opts?: SetMyLocationOptions) {
           lng: lng ?? 0,
         })
       } else {
-        await writeProfile(resolvedCity, lat, lng)
+        await writeProfile(resolvedCity, lat, lng, result?.country, result?.countryCode)
       }
     } catch {
       setState({ status: 'error', message: 'Failed to save location' })

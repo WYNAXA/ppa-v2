@@ -18,3 +18,27 @@ superseded migrations against production — including ones that recreate
 functions a later migration deliberately dropped. Apply through the MCP and
 write the file to match, as above. This restriction lifts only when
 `supabase migration list` shows zero local-only and zero remote-only rows.
+
+## Migrations with no recorded statements
+
+The following four migrations were applied via `supabase db query -f` on 15 Sep
+2026 and registered with a hand-written INSERT into schema_migrations. Their
+`statements` column is NULL, so the md5 repo-vs-live check cannot pass for them.
+The repo files contain the SQL that was applied, but the database has no record
+of the exact text. Do not rely on md5 verification for these versions:
+
+- `20260915110000` — pending_review_and_rejected_status
+- `20260915110100` — venue_discovery_targets
+- `20260915130000` — booking_claim_whose_turn_rpcs
+- `20260915133000` — booking_claim_expiry_cron
+
+Going forward: apply migrations through the Supabase MCP (which records
+statements and assigns the version), or have Christian apply via the Dashboard
+SQL Editor. Do not use `db query -f` followed by a manual INSERT.
+
+## Testing against live data
+
+Never gate-test by writing to live matches with real players. Notifications
+trigger real OneSignal pushes via the `dispatch_notification_to_onesignal`
+trigger. Use disposable test matches with test accounts, or run the function
+inside a transaction that is rolled back.

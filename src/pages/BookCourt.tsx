@@ -660,7 +660,7 @@ export function BookCourtPage() {
     queryFn: async () => {
       const { data } = await supabase
         .from('matches')
-        .select('id, player_ids, match_date, match_time')
+        .select('id, player_ids, match_date, match_time, group_id')
         .eq('id', matchId)
         .single()
       return data
@@ -1372,6 +1372,13 @@ export function BookCourtPage() {
                 onUseLocation={requestLocation}
                 locating={locating}
                 onPickVenue={(venueId) => { void resolveAndSelectVenue(venueId) }}
+                matchGroupId={matchData?.group_id as string | null ?? undefined}
+                onHandoff={matchId ? async (venueId) => {
+                  await (supabase.rpc as any)('record_booking_handoff', {
+                    p_match_id: matchId,
+                    p_venue_id: venueId,
+                  })
+                } : undefined}
               />
 
               {/* Venue results */}

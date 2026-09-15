@@ -555,6 +555,12 @@ function EditProfileSheet({
     }
   }, [locationHook.state.status])
 
+  // Country name → ISO code mapping for the dropdown. Exact matches only.
+  const COUNTRY_TO_CODE: Record<string, string> = {
+    'UK': 'GB', 'Ireland': 'IE', 'Spain': 'ES', 'Portugal': 'PT',
+    'Italy': 'IT', 'France': 'FR', 'Germany': 'DE', 'Netherlands': 'NL',
+    'Belgium': 'BE', 'United Kingdom': 'GB',
+  }
   const COUNTRIES = ['UK', 'Ireland', 'Spain', 'Portugal', 'Italy', 'France', 'Germany', 'Netherlands', 'Belgium', 'Other']
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -602,10 +608,11 @@ function EditProfileSheet({
           city:                city.trim() || null,
           postal_code:         postalCode.trim() || null,
           country:             country || null,
+          country_code:        COUNTRY_TO_CODE[country] ?? null,
           can_drive:           canDrive,
           max_passengers:      maxPassengers,
           travel_radius_miles: travelRadius,
-        })
+        } as any)
         .eq('id', user.id)
       console.log('[Profile save] user.id:', user.id, 'error:', error)
       if (error) throw error

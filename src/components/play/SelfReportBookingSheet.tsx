@@ -12,6 +12,9 @@ interface SelfReportBookingSheetProps {
   matchId: string
   playerCount: number
   onSuccess: () => void
+  /** §3.5: pre-fill venue from handoff. Skips venue search step. */
+  prefillVenueId?: string
+  prefillVenueName?: string
 }
 
 function useDebounce(value: string, delay: number) {
@@ -23,10 +26,14 @@ function useDebounce(value: string, delay: number) {
   return dv
 }
 
-export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, onSuccess }: SelfReportBookingSheetProps) {
+export function SelfReportBookingSheet({ open, onClose, matchId, playerCount, onSuccess, prefillVenueId, prefillVenueName }: SelfReportBookingSheetProps) {
   const [venueQuery, setVenueQuery] = useState('')
   const [venueResults, setVenueResults] = useState<Venue[]>([])
-  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null)
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(
+    prefillVenueId && prefillVenueName
+      ? { venue_id: prefillVenueId, venue_name: prefillVenueName }
+      : null,
+  )
   const [manualMode, setManualMode] = useState(false)
   const [manualVenueName, setManualVenueName] = useState('')
   const [courtNumber, setCourtNumber] = useState('')

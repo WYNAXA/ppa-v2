@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
+import { getVenueTier, getTierLabel, type VenueTier } from '@/lib/venueTier'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 
 // Leaflet is ~150KB and most sessions never open the map, so it loads on demand.
@@ -59,6 +60,8 @@ type Venue = {
    * See `useVenuesNearby` for why the two are not the same question.
    */
   onPpa: boolean
+  bookingUrl: string | null
+  tier: VenueTier
 }
 
 const KM_PER_MILE = 1.609344
@@ -199,6 +202,12 @@ function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 6
           pricePence: (v.price_pence as number) ?? ((v.price_per_hour as number) ?? null),
           bookable: v.ppa_bookable === true,
           onPpa: v.ppa_bookable === true || (!!v.venues_id && onPpaIds.has(v.venues_id as string)),
+          bookingUrl: (v.booking_url as string) || null,
+          tier: getVenueTier({
+            ppa_bookable: v.ppa_bookable as boolean | null,
+            booking_url: v.booking_url as string | null,
+            booking_platform: v.booking_platform as string | null,
+          }),
         }
       }
 
@@ -223,6 +232,25 @@ function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 6
 /** Stable empty list — see the note where it is used. */
 const NO_VENUES: Venue[] = []
 
+/** Group venue history — venues this group has played at before. */
+function useGroupVenueHistory(groupId: string | null) {
+  return useQuery<Set<string>>({
+    queryKey: ['group-venue-history', groupId],
+    enabled: !!groupId,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      if (!groupId) return new Set()
+      const { data } = await supabase
+        .from('matches')
+        .select('padel_venue_id')
+        .eq('group_id', groupId)
+        .not('padel_venue_id', 'is', null)
+        .eq('booking_status', 'booked')
+      return new Set((data ?? []).map(r => r.padel_venue_id as string))
+    },
+  })
+}
+
 export interface CourtsHomeProps {
   /** Player's coordinates, when the profile has them. */
   lat: number | null
@@ -240,13 +268,18 @@ export interface CourtsHomeProps {
   /** Radius in miles for the nearby query. Tappable to change. */
   radiusMiles?: number
   onRadiusChange?: (radius: number) => void
+  /** §3.4: match context for path A — venue selection with the game in hand.
+      When set, ranking uses group history and tier headings are shown. */
+  matchGroupId?: string | null
+  /** Called when the claimant taps through to an external venue. */
+  onHandoff?: (venueId: string) => void
 }
 
 const RADIUS_OPTIONS = [25, 50, 100] as const
 
 export function CourtsHome({
   lat, lng, query, onQueryChange, onUseLocation, locating = false, onPickVenue, slotsByVenue = {},
-  radiusMiles, onRadiusChange,
+  radiusMiles, onRadiusChange, matchGroupId, onHandoff,
 }: CourtsHomeProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -260,6 +293,8 @@ export function CourtsHome({
   const [localRadius, setLocalRadius] = useState(radiusMiles ?? 60)
   const effectiveRadius = radiusMiles ?? localRadius
   const { data } = useVenuesNearby(lat, lng, effectiveRadius)
+  const { data: groupHistory = new Set() } = useGroupVenueHistory(matchGroupId ?? null)
+  const isMatchContext = !!matchGroupId
 
   // NO_VENUES is a module-level constant, not a fresh []. A new empty array on
   // every render changes the identity of every memo below it, so the filtering
@@ -282,6 +317,27 @@ export function CourtsHome({
     },
     [filters],
   )
+  // §3.4: In match context, merge all venues and rank:
+  //   a) tier 1 (ppa_bookable) first
+  //   b) venues this group has played at before
+  //   c) distance
+  // In path B (no matchGroupId), keep the existing partner/others split.
+  const rankedAll = useMemo(() => {
+    if (!isMatchContext) return null
+    const all = [...allPartner, ...allOthers].filter(match)
+    return all.sort((a, b) => {
+      // Tier 1 first
+      if (a.tier === 1 && b.tier !== 1) return -1
+      if (b.tier === 1 && a.tier !== 1) return 1
+      // Group history next
+      const aHist = groupHistory.has(a.id) ? 0 : 1
+      const bHist = groupHistory.has(b.id) ? 0 : 1
+      if (aHist !== bHist) return aHist - bHist
+      // Then distance
+      return (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity)
+    })
+  }, [isMatchContext, allPartner, allOthers, match, groupHistory])
+
   const partner = useMemo(() => allPartner.filter(match).slice(0, 3), [allPartner, match])
   const others  = useMemo(() => allOthers.filter(match).slice(0, 4),  [allOthers, match])
 
@@ -432,8 +488,89 @@ export function CourtsHome({
         </Suspense>
       )}
 
+      {/* ── §3.4 Match context: tiered ranked list ── */}
+      {!query.trim() && view === 'list' && isMatchContext && rankedAll && rankedAll.length > 0 && (
+        <section className="flex flex-col gap-2.5">
+          {(() => {
+            let lastTier: VenueTier | null = null
+            return rankedAll.map((v) => {
+              const showHeader = v.tier !== lastTier
+              lastTier = v.tier
+              const tierLabel = getTierLabel(v.tier, v.platform)
+              const isHistory = groupHistory.has(v.id)
+              return (
+                <div key={v.id}>
+                  {showHeader && (
+                    <div className="flex items-center gap-2 mb-2 mt-3 first:mt-0">
+                      <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+                        {tierLabel}
+                      </h2>
+                      {v.tier === 1 && (
+                        <span className="rounded-pill bg-ball px-2 py-[3px] text-[11px] font-extrabold leading-[14px] text-ink">
+                          PPA
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-3 rounded-[16px] border border-hairline bg-card p-3.5">
+                    <button
+                      onClick={() => navigate(`/venues/${v.id}`)}
+                      className="flex min-w-0 flex-grow flex-col gap-0.5 text-left"
+                    >
+                      <span className="truncate text-[15px] font-semibold leading-[19px] text-ink">{v.name}</span>
+                      <span className="num truncate text-[12px] leading-4 text-ink-2">
+                        {[
+                          v.distanceMiles != null ? formatDistance(v.distanceMiles) : v.city,
+                          isHistory ? t('courts.played_here', { defaultValue: 'Played here' }) : null,
+                          v.tier === 2 && v.platform ? v.platform : null,
+                          v.tier === 3 ? t('courts.no_booking_link', { defaultValue: 'No booking link' }) : null,
+                        ].filter(Boolean).join(' · ')}
+                      </span>
+                    </button>
+                    {v.tier === 1 ? (
+                      <button
+                        onClick={() => onPickVenue(v.bookingId)}
+                        className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-ball px-3.5 py-2.5 text-[13px] font-bold text-ink"
+                      >
+                        {t('courts.book_here')}
+                      </button>
+                    ) : v.tier === 2 ? (
+                      <button
+                        onClick={() => {
+                          if (onHandoff) onHandoff(v.id)
+                          if (v.bookingUrl) {
+                            import('@/lib/openUrl').then(m => m.openUrl(v.bookingUrl!))
+                          } else {
+                            navigate(`/venues/${v.id}`)
+                          }
+                        }}
+                        className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold text-ink-2"
+                      >
+                        {v.platform
+                          ? t('courts.check_on', { platform: v.platform, defaultValue: `Check on ${v.platform}` })
+                          : t('courts.check_times', { defaultValue: 'Check times' })}
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (onHandoff) onHandoff(v.id)
+                          navigate(`/venues/${v.id}`)
+                        }}
+                        className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold text-ink-2"
+                      >
+                        {t('courts.view_details', { defaultValue: 'Details' })}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })
+          })()}
+        </section>
+      )}
+
       {/* ── Book instantly — the venues that pay ── */}
-      {!query.trim() && view === 'list' && partner.length > 0 && (
+      {!query.trim() && view === 'list' && !isMatchContext && partner.length > 0 && (
         <section className="flex flex-col gap-2.5">
           <div className="flex items-center gap-2">
             <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
@@ -527,7 +664,7 @@ export function CourtsHome({
       )}
 
       {/* ── Also near you — the directory, as an acquisition loop ── */}
-      {!query.trim() && view === 'list' && others.length > 0 && (
+      {!query.trim() && view === 'list' && !isMatchContext && others.length > 0 && (
         <section className="flex flex-col gap-2.5">
           <div className="flex items-center justify-between gap-2">
             <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">

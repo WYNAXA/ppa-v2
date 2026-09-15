@@ -2,6 +2,8 @@ interface ForwardGeocodeResult {
   lat: number
   lng: number
   displayName: string
+  country: string | null
+  countryCode: string | null
 }
 
 /**
@@ -29,6 +31,8 @@ export async function forwardGeocode(
       lat: parseFloat(hit.lat),
       lng: parseFloat(hit.lon),
       displayName: hit.address?.city ?? hit.address?.town ?? hit.address?.village ?? hit.display_name?.split(',')[0] ?? q,
+      country: hit.address?.country ?? null,
+      countryCode: hit.address?.country_code ? (hit.address.country_code as string).toUpperCase() : null,
     }
   } catch (err) {
     console.warn('[geocode] forward geocode failed:', err)
@@ -40,6 +44,8 @@ interface ReverseGeocodeResult {
   city: string | null
   postcode: string | null
   country: string | null
+  /** ISO 3166-1 alpha-2, lowercase from Nominatim — uppercase before writing. */
+  countryCode: string | null
   raw: any
 }
 
@@ -72,10 +78,11 @@ export async function reverseGeocode(
       city,
       postcode: address.postcode ?? null,
       country: address.country ?? null,
+      countryCode: address.country_code ? (address.country_code as string).toUpperCase() : null,
       raw: data,
     }
   } catch (err) {
     console.warn('[geocode] reverse geocode failed:', err)
-    return { city: null, postcode: null, country: null, raw: null }
+    return { city: null, postcode: null, country: null, countryCode: null, raw: null }
   }
 }

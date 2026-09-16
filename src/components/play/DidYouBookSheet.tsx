@@ -31,12 +31,12 @@ function useHandoffMatches(userId: string) {
       // booking_handoff_* columns are new, not yet in generated types
       const { data } = await supabase
         .from('matches')
-        .select('id, match_date, match_time, player_ids, booking_handoff_venue_id, booking_handoff_ask_count' as any)
+        .select('id, match_date, match_time, player_ids, booking_handoff_venue_id, booking_handoff_ask_count')
         .eq('booking_claimed_by', userId)
         .eq('booking_status', 'claimed')
-        .not('booking_handoff_venue_id' as any, 'is', null)
-        .lt('booking_handoff_ask_count' as any, 3) // F4: cap at 3 asks
-        .gte('match_date', new Date().toISOString().split('T')[0]) as any
+        .not('booking_handoff_venue_id', 'is', null)
+        .lt('booking_handoff_ask_count', 3) // F4: cap at 3 asks
+        .gte('match_date', new Date().toISOString().split('T')[0])
 
       if (!data || data.length === 0) return []
 
@@ -82,7 +82,7 @@ export function DidYouBookPrompt({ userId }: { userId: string }) {
     setDismissed(prev => new Set(prev).add(matchId))
     await supabase
       .from('matches')
-      .update({ booking_handoff_ask_count: (handoffs.find(h => h.id === matchId)?.booking_handoff_ask_count ?? 0) + 1 } as any)
+      .update({ booking_handoff_ask_count: (handoffs.find(h => h.id === matchId)?.booking_handoff_ask_count ?? 0) + 1 })
       .eq('id', matchId)
   }
 

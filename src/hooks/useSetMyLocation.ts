@@ -47,7 +47,7 @@ export function useSetMyLocation(opts?: SetMyLocationOptions) {
     const patch: Record<string, unknown> = { city, latitude: lat, longitude: lng }
     if (country !== undefined) patch.country = country
     if (countryCode !== undefined) patch.country_code = countryCode
-    await supabase.from('profiles').update(patch as any).eq('id', user.id)
+    await supabase.from('profiles').update(patch as Record<string, never>).eq('id', user.id)
     await refreshProfile()
     queryClient.invalidateQueries({ queryKey: ['discover-counts'] })
     queryClient.invalidateQueries({ queryKey: ['discover-feed'] })

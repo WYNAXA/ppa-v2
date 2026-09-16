@@ -119,6 +119,29 @@ export function useMyGroups(userId: string) {
   })
 }
 
+/** Full member list for a single group — fetched on demand (not upfront). */
+export function useGroupMembers(groupId: string | null) {
+  return useQuery({
+    queryKey: ['group-members-full', groupId],
+    enabled: !!groupId,
+    queryFn: async (): Promise<Array<{ id: string; name: string; avatar_url?: string | null }>> => {
+      const { data, error } = await supabase
+        .from('group_members')
+        .select('user_id')
+        .eq('group_id', groupId!)
+        .eq('status', 'approved')
+      if (error) throw error
+      if (!data || data.length === 0) return []
+      const userIds = data.map(m => m.user_id)
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, name, avatar_url')
+        .in('id', userIds)
+      return (profiles ?? []).map(p => ({ id: p.id, name: p.name ?? '', avatar_url: p.avatar_url }))
+    },
+  })
+}
+
 export function usePendingRequests(userId: string) {
   return useQuery({
     queryKey: ['pending-requests', userId],

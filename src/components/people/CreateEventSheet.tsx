@@ -110,14 +110,14 @@ export function CreateEventSheet({ open, onClose, groupId: initialGroupId }: Cre
         // author's home coordinates. publicNeedsVenue blocks submission.
       }
 
-      const { error } = await supabase.from('events').insert(row as any)
+      const { error } = await supabase.from('events').insert(row as Record<string, never>)
       if (error) {
         // RLS rejected the status — fall back to pending and retry once.
         if (isPublic && canPublish) {
           row.status = 'pending'
           row.is_official = false
           row.source_type = 'player'
-          const { error: retryErr } = await supabase.from('events').insert(row as any)
+          const { error: retryErr } = await supabase.from('events').insert(row as Record<string, never>)
           if (retryErr) {
             console.error('[CreateEvent] retry as pending failed:', retryErr)
             throw retryErr

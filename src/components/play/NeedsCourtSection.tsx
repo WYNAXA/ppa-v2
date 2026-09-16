@@ -109,7 +109,7 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
 
   async function handleClaim(matchId: string) {
     const match = matches.find(m => m.id === matchId)
-    const { data, error } = await (supabase.rpc as any)('claim_match_booking', { p_match_id: matchId })
+    const { data, error } = await supabase.rpc('claim_match_booking', { p_match_id: matchId })
     if (error) {
       console.error('claim_match_booking error:', error)
       return
@@ -124,7 +124,7 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
 
   async function handleTakeOver(matchId: string) {
     const match = matches.find(m => m.id === matchId)
-    const { error } = await (supabase.rpc as any)('take_over_match_booking', { p_match_id: matchId })
+    const { error } = await supabase.rpc('take_over_match_booking', { p_match_id: matchId })
     if (error) {
       console.error('take_over_match_booking error:', error)
       return

@@ -438,7 +438,7 @@ export function VenueDetailPage() {
     if (!canClaim || !user?.id || !venueId) return
     let cancelled = false
     supabase
-      .from('player_venue_interest' as any)
+      .from('player_venue_interest')
       .select('id')
       .eq('venue_id', venueId)
       .eq('user_id', user.id)
@@ -451,7 +451,7 @@ export function VenueDetailPage() {
     if (!user?.id || !venueId) return
     setFlagging(true)
     const { error } = await supabase
-      .from('player_venue_interest' as any)
+      .from('player_venue_interest')
       .insert({ venue_id: venueId, user_id: user.id })
     setFlagging(false)
     if (error && error.code === '23505') { setHasFlagged(true); return }

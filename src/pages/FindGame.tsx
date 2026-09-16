@@ -22,7 +22,7 @@ import { useDateLocale } from '@/lib/dateLocale'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useMyGroups } from '@/hooks/useSocial'
+import { useMyGroups, useGroupMembers } from '@/hooks/useSocial'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CourtsHome } from '@/components/play/CourtsHome'
 import { cn } from '@/lib/utils'
@@ -69,6 +69,16 @@ export default function FindGame() {
   const { data: myGroups = [] } = useMyGroups(userId)
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
   const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
+  // Full member list for the selected group — fetched on demand, not upfront.
+  // recentMembers is .slice(0,5) — a preview for avatars, not a member list.
+  const { data: fullMembers = [] } = useGroupMembers(selectedGroupId)
+
+  // Pre-select all members when the full list loads
+  useEffect(() => {
+    if (fullMembers.length > 0 && selectedGroupId) {
+      setSelectedPlayers(fullMembers.filter(m => m.id !== userId).map(m => m.id))
+    }
+  }, [fullMembers, selectedGroupId, userId])
 
   // ── WHERE state ───────────────────────────────────────────────────────────
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
@@ -103,7 +113,6 @@ export default function FindGame() {
   const dayLabel = format(selectedDate, 'EEEE', { locale })
 
   // Members of the selected group (for the WHO step)
-  const selectedGroup = myGroups.find(g => g.id === selectedGroupId)
 
   // ── Create match and navigate to venue selection ──────────────────────────
   async function handleCreateMatch() {
@@ -276,10 +285,7 @@ export default function FindGame() {
                           setSelectedPlayers([])
                         } else {
                           setSelectedGroupId(g.id)
-                          // Pre-select all members
-                          setSelectedPlayers(
-                            g.recentMembers?.filter(m => m.id !== userId).map(m => m.id) ?? []
-                          )
+                          // Pre-selection happens via useEffect when fullMembers loads
                         }
                       }}
                       className={cn(
@@ -319,13 +325,13 @@ export default function FindGame() {
             )}
 
             {/* Selected players from group */}
-            {selectedGroup && selectedGroup.recentMembers && selectedGroup.recentMembers.length > 1 && (
+            {selectedGroupId && fullMembers.length > 1 && (
               <div>
                 <p className="text-[13px] font-semibold text-ink-2 mb-2">
                   {selectedPlayers.length + 1} playing (including you)
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {selectedGroup.recentMembers
+                  {fullMembers
                     .filter(m => m.id !== userId)
                     .map(m => {
                       const selected = selectedPlayers.includes(m.id)

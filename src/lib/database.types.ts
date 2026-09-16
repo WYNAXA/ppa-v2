@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       activities: {
@@ -732,6 +707,24 @@ export type Database = {
             referencedColumns: ["band_key"]
           },
         ]
+      }
+      country_timezones: {
+        Row: {
+          country_code: string
+          multi_zone: boolean
+          timezone: string
+        }
+        Insert: {
+          country_code: string
+          multi_zone?: boolean
+          timezone: string
+        }
+        Update: {
+          country_code?: string
+          multi_zone?: boolean
+          timezone?: string
+        }
+        Relationships: []
       }
       court_availability_settings: {
         Row: {
@@ -3465,12 +3458,17 @@ export type Database = {
           booked_venue_name: string | null
           booking_claimed_at: string | null
           booking_claimed_by: string | null
+          booking_handoff_ask_count: number
+          booking_handoff_at: string | null
+          booking_handoff_venue_id: string | null
           booking_notes: string | null
+          booking_per_player_pence: number | null
           booking_pledge_assigned_randomly: boolean | null
           booking_pledged_at: string | null
           booking_pledged_by: string | null
           booking_reference: string | null
           booking_status: string | null
+          booking_total_cost_pence: number | null
           bypassed_conflicts: boolean | null
           confirmed_players: string[] | null
           conflict_status: string | null
@@ -3500,6 +3498,8 @@ export type Database = {
           player_ids: string[]
           poll_id: string | null
           poll_slot_id: string | null
+          preferred_venue_id: string | null
+          preferred_venue_name: string | null
           push_deadline_sent: boolean | null
           push_reminder_sent: boolean | null
           push_result_prompt_sent: boolean | null
@@ -3515,6 +3515,7 @@ export type Database = {
           team1_player_ids: string[] | null
           team2_id: string | null
           team2_player_ids: string[] | null
+          timezone: string | null
           travel_notes: string | null
           updated_at: string | null
           venue_details: Json | null
@@ -3534,12 +3535,17 @@ export type Database = {
           booked_venue_name?: string | null
           booking_claimed_at?: string | null
           booking_claimed_by?: string | null
+          booking_handoff_ask_count?: number
+          booking_handoff_at?: string | null
+          booking_handoff_venue_id?: string | null
           booking_notes?: string | null
+          booking_per_player_pence?: number | null
           booking_pledge_assigned_randomly?: boolean | null
           booking_pledged_at?: string | null
           booking_pledged_by?: string | null
           booking_reference?: string | null
           booking_status?: string | null
+          booking_total_cost_pence?: number | null
           bypassed_conflicts?: boolean | null
           confirmed_players?: string[] | null
           conflict_status?: string | null
@@ -3569,6 +3575,8 @@ export type Database = {
           player_ids: string[]
           poll_id?: string | null
           poll_slot_id?: string | null
+          preferred_venue_id?: string | null
+          preferred_venue_name?: string | null
           push_deadline_sent?: boolean | null
           push_reminder_sent?: boolean | null
           push_result_prompt_sent?: boolean | null
@@ -3584,6 +3592,7 @@ export type Database = {
           team1_player_ids?: string[] | null
           team2_id?: string | null
           team2_player_ids?: string[] | null
+          timezone?: string | null
           travel_notes?: string | null
           updated_at?: string | null
           venue_details?: Json | null
@@ -3603,12 +3612,17 @@ export type Database = {
           booked_venue_name?: string | null
           booking_claimed_at?: string | null
           booking_claimed_by?: string | null
+          booking_handoff_ask_count?: number
+          booking_handoff_at?: string | null
+          booking_handoff_venue_id?: string | null
           booking_notes?: string | null
+          booking_per_player_pence?: number | null
           booking_pledge_assigned_randomly?: boolean | null
           booking_pledged_at?: string | null
           booking_pledged_by?: string | null
           booking_reference?: string | null
           booking_status?: string | null
+          booking_total_cost_pence?: number | null
           bypassed_conflicts?: boolean | null
           confirmed_players?: string[] | null
           conflict_status?: string | null
@@ -3638,6 +3652,8 @@ export type Database = {
           player_ids?: string[]
           poll_id?: string | null
           poll_slot_id?: string | null
+          preferred_venue_id?: string | null
+          preferred_venue_name?: string | null
           push_deadline_sent?: boolean | null
           push_reminder_sent?: boolean | null
           push_result_prompt_sent?: boolean | null
@@ -3653,6 +3669,7 @@ export type Database = {
           team1_player_ids?: string[] | null
           team2_id?: string | null
           team2_player_ids?: string[] | null
+          timezone?: string | null
           travel_notes?: string | null
           updated_at?: string | null
           venue_details?: Json | null
@@ -3665,6 +3682,20 @@ export type Database = {
           winner_team?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "matches_booking_handoff_venue_fkey"
+            columns: ["booking_handoff_venue_id"]
+            isOneToOne: false
+            referencedRelation: "discoverable_venues"
+            referencedColumns: ["venue_id"]
+          },
+          {
+            foreignKeyName: "matches_booking_handoff_venue_fkey"
+            columns: ["booking_handoff_venue_id"]
+            isOneToOne: false
+            referencedRelation: "padel_venues"
+            referencedColumns: ["venue_id"]
+          },
           {
             foreignKeyName: "matches_group_id_fkey"
             columns: ["group_id"]
@@ -3713,6 +3744,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "polls"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "matches_preferred_venue_fkey"
+            columns: ["preferred_venue_id"]
+            isOneToOne: false
+            referencedRelation: "discoverable_venues"
+            referencedColumns: ["venue_id"]
+          },
+          {
+            foreignKeyName: "matches_preferred_venue_fkey"
+            columns: ["preferred_venue_id"]
+            isOneToOne: false
+            referencedRelation: "padel_venues"
+            referencedColumns: ["venue_id"]
           },
           {
             foreignKeyName: "matches_team1_id_fkey"
@@ -3802,6 +3847,7 @@ export type Database = {
       }
       notification_preferences: {
         Row: {
+          booking_reminders: boolean
           chat_notifications: boolean | null
           connection_requests: boolean | null
           created_at: string | null
@@ -3813,6 +3859,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          booking_reminders?: boolean
           chat_notifications?: boolean | null
           connection_requests?: boolean | null
           created_at?: string | null
@@ -3824,6 +3871,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          booking_reminders?: boolean
           chat_notifications?: boolean | null
           connection_requests?: boolean | null
           created_at?: string | null
@@ -3998,6 +4046,7 @@ export type Database = {
           external_ref: string | null
           facilities: Json | null
           full_address: string
+          google_primary_type: string | null
           has_roof: boolean | null
           indoor_courts: number | null
           instagram: string | null
@@ -4073,6 +4122,7 @@ export type Database = {
           external_ref?: string | null
           facilities?: Json | null
           full_address: string
+          google_primary_type?: string | null
           has_roof?: boolean | null
           indoor_courts?: number | null
           instagram?: string | null
@@ -4148,6 +4198,7 @@ export type Database = {
           external_ref?: string | null
           facilities?: Json | null
           full_address?: string
+          google_primary_type?: string | null
           has_roof?: boolean | null
           indoor_courts?: number | null
           instagram?: string | null
@@ -4431,6 +4482,42 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      player_venue_interest: {
+        Row: {
+          created_at: string | null
+          id: string
+          user_id: string
+          venue_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          user_id: string
+          venue_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          user_id?: string
+          venue_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_venue_interest_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "discoverable_venues"
+            referencedColumns: ["venue_id"]
+          },
+          {
+            foreignKeyName: "player_venue_interest_venue_id_fkey"
+            columns: ["venue_id"]
+            isOneToOne: false
+            referencedRelation: "padel_venues"
+            referencedColumns: ["venue_id"]
+          },
+        ]
       }
       poll_deadline_changes: {
         Row: {
@@ -5025,6 +5112,7 @@ export type Database = {
           can_drive: boolean | null
           city: string | null
           country: string | null
+          country_code: string | null
           created_at: string | null
           email: string
           household_partner_id: string | null
@@ -5071,6 +5159,7 @@ export type Database = {
           can_drive?: boolean | null
           city?: string | null
           country?: string | null
+          country_code?: string | null
           created_at?: string | null
           email: string
           household_partner_id?: string | null
@@ -5117,6 +5206,7 @@ export type Database = {
           can_drive?: boolean | null
           city?: string | null
           country?: string | null
+          country_code?: string | null
           created_at?: string | null
           email?: string
           household_partner_id?: string | null
@@ -6365,6 +6455,60 @@ export type Database = {
         }
         Relationships: []
       }
+      venue_discovery_targets: {
+        Row: {
+          cell_lat: number | null
+          cell_lng: number | null
+          country_code: string
+          created_at: string
+          grid_spacing_m: number | null
+          id: string
+          is_land: boolean | null
+          last_found_count: number | null
+          last_hit_result_cap: boolean | null
+          last_pages_fetched: number | null
+          last_searched_at: string | null
+          latitude: number
+          longitude: number
+          name: string
+          radius_m: number
+        }
+        Insert: {
+          cell_lat?: number | null
+          cell_lng?: number | null
+          country_code?: string
+          created_at?: string
+          grid_spacing_m?: number | null
+          id?: string
+          is_land?: boolean | null
+          last_found_count?: number | null
+          last_hit_result_cap?: boolean | null
+          last_pages_fetched?: number | null
+          last_searched_at?: string | null
+          latitude: number
+          longitude: number
+          name: string
+          radius_m?: number
+        }
+        Update: {
+          cell_lat?: number | null
+          cell_lng?: number | null
+          country_code?: string
+          created_at?: string
+          grid_spacing_m?: number | null
+          id?: string
+          is_land?: boolean | null
+          last_found_count?: number | null
+          last_hit_result_cap?: boolean | null
+          last_pages_fetched?: number | null
+          last_searched_at?: string | null
+          latitude?: number
+          longitude?: number
+          name?: string
+          radius_m?: number
+        }
+        Relationships: []
+      }
       venue_duplicate_dismissals: {
         Row: {
           dismissed_at: string
@@ -6534,6 +6678,7 @@ export type Database = {
           id: string
           joined_at: string
           occurrence_id: string
+          order_item_id: string | null
           status: string
           user_id: string
         }
@@ -6541,6 +6686,7 @@ export type Database = {
           id?: string
           joined_at?: string
           occurrence_id: string
+          order_item_id?: string | null
           status?: string
           user_id: string
         }
@@ -6548,6 +6694,7 @@ export type Database = {
           id?: string
           joined_at?: string
           occurrence_id?: string
+          order_item_id?: string | null
           status?: string
           user_id?: string
         }
@@ -6557,6 +6704,13 @@ export type Database = {
             columns: ["occurrence_id"]
             isOneToOne: false
             referencedRelation: "venue_event_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "venue_event_participants_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
             referencedColumns: ["id"]
           },
         ]
@@ -7941,6 +8095,7 @@ export type Database = {
           conflicting_time: string
         }[]
       }
+      claim_match_booking: { Args: { p_match_id: string }; Returns: Json }
       claim_match_guest_invite: { Args: { p_token: string }; Returns: Json }
       claim_open_match: { Args: { p_match_id: string }; Returns: Json }
       claim_venue: { Args: { p_padel_venue_id: string }; Returns: string }
@@ -8103,6 +8258,7 @@ export type Database = {
         | { Args: { table_name: string }; Returns: string }
       enablelongtransactions: { Args: never; Returns: string }
       equals: { Args: { geom1: unknown; geom2: unknown }; Returns: boolean }
+      expire_stale_booking_claims: { Args: never; Returns: undefined }
       flag_venues_for_review: { Args: never; Returns: Json }
       format_money: {
         Args: { p_currency: string; p_minor: number }
@@ -8420,11 +8576,7 @@ export type Database = {
         Returns: Json
       }
       join_venue_event: {
-        Args: {
-          p_occurrence_id: string
-          p_order_item_id?: string
-          p_stripe_pi_id?: string
-        }
+        Args: { p_occurrence_id: string; p_order_item_id?: string }
         Returns: Json
       }
       league_points_for_result: { Args: { p_result: string }; Returns: number }
@@ -8513,6 +8665,10 @@ export type Database = {
         Returns: Json
       }
       rebuild_league_standings: { Args: { p_league_id: string }; Returns: Json }
+      record_booking_handoff: {
+        Args: { p_match_id: string; p_venue_id: string }
+        Returns: Json
+      }
       record_ranking_snapshot: { Args: never; Returns: undefined }
       redeem_voucher: {
         Args: {
@@ -8522,6 +8678,10 @@ export type Database = {
           p_user_id?: string
           p_venue_id: string
         }
+        Returns: Json
+      }
+      release_match_booking_claim: {
+        Args: { p_match_id: string }
         Returns: Json
       }
       remove_teammate: {
@@ -9233,6 +9393,7 @@ export type Database = {
         Args: { p_match_id: string; p_team1: string[]; p_team2: string[] }
         Returns: Json
       }
+      take_over_match_booking: { Args: { p_match_id: string }; Returns: Json }
       unlink_household_partner: { Args: never; Returns: undefined }
       unlockrows: { Args: { "": string }; Returns: number }
       update_league_rankings: {
@@ -9294,18 +9455,18 @@ export type Database = {
           p_venue_type?: string
         }
         Returns: {
-          booking_platform: string | null
-          booking_url: string | null
+          booking_platform: string
+          booking_url: string
           city: string
           country_code: string
-          covered_courts: number | null
+          covered_courts: number
           distance_miles: number
-          indoor_courts: number | null
+          indoor_courts: number
           latitude: number
           longitude: number
           needs_review: boolean
-          number_of_courts: number | null
-          outdoor_courts: number | null
+          number_of_courts: number
+          outdoor_courts: number
           photos: Json
           postcode: string
           ppa_bookable: boolean
@@ -9326,18 +9487,18 @@ export type Database = {
           p_venue_type?: string
         }
         Returns: {
-          booking_platform: string | null
-          booking_url: string | null
+          booking_platform: string
+          booking_url: string
           city: string
           country_code: string
-          covered_courts: number | null
+          covered_courts: number
           distance_miles: number
-          indoor_courts: number | null
+          indoor_courts: number
           latitude: number
           longitude: number
           needs_review: boolean
-          number_of_courts: number | null
-          outdoor_courts: number | null
+          number_of_courts: number
+          outdoor_courts: number
           photos: Json
           place_kind: string
           place_label: string
@@ -9367,6 +9528,16 @@ export type Database = {
       wants_push: {
         Args: { p_type: string; p_user_id: string }
         Returns: boolean
+      }
+      whose_turn_to_book: {
+        Args: { p_match_id: string }
+        Returns: {
+          avatar_url: string
+          bookings_count: number
+          last_booked_at: string
+          name: string
+          user_id: string
+        }[]
       }
     }
     Enums: {
@@ -9505,9 +9676,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       group_role: ["member", "admin"],

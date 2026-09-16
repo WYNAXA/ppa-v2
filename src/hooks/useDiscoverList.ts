@@ -42,7 +42,7 @@ export function useDiscoverList(kind: string) {
         p_limit: 200,
       }
       if (lat != null && lng != null) { args.p_lat = lat; args.p_lng = lng }
-      const { data, error } = await supabase.rpc('discover_list', args as any)
+      const { data, error } = await supabase.rpc('discover_list', args)
       if (error) throw error
       return ((data ?? []) as Array<{ id: string; title: string; subtitle: string; distance_miles: number; meta: Json }>)
         .map(row => ({

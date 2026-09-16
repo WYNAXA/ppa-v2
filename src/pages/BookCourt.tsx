@@ -1332,7 +1332,7 @@ export function BookCourtPage() {
                 matchGroupId={(matchData?.group_id as string) ?? undefined}
                 isMatchMode={!!matchId}
                 onHandoff={matchId ? async (venueId) => {
-                  await (supabase.rpc as any)('record_booking_handoff', {
+                  await supabase.rpc('record_booking_handoff', {
                     p_match_id: matchId,
                     p_venue_id: venueId,
                   })

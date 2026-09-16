@@ -97,3 +97,19 @@ Every schema or data change goes through one of these two paths:
 On 2026-09-16, five migrations were applied via execute_sql and not recorded
 until hours later. The divergence was caught manually. This rule exists so it
 does not happen again.
+
+## Build checks — absolute cd, pwd, exit code
+
+Every TypeScript build check MUST use an absolute `cd` at the start of the Bash
+call and print `pwd` and the exit code. No pushd/popd — the shell CWD resets
+between calls and pushd silently returns to the wrong directory.
+
+```
+cd /Users/.../ppa-v2 && pwd && npx tsc --noEmit; echo "exit=$?"
+```
+
+A build claim without `pwd` and `exit=0` in the raw output is not a build claim.
+
+Commit `ddb3759` shipped with TypeScript errors in FindGame.tsx and VenueDetail.tsx
+because tsc was silently running against the wrong repo. This rule exists so it
+does not happen again.

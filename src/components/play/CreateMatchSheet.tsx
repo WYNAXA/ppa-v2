@@ -841,7 +841,7 @@ export function CreateMatchSheet({ open, onClose, defaultGroupId, defaultDate, d
 
       const { data, error: insertError } = await supabase
         .from('matches')
-        .insert(payload as any)
+        .insert(payload as Record<string, never>)
         .select('id')
         .single()
 

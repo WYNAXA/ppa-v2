@@ -32,7 +32,7 @@ function useWhoseTurn(matchId: string) {
     queryKey: ['whose-turn', matchId],
     enabled: !!matchId,
     queryFn: async () => {
-      const { data, error } = await (supabase.rpc as any)('whose_turn_to_book', {
+      const { data, error } = await supabase.rpc('whose_turn_to_book', {
         p_match_id: matchId,
       })
       if (error) throw error

@@ -1,8 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, X, MessageCircle } from 'lucide-react'
+import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, MessageCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
@@ -438,7 +438,7 @@ export function VenueDetailPage() {
     if (!canClaim || !user?.id || !venueId) return
     let cancelled = false
     supabase
-      .from('player_venue_interest')
+      .from('player_venue_interest' as any)
       .select('id')
       .eq('venue_id', venueId)
       .eq('user_id', user.id)
@@ -451,7 +451,7 @@ export function VenueDetailPage() {
     if (!user?.id || !venueId) return
     setFlagging(true)
     const { error } = await supabase
-      .from('player_venue_interest')
+      .from('player_venue_interest' as any)
       .insert({ venue_id: venueId, user_id: user.id })
     setFlagging(false)
     if (error && error.code === '23505') { setHasFlagged(true); return }
@@ -471,7 +471,6 @@ export function VenueDetailPage() {
   const courtBreakdown = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
   // If the split doesn't reconcile to the total, suppress it entirely — show total only
   const splitReconciles = courtBreakdown > 0 && courtBreakdown === totalCourts
-  const breakdownIsPartial = totalCourts > courtBreakdown && courtBreakdown > 0
 
   const hoursConfirmed = hoursAreTrustworthy(venue?.opening_hours as any)
   const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any, t) : null

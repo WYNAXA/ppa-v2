@@ -14,7 +14,6 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { addDays, format, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight, Calendar, Clock, Users, MapPin } from 'lucide-react'
@@ -46,7 +45,7 @@ export default function FindGame() {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const locale = useDateLocale()
-  const { user, session, profile } = useAuth()
+  const { user } = useAuth()
   const userId = user?.id ?? ''
 
   // ── Step ──────────────────────────────────────────────────────────────────
@@ -112,13 +111,13 @@ export default function FindGame() {
     setCreatingMatch(true)
 
     const playerIds = [userId, ...selectedPlayers]
-    const matchTime = selectedWindow === 'any' ? null : window.from
+    const matchTime = window.from // 'any' uses '00:00'
 
     const { data: match, error } = await supabase
       .from('matches')
       .insert({
         match_date: dateStr,
-        match_time: matchTime ? `${matchTime}:00` : null,
+        match_time: `${matchTime}:00`,
         match_type: 'casual',
         status: playerIds.length >= 4 ? 'scheduled' : 'pending',
         player_ids: playerIds,
@@ -279,7 +278,7 @@ export default function FindGame() {
                           setSelectedGroupId(g.id)
                           // Pre-select all members
                           setSelectedPlayers(
-                            g.members?.filter(m => m.id !== userId).map(m => m.id) ?? []
+                            g.recentMembers?.filter(m => m.id !== userId).map(m => m.id) ?? []
                           )
                         }
                       }}
@@ -291,13 +290,13 @@ export default function FindGame() {
                       )}
                     >
                       <div className="flex -space-x-2">
-                        {(g.members ?? []).slice(0, 4).map(m => (
-                          <PlayerAvatar key={m.id} name={m.name} url={m.avatar_url} size={28} />
+                        {(g.recentMembers ?? []).slice(0, 4).map(m => (
+                          <PlayerAvatar key={m.id} name={m.name} avatarUrl={m.avatar_url} size="sm" />
                         ))}
                       </div>
                       <div className="text-left flex-1 min-w-0">
                         <p className="text-[13px] font-semibold text-ink truncate">{g.name}</p>
-                        <p className="text-[11px] text-ink-2">{g.members?.length ?? 0} members</p>
+                        <p className="text-[11px] text-ink-2">{g.memberCount} members</p>
                       </div>
                       {selectedGroupId === g.id && (
                         <span className="text-[11px] font-bold text-court bg-court-100 rounded-full px-2 py-0.5">
@@ -320,13 +319,13 @@ export default function FindGame() {
             )}
 
             {/* Selected players from group */}
-            {selectedGroup && selectedGroup.members && selectedGroup.members.length > 1 && (
+            {selectedGroup && selectedGroup.recentMembers && selectedGroup.recentMembers.length > 1 && (
               <div>
                 <p className="text-[13px] font-semibold text-ink-2 mb-2">
                   {selectedPlayers.length + 1} playing (including you)
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {selectedGroup.members
+                  {selectedGroup.recentMembers
                     .filter(m => m.id !== userId)
                     .map(m => {
                       const selected = selectedPlayers.includes(m.id)
@@ -345,7 +344,7 @@ export default function FindGame() {
                               : 'bg-surface border border-hairline text-ink-3',
                           )}
                         >
-                          <PlayerAvatar name={m.name} url={m.avatar_url} size={20} />
+                          <PlayerAvatar name={m.name} avatarUrl={m.avatar_url} size="sm" />
                           {m.name?.split(' ')[0] ?? 'Player'}
                         </button>
                       )
@@ -416,13 +415,13 @@ export default function FindGame() {
                 // Create the match, then navigate to BookCourt with this venue pre-selected
                 if (!userId) return
                 const playerIds = [userId, ...selectedPlayers]
-                const matchTime = selectedWindow === 'any' ? null : window.from
+                const matchTime = window.from // 'any' uses '00:00'
 
                 supabase
                   .from('matches')
                   .insert({
                     match_date: dateStr,
-                    match_time: matchTime ? `${matchTime}:00` : null,
+                    match_time: `${matchTime}:00`,
                     match_type: 'casual',
                     status: playerIds.length >= 4 ? 'scheduled' : 'pending',
                     player_ids: playerIds,

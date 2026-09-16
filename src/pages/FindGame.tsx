@@ -189,51 +189,90 @@ export default function FindGame() {
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
   const dayLabel = format(selectedDate, 'EEEE', { locale })
 
-  // N6b: Open matches needing players at the selected date/time.
+  // N6b + N7a: Open matches needing players at the selected date/time.
   // These are GAMES needing players, not players being free.
-  // A match with no venue has no location — we can't filter by distance, so
-  // we show it without a distance label. Matches with a venue get haversine.
-  interface OpenMatch { id: string; match_time: string | null; venue_name: string | null; spots_left: number; distance: number | null }
+  // A match qualifies as "near you" only if:
+  //   - it has a venue within the viewer's radius, OR
+  //   - it belongs to a group the viewer is in.
+  // Matches with no venue AND no shared group are not shown.
+  // The viewer's own matches are excluded.
+  const myGroupIds = useMemo(() => new Set(myGroups.map(g => g.id)), [myGroups])
+  const radiusMiles = 25
+
+  interface OpenMatch {
+    id: string; match_time: string | null; venue_name: string | null
+    spots_left: number; distance: number | null; reason: string
+  }
   const { data: openMatches = [] } = useQuery<OpenMatch[]>({
-    queryKey: ['open-matches-at-time', dateStr, selectedWindow, coords?.lat, coords?.lng],
-    enabled: !!dateStr,
+    queryKey: ['open-matches-at-time', dateStr, selectedWindow, coords?.lat, coords?.lng, userId],
+    enabled: !!dateStr && !!userId,
     staleTime: 30_000,
     queryFn: async () => {
       let query = supabase
         .from('matches')
-        .select('id, match_time, player_ids, booked_venue_name, preferred_venue_name, padel_venue_id')
+        .select('id, match_time, player_ids, group_id, booked_venue_name, preferred_venue_name, padel_venue_id, preferred_venue_id')
         .eq('is_open', true)
         .eq('match_date', dateStr)
         .not('status', 'in', '("cancelled","completed")')
-      // Filter by time window if not "any"
       if (selectedWindow !== 'any') {
         query = query.gte('match_time', `${window.from}:00`).lt('match_time', `${window.to}:00`)
       }
       const { data } = await query
       if (!data) return []
-      // Resolve venue locations for distance
-      const venueIds = [...new Set(data.filter(m => m.padel_venue_id).map(m => m.padel_venue_id as string))]
-      const venueLocMap = new Map<string, { lat: number; lng: number }>()
-      if (venueIds.length > 0 && coords) {
-        const { data: venues } = await supabase.from('padel_venues').select('venue_id, latitude, longitude').in('venue_id', venueIds)
+
+      // Exclude matches the viewer is already in
+      const candidates = data.filter(m => !((m.player_ids as string[]) ?? []).includes(userId))
+
+      // Resolve venue locations for distance filtering
+      const venueIds = [...new Set(candidates
+        .map(m => (m.padel_venue_id ?? m.preferred_venue_id) as string | null)
+        .filter((id): id is string => !!id)
+      )]
+      const venueLocMap = new Map<string, { lat: number; lng: number; name: string }>()
+      if (venueIds.length > 0) {
+        const { data: venues } = await supabase.from('padel_venues').select('venue_id, venue_name, latitude, longitude').in('venue_id', venueIds)
         for (const v of venues ?? []) {
-          if (v.latitude != null && v.longitude != null) venueLocMap.set(v.venue_id, { lat: v.latitude, lng: v.longitude })
+          if (v.latitude != null && v.longitude != null) {
+            venueLocMap.set(v.venue_id, { lat: v.latitude, lng: v.longitude, name: v.venue_name })
+          }
         }
       }
-      return data.map(m => {
-        const vLoc = m.padel_venue_id ? venueLocMap.get(m.padel_venue_id as string) : null
+
+      // Resolve group names for the "reason" label
+      const groupIds = [...new Set(candidates.filter(m => m.group_id).map(m => m.group_id as string))]
+      const groupNameMap = new Map<string, string>()
+      if (groupIds.length > 0) {
+        const { data: groups } = await supabase.from('groups').select('id, name').in('id', groupIds)
+        for (const g of groups ?? []) groupNameMap.set(g.id, g.name)
+      }
+
+      const results: OpenMatch[] = []
+      for (const m of candidates) {
+        const venueId = (m.padel_venue_id ?? m.preferred_venue_id) as string | null
+        const vLoc = venueId ? venueLocMap.get(venueId) : null
         const dist = coords && vLoc
           ? 3959 * Math.acos(Math.min(1, Math.cos(coords.lat * Math.PI / 180) * Math.cos(vLoc.lat * Math.PI / 180) * Math.cos((vLoc.lng - coords.lng) * Math.PI / 180) + Math.sin(coords.lat * Math.PI / 180) * Math.sin(vLoc.lat * Math.PI / 180)))
           : null
-        return {
-          id: m.id,
-          match_time: m.match_time as string | null,
-          venue_name: (m.booked_venue_name ?? m.preferred_venue_name) as string | null,
-          spots_left: Math.max(0, 4 - ((m.player_ids as string[]) ?? []).length),
-          distance: dist,
-        }
-      }).filter(m => m.spots_left > 0)
-        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+        const inRadius = dist != null && dist <= radiusMiles
+        const inMyGroup = m.group_id != null && myGroupIds.has(m.group_id as string)
+
+        // N7a: only show if venue within radius OR shared group
+        if (!inRadius && !inMyGroup) continue
+
+        const spots = Math.max(0, 4 - ((m.player_ids as string[]) ?? []).length)
+        if (spots === 0) continue
+
+        const venueName = (m.booked_venue_name ?? m.preferred_venue_name ?? vLoc?.name) as string | null
+        // N7a: say WHY it's shown — venue + distance, or group name
+        const reason = inRadius && venueName
+          ? `at ${venueName}, ${dist!.toFixed(1)} mi`
+          : inMyGroup
+            ? groupNameMap.get(m.group_id as string) ?? 'Your group'
+            : ''
+
+        results.push({ id: m.id, match_time: m.match_time as string | null, venue_name: venueName, spots_left: spots, distance: dist, reason })
+      }
+      return results.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
     },
   })
 
@@ -386,7 +425,7 @@ export default function FindGame() {
             {openMatches.length > 0 && (
               <div>
                 <p className="text-[13px] font-semibold text-ink-2 mb-3">
-                  {openMatches.length} {openMatches.length === 1 ? 'game' : 'games'} near you {openMatches.length === 1 ? 'needs' : 'need'} players on {dayLabel.toLowerCase()} {selectedWindow !== 'any' ? window.label.toLowerCase() : ''}
+                  {openMatches.length} {openMatches.length === 1 ? 'game needs' : 'games need'} players on {dayLabel.toLowerCase()} {selectedWindow !== 'any' ? window.label.toLowerCase() : ''}
                 </p>
                 <div className="space-y-2">
                   {openMatches.map(m => (
@@ -400,7 +439,7 @@ export default function FindGame() {
                           {m.match_time?.slice(0, 5) ?? ''}{m.venue_name ? ` · ${m.venue_name}` : ''}
                         </p>
                         <p className="text-[11px] text-ink-2">
-                          {m.spots_left} {m.spots_left === 1 ? 'spot' : 'spots'} left{m.distance != null ? ` · ${m.distance.toFixed(1)} mi` : ''}
+                          {m.spots_left} {m.spots_left === 1 ? 'spot' : 'spots'} left{m.reason ? ` · ${m.reason}` : ''}
                         </p>
                       </div>
                       <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />

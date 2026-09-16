@@ -50,7 +50,10 @@ export default function FindGame() {
   const userId = user?.id ?? ''
 
   // ── Step ──────────────────────────────────────────────────────────────────
-  const [step, setStep] = useState<'when' | 'who' | 'where'>('when')
+  const [step, setStep] = useState<'when' | 'who' | 'where'>(() =>
+    (sessionStorage.getItem('fg_step') as 'when' | 'who' | 'where') || 'when'
+  )
+  useEffect(() => { sessionStorage.setItem('fg_step', step) }, [step])
 
   // ── WHEN state ────────────────────────────────────────────────────────────
   const today = startOfDay(new Date())
@@ -63,13 +66,34 @@ export default function FindGame() {
     return days
   }, [today.getTime()])
 
-  const [selectedDate, setSelectedDate] = useState<Date>(today)
-  const [selectedWindow, setSelectedWindow] = useState<WindowKey>('evening')
+  // M2: persist WHEN/WHO across navigation (venue profile and back, app kill).
+  // sessionStorage: survives same-tab navigation, cleared on tab close.
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const saved = sessionStorage.getItem('fg_date')
+    if (saved) { try { const d = new Date(saved); if (!isNaN(d.getTime())) return startOfDay(d) } catch { /* ignore */ } }
+    return today
+  })
+  const [selectedWindow, setSelectedWindow] = useState<WindowKey>(() =>
+    (sessionStorage.getItem('fg_window') as WindowKey) || 'evening'
+  )
+
+  // Persist on change
+  useEffect(() => { sessionStorage.setItem('fg_date', selectedDate.toISOString()) }, [selectedDate])
+  useEffect(() => { sessionStorage.setItem('fg_window', selectedWindow) }, [selectedWindow])
 
   // ── WHO state ─────────────────────────────────────────────────────────────
   const { data: myGroups = [] } = useMyGroups(userId)
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null)
-  const [selectedPlayers, setSelectedPlayers] = useState<string[]>([])
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() =>
+    sessionStorage.getItem('fg_group') || null
+  )
+  const [selectedPlayers, setSelectedPlayers] = useState<string[]>(() => {
+    try { return JSON.parse(sessionStorage.getItem('fg_players') ?? '[]') } catch { return [] }
+  })
+  useEffect(() => {
+    if (selectedGroupId) sessionStorage.setItem('fg_group', selectedGroupId)
+    else sessionStorage.removeItem('fg_group')
+  }, [selectedGroupId])
+  useEffect(() => { sessionStorage.setItem('fg_players', JSON.stringify(selectedPlayers)) }, [selectedPlayers])
   // Full member list for the selected group — fetched on demand, not upfront.
   // recentMembers is .slice(0,5) — a preview for avatars, not a member list.
   const { data: fullMembers = [] } = useGroupMembers(selectedGroupId)
@@ -118,11 +142,30 @@ export default function FindGame() {
   const [venueQuery, setVenueQuery] = useState('')
   const [creatingMatch, setCreatingMatch] = useState(false)
 
-  // Seed coords from session cache
+  // M1: Fetch the user's stored profile location — same source as BookCourt.
+  // Without this, FindGame had no coordinates and CourtsHome fell back to an
+  // unordered global query (200 arbitrary venues, no distance filter).
+  const { data: userLocation } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
+    queryKey: ['my-location-findgame', userId],
+    enabled: !!userId,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('latitude, longitude')
+        .eq('id', userId)
+        .single()
+      return data ?? null
+    },
+  })
+
+  // Seed coords: session cache first, then profile location
   useEffect(() => {
     const cached = sessionStorage.getItem('ppa_user_coords')
-    if (cached) { try { setCoords(JSON.parse(cached)) } catch { /* ignore */ } }
-  }, [])
+    if (cached) { try { setCoords(JSON.parse(cached)); return } catch { /* ignore */ } }
+    if (userLocation?.latitude != null && userLocation?.longitude != null) {
+      setCoords({ lat: userLocation.latitude, lng: userLocation.longitude })
+    }
+  }, [userLocation?.latitude, userLocation?.longitude])
 
   function requestLocation() {
     if (!('geolocation' in navigator)) { toast.error('Location not available.'); return }
@@ -204,7 +247,7 @@ export default function FindGame() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-hairline">
         <div className="flex items-center gap-3 px-5 py-3">

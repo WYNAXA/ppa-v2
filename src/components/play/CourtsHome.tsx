@@ -143,12 +143,9 @@ function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 6
               p_limit: 200,
               p_venue_type: 'club',
             })
-          : supabase
-              .from('discoverable_venues')
-              .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url, opening_hours')
-              .not('ppa_bookable', 'is', true)
-              .eq('venue_type', 'club')
-              .limit(200),
+          // M1: No coordinates → return empty. Never show an unordered global list.
+          // The UI will prompt "Set your location to see clubs near you."
+          : { data: [], error: null } as any,
         supabase
           .from('discoverable_venues')
           .select('venue_id', { count: 'exact', head: true })
@@ -443,6 +440,7 @@ export function CourtsHome({
   )
 
   const hasAnyVenue = allPartner.length + allOthers.length > 0
+  const noLocation = lat == null || lng == null
   const nothingMatches = hasAnyVenue && partner.length === 0 && others.length === 0
 
   const money = useMemo(
@@ -501,6 +499,21 @@ export function CourtsHome({
           third chip in half at 390px, which reads as a broken layout rather
           than as something you can swipe — and the longer translations
           ("Reservar en la app") make that worse, not better. */}
+      {/* M1: no location → prompt, not a global list */}
+      {!query.trim() && noLocation && !hasAnyVenue && (
+        <div className="rounded-2xl border border-dashed border-hairline bg-surface px-5 py-8 text-center">
+          <MapPin className="h-6 w-6 text-ink-3 mx-auto mb-2" />
+          <p className="text-[14px] font-semibold text-ink-2">Set your location to see clubs near you</p>
+          <button
+            onClick={onUseLocation}
+            disabled={locating}
+            className="mt-3 inline-flex min-h-[44px] items-center rounded-pill bg-court px-5 py-2.5 text-[13px] font-semibold text-on-brand active:scale-95 disabled:opacity-50"
+          >
+            {locating ? t('courts.locating', { defaultValue: 'Locating…' }) : t('courts.use_location', { defaultValue: 'Use my location' })}
+          </button>
+        </div>
+      )}
+
       {!query.trim() && hasAnyVenue && (
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-2">

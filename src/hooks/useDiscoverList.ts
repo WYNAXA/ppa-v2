@@ -36,7 +36,7 @@ export function useDiscoverList(kind: string) {
     queryKey: ['discover-list', kind, lat, lng, radius],
     staleTime: 60_000,
     queryFn: async () => {
-      const args: Record<string, unknown> = {
+      const args: { p_kind: string; p_radius_miles: number; p_limit: number; p_lat?: number; p_lng?: number } = {
         p_kind: kind,
         p_radius_miles: radius,
         p_limit: 200,

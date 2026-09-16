@@ -114,7 +114,8 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
       console.error('claim_match_booking error:', error)
       return
     }
-    if (data && !data.success && data.error === 'already_claimed') {
+    const result = data as { success?: boolean; error?: string } | null
+    if (result && !result.success && result.error === 'already_claimed') {
       queryClient.invalidateQueries({ queryKey: ['unbooked-matches'] })
       return
     }

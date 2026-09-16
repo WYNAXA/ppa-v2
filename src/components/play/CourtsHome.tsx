@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
-import { getVenueTier, getTierLabel, type VenueTier } from '@/lib/venueTier'
+import { getVenueTier, type VenueTier } from '@/lib/venueTier'
 import { venueOpenState, type VenueOpenState, type AvailabilitySettings } from '@/lib/venueHours'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 
@@ -633,28 +633,29 @@ export function CourtsHome({
         </Suspense>
       )}
 
-      {/* ── §3.4 Match context: tiered ranked list ── */}
+      {/* ── §3.4 Match context: one list, badges per row ── */}
+      {/* N1: no repeating tier headings. One labelled section for tier 1 only. */}
       {!query.trim() && view === 'list' && isMatchContext && rankedAll && rankedAll.length > 0 && (
         <section className="flex flex-col gap-2.5">
           {(() => {
-            let lastTier: VenueTier | null = null
+            let shownPpaHeader = false
             return rankedAll.map((v) => {
-              const showHeader = v.tier !== lastTier
-              lastTier = v.tier
-              const tierLabel = getTierLabel(v.tier, v.platform)
+              const showPpaHeader = v.tier === 1 && !shownPpaHeader
+              if (showPpaHeader) shownPpaHeader = true
               const isHistory = groupHistory.has(v.id)
+              // N2: honest tier-2 split — platform vs website-only
+              const hasPlatform = v.tier === 2 && !!v.platform
+              const hasWebsiteOnly = v.tier === 2 && !v.platform && !!v.bookingUrl
               return (
                 <div key={v.id}>
-                  {showHeader && (
-                    <div className="flex items-center gap-2 mb-2 mt-3 first:mt-0">
+                  {showPpaHeader && (
+                    <div className="flex items-center gap-2 mb-2">
                       <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
-                        {tierLabel}
+                        Book in the app
                       </h2>
-                      {v.tier === 1 && (
-                        <span className="rounded-pill bg-ball px-2 py-[3px] text-[11px] font-extrabold leading-[14px] text-ink">
-                          PPA
-                        </span>
-                      )}
+                      <span className="rounded-pill bg-ball px-2 py-[3px] text-[11px] font-extrabold leading-[14px] text-ink">
+                        PPA
+                      </span>
                     </div>
                   )}
                   <div className={cn(
@@ -674,8 +675,9 @@ export function CourtsHome({
                             ? `Closed at ${targetTime} · open ${v.openingHours[targetDayKey]?.open}–${v.openingHours[targetDayKey]?.close} ${targetDayKey.charAt(0).toUpperCase() + targetDayKey.slice(1)}`
                             : null,
                           v.openState === 'unknown' ? t('courts.hours_unknown', { defaultValue: 'Hours unknown' }) : null,
-                          v.tier === 2 && v.platform ? v.platform : null,
-                          v.tier === 3 ? t('courts.no_booking_link', { defaultValue: 'No booking link' }) : null,
+                          hasPlatform ? v.platform : null,
+                          hasWebsiteOnly ? t('courts.visit_website', { defaultValue: 'Visit their website' }) : null,
+                          v.tier === 3 ? t('courts.call_or_visit', { defaultValue: 'Call or visit' }) : null,
                         ].filter(Boolean).join(' · ')}
                       </span>
                     </button>
@@ -686,7 +688,7 @@ export function CourtsHome({
                       >
                         {t('courts.book_here')}
                       </button>
-                    ) : v.tier === 2 ? (
+                    ) : hasPlatform ? (
                       <button
                         onClick={() => {
                           if (onHandoff) onHandoff(v.id)
@@ -698,9 +700,21 @@ export function CourtsHome({
                         }}
                         className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold text-ink-2"
                       >
-                        {v.platform
-                          ? t('courts.check_on', { platform: v.platform, defaultValue: `Check on ${v.platform}` })
-                          : t('courts.check_times', { defaultValue: 'Check times' })}
+                        {t('courts.book_on', { platform: v.platform, defaultValue: `Book on ${v.platform}` })}
+                      </button>
+                    ) : hasWebsiteOnly ? (
+                      <button
+                        onClick={() => {
+                          if (onHandoff) onHandoff(v.id)
+                          if (v.bookingUrl) {
+                            import('@/lib/openUrl').then(m => m.openUrl(v.bookingUrl!))
+                          } else {
+                            navigate(`/venues/${v.id}`)
+                          }
+                        }}
+                        className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold text-ink-2"
+                      >
+                        {t('courts.visit_site', { defaultValue: 'Visit site' })}
                       </button>
                     ) : (
                       <button

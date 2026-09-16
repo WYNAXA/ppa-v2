@@ -516,11 +516,19 @@ export default function FindGame() {
               </div>
             </div>
 
-            {/* The venue list IS the action — tapping a venue creates the match
-                and enters the booking flow. §4: no separate button that navigates
-                away from the courts (L1). */}
+            {/* N4: escape hatch at the top, not below 13 venues */}
+            <div className="px-5 mb-3">
+              <button
+                onClick={handleCreateMatch}
+                disabled={creatingMatch}
+                className="w-full text-center text-[13px] font-semibold text-ink-2 py-2 active:text-court transition-colors"
+              >
+                {creatingMatch ? 'Creating…' : "I'll sort the court later →"}
+              </button>
+            </div>
 
             {/* CourtsHome — tapping a venue creates the match */}
+            <div className="px-5">
             <CourtsHome
               lat={coords?.lat ?? null}
               lng={coords?.lng ?? null}
@@ -572,16 +580,6 @@ export default function FindGame() {
               targetDayKey={format(selectedDate, 'EEEE').toLowerCase()}
               targetTime={selectedWindow === 'any' ? undefined : window.from}
             />
-
-            {/* Secondary: create the game without picking a venue now */}
-            <div className="px-5 mt-4 mb-8">
-              <button
-                onClick={handleCreateMatch}
-                disabled={creatingMatch}
-                className="w-full text-center text-[13px] font-semibold text-ink-2 py-3 active:text-court transition-colors"
-              >
-                {creatingMatch ? 'Creating…' : "I'll sort the court later"}
-              </button>
             </div>
           </motion.div>
         )}

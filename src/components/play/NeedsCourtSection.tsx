@@ -162,7 +162,7 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
       <section className="flex flex-col gap-2.5">
         <div className="flex items-center gap-2">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
-            {t('home.upcoming_games', { defaultValue: 'Your games' })}
+            {t('home.needs_court', { defaultValue: 'Needs a court' })}
           </h2>
           <span className="num rounded-pill bg-ball px-[7px] py-0.5 text-[11px] font-bold leading-[14px] text-ink">
             {matches.length}
@@ -177,6 +177,8 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
           const timeLine = match.match_time?.slice(0, 5) ?? ''
           const isClaimed = match.booking_status === 'claimed' && match.booking_claimed_by
           const isMyClaimk = match.booking_claimed_by === userId
+          // §4: open match with < 4 players — waiting on invitees, not ready for a court yet
+          const waitingOnPlayers = match.is_open && match.player_count < 4
 
           return (
             <motion.div
@@ -192,18 +194,32 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
                     {dateLine}{timeLine ? ` · ${timeLine}` : ''}
                   </span>
                   <span className="text-[13px] leading-[18px] text-ink-2">
-                    {match.player_count >= 4
-                      ? `${match.player_count} ${t('home.players', { defaultValue: 'players' })}`
-                      : match.is_open && match.pending_invitations > 0
-                        ? `${match.player_count} confirmed · ${match.pending_invitations} invited`
-                        : `${match.player_count} ${t('home.players', { defaultValue: 'players' })}`}
+                    {match.is_open && match.pending_invitations > 0
+                      ? match.player_count <= 1
+                        ? `You · ${match.pending_invitations} invited`
+                        : `${match.player_count} players · ${match.pending_invitations} invited`
+                      : `${match.player_count} ${t('home.players', { defaultValue: 'players' })}`}
                     {match.group_name ? ` · ${match.group_name}` : ''}
                   </span>
                 </div>
                 <MapPin className="h-4 w-4 flex-shrink-0 text-ink-3 mt-0.5" strokeWidth={2} />
               </div>
 
-              {isClaimed && !isMyClaimk ? (
+              {waitingOnPlayers ? (
+                // §4: Open match, fewer than 4 — waiting on invitees.
+                // Do NOT offer "I'll book it" — the game may not happen yet.
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[13px] text-ink-2">
+                    Waiting on players{match.pending_invitations > 0 ? ` · ${match.pending_invitations} invited` : ''}
+                  </span>
+                  <button
+                    onClick={() => navigate(`/matches/${match.id}`)}
+                    className="self-start rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-semibold text-ink-2"
+                  >
+                    View match
+                  </button>
+                </div>
+              ) : isClaimed && !isMyClaimk ? (
                 // Someone else claimed it — show who + option to take over or self-report
                 <div className="flex flex-col gap-2">
                   <span className="text-[13px] font-medium text-ink-2">

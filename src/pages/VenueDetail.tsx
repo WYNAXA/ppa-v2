@@ -457,7 +457,7 @@ export function VenueDetailPage() {
     if (error && error.code === '23505') { setHasFlagged(true); return }
     if (error) { toast.error('Could not save — try again.'); return }
     setHasFlagged(true)
-    toast.success(t('venue.flag_thanks', { defaultValue: 'Noted. The more players who flag a club, the sooner we approach them.' }))
+    // No toast — the inline confirmation replaces the button and persists on the page
   }
 
   /**
@@ -717,12 +717,12 @@ export function VenueDetailPage() {
         <p className="px-5 mt-2 text-xs text-ink-2 leading-relaxed">{venue.booking_advance_info}</p>
       )}
 
-      {/* Player interest — "I play here, tell them about Wynaxa" */}
+      {/* Player interest — K5: name the product the player knows */}
       {canClaim && (
         <div className="px-5 mt-3">
           {hasFlagged ? (
-            <p className="text-[12px] text-ink-2 text-center py-2">
-              {t('venue.already_flagged', { defaultValue: "You've flagged this club." })}
+            <p className="text-[12px] text-ink-2 text-center py-2 leading-relaxed">
+              {t('venue.flag_confirmation', { defaultValue: 'Noted \u2014 the more players who flag this club, the sooner we reach out to them.' })}
             </p>
           ) : (
             <button
@@ -731,7 +731,7 @@ export function VenueDetailPage() {
               className="w-full rounded-xl border border-dashed border-court-100 bg-court-50 text-court-700 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
             >
               <MapPin size={16} />
-              {t('venue.flag_interest', { defaultValue: 'I play here \u2014 tell them about Wynaxa' })}
+              {t('venue.flag_interest', { defaultValue: 'I play here \u2014 let them know about Padel Players' })}
             </button>
           )}
         </div>

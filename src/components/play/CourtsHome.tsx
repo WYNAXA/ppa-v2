@@ -314,10 +314,11 @@ export function CourtsHome({
   const { t } = useTranslation()
   const [asking, setAsking] = useState<Venue | null>(null)
   const [view, setView] = useState<'list' | 'map'>('list')
-  const [filters, setFilters] = useState({ indoor: false, outdoor: false, bookable: false })
+  const [filters, setFilters] = useState({ hasBookingLink: false, openNow: false, playedHere: false, indoor: false, outdoor: false })
   const toggleFilter = (k: keyof typeof filters) => setFilters((f) => ({ ...f, [k]: !f[k] }))
-  const clearFilters = () => setFilters({ indoor: false, outdoor: false, bookable: false })
-  const anyFilter = filters.indoor || filters.outdoor || filters.bookable
+  const clearFilters = () => setFilters({ hasBookingLink: false, openNow: false, playedHere: false, indoor: false, outdoor: false })
+  const anyFilter = filters.hasBookingLink || filters.openNow || filters.playedHere || filters.indoor || filters.outdoor
+  const [showMoreFilters, setShowMoreFilters] = useState(false)
 
   const [localRadius, setLocalRadius] = useState(radiusMiles ?? 60)
   const effectiveRadius = radiusMiles ?? localRadius
@@ -388,13 +389,14 @@ export function CourtsHome({
   // calls the empty result "no courts match".
   const match = useCallback(
     (v: Venue) => {
-      if (filters.bookable && !v.bookable) return false
-      if (filters.indoor || filters.outdoor) {
-        if (!((filters.indoor && v.indoor) || (filters.outdoor && v.outdoor))) return false
-      }
+      if (filters.hasBookingLink && !v.bookingUrl && !v.bookable) return false
+      if (filters.openNow && v.openState !== 'open') return false
+      if (filters.playedHere && !groupHistory.has(v.id)) return false
+      if (filters.indoor && !v.indoor) return false
+      if (filters.outdoor && !v.outdoor) return false
       return true
     },
-    [filters],
+    [filters, groupHistory],
   )
   // §3.4: In match context, merge all venues and rank:
   //   a) tier 1 (ppa_bookable) first
@@ -503,10 +505,10 @@ export function CourtsHome({
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap items-center gap-2">
             {([
-              { key: 'indoor',   label: t('courts.filter_indoor') },
-              { key: 'outdoor',  label: t('courts.filter_outdoor') },
-              { key: 'bookable', label: t('courts.filter_bookable') },
-            ] as const).map(({ key, label }) => (
+              { key: 'hasBookingLink', label: t('courts.filter_has_booking', { defaultValue: 'Has booking link' }) },
+              ...(targetDayKey && targetTime ? [{ key: 'openNow' as const, label: t('courts.filter_open_now', { defaultValue: 'Open at this time' }) }] : []),
+              ...(groupHistory.size > 0 ? [{ key: 'playedHere' as const, label: t('courts.filter_played_here', { defaultValue: 'Played here' }) }] : []),
+            ] as { key: keyof typeof filters; label: string }[]).map(({ key, label }) => (
               <button
                 key={key}
                 onClick={() => toggleFilter(key)}
@@ -519,7 +521,33 @@ export function CourtsHome({
                 {label}
               </button>
             ))}
+            <button
+              onClick={() => setShowMoreFilters(p => !p)}
+              className="min-h-[32px] flex-shrink-0 rounded-pill border border-hairline bg-card px-3 py-1 text-[12px] font-semibold text-ink-3 active:scale-95"
+            >
+              {showMoreFilters ? t('courts.filter_less', { defaultValue: 'Less' }) : t('courts.filter_more', { defaultValue: 'More' })}
+            </button>
           </div>
+          {showMoreFilters && (
+            <div className="flex flex-wrap items-center gap-2 mt-1">
+              {([
+                { key: 'indoor' as const, label: `${t('courts.filter_indoor')} (224)` },
+                { key: 'outdoor' as const, label: `${t('courts.filter_outdoor')} (111)` },
+              ]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => toggleFilter(key)}
+                  aria-pressed={filters[key]}
+                  className={cn(
+                    'min-h-[32px] flex-shrink-0 rounded-pill border px-3 py-1 text-[12px] font-semibold transition-colors active:scale-95',
+                    filters[key] ? 'border-court bg-court text-on-brand' : 'border-hairline bg-card text-ink-2',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
 
           {lat != null && lng != null && (
             <div className="ml-auto flex flex-shrink-0 rounded-pill bg-hairline p-0.5">

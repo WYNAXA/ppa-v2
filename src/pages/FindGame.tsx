@@ -346,7 +346,7 @@ export default function FindGame() {
             {selectedGroupId && fullMembers.length > 1 && (
               <div>
                 <p className="text-[13px] font-semibold text-ink-2 mb-2">
-                  {selectedPlayers.length + 1} playing (including you)
+                  You + {selectedPlayers.length} to invite
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {fullMembers

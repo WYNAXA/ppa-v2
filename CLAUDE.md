@@ -98,18 +98,24 @@ On 2026-09-16, five migrations were applied via execute_sql and not recorded
 until hours later. The divergence was caught manually. This rule exists so it
 does not happen again.
 
-## Build checks — absolute cd, pwd, exit code
+## Build checks — `npm run build`, not `tsc --noEmit`
 
-Every TypeScript build check MUST use an absolute `cd` at the start of the Bash
-call and print `pwd` and the exit code. No pushd/popd — the shell CWD resets
-between calls and pushd silently returns to the wrong directory.
+The build gate is:
 
 ```
-cd /Users/.../ppa-v2 && pwd && npx tsc --noEmit; echo "exit=$?"
+cd /Users/christianshanahan/Documents/ppa-v2 && pwd && npm run build; echo "exit=$?"
 ```
 
-A build claim without `pwd` and `exit=0` in the raw output is not a build claim.
+Nothing else counts as a build check. Specifically:
 
-Commit `ddb3759` shipped with TypeScript errors in FindGame.tsx and VenueDetail.tsx
-because tsc was silently running against the wrong repo. This rule exists so it
-does not happen again.
+- **`npx tsc --noEmit` is NOT a build check.** It uses the root `tsconfig.json`
+  which has no `compilerOptions` — it misses `noUnusedLocals` and
+  `noUnusedParameters` from `tsconfig.app.json`. `npm run build` runs `tsc -b`
+  which uses project references and enforces both.
+- **Use absolute `cd`, print `pwd` and exit code.** The shell CWD resets between
+  calls; pushd/popd silently runs in the wrong directory.
+- **A build claim without `pwd` and `exit=0` is not a build claim.**
+
+Two commits shipped broken because of this:
+- `ddb3759`: tsc ran in the wrong directory (pushd/popd bug)
+- `a726024`: tsc --noEmit passed but npm run build failed (noUnusedLocals)

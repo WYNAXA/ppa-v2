@@ -668,7 +668,7 @@ export function VenueDetailPage() {
             onClick={() => openUrl(venue.booking_url!)}
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
-            {isNamedPlatform(venue.booking_platform)
+            {isNamedPlatform(venue.booking_platform, venue.booking_url)
               ? t('venue.book_via_platform', { platform: venue.booking_platform })
               : t('venue.visit_website', { defaultValue: 'Visit their website' })}
             <ExternalLink size={14} />

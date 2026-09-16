@@ -8,15 +8,34 @@
 export type VenueTier = 1 | 2 | 3
 
 /**
- * P1: Named platforms the user has heard of. 'Own' and 'Custom' are internal
- * categories, not brands. Anything not on this list is treated as a website.
+ * P1/P5a: Named platforms seeded from the data. Only values that exist in
+ * padel_venues.booking_platform AND whose booking_url host matches. 'Own' and
+ * 'Custom' are internal categories, not brands. Matchi, Padel Mates, Court
+ * Booking were removed — zero venues carry them.
+ *
+ * "Book on <name>" requires BOTH the name here AND the URL host containing the
+ * platform token — the same pairing check_booking_platform_url enforces in the
+ * DB. Where they disagree: "Visit their website".
+ *
  * Add new platforms here — this is the ONLY place the list lives.
  */
-const NAMED_PLATFORMS = new Set(['Playtomic', 'EasyCancha', 'Matchi', 'Padel Mates', 'Court Booking'])
+const NAMED_PLATFORMS: Record<string, string> = {
+  'Playtomic':  'playtomic',   // 177 venues, all URLs match
+  'EasyCancha': 'easycancha',  // 1 venue, URL matches
+}
 
-/** True if booking_platform is a real named platform a player recognises. */
-export function isNamedPlatform(platform: string | null | undefined): boolean {
-  return !!platform && NAMED_PLATFORMS.has(platform)
+/** True if booking_platform is a real named platform AND the URL host matches. */
+export function isNamedPlatform(platform: string | null | undefined, bookingUrl?: string | null): boolean {
+  if (!platform || !(platform in NAMED_PLATFORMS)) return false
+  // If no URL provided, trust the platform name alone (label-only contexts)
+  if (!bookingUrl) return true
+  const token = NAMED_PLATFORMS[platform]
+  try {
+    const host = new URL(bookingUrl).hostname.toLowerCase()
+    return host.includes(token)
+  } catch {
+    return false
+  }
 }
 
 export function getVenueTier(venue: {
@@ -29,10 +48,3 @@ export function getVenueTier(venue: {
   return 3
 }
 
-export function getTierLabel(tier: VenueTier, platform?: string | null): string {
-  switch (tier) {
-    case 1: return 'Book in the app'
-    case 2: return isNamedPlatform(platform) ? `Book on ${platform}` : 'Visit their website'
-    case 3: return 'Call or visit'
-  }
-}

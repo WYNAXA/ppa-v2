@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
 import { getVenueTier, isNamedPlatform, type VenueTier } from '@/lib/venueTier'
 import { venueOpenState, type VenueOpenState, type AvailabilitySettings } from '@/lib/venueHours'
+import { forwardGeocode } from '@/lib/geocode'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 
 // Leaflet is ~150KB and most sessions never open the map, so it loads on demand.
@@ -341,44 +342,64 @@ export function CourtsHome({
     return () => clearTimeout(t)
   }, [query])
 
+  // P3: search state — geocoded location when name/city match returns nothing
+  const [searchGeoLabel, setSearchGeoLabel] = useState<string | null>(null)
+
+  const shapeRow = (v: any, fromLat: number | null, fromLng: number | null): Venue => {
+    const vLat = v.latitude != null ? Number(v.latitude) : null
+    const vLng = v.longitude != null ? Number(v.longitude) : null
+    const confirmed = confirmedCourtCount({
+      indoor_courts: v.indoor_courts, outdoor_courts: v.outdoor_courts,
+      covered_courts: v.covered_courts, number_of_courts: v.number_of_courts,
+    })
+    return {
+      id: v.venue_id, bookingId: v.venues_id ?? v.venue_id,
+      platform: v.booking_platform || null, name: v.venue_name ?? '—',
+      city: v.city ?? null,
+      indoor: (v.indoor_courts ?? 0) > 0,
+      outdoor: (v.outdoor_courts ?? 0) > 0 || (v.number_of_courts ?? 0) > (v.indoor_courts ?? 0),
+      lat: vLat, lng: vLng, courts: confirmed, courtsConfirmed: confirmed != null,
+      distanceMiles: fromLat != null && fromLng != null && vLat != null && vLng != null
+        ? haversineMiles(fromLat, fromLng, vLat, vLng) : null,
+      pricePence: v.price_pence ?? v.price_per_hour ?? null,
+      bookable: v.ppa_bookable === true,
+      onPpa: v.ppa_bookable === true,
+      bookingUrl: v.booking_url || null,
+      tier: getVenueTier({ ppa_bookable: v.ppa_bookable, booking_url: v.booking_url, booking_platform: v.booking_platform }),
+      openingHours: v.opening_hours ?? null,
+    }
+  }
+
   const { data: searchResults = [] } = useQuery<Venue[]>({
     queryKey: ['venue-search', debouncedQuery],
     enabled: debouncedQuery.length >= 2,
     staleTime: 30_000,
     queryFn: async () => {
+      setSearchGeoLabel(null)
       const safe = debouncedQuery.replace(/[%_\\]/g, c => `\\${c}`)
-      const { data: rows, error } = await supabase
+
+      // Step 1: try venue_name / city match
+      const { data: rows } = await supabase
         .from('discoverable_venues')
         .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url, opening_hours')
         .eq('venue_type', 'club')
         .or(`venue_name.ilike.%${safe}%,city.ilike.%${safe}%`)
         .limit(30)
-      if (error) throw error
-      // Reuse the shape function from the nearby query — build inline here
-      return (rows ?? []).map((v: any): Venue => {
-        const vLat = v.latitude != null ? Number(v.latitude) : null
-        const vLng = v.longitude != null ? Number(v.longitude) : null
-        const confirmed = confirmedCourtCount({
-          indoor_courts: v.indoor_courts, outdoor_courts: v.outdoor_courts,
-          covered_courts: v.covered_courts, number_of_courts: v.number_of_courts,
-        })
-        return {
-          id: v.venue_id, bookingId: v.venues_id ?? v.venue_id,
-          platform: v.booking_platform || null, name: v.venue_name ?? '—',
-          city: v.city ?? null,
-          indoor: (v.indoor_courts ?? 0) > 0,
-          outdoor: (v.outdoor_courts ?? 0) > 0 || (v.number_of_courts ?? 0) > (v.indoor_courts ?? 0),
-          lat: vLat, lng: vLng, courts: confirmed, courtsConfirmed: confirmed != null,
-          distanceMiles: lat != null && lng != null && vLat != null && vLng != null
-            ? haversineMiles(lat, lng, vLat, vLng) : null,
-          pricePence: v.price_pence ?? v.price_per_hour ?? null,
-          bookable: v.ppa_bookable === true,
-          onPpa: v.ppa_bookable === true,
-          bookingUrl: v.booking_url || null,
-          tier: getVenueTier({ ppa_bookable: v.ppa_bookable, booking_url: v.booking_url, booking_platform: v.booking_platform }),
-          openingHours: v.opening_hours ?? null,
-        }
+
+      if (rows && rows.length > 0) {
+        return rows.map((v: any) => shapeRow(v, lat, lng))
+      }
+
+      // Step 2: no name/city match — geocode the string
+      const geo = await forwardGeocode(debouncedQuery)
+      if (!geo) return [] // no hit — "No clubs matching X" will render
+
+      // Step 3: recentre — fetch venues near the geocoded location
+      setSearchGeoLabel(geo.displayName)
+      const { data: nearbyRows } = await supabase.rpc('venues_near', {
+        p_lat: geo.lat, p_lng: geo.lng, p_radius_miles: 25, p_limit: 30, p_venue_type: 'club',
       })
+      return ((nearbyRows ?? []) as any[]).map((v: any) => shapeRow(v, geo.lat, geo.lng))
     },
   })
   const nearbyCount = data?.nearbyCount ?? 0
@@ -463,32 +484,101 @@ export function CourtsHome({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* ── Header + search ── */}
+      {/* ── P4: unified control area — search + filters + toggle ── */}
       <div className="flex flex-col gap-3">
         <h1 className="text-[32px] font-extrabold leading-[34px] tracking-[-0.02em] text-ink">
           {t('nav.courts')}
         </h1>
-        <div className="flex items-center gap-2.5 rounded-card border border-hairline bg-card px-3.5 py-3">
-          <Search className="h-[18px] w-[18px] flex-shrink-0 text-ink-2" strokeWidth={2} />
-          <input
-            value={query}
-            onChange={(e) => onQueryChange(e.target.value)}
-            placeholder={t('courts.search_placeholder')}
-            className="min-w-0 flex-grow bg-transparent text-[15px] leading-5 text-ink outline-none placeholder:text-ink-3"
-          />
-          <button
-            onClick={onUseLocation}
-            disabled={locating}
-            aria-label={t('courts.use_my_location')}
-            aria-busy={locating}
-            className="flex-shrink-0 disabled:opacity-60"
-          >
-            {locating ? (
-              <span className="block h-[18px] w-[18px] animate-spin rounded-full border-2 border-court border-t-transparent" />
-            ) : (
-              <MapPin className="h-[18px] w-[18px] text-court" strokeWidth={2} />
-            )}
-          </button>
+        <div className="rounded-2xl bg-surface/50 p-3 flex flex-col gap-2.5">
+          {/* Search box — full width */}
+          <div className="flex items-center gap-2.5 rounded-card border border-hairline bg-card px-3.5 py-3">
+            <Search className="h-[18px] w-[18px] flex-shrink-0 text-ink-2" strokeWidth={2} />
+            <input
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              placeholder={t('courts.venue_search_placeholder', { defaultValue: 'Search venues, cities, postcodes\u2026' })}
+              className="min-w-0 flex-grow bg-transparent text-[15px] leading-5 text-ink outline-none placeholder:text-ink-3"
+            />
+            <button
+              onClick={onUseLocation}
+              disabled={locating}
+              aria-label={t('courts.use_my_location')}
+              aria-busy={locating}
+              className="flex-shrink-0 disabled:opacity-60"
+            >
+              {locating ? (
+                <span className="block h-[18px] w-[18px] animate-spin rounded-full border-2 border-court border-t-transparent" />
+              ) : (
+                <MapPin className="h-[18px] w-[18px] text-court" strokeWidth={2} />
+              )}
+            </button>
+          </div>
+          {/* Filters + list/map toggle — same row, wraps on narrow screens */}
+          {!query.trim() && hasAnyVenue && (
+            <div className="flex flex-wrap items-center gap-2">
+              {([
+                { key: 'hasBookingLink', label: t('courts.filter_has_booking', { defaultValue: 'Has booking link' }) },
+                ...(targetDayKey && targetTime ? [{ key: 'openNow' as const, label: t('courts.filter_open_now', { defaultValue: 'Open at this time' }) }] : []),
+                ...(groupHistory.size > 0 ? [{ key: 'playedHere' as const, label: t('courts.filter_played_here', { defaultValue: 'Played here' }) }] : []),
+              ] as { key: keyof typeof filters; label: string }[]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => toggleFilter(key)}
+                  aria-pressed={filters[key]}
+                  className={cn(
+                    'min-h-[34px] flex-shrink-0 rounded-pill border-2 px-3.5 py-1 text-[12px] font-bold transition-colors active:scale-95',
+                    filters[key] ? 'border-court bg-court text-on-brand' : 'border-ink-3/20 bg-card text-ink-2',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+              <button
+                onClick={() => setShowMoreFilters(p => !p)}
+                className="min-h-[34px] flex-shrink-0 rounded-pill border-2 border-ink-3/20 bg-card px-3.5 py-1 text-[12px] font-bold text-ink-3 active:scale-95"
+              >
+                {showMoreFilters ? t('courts.filter_less', { defaultValue: 'Less' }) : t('courts.filter_more', { defaultValue: 'More' })}
+              </button>
+              {/* List/Map toggle — right-aligned */}
+              {lat != null && lng != null && (
+                <div className="ml-auto flex flex-shrink-0 rounded-pill bg-hairline p-0.5">
+                  {(['list', 'map'] as const).map((v) => (
+                    <button
+                      key={v}
+                      onClick={() => setView(v)}
+                      aria-pressed={view === v}
+                      className={cn(
+                        'rounded-pill px-2.5 py-1 text-[11px] font-bold transition-colors',
+                        view === v ? 'bg-card text-ink shadow-sm' : 'text-ink-2',
+                      )}
+                    >
+                      {v === 'list' ? t('courts.view_list') : t('courts.view_map')}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {!query.trim() && hasAnyVenue && showMoreFilters && (
+            <div className="flex flex-wrap items-center gap-2">
+              {([
+                { key: 'indoor' as const, label: `${t('courts.filter_indoor')} (224)` },
+                { key: 'outdoor' as const, label: `${t('courts.filter_outdoor')} (111)` },
+              ]).map(({ key, label }) => (
+                <button
+                  key={key}
+                  onClick={() => toggleFilter(key)}
+                  aria-pressed={filters[key]}
+                  className={cn(
+                    'min-h-[34px] flex-shrink-0 rounded-pill border-2 px-3.5 py-1 text-[12px] font-bold transition-colors active:scale-95',
+                    filters[key] ? 'border-court bg-court text-on-brand' : 'border-ink-3/20 bg-card text-ink-2',
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -525,74 +615,7 @@ export function CourtsHome({
         )
       )}
 
-      {/* M4: filter toolbar — heavier borders, teal fill active, own surface */}
-      {!query.trim() && hasAnyVenue && (
-        <div className="rounded-xl bg-surface/50 px-2.5 py-2.5">
-          <div className="flex flex-wrap items-center gap-2">
-            {([
-              { key: 'hasBookingLink', label: t('courts.filter_has_booking', { defaultValue: 'Has booking link' }) },
-              ...(targetDayKey && targetTime ? [{ key: 'openNow' as const, label: t('courts.filter_open_now', { defaultValue: 'Open at this time' }) }] : []),
-              ...(groupHistory.size > 0 ? [{ key: 'playedHere' as const, label: t('courts.filter_played_here', { defaultValue: 'Played here' }) }] : []),
-            ] as { key: keyof typeof filters; label: string }[]).map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => toggleFilter(key)}
-                aria-pressed={filters[key]}
-                className={cn(
-                  'min-h-[34px] flex-shrink-0 rounded-pill border-2 px-3.5 py-1 text-[12px] font-bold transition-colors active:scale-95',
-                  filters[key] ? 'border-court bg-court text-on-brand' : 'border-ink-3/20 bg-card text-ink-2',
-                )}
-              >
-                {label}
-              </button>
-            ))}
-            <button
-              onClick={() => setShowMoreFilters(p => !p)}
-              className="min-h-[34px] flex-shrink-0 rounded-pill border-2 border-ink-3/20 bg-card px-3.5 py-1 text-[12px] font-bold text-ink-3 active:scale-95"
-            >
-              {showMoreFilters ? t('courts.filter_less', { defaultValue: 'Less' }) : t('courts.filter_more', { defaultValue: 'More' })}
-            </button>
-          </div>
-          {showMoreFilters && (
-            <div className="flex flex-wrap items-center gap-2 mt-2">
-              {([
-                { key: 'indoor' as const, label: `${t('courts.filter_indoor')} (224)` },
-                { key: 'outdoor' as const, label: `${t('courts.filter_outdoor')} (111)` },
-              ]).map(({ key, label }) => (
-                <button
-                  key={key}
-                  onClick={() => toggleFilter(key)}
-                  aria-pressed={filters[key]}
-                  className={cn(
-                    'min-h-[34px] flex-shrink-0 rounded-pill border-2 px-3.5 py-1 text-[12px] font-bold transition-colors active:scale-95',
-                    filters[key] ? 'border-court bg-court text-on-brand' : 'border-ink-3/20 bg-card text-ink-2',
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {lat != null && lng != null && (
-            <div className="ml-auto flex flex-shrink-0 rounded-pill bg-hairline p-0.5">
-              {(['list', 'map'] as const).map((v) => (
-                <button
-                  key={v}
-                  onClick={() => setView(v)}
-                  aria-pressed={view === v}
-                  className={cn(
-                    'rounded-pill px-2.5 py-1 text-[11px] font-bold transition-colors',
-                    view === v ? 'bg-card text-ink shadow-sm' : 'text-ink-2',
-                  )}
-                >
-                  {v === 'list' ? t('courts.view_list') : t('courts.view_map')}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {/* Filter toolbar and list/map toggle moved into unified control area above (P4) */}
 
       {/* Nothing left after filtering. Says so, and offers the way back. */}
       {!query.trim() && nothingMatches && (
@@ -645,7 +668,7 @@ export function CourtsHome({
               const isHistory = groupHistory.has(v.id)
               // N2: honest tier-2 split — platform vs website-only
               // P1: 'Own' and 'Custom' are not platform names. Only named platforms get "Book on X".
-              const hasPlatform = v.tier === 2 && isNamedPlatform(v.platform)
+              const hasPlatform = v.tier === 2 && isNamedPlatform(v.platform, v.bookingUrl)
               const hasWebsiteOnly = v.tier === 2 && !hasPlatform
               return (
                 <div key={v.id}>
@@ -868,7 +891,7 @@ export function CourtsHome({
                       : t('courts.courts_unconfirmed'),
                     v.onPpa
                       ? t('courts.booking_coming_soon')
-                      : isNamedPlatform(v.platform)
+                      : isNamedPlatform(v.platform, v.bookingUrl)
                         ? t('courts.books_via', { platform: v.platform })
                         : v.bookingUrl
                           ? t('courts.books_direct')
@@ -903,9 +926,21 @@ export function CourtsHome({
         <section className="flex flex-col gap-2.5">
           {searchResults.length > 0 ? (
             <>
-              <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
-                {searchResults.length} {searchResults.length === 1 ? 'club' : 'clubs'} matching "{query.trim()}"
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+                  {searchGeoLabel
+                    ? `Showing clubs near ${searchGeoLabel}`
+                    : `${searchResults.length} ${searchResults.length === 1 ? 'club' : 'clubs'} matching "${query.trim()}"`}
+                </h2>
+                {searchGeoLabel && (
+                  <button
+                    onClick={() => { onQueryChange(''); setSearchGeoLabel(null) }}
+                    className="text-[11px] font-semibold text-court"
+                  >
+                    Back to my area
+                  </button>
+                )}
+              </div>
               {searchResults.map(v => (
                 <div key={v.id} className={cn(
                   'flex items-center gap-3 rounded-[16px] border border-hairline p-3.5',

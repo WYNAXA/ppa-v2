@@ -345,6 +345,10 @@ export function CourtsHome({
   // P3: search state — geocoded location when name/city match returns nothing
   const [searchGeoLabel, setSearchGeoLabel] = useState<string | null>(null)
 
+  // Q1: shapeRow takes an explicit origin for distance computation.
+  // venues_near returns distance_miles from Postgres — use it when available
+  // (v.distance_miles) to avoid recomputing. Fall back to client haversine
+  // from the provided origin.
   const shapeRow = (v: any, fromLat: number | null, fromLng: number | null): Venue => {
     const vLat = v.latitude != null ? Number(v.latitude) : null
     const vLng = v.longitude != null ? Number(v.longitude) : null
@@ -359,8 +363,9 @@ export function CourtsHome({
       indoor: (v.indoor_courts ?? 0) > 0,
       outdoor: (v.outdoor_courts ?? 0) > 0 || (v.number_of_courts ?? 0) > (v.indoor_courts ?? 0),
       lat: vLat, lng: vLng, courts: confirmed, courtsConfirmed: confirmed != null,
-      distanceMiles: fromLat != null && fromLng != null && vLat != null && vLng != null
-        ? haversineMiles(fromLat, fromLng, vLat, vLng) : null,
+      distanceMiles: v.distance_miles != null ? Number(v.distance_miles)
+        : fromLat != null && fromLng != null && vLat != null && vLng != null
+          ? haversineMiles(fromLat, fromLng, vLat, vLng) : null,
       pricePence: v.price_pence ?? v.price_per_hour ?? null,
       bookable: v.ppa_bookable === true,
       onPpa: v.ppa_bookable === true,
@@ -649,6 +654,7 @@ export function CourtsHome({
               latitude: v.lat,
               longitude: v.lng,
               distance_miles: v.distanceMiles,
+              tier_label: isNamedPlatform(v.platform, v.bookingUrl) ? `Book on ${platformDisplayName(v.bookingUrl)}` : v.bookingUrl ? 'Visit their website' : 'Call or visit',
             }))}
             center={{ lat, lng }}
             onSelect={(id) => navigate(`/venues/${id}`)}

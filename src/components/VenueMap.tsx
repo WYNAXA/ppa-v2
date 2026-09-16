@@ -9,6 +9,7 @@ export interface MapVenue {
   latitude?: number | null
   longitude?: number | null
   distance_miles?: number | null
+  tier_label?: string
 }
 
 // Teal drop pin (matches ContactMap / brand).
@@ -43,6 +44,12 @@ export default function VenueMap({ venues, center, onSelect }: VenueMapProps) {
   const onSelectRef = useRef(onSelect)
   onSelectRef.current = onSelect
 
+  // Q2: global handler for popup button clicks (Leaflet popups are raw HTML)
+  useEffect(() => {
+    (window as any).__ppaMapSelect = (id: string) => onSelectRef.current(id)
+    return () => { delete (window as any).__ppaMapSelect }
+  }, [])
+
   // Init map once.
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -76,9 +83,20 @@ export default function VenueMap({ venues, center, onSelect }: VenueMapProps) {
     for (const v of venues) {
       if (v.latitude == null || v.longitude == null) continue
       const marker = L.marker([v.latitude, v.longitude], { icon: venueIcon }).addTo(layer)
-      const dist = typeof v.distance_miles === 'number' ? ` · ${v.distance_miles.toFixed(1)} mi` : ''
-      marker.bindTooltip(`${v.venue_name}${dist}`, { direction: 'top', offset: [0, -34], opacity: 1 })
-      marker.on('click', () => onSelectRef.current(v.venue_id))
+      const dist = typeof v.distance_miles === 'number' ? `${v.distance_miles.toFixed(1)} mi` : ''
+      const tierLine = v.tier_label || ''
+      const meta = [dist, tierLine].filter(Boolean).join(' · ')
+      // Q2: popup callout instead of direct navigation
+      marker.bindPopup(
+        `<div style="min-width:160px;font-family:system-ui,sans-serif">` +
+        `<div style="font-size:14px;font-weight:700;line-height:1.3">${v.venue_name}</div>` +
+        (meta ? `<div style="font-size:12px;color:#666;margin-top:2px">${meta}</div>` : '') +
+        `<button onclick="window.__ppaMapSelect('${v.venue_id}')" ` +
+        `style="margin-top:8px;padding:6px 14px;background:#0F5D54;color:white;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">` +
+        `View venue</button>` +
+        `</div>`,
+        { closeButton: false, className: 'ppa-map-popup' },
+      )
       points.push([v.latitude, v.longitude])
     }
 

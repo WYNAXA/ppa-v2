@@ -204,7 +204,6 @@ export default function FindGame() {
     staleTime: 30_000,
     queryFn: async () => {
       const args: Record<string, unknown> = {
-        p_user_id: userId,
         p_date: dateStr,
         p_from: selectedWindow !== 'any' ? `${window.from}:00` : null,
         p_to: selectedWindow !== 'any' ? `${window.to}:00` : null,

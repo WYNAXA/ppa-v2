@@ -271,6 +271,13 @@ Two taps and we know the intent.
 `matches.player_ids` has a CHECK constraint: max 4. A padel match IS 4 people.
 The WHO step picks who to **ask**, not who is in the match:
 
+- Asking is **opt-in**. Nobody is selected by default (L6). A 20-member
+  group does not fire 19 push notifications on one tap.
+- Two quick-select actions above the chips:
+  - **Ask everyone** — selects all members
+  - **Ask the usual four** — selects the 3 most frequent co-players from
+    the last 20 non-cancelled matches in this group (+ the creator = 4).
+    Only shown when the group has ≥ 5 matches of history.
 - The user selects a group and/or individual players — no cap on how many.
 - `handleCreateMatch` inserts `player_ids: [userId]` only (the creator).
   `is_open = true`, `open_audience = 'groups' | 'connections'`, `status = 'open'`.

@@ -14,6 +14,7 @@
  */
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { addDays, format, startOfDay } from 'date-fns'
 import { ChevronLeft, ChevronRight, Calendar, Clock, Users, MapPin } from 'lucide-react'
@@ -73,12 +74,43 @@ export default function FindGame() {
   // recentMembers is .slice(0,5) — a preview for avatars, not a member list.
   const { data: fullMembers = [] } = useGroupMembers(selectedGroupId)
 
-  // Pre-select all members when the full list loads
+  // L6: default is nobody selected. Asking is opt-in.
+  // Reset selection when group changes.
   useEffect(() => {
-    if (fullMembers.length > 0 && selectedGroupId) {
-      setSelectedPlayers(fullMembers.filter(m => m.id !== userId).map(m => m.id))
-    }
-  }, [fullMembers, selectedGroupId, userId])
+    setSelectedPlayers([])
+  }, [selectedGroupId])
+
+  // "The usual four" — top 3 most frequent co-players from recent group matches.
+  // Same window as whose_turn_to_book (last N matches in this group).
+  const { data: usualPlayers } = useQuery<string[]>({
+    queryKey: ['usual-four', selectedGroupId],
+    enabled: !!selectedGroupId,
+    staleTime: 60_000,
+    queryFn: async () => {
+      // Last 20 non-cancelled matches in this group
+      const { data: matches } = await supabase
+        .from('matches')
+        .select('player_ids')
+        .eq('group_id', selectedGroupId!)
+        .not('status', 'in', '("cancelled")')
+        .order('match_date', { ascending: false })
+        .limit(20)
+      if (!matches || matches.length < 5) return [] // not enough history
+      // Count appearances per player, excluding the current user
+      const counts = new Map<string, number>()
+      for (const m of matches) {
+        for (const pid of (m.player_ids ?? []) as string[]) {
+          if (pid === userId) continue
+          counts.set(pid, (counts.get(pid) ?? 0) + 1)
+        }
+      }
+      // Top 3 by frequency
+      return [...counts.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([id]) => id)
+    },
+  })
 
   // ── WHERE state ───────────────────────────────────────────────────────────
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null)
@@ -342,12 +374,37 @@ export default function FindGame() {
               </div>
             )}
 
-            {/* Selected players from group */}
+            {/* Selected players from group — L6: asking is opt-in */}
             {selectedGroupId && fullMembers.length > 1 && (
               <div>
                 <p className="text-[13px] font-semibold text-ink-2 mb-2">
-                  You + {selectedPlayers.length} to invite
+                  {selectedPlayers.length > 0 ? `You + ${selectedPlayers.length} to invite` : 'Who do you want to ask?'}
                 </p>
+                {/* Quick-select actions */}
+                <div className="flex gap-2 mb-3">
+                  <button
+                    onClick={() => setSelectedPlayers(fullMembers.filter(m => m.id !== userId).map(m => m.id))}
+                    className="rounded-full border border-court-100 bg-court-50 px-3 py-1.5 text-[12px] font-semibold text-court-700 active:scale-95"
+                  >
+                    Ask everyone
+                  </button>
+                  {usualPlayers && usualPlayers.length === 3 && (
+                    <button
+                      onClick={() => setSelectedPlayers(usualPlayers)}
+                      className="rounded-full border border-court-100 bg-court-50 px-3 py-1.5 text-[12px] font-semibold text-court-700 active:scale-95"
+                    >
+                      Ask the usual four
+                    </button>
+                  )}
+                  {selectedPlayers.length > 0 && (
+                    <button
+                      onClick={() => setSelectedPlayers([])}
+                      className="rounded-full border border-hairline px-3 py-1.5 text-[12px] font-semibold text-ink-3 active:scale-95"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {fullMembers
                     .filter(m => m.id !== userId)

@@ -7,6 +7,18 @@
 
 export type VenueTier = 1 | 2 | 3
 
+/**
+ * P1: Named platforms the user has heard of. 'Own' and 'Custom' are internal
+ * categories, not brands. Anything not on this list is treated as a website.
+ * Add new platforms here — this is the ONLY place the list lives.
+ */
+const NAMED_PLATFORMS = new Set(['Playtomic', 'EasyCancha', 'Matchi', 'Padel Mates', 'Court Booking'])
+
+/** True if booking_platform is a real named platform a player recognises. */
+export function isNamedPlatform(platform: string | null | undefined): boolean {
+  return !!platform && NAMED_PLATFORMS.has(platform)
+}
+
 export function getVenueTier(venue: {
   ppa_bookable?: boolean | null
   booking_url?: string | null
@@ -20,7 +32,7 @@ export function getVenueTier(venue: {
 export function getTierLabel(tier: VenueTier, platform?: string | null): string {
   switch (tier) {
     case 1: return 'Book in the app'
-    case 2: return platform ? `Book with ${platform}` : 'Book with their platform'
+    case 2: return isNamedPlatform(platform) ? `Book on ${platform}` : 'Visit their website'
     case 3: return 'Call or visit'
   }
 }

@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
-import { getVenueTier, type VenueTier } from '@/lib/venueTier'
+import { getVenueTier, isNamedPlatform, type VenueTier } from '@/lib/venueTier'
 import { venueOpenState, type VenueOpenState, type AvailabilitySettings } from '@/lib/venueHours'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 
@@ -644,8 +644,9 @@ export function CourtsHome({
               if (showPpaHeader) shownPpaHeader = true
               const isHistory = groupHistory.has(v.id)
               // N2: honest tier-2 split — platform vs website-only
-              const hasPlatform = v.tier === 2 && !!v.platform
-              const hasWebsiteOnly = v.tier === 2 && !v.platform && !!v.bookingUrl
+              // P1: 'Own' and 'Custom' are not platform names. Only named platforms get "Book on X".
+              const hasPlatform = v.tier === 2 && isNamedPlatform(v.platform)
+              const hasWebsiteOnly = v.tier === 2 && !hasPlatform
               return (
                 <div key={v.id}>
                   {showPpaHeader && (
@@ -867,9 +868,9 @@ export function CourtsHome({
                       : t('courts.courts_unconfirmed'),
                     v.onPpa
                       ? t('courts.booking_coming_soon')
-                      : v.platform && v.platform !== 'Own'
+                      : isNamedPlatform(v.platform)
                         ? t('courts.books_via', { platform: v.platform })
-                        : v.platform === 'Own'
+                        : v.bookingUrl
                           ? t('courts.books_direct')
                           : t('courts.not_on_ppa'),
                   ].filter(Boolean).join(' · ')}

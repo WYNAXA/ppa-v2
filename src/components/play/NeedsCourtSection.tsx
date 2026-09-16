@@ -207,17 +207,26 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
 
               {waitingOnPlayers ? (
                 // §4: Open match, fewer than 4 — waiting on invitees.
-                // Do NOT offer "I'll book it" — the game may not happen yet.
+                // Do NOT offer "I'll book it" (claim) — the game may not happen yet.
+                // DO offer "Already booked" (self-report) — courts are scarcer than players (B2/K9).
                 <div className="flex flex-col gap-1.5">
                   <span className="text-[13px] text-ink-2">
                     Waiting on players{match.pending_invitations > 0 ? ` · ${match.pending_invitations} invited` : ''}
                   </span>
-                  <button
-                    onClick={() => navigate(`/matches/${match.id}`)}
-                    className="self-start rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-semibold text-ink-2"
-                  >
-                    View match
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setSelfReportMatch(match)}
+                      className="rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-semibold text-ink-2"
+                    >
+                      {t('home.already_booked', { defaultValue: 'Already booked' })}
+                    </button>
+                    <button
+                      onClick={() => navigate(`/matches/${match.id}`)}
+                      className="rounded-control border border-hairline bg-card px-3 py-2 text-[12px] font-semibold text-ink-2"
+                    >
+                      View match
+                    </button>
+                  </div>
                 </div>
               ) : isClaimed && !isMyClaimk ? (
                 // Someone else claimed it — show who + option to take over or self-report

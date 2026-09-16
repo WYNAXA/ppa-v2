@@ -58,3 +58,42 @@ SQL Editor. Do not use `db query -f` followed by a manual INSERT.
 3. If the tooling (e.g. `supabase db query --linked`) cannot hold a transaction
    across statements, the test is not safe to run against production. Use a
    local database or a `DO` block instead.
+
+## Matches realtime invalidation
+
+**Rule:** every React Query key that reads from the `matches` table MUST be
+invalidated by `useUserMatchesSubscription` in
+`src/hooks/useRealtimeSubscription.ts`. When you add a new `useQuery` that
+selects from `matches`, add its key to the handler on the same PR.
+
+Current list (2026-09-16):
+
+```
+home-next-match    home-quick-stats   home-activity
+matches            play-matches       unbooked-matches
+handoff-matches    join-open-matches  week-open-matches
+open-matches       play-upcoming      week-my-matches
+week-group-matches
+```
+
+A missing key means a player's view goes stale when another player changes
+the same match — the exact bug that kept booked games visible on Home.
+
+## Migrations — ppa-v2 owns them for timbjfihsxqfrqrxwdny
+
+**Rule:** ppa-v2 is the single repo that holds migration files for the shared
+Supabase project (ref `timbjfihsxqfrqrxwdny`). venue-manager does NOT have a
+migrations directory for this project. Both apps share one database.
+
+Every schema or data change goes through one of these two paths:
+
+1. **`supabase db push`** — write the .sql file first, then push. The file is
+   the source of truth.
+2. **`execute_sql` (MCP / SQL Editor)** — when applying immediately, write the
+   byte-identical .sql file AND record it with
+   `INSERT INTO supabase_migrations.schema_migrations (version, statements) VALUES (...)`
+   **in the same turn**. Never execute_sql alone.
+
+On 2026-09-16, five migrations were applied via execute_sql and not recorded
+until hours later. The divergence was caught manually. This rule exists so it
+does not happen again.

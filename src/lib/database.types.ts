@@ -3976,7 +3976,7 @@ export type Database = {
           booking_advance_nonmember_days: number
           booking_platform: string | null
           booking_type: string | null
-          booking_url: string
+          booking_url: string | null
           cafe_bar: boolean | null
           changing_rooms: boolean | null
           city: string
@@ -4010,7 +4010,7 @@ export type Database = {
           membership_required: boolean | null
           merged_into: string | null
           needs_review: boolean
-          number_of_courts: number
+          number_of_courts: number | null
           opening_hours: Json | null
           outdoor_courts: number | null
           panoramic_courts: number | null
@@ -4051,7 +4051,7 @@ export type Database = {
           booking_advance_nonmember_days: number
           booking_platform?: string | null
           booking_type?: string | null
-          booking_url?: string
+          booking_url?: string | null
           cafe_bar?: boolean | null
           changing_rooms?: boolean | null
           city: string
@@ -4085,7 +4085,7 @@ export type Database = {
           membership_required?: boolean | null
           merged_into?: string | null
           needs_review?: boolean
-          number_of_courts: number
+          number_of_courts?: number | null
           opening_hours?: Json | null
           outdoor_courts?: number | null
           panoramic_courts?: number | null
@@ -4126,7 +4126,7 @@ export type Database = {
           booking_advance_nonmember_days?: number
           booking_platform?: string | null
           booking_type?: string | null
-          booking_url?: string
+          booking_url?: string | null
           cafe_bar?: boolean | null
           changing_rooms?: boolean | null
           city?: string
@@ -4160,7 +4160,7 @@ export type Database = {
           membership_required?: boolean | null
           merged_into?: string | null
           needs_review?: boolean
-          number_of_courts?: number
+          number_of_courts?: number | null
           opening_hours?: Json | null
           outdoor_courts?: number | null
           panoramic_courts?: number | null
@@ -9294,18 +9294,18 @@ export type Database = {
           p_venue_type?: string
         }
         Returns: {
-          booking_platform: string
-          booking_url: string
+          booking_platform: string | null
+          booking_url: string | null
           city: string
           country_code: string
-          covered_courts: number
+          covered_courts: number | null
           distance_miles: number
-          indoor_courts: number
+          indoor_courts: number | null
           latitude: number
           longitude: number
           needs_review: boolean
-          number_of_courts: number
-          outdoor_courts: number
+          number_of_courts: number | null
+          outdoor_courts: number | null
           photos: Json
           postcode: string
           ppa_bookable: boolean
@@ -9326,18 +9326,18 @@ export type Database = {
           p_venue_type?: string
         }
         Returns: {
-          booking_platform: string
-          booking_url: string
+          booking_platform: string | null
+          booking_url: string | null
           city: string
           country_code: string
-          covered_courts: number
+          covered_courts: number | null
           distance_miles: number
-          indoor_courts: number
+          indoor_courts: number | null
           latitude: number
           longitude: number
           needs_review: boolean
-          number_of_courts: number
-          outdoor_courts: number
+          number_of_courts: number | null
+          outdoor_courts: number | null
           photos: Json
           place_kind: string
           place_label: string

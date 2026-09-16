@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { Plus, Bell, Check, ChevronRight, Calendar } from 'lucide-react'
+import { Plus, Check, ChevronRight, Calendar, Clock } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
 import { CreateMatchSheet } from '@/components/play/CreateMatchSheet'
@@ -57,22 +57,9 @@ function useOpenMatchCount(userId: string, elo: number | null | undefined, enabl
   })
 }
 
-/** How many court waitlists the player is sitting on — the sheet's footer. */
-function useWaitlistCount(userId: string, enabled: boolean) {
-  return useQuery<number>({
-    queryKey: ['play-sheet-waitlists', userId],
-    enabled: enabled && !!userId,
-    staleTime: 60_000,
-    queryFn: async () => {
-      const { count } = await supabase
-        .from('slot_waitlist')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'waiting')
-      return count ?? 0
-    },
-  })
-}
+// Slot waitlist is deliberately dormant — see BOOKING_V1_BUILD.md §6.
+// useWaitlistCount and the PlaySheet badge were removed because the
+// BookCourt join path was unreachable (availability API omits full slots).
 
 export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const navigate = useNavigate()
@@ -83,7 +70,6 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
   const [broadcastOpen, setBroadcastOpen] = useState(false)
 
   const { data: openCount = 0 } = useOpenMatchCount(userId, profile?.internal_ranking, open)
-  const { data: waitlists = 0 } = useWaitlistCount(userId, open)
 
   // Escape closes, and the page behind must not scroll while the sheet is up.
   useEffect(() => {
@@ -120,6 +106,14 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
       sub: t('play.sheet_open_sub', { count: openCount }),
       badge: openCount > 0 ? openCount : null,
       onSelect: () => go('/open-matches'),
+    },
+    {
+      key: 'find',
+      icon: <Clock className="h-[19px] w-[19px]" strokeWidth={2.2} />,
+      title: t('play.sheet_find_title', { defaultValue: 'I want to play' }),
+      sub: t('play.sheet_find_sub', { defaultValue: 'Pick a time, then find a court' }),
+      badge: null,
+      onSelect: () => go('/play/find-game'),
     },
     {
       key: 'book',
@@ -236,17 +230,6 @@ export function PlaySheet({ open, onClose }: { open: boolean; onClose: () => voi
                 ))}
               </div>
 
-              {waitlists > 0 && (
-                <button
-                  onClick={() => go('/play/waitlist')}
-                  className="flex min-h-[44px] items-center justify-center gap-[7px] pt-0.5"
-                >
-                  <Bell className="h-[15px] w-[15px] text-ink-2" strokeWidth={2.2} />
-                  <span className="text-[13px] font-semibold leading-[17px] text-ink-2">
-                    {t('play.sheet_on_waitlists', { count: waitlists })}
-                  </span>
-                </button>
-              )}
             </div>
           </motion.div>
         </>

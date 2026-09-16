@@ -2,8 +2,7 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
-import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, QrCode, X, MessageCircle } from 'lucide-react'
-import QRCodeSVG from 'react-qr-code'
+import { ChevronLeft, MapPin, Star, ExternalLink, Phone, Mail, Globe, X, MessageCircle } from 'lucide-react'
 import { format } from 'date-fns'
 import { toast } from 'sonner'
 import { useTranslation } from 'react-i18next'
@@ -11,12 +10,12 @@ import type { TFunction } from 'i18next'
 import { useDateLocale } from '@/lib/dateLocale'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { venueClaimUrl } from '@/lib/admin'
 import { money, majorToMinor } from '@/lib/money'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
+import { hoursAreTrustworthy } from '@/lib/venueHours'
 import { goBack } from '@/lib/navigation'
 import { openUrl } from '@/lib/openUrl'
 
@@ -137,11 +136,10 @@ const AMENITY_LABELS: Record<string, string> = {
 }
 
 /**
- * `surface_type` is `DEFAULT 'artificial_grass'` and 5,882 of 6,099 rows carry
- * exactly that, so the value tells you nothing about the venue. The page used
- * to print it as fact ("Surface: artificial grass") on every one of them.
+ * `surface_type` used to DEFAULT 'artificial_grass' — 5,627 such rows were
+ * NULL-ified (migration 20260916100000). Any remaining value is real data
+ * (on a venue with number_of_courts > 0) and should be rendered.
  */
-const DEFAULT_SURFACE = 'artificial_grass'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -204,14 +202,7 @@ function googleMapsUrl(lat?: number | null, lng?: number | null, address?: strin
 // Every seed venue was given the same fabricated opening hours. Treat that exact
 // pattern (and null) as "not confirmed" so we invite the venue to update it rather
 // than presenting invented hours as fact.
-function isSeedDefaultHours(oh: Record<string, { open: string; close: string }> | null): boolean {
-  if (!oh) return false
-  const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday']
-  const weekend = ['saturday', 'sunday']
-  const wk = weekdays.every(d => oh[d]?.open === '07:00' && oh[d]?.close === '22:00')
-  const we = weekend.every(d => oh[d]?.open === '08:00' && oh[d]?.close === '21:00')
-  return wk && we
-}
+// isSeedDefaultHours replaced by shared hoursAreTrustworthy() in @/lib/venueHours
 
 function WaitingOnInfo({ text }: { text?: string }) {
   const { t } = useTranslation()
@@ -247,7 +238,8 @@ export function VenueDetailPage() {
   const locale = useDateLocale()
   const [userRating, setUserRating] = useState(0)
   const [userReview, setUserReview] = useState('')
-  const [showClaimQr, setShowClaimQr] = useState(false)
+  const [hasFlagged, setHasFlagged] = useState(false)
+  const [flagging, setFlagging] = useState(false)
   const [showAskVenue, setShowAskVenue] = useState(false)
 
   // ── Queries ──────────────────────────────────────────────────────────────
@@ -438,9 +430,35 @@ export function VenueDetailPage() {
 
   // ── Derived values ───────────────────────────────────────────────────────
 
-  // Claim QR: shown to any signed-in user while the venue is unclaimed; hidden once
-  // a claim exists (venues_id anchor set). Turns it into a self-serve growth loop.
+  // Player interest: shown to any signed-in user while the venue is unclaimed.
   const canClaim = !!user && !!venueId && !((venue as { venues_id?: string | null } | null)?.venues_id)
+
+  // Check if current user already flagged this venue
+  useEffect(() => {
+    if (!canClaim || !user?.id || !venueId) return
+    let cancelled = false
+    supabase
+      .from('player_venue_interest')
+      .select('id')
+      .eq('venue_id', venueId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => { if (!cancelled && data) setHasFlagged(true) })
+    return () => { cancelled = true }
+  }, [canClaim, user?.id, venueId])
+
+  async function handleFlagVenue() {
+    if (!user?.id || !venueId) return
+    setFlagging(true)
+    const { error } = await supabase
+      .from('player_venue_interest')
+      .insert({ venue_id: venueId, user_id: user.id })
+    setFlagging(false)
+    if (error && error.code === '23505') { setHasFlagged(true); return }
+    if (error) { toast.error('Could not save — try again.'); return }
+    setHasFlagged(true)
+    toast.success(t('venue.flag_thanks', { defaultValue: 'Noted. The more players who flag a club, the sooner we approach them.' }))
+  }
 
   /**
    * Court count, from two columns that disagree and neither of which is
@@ -451,9 +469,11 @@ export function VenueDetailPage() {
   const isCoach = venue?.venue_type === 'coach'
   const totalCourts = (venue && !isCoach ? confirmedCourtCount(venue) : null) ?? 0
   const courtBreakdown = (venue?.indoor_courts ?? 0) + (venue?.outdoor_courts ?? 0) + (venue?.covered_courts ?? 0)
+  // If the split doesn't reconcile to the total, suppress it entirely — show total only
+  const splitReconciles = courtBreakdown > 0 && courtBreakdown === totalCourts
   const breakdownIsPartial = totalCourts > courtBreakdown && courtBreakdown > 0
 
-  const hoursConfirmed = !!venue?.opening_hours && !isSeedDefaultHours(venue.opening_hours as any)
+  const hoursConfirmed = hoursAreTrustworthy(venue?.opening_hours as any)
   const openStatus = hoursConfirmed ? getOpenStatus(venue!.opening_hours as any, t) : null
 
   /**
@@ -486,9 +506,7 @@ export function VenueDetailPage() {
    */
   const externalReviews = venue?.total_reviews && venue.total_reviews > 0 ? venue.total_reviews : null
 
-  const surfaceType = venue?.surface_type && venue.surface_type !== DEFAULT_SURFACE
-    ? venue.surface_type
-    : null
+  const surfaceType = venue?.surface_type || null
 
   /**
    * Facilities, unioned across the three columns that each carry part of the
@@ -700,15 +718,23 @@ export function VenueDetailPage() {
         <p className="px-5 mt-2 text-xs text-ink-2 leading-relaxed">{venue.booking_advance_info}</p>
       )}
 
-      {/* Claim CTA — shown to anyone while the venue is unclaimed; hides once claimed */}
+      {/* Player interest — "I play here, tell them about Wynaxa" */}
       {canClaim && (
         <div className="px-5 mt-3">
-          <button
-            onClick={() => setShowClaimQr(true)}
-            className="w-full rounded-xl border border-dashed border-court-100 bg-court-50 text-court-700 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
-          >
-            <QrCode size={16} /> {t('venue.own_claim')}
-          </button>
+          {hasFlagged ? (
+            <p className="text-[12px] text-ink-2 text-center py-2">
+              {t('venue.already_flagged', { defaultValue: "You've flagged this club." })}
+            </p>
+          ) : (
+            <button
+              onClick={handleFlagVenue}
+              disabled={flagging}
+              className="w-full rounded-xl border border-dashed border-court-100 bg-court-50 text-court-700 font-semibold py-2.5 text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
+            >
+              <MapPin size={16} />
+              {t('venue.flag_interest', { defaultValue: 'I play here \u2014 tell them about Wynaxa' })}
+            </button>
+          )}
         </div>
       )}
 
@@ -725,62 +751,6 @@ export function VenueDetailPage() {
         email={venue.email}
       />
 
-      {/* Claim-QR modal */}
-      {showClaimQr && venueId && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-scrim p-4"
-          onClick={() => setShowClaimQr(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl bg-card p-6 text-center relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShowClaimQr(false)}
-              className="absolute top-4 right-4 text-ink-2 active:scale-90 transition-transform"
-              aria-label="Close"
-            >
-              <X size={20} />
-            </button>
-            <p className="text-[13px] font-semibold text-court-700">{t('venue.claim_hub_title')}</p>
-            <h3 className="text-lg font-bold text-ink mt-0.5 mb-4">{venue.venue_name}</h3>
-            <div className="bg-card p-4 rounded-2xl border border-hairline inline-block">
-              <QRCodeSVG value={venueClaimUrl(venueId)} size={200} />
-            </div>
-            <p className="text-[12px] text-ink-2 mt-4 leading-relaxed">
-              {t('venue.claim_qr_desc')}
-            </p>
-            {/*
-              The QR is for the moment you are standing at the desk. Away from
-              the club it is useless — you cannot scan a code at a venue you are
-              not at — so the same claim link is also offered as a message you
-              can send them. This modal used to be QR-only.
-            */}
-            <button
-              onClick={async () => {
-                const text = t('venue.claim_outreach_message', { name: venue.venue_name, url: venueClaimUrl(venueId) })
-                try {
-                  await navigator.clipboard.writeText(text)
-                  toast.success(t('venue.message_copied'))
-                } catch {
-                  toast.error(t('venue.copy_failed'))
-                }
-              }}
-              className="mt-3 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl border border-court-100 bg-court-50 px-6 py-3 text-[14px] font-semibold text-court-700 active:scale-[0.98] transition-transform"
-            >
-              <Mail size={15} /> {t('venue.copy_message')}
-            </button>
-            <a
-              href={venueClaimUrl(venueId)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-2xl bg-court px-6 py-3 text-[14px] font-bold text-white active:scale-[0.98] transition-transform"
-            >
-              {t('venue.claim_now')}
-            </a>
-          </div>
-        </div>
-      )}
 
       {/* 4. Courts — hidden for coaches */}
       {!isCoach && <section className="px-5 mt-6">
@@ -789,30 +759,27 @@ export function VenueDetailPage() {
         </h2>
         {totalCourts > 0 ? (
           <>
-            <div className="grid grid-cols-3 gap-2">
-              {(venue.indoor_courts ?? 0) > 0 && (
-                <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
-                  <div className="text-xl">{'\u{1F3E0}'}</div>
-                  <div className="text-sm font-medium mt-1">{t('venue.n_indoor', { count: venue.indoor_courts! })}</div>
-                </div>
-              )}
-              {(venue.outdoor_courts ?? 0) > 0 && (
-                <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
-                  <div className="text-xl">{'\u2600\uFE0F'}</div>
-                  <div className="text-sm font-medium mt-1">{t('venue.n_outdoor', { count: venue.outdoor_courts! })}</div>
-                </div>
-              )}
-              {(venue.covered_courts ?? 0) > 0 && (
-                <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
-                  <div className="text-xl">{'\u26FA'}</div>
-                  <div className="text-sm font-medium mt-1">{t('venue.n_covered', { count: venue.covered_courts! })}</div>
-                </div>
-              )}
-            </div>
-            {breakdownIsPartial && (
-              <p className="text-xs text-ink-2 mt-2">
-                {t('venue.split_known', { known: courtBreakdown, total: totalCourts })}
-              </p>
+            {splitReconciles && (
+              <div className="grid grid-cols-3 gap-2">
+                {(venue.indoor_courts ?? 0) > 0 && (
+                  <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
+                    <div className="text-xl">{'\u{1F3E0}'}</div>
+                    <div className="text-sm font-medium mt-1">{t('venue.n_indoor', { count: venue.indoor_courts! })}</div>
+                  </div>
+                )}
+                {(venue.outdoor_courts ?? 0) > 0 && (
+                  <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
+                    <div className="text-xl">{'\u2600\uFE0F'}</div>
+                    <div className="text-sm font-medium mt-1">{t('venue.n_outdoor', { count: venue.outdoor_courts! })}</div>
+                  </div>
+                )}
+                {(venue.covered_courts ?? 0) > 0 && (
+                  <div className="rounded-xl bg-surface border border-hairline p-3 text-center">
+                    <div className="text-xl">{'\u26FA'}</div>
+                    <div className="text-sm font-medium mt-1">{t('venue.n_covered', { count: venue.covered_courts! })}</div>
+                  </div>
+                )}
+              </div>
             )}
             {surfaceType && (
               <p className="text-sm text-ink-2 mt-2">

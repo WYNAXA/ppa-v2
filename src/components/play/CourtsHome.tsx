@@ -8,6 +8,7 @@ import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
 import { getVenueTier, getTierLabel, type VenueTier } from '@/lib/venueTier'
+import { venueOpenState, type VenueOpenState, type AvailabilitySettings } from '@/lib/venueHours'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
 
 // Leaflet is ~150KB and most sessions never open the map, so it loads on demand.
@@ -62,6 +63,12 @@ type Venue = {
   onPpa: boolean
   bookingUrl: string | null
   tier: VenueTier
+  /** Hub-declared availability settings, if present. Authoritative for open-state. */
+  availSettings?: AvailabilitySettings | null
+  /** Three-state open classification for a target time. Set by the list, not the venue. */
+  openState?: VenueOpenState
+  /** Raw opening hours for display (e.g. "Open 09:00–17:00"). */
+  openingHours?: Record<string, { open: string; close: string }> | null
 }
 
 const KM_PER_MILE = 1.609344
@@ -124,7 +131,7 @@ function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 6
         // one stays a plain directory read.
         supabase
           .from('discoverable_venues')
-          .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
+          .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url, opening_hours')
           .eq('ppa_bookable', true)
           .eq('venue_type', 'club')
           .limit(20),
@@ -138,7 +145,7 @@ function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 6
             })
           : supabase
               .from('discoverable_venues')
-              .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url')
+              .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url, opening_hours')
               .not('ppa_bookable', 'is', true)
               .eq('venue_type', 'club')
               .limit(200),
@@ -166,6 +173,18 @@ function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 6
       if (linkedIds.length > 0) {
         const { data: hubVenues } = await supabase.from('venues').select('id').in('id', linkedIds)
         for (const row of hubVenues ?? []) onPpaIds.add(row.id as string)
+      }
+
+      // Fetch court_availability_settings for bookable venues (authoritative hours)
+      const availByVenueId = new Map<string, { open_time: string; close_time: string; indoor_open_time: string | null; indoor_close_time: string | null; outdoor_open_time: string | null; outdoor_close_time: string | null }>()
+      if (linkedIds.length > 0) {
+        const { data: availRows } = await supabase
+          .from('court_availability_settings')
+          .select('venue_id, open_time, close_time, indoor_open_time, indoor_close_time, outdoor_open_time, outdoor_close_time')
+          .in('venue_id', linkedIds)
+        for (const r of availRows ?? []) {
+          availByVenueId.set(r.venue_id as string, r as any)
+        }
       }
 
       const shape = (v: Record<string, unknown>): Venue => {
@@ -208,6 +227,8 @@ function useVenuesNearby(lat: number | null, lng: number | null, radiusMiles = 6
             booking_url: v.booking_url as string | null,
             booking_platform: v.booking_platform as string | null,
           }),
+          availSettings: v.venues_id ? availByVenueId.get(v.venues_id as string) ?? null : null,
+          openingHours: (v.opening_hours as Record<string, { open: string; close: string }>) ?? null,
         }
       }
 
@@ -276,6 +297,10 @@ export interface CourtsHomeProps {
   isMatchMode?: boolean
   /** Called when the claimant taps through to an external venue. */
   onHandoff?: (venueId: string) => void
+  /** §4: target day key for open-state classification. When set, venues are
+   *  labelled OPEN / UNKNOWN / CLOSED. CLOSED shown dimmed at the bottom. */
+  targetDayKey?: string   // 'monday' | 'tuesday' | ... | undefined
+  targetTime?: string     // "HH:MM"
 }
 
 const RADIUS_OPTIONS = [25, 50, 100] as const
@@ -283,6 +308,7 @@ const RADIUS_OPTIONS = [25, 50, 100] as const
 export function CourtsHome({
   lat, lng, query, onQueryChange, onUseLocation, locating = false, onPickVenue, slotsByVenue = {},
   radiusMiles, onRadiusChange, matchGroupId, isMatchMode = false, onHandoff,
+  targetDayKey, targetTime,
 }: CourtsHomeProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -326,11 +352,20 @@ export function CourtsHome({
   //   a) tier 1 (ppa_bookable) first
   //   b) venues this group has played at before
   //   c) distance
+  // CLOSED venues sort to the bottom (dimmed, not hidden). §4.2.
   // In path B (no matchGroupId), keep the existing partner/others split.
   const rankedAll = useMemo(() => {
     if (!isMatchContext) return null
-    const all = [...allPartner, ...allOthers].filter(match)
+    const all = [...allPartner, ...allOthers].filter(match).map(v => {
+      if (!targetDayKey || !targetTime) return v
+      const state = venueOpenState(v.openingHours as any, targetDayKey as any, targetTime, v.availSettings)
+      return { ...v, openState: state }
+    })
     return all.sort((a, b) => {
+      // CLOSED to the bottom
+      const aClosed = a.openState === 'closed' ? 1 : 0
+      const bClosed = b.openState === 'closed' ? 1 : 0
+      if (aClosed !== bClosed) return aClosed - bClosed
       // Tier 1 first
       if (a.tier === 1 && b.tier !== 1) return -1
       if (b.tier === 1 && a.tier !== 1) return 1
@@ -338,10 +373,14 @@ export function CourtsHome({
       const aHist = groupHistory.has(a.id) ? 0 : 1
       const bHist = groupHistory.has(b.id) ? 0 : 1
       if (aHist !== bHist) return aHist - bHist
+      // Within each §3.4 band, OPEN above UNKNOWN
+      const aOpen = a.openState === 'open' ? 0 : a.openState === 'unknown' ? 1 : 2
+      const bOpen = b.openState === 'open' ? 0 : b.openState === 'unknown' ? 1 : 2
+      if (aOpen !== bOpen) return aOpen - bOpen
       // Then distance
       return (a.distanceMiles ?? Infinity) - (b.distanceMiles ?? Infinity)
     })
-  }, [isMatchContext, allPartner, allOthers, match, groupHistory])
+  }, [isMatchContext, allPartner, allOthers, match, groupHistory, targetDayKey, targetTime])
 
   const partner = useMemo(() => allPartner.filter(match).slice(0, 3), [allPartner, match])
   const others  = useMemo(() => allOthers.filter(match).slice(0, 4),  [allOthers, match])
@@ -517,7 +556,10 @@ export function CourtsHome({
                       )}
                     </div>
                   )}
-                  <div className="flex items-center gap-3 rounded-[16px] border border-hairline bg-card p-3.5">
+                  <div className={cn(
+                    'flex items-center gap-3 rounded-[16px] border border-hairline p-3.5',
+                    v.openState === 'closed' ? 'bg-surface opacity-60' : 'bg-card',
+                  )}>
                     <button
                       onClick={() => navigate(`/venues/${v.id}`)}
                       className="flex min-w-0 flex-grow flex-col gap-0.5 text-left"
@@ -527,6 +569,10 @@ export function CourtsHome({
                         {[
                           v.distanceMiles != null ? formatDistance(v.distanceMiles) : v.city,
                           isHistory ? t('courts.played_here', { defaultValue: 'Played here' }) : null,
+                          v.openState === 'closed' && v.openingHours && targetDayKey
+                            ? `Closed at ${targetTime} · open ${v.openingHours[targetDayKey]?.open}–${v.openingHours[targetDayKey]?.close} ${targetDayKey.charAt(0).toUpperCase() + targetDayKey.slice(1)}`
+                            : null,
+                          v.openState === 'unknown' ? t('courts.hours_unknown', { defaultValue: 'Hours unknown' }) : null,
                           v.tier === 2 && v.platform ? v.platform : null,
                           v.tier === 3 ? t('courts.no_booking_link', { defaultValue: 'No booking link' }) : null,
                         ].filter(Boolean).join(' · ')}

@@ -294,6 +294,26 @@ The real times and the real price appear **only** in the first block, because
 that is the only block where we have them. The second block promises exactly
 what it can deliver: a fast route into the right screen of the right app.
 
+#### Three open states — none hidden (2026-09-16)
+
+Every venue resolves to one of three states for a chosen time:
+
+| State | Shown? | Style | Label example |
+|-------|--------|-------|---------------|
+| **OPEN** | Yes | Normal card | (no label — open is the default) |
+| **UNKNOWN** | Yes | Normal card | "Hours unknown" |
+| **CLOSED** | Yes — at the bottom, dimmed | `opacity-60`, `bg-surface` | "Closed at 19:00 · open 09:00–17:00 Thursday" |
+
+Resolution order:
+1. `court_availability_settings` (Hub-declared) — authoritative
+2. `opening_hours` jsonb — if trustworthy (not seed default, covers that weekday)
+3. Otherwise → UNKNOWN
+
+Hiding a real club because our scrape was thin is worse than listing it
+honestly. CLOSED is dimmed but visible — the user can see there is a club
+nearby that shuts early, and can adjust their time. Tappable into the
+venue profile but not into a handoff.
+
 No fake grid. No greyed-out slots implying knowledge we don't have.
 
 ### 4.3 The handoff
@@ -362,6 +382,17 @@ Stating these so nobody adds them later thinking they were forgotten:
    platform.
 4. **Random assignment.** Replaced by whose-turn. See §3.2.
 5. **A second self-report path.** `self_report_booking` exists and is correct.
+6. **Slot waitlist (dormant).** `slot_waitlist` table, `Waitlist.tsx` page
+   (`/play/waitlist`), and the DB RPCs are in place. The BookCourt join path
+   and PlaySheet badge were removed (2026-09-16) because the availability API
+   omits full slots rather than marking them, so the "Full · tap to get
+   notified" branch was unreachable dead code. Measured: The Padel Team
+   Bristol's busiest slot ever was 2 of 7 courts. A waitlist that triggers at
+   7/7 will not fire. Reactivate when a venue actually sells out — the page
+   and table are ready, but the BookCourt UI needs full-slot data from the
+   API before the join path can render.
+7. **Group waitlist.** `group_waitlist` table exists (types only). Zero UI,
+   zero queries, zero implementation. Left as-is.
 
 ---
 

@@ -366,12 +366,7 @@ export function PlayPage() {
                 <span className="text-[11px] font-semibold text-ink-2 text-center leading-tight">{t('play.find_coach', 'Find a coach')}</span>
               </button>
             </div>
-            <button
-              onClick={() => navigate('/play/waitlist')}
-              className="mt-2.5 mx-auto flex items-center gap-1.5 text-[12px] font-semibold text-ink-2 hover:text-court transition-colors"
-            >
-              <Bell className="h-3.5 w-3.5" /> {t('play.my_waitlist', 'My waitlist')}
-            </button>
+            {/* Slot waitlist link removed — dormant, see BOOKING_V1_BUILD.md §6 */}
           </motion.div>
 
           {/* ── What's on — venue events ──────────────────────────────── */}

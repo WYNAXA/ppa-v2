@@ -56,6 +56,7 @@ const JoinMatchPage = lazy(() => import('@/pages/JoinMatch').then(m => ({ defaul
 // The Play sheet pulls in CreateMatchSheet (~42KB) — lazy so it stays out of
 // the initial bundle until the player actually taps the centre action.
 const PlaySheet = lazy(() => import('@/components/play/PlaySheet').then(m => ({ default: m.PlaySheet })))
+const FindGamePage = lazy(() => import('@/pages/FindGame'))
 
 
 const queryClient = new QueryClient({
@@ -302,6 +303,7 @@ function AppShell() {
             <Route path="/play/availability/create"  element={<Guard><CreatePollPage /></Guard>} />
             <Route path="/play/availability/:pollId" element={<Guard><AvailabilityPollPage /></Guard>} />
             <Route path="/play/book-court"           element={<Guard><BookCourtPage /></Guard>} />
+            <Route path="/play/find-game"           element={<Guard><FindGamePage /></Guard>} />
             <Route path="/play/waitlist"             element={<Guard><WaitlistPage /></Guard>} />
             <Route path="/play/events/:occurrenceId"  element={<Guard><VenueEventDetailPage /></Guard>} />
 

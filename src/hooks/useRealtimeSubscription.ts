@@ -72,11 +72,21 @@ export function useUserMatchesSubscription(userId: string | null | undefined) {
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'matches',
       }, () => {
+        // Rule: every query key that reads from `matches` must be here.
+        // See CLAUDE.md § "Matches realtime invalidation" for the full list.
         queryClient.invalidateQueries({ queryKey: ['home-next-match', userId] })
         queryClient.invalidateQueries({ queryKey: ['home-quick-stats', userId] })
         queryClient.invalidateQueries({ queryKey: ['home-activity', userId] })
         queryClient.invalidateQueries({ queryKey: ['matches'] })
         queryClient.invalidateQueries({ queryKey: ['play-matches'] })
+        queryClient.invalidateQueries({ queryKey: ['unbooked-matches', userId] })
+        queryClient.invalidateQueries({ queryKey: ['handoff-matches'] })
+        queryClient.invalidateQueries({ queryKey: ['join-open-matches'] })
+        queryClient.invalidateQueries({ queryKey: ['week-open-matches'] })
+        queryClient.invalidateQueries({ queryKey: ['open-matches'] })
+        queryClient.invalidateQueries({ queryKey: ['play-upcoming'] })
+        queryClient.invalidateQueries({ queryKey: ['week-my-matches'] })
+        queryClient.invalidateQueries({ queryKey: ['week-group-matches'] })
       })
       .on('postgres_changes', {
         event: '*', schema: 'public', table: 'match_results',

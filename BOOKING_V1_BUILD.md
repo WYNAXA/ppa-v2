@@ -264,7 +264,27 @@ The current flow is venue-first. Invert it.
   └────────────────────────────────────────────┘
 ```
 
-Two taps and we know the intent. Christian is right that this is the order
+Two taps and we know the intent.
+
+### 4.1.1 WHO — ask, don't assign (added 2026-09-16)
+
+`matches.player_ids` has a CHECK constraint: max 4. A padel match IS 4 people.
+The WHO step picks who to **ask**, not who is in the match:
+
+- The user selects a group and/or individual players — no cap on how many.
+- `handleCreateMatch` inserts `player_ids: [userId]` only (the creator).
+  `is_open = true`, `open_audience = 'groups' | 'connections'`, `status = 'open'`.
+- Everyone selected gets a row via `send_match_invitations` RPC (existing).
+- The match appears on Home as needing players AND a court — §3.1's card,
+  reached from the other direction.
+- The tile shows "N invited", not "N players" — until people accept, only
+  the creator is confirmed.
+
+The WHO step currently shows the selected group's members only. Connections
+and open-match players (§4 mentions both) are absent — that is scope to add,
+not something that shipped.
+
+Christian is right that this is the order
 Playskan gets correct, and it is correct regardless of whether we hold
 availability — because it changes what we *show*, not what we *claim*.
 

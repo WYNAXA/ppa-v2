@@ -115,12 +115,15 @@ export default function FindGame() {
   // Members of the selected group (for the WHO step)
 
   // ── Create match and navigate to venue selection ──────────────────────────
+  // §4: the WHO step picks who to ASK, not who is in the match.
+  // player_ids = [userId] only. Everyone else gets a match_invitation.
+  // matches_player_ids_check enforces max 4 in player_ids.
   async function handleCreateMatch() {
     if (!userId) return
     setCreatingMatch(true)
 
-    const playerIds = [userId, ...selectedPlayers]
     const matchTime = window.from // 'any' uses '00:00'
+    const hasGroup = !!selectedGroupId
 
     const { data: match, error } = await supabase
       .from('matches')
@@ -128,24 +131,39 @@ export default function FindGame() {
         match_date: dateStr,
         match_time: `${matchTime}:00`,
         match_type: 'casual',
-        status: playerIds.length >= 4 ? 'scheduled' : 'pending',
-        player_ids: playerIds,
+        status: 'open',
+        player_ids: [userId],
         group_id: selectedGroupId,
-        context_type: selectedGroupId ? 'group' : 'open',
+        context_type: hasGroup ? 'group' : 'open',
         booking_status: 'not_booked',
         court_requirement: 'needed',
         created_by: userId,
         created_manually: true,
+        is_open: true,
+        opened_by: userId,
+        opened_at: new Date().toISOString(),
+        open_audience: hasGroup ? 'groups' : 'connections',
       })
       .select('id')
       .single()
 
-    setCreatingMatch(false)
-
     if (error || !match) {
-      toast.error('Could not create the game. Try again.')
+      console.error('[FindGame] match insert failed:', error)
+      toast.error(error?.message ?? 'Could not create the game. Try again.')
+      setCreatingMatch(false)
       return
     }
+
+    // Send invitations to everyone the user selected in WHO
+    if (selectedPlayers.length > 0) {
+      const { error: invErr } = await supabase.rpc('send_match_invitations', {
+        p_match_id: match.id,
+        p_invitee_ids: selectedPlayers,
+      })
+      if (invErr) console.warn('[FindGame] invitations failed:', invErr)
+    }
+
+    setCreatingMatch(false)
 
     // Navigate to BookCourt with the match, so the player lands in the
     // CourtsHome tiered list (Path A: a game needs a court).
@@ -393,7 +411,7 @@ export default function FindGame() {
                 <Calendar className="h-4 w-4 text-court flex-shrink-0" />
                 <span className="text-[13px] text-ink">
                   {dayLabel} {selectedWindow !== 'any' ? window.label.toLowerCase() : 'any time'}
-                  {selectedPlayers.length > 0 && ` · ${selectedPlayers.length + 1} players`}
+                  {selectedPlayers.length > 0 && ` · ${selectedPlayers.length} invited`}
                 </span>
               </div>
             </div>
@@ -417,34 +435,43 @@ export default function FindGame() {
               onQueryChange={setVenueQuery}
               onUseLocation={requestLocation}
               locating={locating}
-              onPickVenue={(venueId) => {
-                // Create the match, then navigate to BookCourt with this venue pre-selected
+              onPickVenue={async (venueId) => {
                 if (!userId) return
-                const playerIds = [userId, ...selectedPlayers]
-                const matchTime = window.from // 'any' uses '00:00'
+                const matchTime = window.from
+                const hasGroup = !!selectedGroupId
 
-                supabase
+                const { data: match, error } = await supabase
                   .from('matches')
                   .insert({
                     match_date: dateStr,
                     match_time: `${matchTime}:00`,
                     match_type: 'casual',
-                    status: playerIds.length >= 4 ? 'scheduled' : 'pending',
-                    player_ids: playerIds,
+                    status: 'open',
+                    player_ids: [userId],
                     group_id: selectedGroupId,
-                    context_type: selectedGroupId ? 'group' : 'open',
+                    context_type: hasGroup ? 'group' : 'open',
                     booking_status: 'not_booked',
                     court_requirement: 'needed',
                     created_by: userId,
                     created_manually: true,
+                    is_open: true,
+                    opened_by: userId,
+                    opened_at: new Date().toISOString(),
+                    open_audience: hasGroup ? 'groups' : 'connections',
                   })
                   .select('id')
                   .single()
-                  .then(({ data: match }) => {
-                    if (match) {
-                      navigate(`/play/book-court?match_id=${match.id}&venue=${venueId}&date=${dateStr}`)
-                    }
+
+                if (error || !match) return
+
+                if (selectedPlayers.length > 0) {
+                  await supabase.rpc('send_match_invitations', {
+                    p_match_id: match.id,
+                    p_invitee_ids: selectedPlayers,
                   })
+                }
+
+                navigate(`/play/book-court?match_id=${match.id}&venue=${venueId}&date=${dateStr}`)
               }}
               matchGroupId={selectedGroupId}
               isMatchMode

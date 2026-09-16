@@ -1,8 +1,8 @@
-import { useMemo, useState, useCallback, lazy, Suspense } from 'react'
+import { useMemo, useState, useCallback, useEffect, lazy, Suspense } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
-import { Search, MapPin, Users } from 'lucide-react'
+import { Search, MapPin, Users, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
@@ -332,6 +332,54 @@ export function CourtsHome({
   // would re-run on each keystroke in the search box for no reason.
   const allPartner = data?.partner ?? NO_VENUES
   const allOthers = data?.others ?? NO_VENUES
+
+  // K2: server-side venue search by name/city when the user types
+  const [debouncedQuery, setDebouncedQuery] = useState('')
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQuery(query.trim()), 300)
+    return () => clearTimeout(t)
+  }, [query])
+
+  const { data: searchResults = [] } = useQuery<Venue[]>({
+    queryKey: ['venue-search', debouncedQuery],
+    enabled: debouncedQuery.length >= 2,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const safe = debouncedQuery.replace(/[%_\\]/g, c => `\\${c}`)
+      const { data: rows, error } = await supabase
+        .from('discoverable_venues')
+        .select('venue_id, venues_id, venue_name, city, indoor_courts, outdoor_courts, covered_courts, number_of_courts, latitude, longitude, price_pence, price_per_hour, ppa_bookable, booking_platform, booking_url, opening_hours')
+        .eq('venue_type', 'club')
+        .or(`venue_name.ilike.%${safe}%,city.ilike.%${safe}%`)
+        .limit(30)
+      if (error) throw error
+      // Reuse the shape function from the nearby query — build inline here
+      return (rows ?? []).map((v: any): Venue => {
+        const vLat = v.latitude != null ? Number(v.latitude) : null
+        const vLng = v.longitude != null ? Number(v.longitude) : null
+        const confirmed = confirmedCourtCount({
+          indoor_courts: v.indoor_courts, outdoor_courts: v.outdoor_courts,
+          covered_courts: v.covered_courts, number_of_courts: v.number_of_courts,
+        })
+        return {
+          id: v.venue_id, bookingId: v.venues_id ?? v.venue_id,
+          platform: v.booking_platform || null, name: v.venue_name ?? '—',
+          city: v.city ?? null,
+          indoor: (v.indoor_courts ?? 0) > 0,
+          outdoor: (v.outdoor_courts ?? 0) > 0 || (v.number_of_courts ?? 0) > (v.indoor_courts ?? 0),
+          lat: vLat, lng: vLng, courts: confirmed, courtsConfirmed: confirmed != null,
+          distanceMiles: lat != null && lng != null && vLat != null && vLng != null
+            ? haversineMiles(lat, lng, vLat, vLng) : null,
+          pricePence: v.price_pence ?? v.price_per_hour ?? null,
+          bookable: v.ppa_bookable === true,
+          onPpa: v.ppa_bookable === true,
+          bookingUrl: v.booking_url || null,
+          tier: getVenueTier({ ppa_bookable: v.ppa_bookable, booking_url: v.booking_url, booking_platform: v.booking_platform }),
+          openingHours: v.opening_hours ?? null,
+        }
+      })
+    },
+  })
   const nearbyCount = data?.nearbyCount ?? 0
   const capped = data?.capped ?? false
 
@@ -779,6 +827,56 @@ export function CourtsHome({
               )}
             </div>
           ))}
+        </section>
+      )}
+
+      {/* ── K2: Search results when query is non-empty ── */}
+      {query.trim().length >= 2 && view === 'list' && (
+        <section className="flex flex-col gap-2.5">
+          {searchResults.length > 0 ? (
+            <>
+              <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
+                {searchResults.length} {searchResults.length === 1 ? 'club' : 'clubs'} matching "{query.trim()}"
+              </h2>
+              {searchResults.map(v => (
+                <div key={v.id} className={cn(
+                  'flex items-center gap-3 rounded-[16px] border border-hairline p-3.5',
+                  'bg-card',
+                )}>
+                  <button
+                    onClick={() => navigate(`/venues/${v.id}`)}
+                    className="flex min-w-0 flex-grow flex-col gap-0.5 text-left"
+                  >
+                    <span className="truncate text-[15px] font-semibold leading-[19px] text-ink">{v.name}</span>
+                    <span className="num truncate text-[12px] leading-4 text-ink-2">
+                      {[
+                        v.city,
+                        v.distanceMiles != null ? formatDistance(v.distanceMiles) : null,
+                        v.tier === 1 ? 'Book in app' : null,
+                        v.tier === 2 && v.platform ? v.platform : null,
+                        v.tier === 3 ? t('courts.no_booking_link', { defaultValue: 'No booking link' }) : null,
+                      ].filter(Boolean).join(' · ')}
+                    </span>
+                  </button>
+                  {v.tier === 1 ? (
+                    <button
+                      onClick={() => onPickVenue(v.bookingId)}
+                      className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-ball px-3.5 py-2.5 text-[13px] font-bold text-ink"
+                    >
+                      {t('courts.book_here')}
+                    </button>
+                  ) : (
+                    <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
+                  )}
+                </div>
+              ))}
+            </>
+          ) : (
+            <div className="rounded-2xl border border-hairline bg-surface py-6 text-center">
+              <p className="text-[13px] text-ink-2">No clubs matching "{query.trim()}"</p>
+              <p className="text-[11px] text-ink-3 mt-1">Try a different name or city</p>
+            </div>
+          )}
         </section>
       )}
 

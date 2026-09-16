@@ -145,7 +145,7 @@ export default function FindGame() {
   // M1: Fetch the user's stored profile location — same source as BookCourt.
   // Without this, FindGame had no coordinates and CourtsHome fell back to an
   // unordered global query (200 arbitrary venues, no distance filter).
-  const { data: userLocation } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
+  const { data: userLocation, isLoading: locationLoading } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
     queryKey: ['my-location-findgame', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -247,7 +247,7 @@ export default function FindGame() {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background overflow-x-hidden">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="sticky top-0 z-30 bg-background/90 backdrop-blur-md border-b border-hairline">
         <div className="flex items-center gap-3 px-5 py-3">
@@ -528,6 +528,7 @@ export default function FindGame() {
               onQueryChange={setVenueQuery}
               onUseLocation={requestLocation}
               locating={locating}
+              locationLoading={locationLoading && !coords}
               onPickVenue={async (venueId) => {
                 if (!userId) return
                 const matchTime = window.defaultTime

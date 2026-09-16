@@ -298,6 +298,9 @@ export interface CourtsHomeProps {
    *  labelled OPEN / UNKNOWN / CLOSED. CLOSED shown dimmed at the bottom. */
   targetDayKey?: string   // 'monday' | 'tuesday' | ... | undefined
   targetTime?: string     // "HH:MM"
+  /** True while the caller's location query is still loading. Prevents the
+   *  "Set your location" prompt from flashing before coordinates arrive. */
+  locationLoading?: boolean
 }
 
 const RADIUS_OPTIONS = [25, 50, 100] as const
@@ -305,7 +308,7 @@ const RADIUS_OPTIONS = [25, 50, 100] as const
 export function CourtsHome({
   lat, lng, query, onQueryChange, onUseLocation, locating = false, onPickVenue, slotsByVenue = {},
   radiusMiles, onRadiusChange, matchGroupId, isMatchMode = false, onHandoff,
-  targetDayKey, targetTime,
+  targetDayKey, targetTime, locationLoading = false,
 }: CourtsHomeProps) {
   const navigate = useNavigate()
   const { t } = useTranslation()
@@ -499,23 +502,32 @@ export function CourtsHome({
           third chip in half at 390px, which reads as a broken layout rather
           than as something you can swipe — and the longer translations
           ("Reservar en la app") make that worse, not better. */}
-      {/* M1: no location → prompt, not a global list */}
+      {/* M1/M5b: no location — loading vs genuinely absent */}
       {!query.trim() && noLocation && !hasAnyVenue && (
-        <div className="rounded-2xl border border-dashed border-hairline bg-surface px-5 py-8 text-center">
-          <MapPin className="h-6 w-6 text-ink-3 mx-auto mb-2" />
-          <p className="text-[14px] font-semibold text-ink-2">Set your location to see clubs near you</p>
-          <button
-            onClick={onUseLocation}
-            disabled={locating}
-            className="mt-3 inline-flex min-h-[44px] items-center rounded-pill bg-court px-5 py-2.5 text-[13px] font-semibold text-on-brand active:scale-95 disabled:opacity-50"
-          >
-            {locating ? t('courts.locating', { defaultValue: 'Locating…' }) : t('courts.use_location', { defaultValue: 'Use my location' })}
-          </button>
-        </div>
+        locationLoading ? (
+          // Location query still in flight — skeleton, not the prompt
+          <div className="flex items-center justify-center py-12">
+            <div className="h-6 w-6 rounded-full border-2 border-court border-t-transparent animate-spin" />
+          </div>
+        ) : (
+          // Location genuinely absent — prompt with action
+          <div className="rounded-2xl border border-dashed border-hairline bg-surface px-5 py-8 text-center">
+            <MapPin className="h-6 w-6 text-ink-3 mx-auto mb-2" />
+            <p className="text-[14px] font-semibold text-ink-2">Set your location to see clubs near you</p>
+            <button
+              onClick={onUseLocation}
+              disabled={locating}
+              className="mt-3 inline-flex min-h-[44px] items-center rounded-pill bg-court px-5 py-2.5 text-[13px] font-semibold text-on-brand active:scale-95 disabled:opacity-50"
+            >
+              {locating ? t('courts.locating', { defaultValue: 'Locating…' }) : t('courts.use_location', { defaultValue: 'Use my location' })}
+            </button>
+          </div>
+        )
       )}
 
+      {/* M4: filter toolbar — heavier borders, teal fill active, own surface */}
       {!query.trim() && hasAnyVenue && (
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="rounded-xl bg-surface/50 px-2.5 py-2.5">
           <div className="flex flex-wrap items-center gap-2">
             {([
               { key: 'hasBookingLink', label: t('courts.filter_has_booking', { defaultValue: 'Has booking link' }) },
@@ -527,8 +539,8 @@ export function CourtsHome({
                 onClick={() => toggleFilter(key)}
                 aria-pressed={filters[key]}
                 className={cn(
-                  'min-h-[32px] flex-shrink-0 rounded-pill border px-3 py-1 text-[12px] font-semibold transition-colors active:scale-95',
-                  filters[key] ? 'border-court bg-court text-on-brand' : 'border-hairline bg-card text-ink-2',
+                  'min-h-[34px] flex-shrink-0 rounded-pill border-2 px-3.5 py-1 text-[12px] font-bold transition-colors active:scale-95',
+                  filters[key] ? 'border-court bg-court text-on-brand' : 'border-ink-3/20 bg-card text-ink-2',
                 )}
               >
                 {label}
@@ -536,13 +548,13 @@ export function CourtsHome({
             ))}
             <button
               onClick={() => setShowMoreFilters(p => !p)}
-              className="min-h-[32px] flex-shrink-0 rounded-pill border border-hairline bg-card px-3 py-1 text-[12px] font-semibold text-ink-3 active:scale-95"
+              className="min-h-[34px] flex-shrink-0 rounded-pill border-2 border-ink-3/20 bg-card px-3.5 py-1 text-[12px] font-bold text-ink-3 active:scale-95"
             >
               {showMoreFilters ? t('courts.filter_less', { defaultValue: 'Less' }) : t('courts.filter_more', { defaultValue: 'More' })}
             </button>
           </div>
           {showMoreFilters && (
-            <div className="flex flex-wrap items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-2">
               {([
                 { key: 'indoor' as const, label: `${t('courts.filter_indoor')} (224)` },
                 { key: 'outdoor' as const, label: `${t('courts.filter_outdoor')} (111)` },
@@ -552,8 +564,8 @@ export function CourtsHome({
                   onClick={() => toggleFilter(key)}
                   aria-pressed={filters[key]}
                   className={cn(
-                    'min-h-[32px] flex-shrink-0 rounded-pill border px-3 py-1 text-[12px] font-semibold transition-colors active:scale-95',
-                    filters[key] ? 'border-court bg-court text-on-brand' : 'border-hairline bg-card text-ink-2',
+                    'min-h-[34px] flex-shrink-0 rounded-pill border-2 px-3.5 py-1 text-[12px] font-bold transition-colors active:scale-95',
+                    filters[key] ? 'border-court bg-court text-on-brand' : 'border-ink-3/20 bg-card text-ink-2',
                   )}
                 >
                   {label}

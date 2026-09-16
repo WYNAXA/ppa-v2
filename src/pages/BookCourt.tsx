@@ -570,7 +570,7 @@ export function BookCourtPage() {
     }
   }, [userGroups, selectedGroupId])
 
-  const { data: userLocation } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
+  const { data: userLocation, isLoading: locationQueryLoading } = useQuery<{ latitude: number | null; longitude: number | null } | null>({
     queryKey: ['my-location-bookcourt', userId],
     enabled: !!userId,
     queryFn: async () => {
@@ -1328,6 +1328,7 @@ export function BookCourtPage() {
                 onQueryChange={(v) => { setVenueQuery(v); setNonPpaVenue(null) }}
                 onUseLocation={requestLocation}
                 locating={locating}
+                locationLoading={locationQueryLoading && !coords}
                 onPickVenue={(venueId) => { void resolveAndSelectVenue(venueId) }}
                 matchGroupId={(matchData?.group_id as string) ?? undefined}
                 isMatchMode={!!matchId}

@@ -31,10 +31,10 @@ import { goBack } from '@/lib/navigation'
 // ── Time windows ────────────────────────────────────────────────────────────
 
 const TIME_WINDOWS = [
-  { key: 'morning',   label: 'Morning',   from: '06:00', to: '12:00' },
-  { key: 'afternoon', label: 'Afternoon', from: '12:00', to: '17:00' },
-  { key: 'evening',   label: 'Evening',   from: '17:00', to: '22:00' },
-  { key: 'any',       label: 'Any time',  from: '00:00', to: '23:59' },
+  { key: 'morning',   label: 'Morning',   from: '06:00', to: '12:00', defaultTime: '09:00' },
+  { key: 'afternoon', label: 'Afternoon', from: '12:00', to: '17:00', defaultTime: '14:00' },
+  { key: 'evening',   label: 'Evening',   from: '17:00', to: '22:00', defaultTime: '19:00' },
+  { key: 'any',       label: 'Any time',  from: '06:00', to: '23:59', defaultTime: '19:00' },
 ] as const
 
 type WindowKey = typeof TIME_WINDOWS[number]['key']
@@ -122,7 +122,7 @@ export default function FindGame() {
     if (!userId) return
     setCreatingMatch(true)
 
-    const matchTime = window.from // 'any' uses '00:00'
+    const matchTime = window.defaultTime
     const hasGroup = !!selectedGroupId
 
     const { data: match, error } = await supabase
@@ -165,9 +165,9 @@ export default function FindGame() {
 
     setCreatingMatch(false)
 
-    // Navigate to BookCourt with the match, so the player lands in the
-    // CourtsHome tiered list (Path A: a game needs a court).
-    navigate(`/play/book-court?match_id=${match.id}&date=${dateStr}`)
+    // "I'll sort the court later" — go to Home where the match appears
+    // in Needs a Court. The user chose to skip the venue step.
+    navigate('/')
   }
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -416,18 +416,11 @@ export default function FindGame() {
               </div>
             </div>
 
-            {/* Create match and go to BookCourt */}
-            <div className="px-5 mb-4">
-              <button
-                onClick={handleCreateMatch}
-                disabled={creatingMatch}
-                className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform disabled:opacity-50"
-              >
-                {creatingMatch ? 'Creating…' : 'Create game & find a court'}
-              </button>
-            </div>
+            {/* The venue list IS the action — tapping a venue creates the match
+                and enters the booking flow. §4: no separate button that navigates
+                away from the courts (L1). */}
 
-            {/* CourtsHome for browsing — reuse the same component */}
+            {/* CourtsHome — tapping a venue creates the match */}
             <CourtsHome
               lat={coords?.lat ?? null}
               lng={coords?.lng ?? null}
@@ -437,7 +430,7 @@ export default function FindGame() {
               locating={locating}
               onPickVenue={async (venueId) => {
                 if (!userId) return
-                const matchTime = window.from
+                const matchTime = window.defaultTime
                 const hasGroup = !!selectedGroupId
 
                 const { data: match, error } = await supabase
@@ -478,6 +471,17 @@ export default function FindGame() {
               targetDayKey={format(selectedDate, 'EEEE').toLowerCase()}
               targetTime={selectedWindow === 'any' ? undefined : window.from}
             />
+
+            {/* Secondary: create the game without picking a venue now */}
+            <div className="px-5 mt-4 mb-8">
+              <button
+                onClick={handleCreateMatch}
+                disabled={creatingMatch}
+                className="w-full text-center text-[13px] font-semibold text-ink-2 py-3 active:text-court transition-colors"
+              >
+                {creatingMatch ? 'Creating…' : "I'll sort the court later"}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

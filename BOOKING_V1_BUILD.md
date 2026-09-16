@@ -284,6 +284,22 @@ The WHO step currently shows the selected group's members only. Connections
 and open-match players (§4 mentions both) are absent — that is scope to add,
 not something that shipped.
 
+### 4.1.2 WHERE — the list IS the action (L1, 2026-09-16)
+
+The venue list is not a preview — tapping a venue creates the match and
+enters the booking flow for that venue. There is no separate "Create game &
+find a court" button that navigates away from the list (that was L1: the
+button duplicated the list and sent the user to Home).
+
+- Tap a tier 1 venue → match created, into BookCourt with venue pre-selected
+- Tap a tier 2/3 venue → match created, into BookCourt with handoff
+- "I'll sort the court later" → secondary text link, creates match, goes Home
+
+Time window → match_time mapping:
+  Morning → 09:00, Afternoon → 14:00, Evening → 19:00, Any → 19:00.
+The window boundaries (06:00–12:00, etc.) are for filtering venues by open
+hours, not for the game time. L3: "Saturday morning" created a 06:00 game.
+
 Christian is right that this is the order
 Playskan gets correct, and it is correct regardless of whether we hold
 availability — because it changes what we *show*, not what we *claim*.

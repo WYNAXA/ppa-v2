@@ -23,7 +23,7 @@ import { useDateLocale } from '@/lib/dateLocale'
 import { toast } from 'sonner'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/hooks/useAuth'
-import { useMyGroups, useGroupMembers } from '@/hooks/useSocial'
+import { useMyGroups, useGroupMembers, useMyConnections } from '@/hooks/useSocial'
 import { PlayerAvatar } from '@/components/shared/PlayerAvatar'
 import { CourtsHome } from '@/components/play/CourtsHome'
 import { cn } from '@/lib/utils'
@@ -83,6 +83,8 @@ export default function FindGame() {
 
   // ── WHO state ─────────────────────────────────────────────────────────────
   const { data: myGroups = [] } = useMyGroups(userId)
+  const { data: connections } = useMyConnections(userId)
+  const connectionProfiles = connections?.acceptedProfiles ?? []
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() =>
     sessionStorage.getItem('fg_group') || null
   )
@@ -187,7 +189,53 @@ export default function FindGame() {
   const dateStr = format(selectedDate, 'yyyy-MM-dd')
   const dayLabel = format(selectedDate, 'EEEE', { locale })
 
-  // Members of the selected group (for the WHO step)
+  // N6b: Open matches needing players at the selected date/time.
+  // These are GAMES needing players, not players being free.
+  // A match with no venue has no location — we can't filter by distance, so
+  // we show it without a distance label. Matches with a venue get haversine.
+  interface OpenMatch { id: string; match_time: string | null; venue_name: string | null; spots_left: number; distance: number | null }
+  const { data: openMatches = [] } = useQuery<OpenMatch[]>({
+    queryKey: ['open-matches-at-time', dateStr, selectedWindow, coords?.lat, coords?.lng],
+    enabled: !!dateStr,
+    staleTime: 30_000,
+    queryFn: async () => {
+      let query = supabase
+        .from('matches')
+        .select('id, match_time, player_ids, booked_venue_name, preferred_venue_name, padel_venue_id')
+        .eq('is_open', true)
+        .eq('match_date', dateStr)
+        .not('status', 'in', '("cancelled","completed")')
+      // Filter by time window if not "any"
+      if (selectedWindow !== 'any') {
+        query = query.gte('match_time', `${window.from}:00`).lt('match_time', `${window.to}:00`)
+      }
+      const { data } = await query
+      if (!data) return []
+      // Resolve venue locations for distance
+      const venueIds = [...new Set(data.filter(m => m.padel_venue_id).map(m => m.padel_venue_id as string))]
+      const venueLocMap = new Map<string, { lat: number; lng: number }>()
+      if (venueIds.length > 0 && coords) {
+        const { data: venues } = await supabase.from('padel_venues').select('venue_id, latitude, longitude').in('venue_id', venueIds)
+        for (const v of venues ?? []) {
+          if (v.latitude != null && v.longitude != null) venueLocMap.set(v.venue_id, { lat: v.latitude, lng: v.longitude })
+        }
+      }
+      return data.map(m => {
+        const vLoc = m.padel_venue_id ? venueLocMap.get(m.padel_venue_id as string) : null
+        const dist = coords && vLoc
+          ? 3959 * Math.acos(Math.min(1, Math.cos(coords.lat * Math.PI / 180) * Math.cos(vLoc.lat * Math.PI / 180) * Math.cos((vLoc.lng - coords.lng) * Math.PI / 180) + Math.sin(coords.lat * Math.PI / 180) * Math.sin(vLoc.lat * Math.PI / 180)))
+          : null
+        return {
+          id: m.id,
+          match_time: m.match_time as string | null,
+          venue_name: (m.booked_venue_name ?? m.preferred_venue_name) as string | null,
+          spots_left: Math.max(0, 4 - ((m.player_ids as string[]) ?? []).length),
+          distance: dist,
+        }
+      }).filter(m => m.spots_left > 0)
+        .sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity))
+    },
+  })
 
   // ── Create match and navigate to venue selection ──────────────────────────
   // §4: the WHO step picks who to ASK, not who is in the match.
@@ -334,12 +382,40 @@ export default function FindGame() {
               </div>
             </div>
 
+            {/* N6b: Open matches needing players at this date/time */}
+            {openMatches.length > 0 && (
+              <div>
+                <p className="text-[13px] font-semibold text-ink-2 mb-3">
+                  {openMatches.length} {openMatches.length === 1 ? 'game' : 'games'} near you {openMatches.length === 1 ? 'needs' : 'need'} players on {dayLabel.toLowerCase()} {selectedWindow !== 'any' ? window.label.toLowerCase() : ''}
+                </p>
+                <div className="space-y-2">
+                  {openMatches.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => navigate(`/matches/${m.id}`)}
+                      className="w-full flex items-center gap-3 rounded-xl bg-surface border border-hairline px-4 py-3 text-left active:scale-[0.98] transition-transform"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-semibold text-ink truncate">
+                          {m.match_time?.slice(0, 5) ?? ''}{m.venue_name ? ` · ${m.venue_name}` : ''}
+                        </p>
+                        <p className="text-[11px] text-ink-2">
+                          {m.spots_left} {m.spots_left === 1 ? 'spot' : 'spots'} left{m.distance != null ? ` · ${m.distance.toFixed(1)} mi` : ''}
+                        </p>
+                      </div>
+                      <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Continue */}
             <button
               onClick={() => setStep('who')}
               className="w-full rounded-2xl bg-court py-4 text-[15px] font-bold text-white flex items-center justify-center gap-2 active:scale-[0.98] transition-transform"
             >
-              Next — who's playing? <ChevronRight className="h-4 w-4" />
+              {openMatches.length > 0 ? 'Create a new game instead' : 'Next — who\'s playing?'} <ChevronRight className="h-4 w-4" />
             </button>
           </motion.div>
         )}
@@ -414,6 +490,39 @@ export default function FindGame() {
                 <Users className="h-8 w-8 text-ink-3 mx-auto mb-2" />
                 <p className="text-[13px] font-semibold text-ink-2">No groups yet</p>
                 <p className="text-[12px] text-ink-3 mt-1">Create a group to play with your regulars.</p>
+              </div>
+            )}
+
+            {/* N6a: Connections — separate from groups, always shown if any */}
+            {connectionProfiles.length > 0 && !selectedGroupId && (
+              <div>
+                <p className="text-[13px] font-semibold text-ink-2 mb-3 flex items-center gap-1.5">
+                  <Users className="h-4 w-4" /> Your connections
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {connectionProfiles.map(c => {
+                    const selected = selectedPlayers.includes(c.user_id)
+                    return (
+                      <button
+                        key={c.user_id}
+                        onClick={() => {
+                          setSelectedPlayers(prev =>
+                            selected ? prev.filter(id => id !== c.user_id) : [...prev, c.user_id]
+                          )
+                        }}
+                        className={cn(
+                          'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-semibold transition-all active:scale-95',
+                          selected
+                            ? 'bg-court-100 text-court-700'
+                            : 'bg-surface border border-hairline text-ink-3',
+                        )}
+                      >
+                        <PlayerAvatar name={c.name} avatarUrl={c.avatar_url} size="sm" />
+                        {c.name?.split(' ')[0] ?? 'Player'}
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
             )}
 

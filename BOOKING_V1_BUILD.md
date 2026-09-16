@@ -266,6 +266,21 @@ The current flow is venue-first. Invert it.
 
 Two taps and we know the intent.
 
+After the date and window are picked, show open matches needing players at
+that time: "N games near you need players on Saturday morning." These are
+GAMES needing players, not players being free. Joining one ends the §4 flow.
+Creating a new game is below it. A match with no venue has no location — it
+is shown without a distance label. (N6b, 2026-09-16)
+
+### 4.1.0.1 WHO sources (N6a, 2026-09-16)
+
+Two sources, clearly separated:
+- **Your groups** → pick a group, then its members (with "Ask the usual four")
+- **Your connections** → the accepted list, same chip pattern, no group needed
+
+A player with no groups can complete the WHO step via connections alone.
+"Ask the usual four" is group-only (derived from group match history).
+
 ### 4.1.1 WHO — ask, don't assign (added 2026-09-16)
 
 `matches.player_ids` has a CHECK constraint: max 4. A padel match IS 4 people.

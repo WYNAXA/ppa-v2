@@ -79,6 +79,15 @@ week-group-matches
 A missing key means a player's view goes stale when another player changes
 the same match — the exact bug that kept booked games visible on Home.
 
+## Layout complaints — measure in a browser, not in code
+
+A layout complaint ("page is too wide", "element overflows") gets measured in a
+browser at the reported viewport width, using `document.documentElement.scrollWidth`
+vs `clientWidth`. A code read has been wrong twice (M5a, N3) because the element
+at fault was the one that was *missing* — CourtsHome had no horizontal padding
+inside FindGame, so nothing in its code overflowed, but the content went edge to
+edge on a 390px screen.
+
 ## Migrations — ppa-v2 owns them for timbjfihsxqfrqrxwdny
 
 **Rule:** ppa-v2 is the single repo that holds migration files for the shared

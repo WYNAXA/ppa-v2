@@ -29,6 +29,8 @@ interface UnbookedMatch {
   claimant_name: string | null
   player_count: number
   group_name: string | null
+  is_open: boolean
+  pending_invitations: number
 }
 
 function useUnbookedMatches(userId: string) {
@@ -41,38 +43,57 @@ function useUnbookedMatches(userId: string) {
 
       const { data: rawData, error } = await (supabase
         .from('matches')
-        .select('id, match_date, match_time, booking_status, booking_claimed_by, booking_claimed_at, player_ids, group_id, booked_venue_name, preferred_venue_name')
+        .select('id, match_date, match_time, booking_status, booking_claimed_by, booking_claimed_at, player_ids, group_id, booked_venue_name, preferred_venue_name, is_open')
         .contains('player_ids', [userId])
         .gte('match_date', today)
         .neq('booking_status', 'booked')
         .eq('court_requirement', 'needed')
-        .not('status', 'in', '("completed","cancelled","open")')
+        .not('status', 'in', '("completed","cancelled")')
         .order('match_date', { ascending: true })
         .order('match_time', { ascending: true, nullsFirst: false }) as any)
 
       if (error || !rawData) return []
       const data = rawData as Array<Record<string, unknown>>
 
-      // C3: A 1-player match is a stub, not a real game that needs a court.
-      // Minimum 2 players: at that point someone committed to play and a court
-      // is a reasonable ask. 1 player is the creator alone — no game to book for.
-      const filtered = data.filter(m => ((m.player_ids as string[]) ?? []).length >= 2)
+      // C3 + K7: A 1-player match with no invitations is a stub — no game to
+      // book for. But a 1-player match WITH pending invitations (§4 Path B) is a
+      // real game waiting for players. Show it so the creator sees it on Home.
+      //
+      // Include a match when:
+      //   - player_ids.length >= 2 (original C3 rule), OR
+      //   - is_open = true (§4 match — invitations are out, waiting on responses)
+      const filtered = data.filter(m => {
+        const playerCount = ((m.player_ids as string[]) ?? []).length
+        if (playerCount >= 2) return true
+        if ((m as Record<string, unknown>).is_open === true) return true
+        return false
+      })
 
       // Resolve claimant names and group names
       const claimantIds = [...new Set(filtered.filter(m => m.booking_claimed_by).map(m => m.booking_claimed_by as string))]
       const groupIds = [...new Set(filtered.filter(m => m.group_id).map(m => m.group_id as string))]
 
-      const [claimants, groups] = await Promise.all([
+      const matchIds = filtered.map(m => m.id as string)
+
+      const [claimants, groups, invitations] = await Promise.all([
         claimantIds.length > 0
           ? supabase.from('profiles').select('id, name').in('id', claimantIds).then(r => r.data ?? [])
           : [],
         groupIds.length > 0
           ? supabase.from('groups').select('id, name').in('id', groupIds).then(r => r.data ?? [])
           : [],
+        matchIds.length > 0
+          ? supabase.from('match_invitations').select('match_id').in('match_id', matchIds).eq('status', 'pending').then(r => r.data ?? [])
+          : [],
       ])
 
       const claimantMap = new Map(claimants.map(c => [c.id, c.name]))
       const groupMap = new Map(groups.map(g => [g.id, g.name]))
+      // Count pending invitations per match
+      const invCountMap = new Map<string, number>()
+      for (const inv of invitations) {
+        invCountMap.set(inv.match_id, (invCountMap.get(inv.match_id) ?? 0) + 1)
+      }
 
       return filtered.map(m => ({
         id: m.id as string,
@@ -87,6 +108,8 @@ function useUnbookedMatches(userId: string) {
         claimant_name: m.booking_claimed_by ? (claimantMap.get(m.booking_claimed_by as string) ?? 'Someone') : null,
         player_count: ((m.player_ids as string[]) ?? []).length,
         group_name: m.group_id ? (groupMap.get(m.group_id as string) ?? null) : null,
+        is_open: (m as Record<string, unknown>).is_open === true,
+        pending_invitations: invCountMap.get(m.id as string) ?? 0,
       }))
     },
   })
@@ -139,7 +162,7 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
       <section className="flex flex-col gap-2.5">
         <div className="flex items-center gap-2">
           <h2 className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-2">
-            {t('home.needs_court', { defaultValue: 'Needs a court' })}
+            {t('home.upcoming_games', { defaultValue: 'Your games' })}
           </h2>
           <span className="num rounded-pill bg-ball px-[7px] py-0.5 text-[11px] font-bold leading-[14px] text-ink">
             {matches.length}
@@ -169,7 +192,11 @@ export function NeedsCourtSection({ userId }: { userId: string }) {
                     {dateLine}{timeLine ? ` · ${timeLine}` : ''}
                   </span>
                   <span className="text-[13px] leading-[18px] text-ink-2">
-                    {match.player_count} {t('home.players', { defaultValue: 'players' })}
+                    {match.player_count >= 4
+                      ? `${match.player_count} ${t('home.players', { defaultValue: 'players' })}`
+                      : match.is_open && match.pending_invitations > 0
+                        ? `${match.player_count} confirmed · ${match.pending_invitations} invited`
+                        : `${match.player_count} ${t('home.players', { defaultValue: 'players' })}`}
                     {match.group_name ? ` · ${match.group_name}` : ''}
                   </span>
                 </div>

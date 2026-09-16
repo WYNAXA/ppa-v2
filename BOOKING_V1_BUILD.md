@@ -490,10 +490,30 @@ counts the UI displays alongside the query that produced them. Run it twice —
 same input, same answer. A random mechanic would not survive this gate, which
 is why it is here.
 
-**G4 — The handoff, on a real phone.** With the Playtomic app installed, tap a
-tier-2 venue. Report: did it open the app or the browser, and did the date
-carry? Answer for Playtomic and Padel Mates separately. If the date does not
-carry, say so — the copy changes, and that is fine.
+**G4 — The handoff, on a real phone.** ANSWERED 2026-09-16.
+
+**iOS — settled by AASA fetch:**
+Playtomic's `apple-app-site-association` (at `app.playtomic.com`) lists
+`/groups` and `/leagues` paths but NOT `/clubs/`. Our booking URLs are
+`playtomic.com/clubs/<slug>`. Universal links will NOT open the Playtomic
+app for club URLs on iOS — it always opens Safari. `?q=YYYY-MM-DD` is
+ignored by Playtomic's web (tested: showed today, not the requested date).
+
+EasyCancha's AASA lists `/redirectTo/*` — our URL shape does not match, so
+the app will not open on iOS either.
+
+**Android — likely opens, not yet tested on a handset:**
+`assetlinks.json` at `app.playtomic.com` lists `com.playtomic` with
+`handle_all_urls`. Android should intercept the navigation and open the app.
+One handset test needed to confirm.
+
+**Padel Mates:** zero venues carry this platform (F1c cleared the mismatch).
+
+**Copy:** "Book on Playtomic" changed to "Book on playtomic.com" (P6b) —
+names the site, not the app, because iOS always opens the browser.
+
+**Note:** This answer can change if Playtomic edits their AASA. It is a
+finding with a date, not a permanent truth.
 
 **G5 — No invented availability.** Grep the venue list rendering for any slot,
 price or court-count that is not sourced from a tier-1 venue's own data. Paste

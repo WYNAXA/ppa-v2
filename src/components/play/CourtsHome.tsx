@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
-import { getVenueTier, isNamedPlatform, type VenueTier } from '@/lib/venueTier'
+import { getVenueTier, isNamedPlatform, platformDisplayName, type VenueTier } from '@/lib/venueTier'
 import { venueOpenState, type VenueOpenState, type AvailabilitySettings } from '@/lib/venueHours'
 import { forwardGeocode } from '@/lib/geocode'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
@@ -724,7 +724,7 @@ export function CourtsHome({
                         }}
                         className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold text-ink-2"
                       >
-                        {t('courts.book_on', { platform: v.platform, defaultValue: `Book on ${v.platform}` })}
+                        {`Book on ${platformDisplayName(v.bookingUrl)}`}
                       </button>
                     ) : hasWebsiteOnly ? (
                       <button
@@ -892,7 +892,7 @@ export function CourtsHome({
                     v.onPpa
                       ? t('courts.booking_coming_soon')
                       : isNamedPlatform(v.platform, v.bookingUrl)
-                        ? t('courts.books_via', { platform: v.platform })
+                        ? t('courts.books_via', { platform: platformDisplayName(v.bookingUrl) })
                         : v.bookingUrl
                           ? t('courts.books_direct')
                           : t('courts.not_on_ppa'),

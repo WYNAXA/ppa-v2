@@ -8,7 +8,7 @@ import { useDiscoverList, useDiscoverRadius } from '@/hooks/useDiscoverList'
 import { openUrl } from '@/lib/openUrl'
 import { formatDistance } from '@/lib/travelUtils'
 import { goBack } from '@/lib/navigation'
-import { isNamedPlatform } from '@/lib/venueTier'
+import { isNamedPlatform, platformDisplayName } from '@/lib/venueTier'
 
 /**
  * §3.1 Clubs page — tile's number, rendered.
@@ -72,7 +72,7 @@ export function VenuesPage() {
     if (withBooking) {
       const bp = withBooking.meta.booking_platform as string | null
       const bUrl = withBooking.meta.booking_url as string
-      return { row: withBooking, eyebrow: t('discover.hero_nearest_club'), ball: true, cta: isNamedPlatform(bp, bUrl) ? t('courts.books_via', { platform: bp }) : t('venue.visit_website', { defaultValue: 'Visit their website' }), dest: '', url: bUrl }
+      return { row: withBooking, eyebrow: t('discover.hero_nearest_club'), ball: true, cta: isNamedPlatform(bp, bUrl) ? `Book on ${platformDisplayName(bUrl)}` : t('venue.visit_website', { defaultValue: 'Visit their website' }), dest: '', url: bUrl }
     }
     const nearest = sorted[0]
     if (nearest) return { row: nearest, eyebrow: t('discover.hero_nearest_club'), ball: true, cta: t('discover.action_view'), dest: `/venues/${nearest.id}` }
@@ -198,7 +198,7 @@ export function VenuesPage() {
                   ) : bookingUrl ? (
                     <button onClick={() => openUrl(bookingUrl)}
                       className="flex-shrink-0 whitespace-nowrap flex items-center gap-1 rounded-control border border-hairline bg-card px-3 py-2.5 text-[12px] font-bold text-ink-2">
-                      {isNamedPlatform(platform, bookingUrl) ? t('courts.books_via', { platform }) : t('venue.visit_website', { defaultValue: 'Visit their website' })} <ExternalLink className="h-3 w-3" />
+                      {isNamedPlatform(platform, bookingUrl) ? `Book on ${platformDisplayName(bookingUrl)}` : t('venue.visit_website', { defaultValue: 'Visit their website' })} <ExternalLink className="h-3 w-3" />
                     </button>
                   ) : (
                     <ChevronRight className="h-4 w-4 text-ink-3 flex-shrink-0" />

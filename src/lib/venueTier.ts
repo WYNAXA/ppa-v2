@@ -27,7 +27,6 @@ const NAMED_PLATFORMS: Record<string, string> = {
 /** True if booking_platform is a real named platform AND the URL host matches. */
 export function isNamedPlatform(platform: string | null | undefined, bookingUrl?: string | null): boolean {
   if (!platform || !(platform in NAMED_PLATFORMS)) return false
-  // If no URL provided, trust the platform name alone (label-only contexts)
   if (!bookingUrl) return true
   const token = NAMED_PLATFORMS[platform]
   try {
@@ -35,6 +34,20 @@ export function isNamedPlatform(platform: string | null | undefined, bookingUrl?
     return host.includes(token)
   } catch {
     return false
+  }
+}
+
+/**
+ * P6b: the display name for a named platform — the domain, not the brand.
+ * "Book on playtomic.com" says where it goes. "Book on Playtomic" implies an app.
+ * On iOS, club URLs always open Safari (AASA does not list /clubs/ — G4).
+ */
+export function platformDisplayName(bookingUrl: string | null | undefined): string {
+  if (!bookingUrl) return 'their website'
+  try {
+    return new URL(bookingUrl).hostname.replace(/^www\./, '')
+  } catch {
+    return 'their website'
   }
 }
 

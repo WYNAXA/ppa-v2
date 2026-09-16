@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
 import { hoursAreTrustworthy } from '@/lib/venueHours'
 import { goBack } from '@/lib/navigation'
-import { isNamedPlatform } from '@/lib/venueTier'
+import { isNamedPlatform, platformDisplayName } from '@/lib/venueTier'
 import { openUrl } from '@/lib/openUrl'
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -669,7 +669,7 @@ export function VenueDetailPage() {
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
             {isNamedPlatform(venue.booking_platform, venue.booking_url)
-              ? t('venue.book_via_platform', { platform: venue.booking_platform })
+              ? `Book on ${platformDisplayName(venue.booking_url)}`
               : t('venue.visit_website', { defaultValue: 'Visit their website' })}
             <ExternalLink size={14} />
           </button>

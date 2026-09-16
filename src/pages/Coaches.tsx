@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useDiscoverList, useDiscoverRadius } from '@/hooks/useDiscoverList'
 import { formatDistance } from '@/lib/travelUtils'
 import { goBack } from '@/lib/navigation'
+import { isNamedPlatform, platformDisplayName } from '@/lib/venueTier'
 import { openUrl } from '@/lib/openUrl'
 
 /**
@@ -82,7 +83,9 @@ export function CoachesPage() {
         eyebrow: t('discover.hero_lessons_here'),
         isCoach: false,
         bookingUrl,
-        ctaLabel: bookingUrl ? t('courts.books_via', { platform: platform ?? t('venue.website_fallback') }) : t('discover.action_view'),
+        ctaLabel: bookingUrl
+          ? isNamedPlatform(platform, bookingUrl) ? `Book on ${platformDisplayName(bookingUrl)}` : t('venue.visit_website', { defaultValue: 'Visit their website' })
+          : t('discover.action_view'),
       }
     }
     return null

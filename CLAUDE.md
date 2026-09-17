@@ -55,7 +55,14 @@ SQL Editor. Do not use `db query -f` followed by a manual INSERT.
    match with no venue name). The incident was only caught because a human
    queried the row.
 
-3. If the tooling (e.g. `supabase db query --linked`) cannot hold a transaction
+3. **A cron function is a write path.** Calling `SELECT notify_unbooked_matches()`
+   to prove it works is a production write — it inserts real notifications to real
+   users. Gate it the same way: `BEGIN; SELECT ...; <read the results>; ROLLBACK;`.
+   On 2026-09-17, S4-G1 and S4-G2 pushed 17 notifications to production as a test.
+   The content was truthful (the games genuinely needed courts), but the method was
+   wrong — a test run should never touch production rows.
+
+4. If the tooling (e.g. `supabase db query --linked`) cannot hold a transaction
    across statements, the test is not safe to run against production. Use a
    local database or a `DO` block instead.
 

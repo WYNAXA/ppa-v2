@@ -378,7 +378,8 @@ export function CourtsHome({
   }
 
   const { data: searchResults = [] } = useQuery<Venue[]>({
-    queryKey: ['venue-search', debouncedQuery],
+    // Q6b: include the viewer's origin so a location change invalidates cached distances
+    queryKey: ['venue-search', debouncedQuery, lat, lng],
     enabled: debouncedQuery.length >= 2,
     staleTime: 30_000,
     queryFn: async () => {
@@ -738,7 +739,7 @@ export function CourtsHome({
                         }}
                         className="min-h-[44px] flex-shrink-0 whitespace-nowrap rounded-control bg-surface px-3 py-2.5 text-[12px] font-bold text-ink-2"
                       >
-                        {`Book on ${platformDisplayName(v.bookingUrl)}`}
+                        {venueTierLabel({ ppa_bookable: v.bookable, booking_platform: v.platform, booking_url: v.bookingUrl })}
                       </button>
                     ) : hasWebsiteOnly ? (
                       <button

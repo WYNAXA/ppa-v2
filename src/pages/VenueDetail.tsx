@@ -668,7 +668,7 @@ export function VenueDetailPage() {
             onClick={() => openUrl(venue.booking_url!)}
             className="flex-1 rounded-xl bg-court text-white font-semibold py-3 text-sm flex items-center justify-center gap-1.5 active:scale-[0.98] transition-transform"
           >
-            {venueTierLabel({ ppa_bookable: false, booking_platform: venue.booking_platform, booking_url: venue.booking_url })}
+            {venueTierLabel({ ppa_bookable: venue.ppa_bookable, booking_platform: venue.booking_platform, booking_url: venue.booking_url })}
             <ExternalLink size={14} />
           </button>
         ) : venue.website?.trim() ? (

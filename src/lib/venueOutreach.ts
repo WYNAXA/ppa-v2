@@ -33,17 +33,21 @@ export interface VenueOutreachContext {
  * to look. No exclamation marks, no emoji — this is a message a player sends to
  * a business, and the tone should let them send it without editing.
  */
+/**
+ * S4/R2: rewritten as a player asking their club a question, not our sales pitch
+ * under their name. Short, first-person, no feature list.
+ */
 export function venueOutreachMessage(ctx: VenueOutreachContext): string {
-  const who = ctx.playerName?.trim() ? `I'm ${ctx.playerName.trim()} — one` : 'I am one'
+  const name = ctx.playerName?.trim() || ''
   return [
     `Hi ${ctx.venueName},`,
     ``,
-    `${who} of your players. We organise our padel games on Padel Players App — it handles who's in, court booking, scores and rankings for the group.`,
+    `I play padel at your club and use the Padel Players App to organise games with my group. It would be great if we could book courts through it — would you be open to listing?`,
     ``,
-    `You're not on it yet, so we book with you separately. If you list your courts, we'd book through the app and you'd get the bookings from our group and everyone else nearby using it.`,
+    `${venuesLandingUrl()}`,
     ``,
-    `Details for venues here: ${venuesLandingUrl()}`,
-  ].join('\n')
+    name,
+  ].filter(Boolean).join('\n')
 }
 
 export type OutreachResult = 'shared' | 'copied' | 'cancelled' | 'unavailable'

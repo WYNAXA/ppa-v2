@@ -86,6 +86,21 @@ week-group-matches
 A missing key means a player's view goes stale when another player changes
 the same match — the exact bug that kept booked games visible on Home.
 
+## R1b — discover tile counts (Bristol, 25 mi, service role)
+
+```
+Clubs 13 · Players 58 · Coaching 8 · Groups 5 · Leagues 0 · Events 11
+```
+
+Query: `SELECT count(*) FROM discover_list('<kind>', 51.45, -2.59, 25, null, 0)`
+for each of: venues, players, coaching, groups, leagues, events.
+
+Clubs went 14 → 13 when the test fixture (Bristol Padel Club, "1 Test Lane")
+was closed (S3-G1). Players and Events may change with real activity. If a
+number drifts, re-run this query — do NOT query raw tables with ad-hoc
+conditions, which is how R1b was misread on 2026-09-17 (raw match counts
+reported as discover tile counts).
+
 ## Shared truth — when a third component needs the same sentence, extract it
 
 When the same derived value (tier label, hours state, platform name, venue

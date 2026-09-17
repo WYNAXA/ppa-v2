@@ -28,6 +28,8 @@ import { Toggle } from '@/components/shared/Toggle'
  */
 
 interface Prefs {
+  booking_reminders: boolean
+  booking_payments: boolean
   open_matches: boolean
   match_reminders: boolean
   match_results: boolean
@@ -37,6 +39,8 @@ interface Prefs {
 }
 
 const DEFAULTS: Prefs = {
+  booking_reminders: true,
+  booking_payments: true,
   open_matches: true,
   match_reminders: true,
   match_results: true,
@@ -45,9 +49,11 @@ const DEFAULTS: Prefs = {
   connection_requests: true,
 }
 
-// Ordered loudest first. `open_matches` reaches every accepted connection at
-// once, so it is the one a player is most likely to come here to find.
+// S4-A: booking split into reminders (game lifecycle) and payments (money).
+// Ordered loudest first.
 const CATEGORIES: { key: keyof Prefs; labelKey: string; hintKey: string }[] = [
+  { key: 'booking_reminders',   labelKey: 'you.notif_booking_reminders',   hintKey: 'you.notif_booking_reminders_hint' },
+  { key: 'booking_payments',    labelKey: 'you.notif_booking_payments',    hintKey: 'you.notif_booking_payments_hint' },
   { key: 'open_matches',        labelKey: 'you.notif_open_matches',        hintKey: 'you.notif_open_matches_hint' },
   { key: 'match_reminders',     labelKey: 'you.notif_match_reminders',     hintKey: 'you.notif_match_reminders_hint' },
   { key: 'match_results',       labelKey: 'you.notif_match_results',       hintKey: 'you.notif_match_results_hint' },
@@ -67,13 +73,13 @@ export function NotificationSettings({ userId, pushEnabled }: { userId: string; 
     queryFn: async () => {
       const { data, error } = await supabase
         .from('notification_preferences')
-        .select('open_matches, match_reminders, match_results, poll_reminders, chat_notifications, connection_requests')
+        .select('booking_reminders, booking_payments, open_matches, match_reminders, match_results, poll_reminders, chat_notifications, connection_requests')
         .eq('user_id', userId)
         .maybeSingle()
       // No row is not an error: a player who has never had one gets the
       // defaults, which is exactly what wants_push assumes for them.
       if (error) throw error
-      return { ...DEFAULTS, ...(data ?? {}) } as Prefs
+      return { ...DEFAULTS, ...((data ?? {}) as Record<string, unknown>) } as Prefs
     },
   })
 

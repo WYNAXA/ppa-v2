@@ -79,6 +79,17 @@ week-group-matches
 A missing key means a player's view goes stale when another player changes
 the same match — the exact bug that kept booked games visible on Home.
 
+## Shared truth — when a third component needs the same sentence, extract it
+
+When the same derived value (tier label, hours state, platform name, venue
+summary) is rendered by 3+ components, it must be a single function, not a copy
+in each file. Duplicated truth drifts — the map callout showed "playtomic.com"
+while the list showed "Playtomic" (Q5a), same class as isSeedDefaultHours (C2)
+and the tier heading (N1). Extract on the third use, not the fourth.
+
+Current shared functions: `venueTierLabel()`, `venueOpenState()`,
+`isNamedPlatform()`, `confirmedCourtCount()`.
+
 ## Layout complaints — measure in a browser, not in code
 
 A layout complaint ("page is too wide", "element overflows") gets measured in a

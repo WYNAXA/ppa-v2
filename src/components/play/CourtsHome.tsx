@@ -7,7 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { formatDistance } from '@/lib/travelUtils'
 import { cn } from '@/lib/utils'
 import { confirmedCourtCount } from '@/lib/venueRows'
-import { getVenueTier, isNamedPlatform, platformDisplayName, type VenueTier } from '@/lib/venueTier'
+import { getVenueTier, isNamedPlatform, platformDisplayName, venueTierLabel, type VenueTier } from '@/lib/venueTier'
 import { venueOpenState, type VenueOpenState, type AvailabilitySettings } from '@/lib/venueHours'
 import { forwardGeocode } from '@/lib/geocode'
 import { AskVenueSheet } from '@/components/play/AskVenueSheet'
@@ -342,8 +342,10 @@ export function CourtsHome({
     return () => clearTimeout(t)
   }, [query])
 
-  // P3: search state — geocoded location when name/city match returns nothing
-  const [searchGeoLabel, setSearchGeoLabel] = useState<string | null>(null)
+  // P3/Q5b: search origin — one variable for both branches.
+  // When a geocode is active, this is the geocoded point.
+  // When cleared (back to my area), null → falls back to viewer's coords.
+  const [searchOrigin, setSearchOrigin] = useState<{ lat: number; lng: number; label: string } | null>(null)
 
   // Q1: shapeRow takes an explicit origin for distance computation.
   // venues_near returns distance_miles from Postgres — use it when available
@@ -380,8 +382,12 @@ export function CourtsHome({
     enabled: debouncedQuery.length >= 2,
     staleTime: 30_000,
     queryFn: async () => {
-      setSearchGeoLabel(null)
+      setSearchOrigin(null)
       const safe = debouncedQuery.replace(/[%_\\]/g, c => `\\${c}`)
+      // Q5b: one origin for all branches. Name/city match uses viewer coords.
+      // Geocode sets searchOrigin and distances come from there.
+      const viewerLat = lat
+      const viewerLng = lng
 
       // Step 1: try venue_name / city match
       const { data: rows } = await supabase
@@ -392,18 +398,20 @@ export function CourtsHome({
         .limit(30)
 
       if (rows && rows.length > 0) {
-        return rows.map((v: any) => shapeRow(v, lat, lng))
+        // Name/city match — distances from the viewer (correct: user searched for a name)
+        return rows.map((v: any) => shapeRow(v, viewerLat, viewerLng))
       }
 
       // Step 2: no name/city match — geocode the string
       const geo = await forwardGeocode(debouncedQuery)
-      if (!geo) return [] // no hit — "No clubs matching X" will render
+      if (!geo) return []
 
-      // Step 3: recentre — fetch venues near the geocoded location
-      setSearchGeoLabel(geo.displayName)
+      // Step 3: recentre on geocoded point — distances from THERE
+      setSearchOrigin({ lat: geo.lat, lng: geo.lng, label: geo.displayName })
       const { data: nearbyRows } = await supabase.rpc('venues_near', {
         p_lat: geo.lat, p_lng: geo.lng, p_radius_miles: 25, p_limit: 30, p_venue_type: 'club',
       })
+      // venues_near returns distance_miles from the geocoded point; shapeRow prefers it
       return ((nearbyRows ?? []) as any[]).map((v: any) => shapeRow(v, geo.lat, geo.lng))
     },
   })
@@ -654,7 +662,7 @@ export function CourtsHome({
               latitude: v.lat,
               longitude: v.lng,
               distance_miles: v.distanceMiles,
-              tier_label: isNamedPlatform(v.platform, v.bookingUrl) ? `Book on ${platformDisplayName(v.bookingUrl)}` : v.bookingUrl ? 'Visit their website' : 'Call or visit',
+              tier_label: venueTierLabel({ ppa_bookable: v.bookable, booking_platform: v.platform, booking_url: v.bookingUrl }),
             }))}
             center={{ lat, lng }}
             onSelect={(id) => navigate(`/venues/${id}`)}
@@ -934,13 +942,13 @@ export function CourtsHome({
             <>
               <div className="flex items-center justify-between">
                 <h2 className="text-[11px] font-bold uppercase leading-[14px] tracking-[0.06em] text-ink-2">
-                  {searchGeoLabel
-                    ? `Showing clubs near ${searchGeoLabel}`
+                  {searchOrigin
+                    ? `Showing clubs near ${searchOrigin.label}`
                     : `${searchResults.length} ${searchResults.length === 1 ? 'club' : 'clubs'} matching "${query.trim()}"`}
                 </h2>
-                {searchGeoLabel && (
+                {searchOrigin && (
                   <button
-                    onClick={() => { onQueryChange(''); setSearchGeoLabel(null) }}
+                    onClick={() => { onQueryChange(''); setSearchOrigin(null) }}
                     className="text-[11px] font-semibold text-court"
                   >
                     Back to my area

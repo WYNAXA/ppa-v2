@@ -61,3 +61,21 @@ export function getVenueTier(venue: {
   return 3
 }
 
+/**
+ * Q5a: the tier line for a venue — ONE function, used by list, map callout,
+ * and VenueDetail. When a third component needs the same sentence, it becomes
+ * a function, not a copy. (CLAUDE.md shared-truth rule.)
+ *
+ * Returns: "Book on Playtomic" | "Visit their website" | "Call or visit" | "Book in app"
+ */
+export function venueTierLabel(venue: {
+  ppa_bookable?: boolean | null
+  booking_platform?: string | null
+  booking_url?: string | null
+}): string {
+  if (venue.ppa_bookable) return 'Book in app'
+  if (isNamedPlatform(venue.booking_platform, venue.booking_url)) return `Book on ${venue.booking_platform}`
+  if (venue.booking_url) return 'Visit their website'
+  return 'Call or visit'
+}
+
